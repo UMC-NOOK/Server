@@ -1,17 +1,19 @@
 package umc.nook.common.exception;
 
 import lombok.Getter;
+import umc.nook.common.response.BaseCode;
 
 @Getter
 public class CustomException extends RuntimeException {
-    private final ErrorCode errorCode;
 
-    public CustomException(ErrorCode errorCode) {
+    private final BaseCode errorCode;
+
+    public CustomException(BaseCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
     }
 
-    public CustomException(ErrorCode errorCode, String message) {
+    public CustomException(BaseCode errorCode, String message) {
         super(message);
         this.errorCode = errorCode;
     }
