@@ -50,10 +50,6 @@ Spring Boot 기반의 서버로 구성되어 있습니다.
 [FIX] Redis 연결 오류 해결
 [REFACTOR] JWT 필터 구조 개선
 
-yaml
-복사
-편집
-
 ---
 
 ## 💻 Github Management
