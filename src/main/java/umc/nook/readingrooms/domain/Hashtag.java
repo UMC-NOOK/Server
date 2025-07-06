@@ -2,6 +2,7 @@ package umc.nook.readingrooms.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import umc.nook.BaseTimeEntity;
 
 @Entity
 @Table(name = "hashtags")
@@ -9,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class Hashtag {
+public class Hashtag extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
