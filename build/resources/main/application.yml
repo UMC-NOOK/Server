@@ -3,9 +3,9 @@ spring:
     name: nook-api
 
   datasource:
-    url: jdbc:mysql://localhost:3306/umc?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: root
-    password: leejiwon0176
+    url: jdbc:mysql://localhost:3306/${DB}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${USERNAME}
+    password: ${PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -21,5 +21,4 @@ spring:
     host: localhost
     port: 6379
 jwt:
-  secret: dGhpc2lzbXl2ZXJ5c2VjdXJlc2VjcmV0a2V5Zm9yand0
-  refresh: dGhpc2lzbXl2ZXJ5c2VjdXJlc2VjcmV0a2V5Zm9yand0cmVmcmVzaA==
+  secret: ${JWTSECRET}

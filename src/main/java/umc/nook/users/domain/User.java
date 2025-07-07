@@ -3,6 +3,10 @@ package umc.nook.users.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import umc.nook.BaseTimeEntity;
+import umc.nook.readingrooms.domain.ReadingRoomUser;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "user")
@@ -31,4 +35,8 @@ public class User extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReadingRoomUser> joinedRooms = new ArrayList<>();
+
 }

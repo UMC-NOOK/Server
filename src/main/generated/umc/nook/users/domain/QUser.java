@@ -7,6 +7,7 @@ import com.querydsl.core.types.dsl.*;
 import com.querydsl.core.types.PathMetadata;
 import javax.annotation.processing.Generated;
 import com.querydsl.core.types.Path;
+import com.querydsl.core.types.dsl.PathInits;
 
 
 /**
@@ -25,6 +26,8 @@ public class QUser extends EntityPathBase<User> {
     public final DateTimePath<java.time.LocalDateTime> createdDate = _super.createdDate;
 
     public final StringPath email = createString("email");
+
+    public final ListPath<umc.nook.readingrooms.domain.ReadingRoomUser, umc.nook.readingrooms.domain.QReadingRoomUser> joinedRooms = this.<umc.nook.readingrooms.domain.ReadingRoomUser, umc.nook.readingrooms.domain.QReadingRoomUser>createList("joinedRooms", umc.nook.readingrooms.domain.ReadingRoomUser.class, umc.nook.readingrooms.domain.QReadingRoomUser.class, PathInits.DIRECT2);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> modifiedDate = _super.modifiedDate;
