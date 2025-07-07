@@ -33,7 +33,7 @@ public class ReadingRoomService {
     @Transactional(readOnly = true)
     public List<ReadingRoomDTO.ReadingRoomResponseDTO> getAllReadingRooms(int page) {
 
-        int pageSize = 16;
+        int pageSize = 12;
         PageRequest pageRequest = PageRequest.of(page, pageSize);
         Page<ReadingRoom> readingRooms = readingRoomRepository.findAll(pageRequest);
 
