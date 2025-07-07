@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import umc.nook.BaseTimeEntity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "theme")
 @Getter
@@ -20,7 +23,7 @@ public class Theme extends BaseTimeEntity {
 
     private String bgmUrl;
 
-    @OneToOne(mappedBy = "theme", fetch = FetchType.LAZY)
-    private ReadingRoom readingRoom;
+    @OneToMany(mappedBy = "theme", cascade = CascadeType.ALL, orphanRemoval = false)
+    private List<ReadingRoom> readingRooms = new ArrayList<>();
 
 }

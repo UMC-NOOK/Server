@@ -12,7 +12,10 @@
       <user-name>root</user-name>
       <schema-mapping>
         <introspection-scope>
-          <node kind="schema" qname="@" />
+          <node kind="schema">
+            <name qname="nook" />
+            <name qname="@" />
+          </node>
         </introspection-scope>
       </schema-mapping>
       <load-sources>user_and_system_sources</load-sources>

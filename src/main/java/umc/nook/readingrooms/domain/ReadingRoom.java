@@ -25,7 +25,7 @@ public class ReadingRoom extends BaseTimeEntity {
     @Column(length = 30, nullable = false)
     private String description;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "theme_id", nullable = false)
     private Theme theme;
 

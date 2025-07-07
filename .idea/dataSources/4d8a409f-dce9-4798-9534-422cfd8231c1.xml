@@ -1018,7 +1018,7 @@ sys|schema||mysql.sys|localhost|TRIGGER|G</Grants>
       <AutoIntrospectionLevel>3</AutoIntrospectionLevel>
       <Current>1</Current>
       <LastIntrospectionLevel>3</LastIntrospectionLevel>
-      <LastIntrospectionLocalTimestamp>2025-07-06.09:47:48</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2025-07-06.13:34:30</LastIntrospectionLocalTimestamp>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <schema id="294" parent="1" name="performance_schema">
@@ -1052,228 +1052,227 @@ sys|schema||mysql.sys|localhost|TRIGGER|G</Grants>
       <Host>localhost</Host>
       <Plugin>caching_sha2_password</Plugin>
     </user>
-    <table id="302" parent="293" name="reading_rooms">
+    <table id="302" parent="293" name="hashtags">
       <DetailsLevel>3</DetailsLevel>
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="303" parent="293" name="reading_rooms_hashtags">
+    <table id="303" parent="293" name="reading_rooms">
       <DetailsLevel>3</DetailsLevel>
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="304" parent="293" name="reading_rooms_users">
+    <table id="304" parent="293" name="reading_rooms_hashtags">
       <DetailsLevel>3</DetailsLevel>
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="305" parent="293" name="refresh_token">
+    <table id="305" parent="293" name="reading_rooms_users">
       <DetailsLevel>3</DetailsLevel>
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="306" parent="293" name="theme">
+    <table id="306" parent="293" name="refresh_token">
       <DetailsLevel>3</DetailsLevel>
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="307" parent="293" name="user">
+    <table id="307" parent="293" name="theme">
       <DetailsLevel>3</DetailsLevel>
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <column id="308" parent="302" name="id">
+    <table id="308" parent="293" name="user">
+      <DetailsLevel>3</DetailsLevel>
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <column id="309" parent="302" name="id">
       <AutoIncrement>1</AutoIncrement>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>bigint|0s</StoredType>
     </column>
-    <column id="309" parent="302" name="created_date">
+    <column id="310" parent="302" name="created_date">
       <Position>2</Position>
       <StoredType>datetime(6)|0s</StoredType>
     </column>
-    <column id="310" parent="302" name="modified_date">
+    <column id="311" parent="302" name="modified_date">
       <Position>3</Position>
       <StoredType>datetime(6)|0s</StoredType>
     </column>
-    <column id="311" parent="302" name="description">
+    <column id="312" parent="302" name="name">
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+      <StoredType>enum(&apos;_10대&apos;, &apos;_20대&apos;, &apos;_30대&apos;, &apos;_40대&apos;, &apos;_50대&apos;, &apos;eBook&apos;, &apos;가정&apos;, &apos;경제경영&apos;, &apos;고등학생&apos;, &apos;공학&apos;, &apos;과학&apos;, &apos;낮&apos;, &apos;대학생&apos;, &apos;독서기록&apos;, &apos;루틴&apos;, &apos;밤&apos;, &apos;뽀모도로&apos;, &apos;소설&apos;, &apos;시&apos;, &apos;아침&apos;, &apos;에세이&apos;, &apos;여행&apos;, &apos;역사&apos;, &apos;영어원서&apos;, &apos;예술&apos;, &apos;외국도서&apos;, &apos;요리&apos;, &apos;인문&apos;, &apos;일본도서&apos;, &apos;자기계발&apos;, &apos;자유독서&apos;, &apos;주말&apos;, &apos;중학생&apos;, &apos;직장인&apos;, &apos;철학&apos;, &apos;청소년&apos;, &apos;출근길&apos;, &apos;퇴근길&apos;, &apos;필사&apos;, &apos;희곡&apos;)|0e</StoredType>
+    </column>
+    <index id="313" parent="302" name="PRIMARY">
+      <ColNames>id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <index id="314" parent="302" name="UKoed8qhhrhflqj7olh3oeii6ym">
+      <ColNames>name</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="315" parent="302" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <key id="316" parent="302" name="UKoed8qhhrhflqj7olh3oeii6ym">
+      <UnderlyingIndexName>UKoed8qhhrhflqj7olh3oeii6ym</UnderlyingIndexName>
+    </key>
+    <column id="317" parent="303" name="id">
+      <AutoIncrement>1</AutoIncrement>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StoredType>bigint|0s</StoredType>
+    </column>
+    <column id="318" parent="303" name="created_date">
+      <Position>2</Position>
+      <StoredType>datetime(6)|0s</StoredType>
+    </column>
+    <column id="319" parent="303" name="modified_date">
+      <Position>3</Position>
+      <StoredType>datetime(6)|0s</StoredType>
+    </column>
+    <column id="320" parent="303" name="description">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>varchar(30)|0s</StoredType>
     </column>
-    <column id="312" parent="302" name="name">
+    <column id="321" parent="303" name="name">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StoredType>varchar(30)|0s</StoredType>
     </column>
-    <column id="313" parent="302" name="theme_id">
+    <column id="322" parent="303" name="theme_id">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StoredType>bigint|0s</StoredType>
     </column>
-    <foreign-key id="314" parent="302" name="FKdi26qymwf286ilr9njevqtef6">
+    <foreign-key id="323" parent="303" name="FKdi26qymwf286ilr9njevqtef6">
       <ColNames>theme_id</ColNames>
-      <RefColNames>theme_id</RefColNames>
+      <RefColNames>id</RefColNames>
       <RefTableName>theme</RefTableName>
     </foreign-key>
-    <index id="315" parent="302" name="PRIMARY">
+    <index id="324" parent="303" name="PRIMARY">
       <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <index id="316" parent="302" name="UKis6qoqabvpbrnn5klwovltrp5">
+    <index id="325" parent="303" name="FKdi26qymwf286ilr9njevqtef6">
       <ColNames>theme_id</ColNames>
       <Type>btree</Type>
-      <Unique>1</Unique>
     </index>
-    <key id="317" parent="302" name="PRIMARY">
+    <key id="326" parent="303" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <key id="318" parent="302" name="UKis6qoqabvpbrnn5klwovltrp5">
-      <UnderlyingIndexName>UKis6qoqabvpbrnn5klwovltrp5</UnderlyingIndexName>
-    </key>
-    <column id="319" parent="303" name="id">
+    <column id="327" parent="304" name="id">
       <AutoIncrement>1</AutoIncrement>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>bigint|0s</StoredType>
     </column>
-    <column id="320" parent="303" name="created_date">
+    <column id="328" parent="304" name="created_date">
       <Position>2</Position>
       <StoredType>datetime(6)|0s</StoredType>
     </column>
-    <column id="321" parent="303" name="modified_date">
+    <column id="329" parent="304" name="modified_date">
       <Position>3</Position>
       <StoredType>datetime(6)|0s</StoredType>
     </column>
-    <column id="322" parent="303" name="hashtag_id">
+    <column id="330" parent="304" name="hashtag_id">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>bigint|0s</StoredType>
     </column>
-    <column id="323" parent="303" name="reading_room_id">
+    <column id="331" parent="304" name="reading_room_id">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StoredType>bigint|0s</StoredType>
     </column>
-    <foreign-key id="324" parent="303" name="FKaaanix79beb51dcun171v0104">
+    <foreign-key id="332" parent="304" name="FKem4f165q14by3q420swu86n1k">
+      <ColNames>hashtag_id</ColNames>
+      <RefColNames>id</RefColNames>
+      <RefTableName>hashtags</RefTableName>
+    </foreign-key>
+    <foreign-key id="333" parent="304" name="FKaaanix79beb51dcun171v0104">
       <ColNames>reading_room_id</ColNames>
       <RefColNames>id</RefColNames>
       <RefTableName>reading_rooms</RefTableName>
     </foreign-key>
-    <index id="325" parent="303" name="PRIMARY">
+    <index id="334" parent="304" name="PRIMARY">
       <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <index id="326" parent="303" name="FKaaanix79beb51dcun171v0104">
+    <index id="335" parent="304" name="FKem4f165q14by3q420swu86n1k">
+      <ColNames>hashtag_id</ColNames>
+      <Type>btree</Type>
+    </index>
+    <index id="336" parent="304" name="FKaaanix79beb51dcun171v0104">
       <ColNames>reading_room_id</ColNames>
       <Type>btree</Type>
     </index>
-    <key id="327" parent="303" name="PRIMARY">
+    <key id="337" parent="304" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="328" parent="304" name="id">
+    <column id="338" parent="305" name="id">
       <AutoIncrement>1</AutoIncrement>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>bigint|0s</StoredType>
     </column>
-    <column id="329" parent="304" name="created_date">
+    <column id="339" parent="305" name="created_date">
       <Position>2</Position>
       <StoredType>datetime(6)|0s</StoredType>
     </column>
-    <column id="330" parent="304" name="modified_date">
+    <column id="340" parent="305" name="modified_date">
       <Position>3</Position>
       <StoredType>datetime(6)|0s</StoredType>
     </column>
-    <column id="331" parent="304" name="role">
+    <column id="341" parent="305" name="role">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>enum(&apos;GUEST&apos;, &apos;HOST&apos;)|0e</StoredType>
     </column>
-    <column id="332" parent="304" name="reading_room_id">
+    <column id="342" parent="305" name="reading_room_id">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StoredType>bigint|0s</StoredType>
     </column>
-    <column id="333" parent="304" name="user_id">
+    <column id="343" parent="305" name="user_id">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StoredType>bigint|0s</StoredType>
     </column>
-    <foreign-key id="334" parent="304" name="FKebmr8nq1gkgco2hkpslxp6odb">
+    <foreign-key id="344" parent="305" name="FKebmr8nq1gkgco2hkpslxp6odb">
       <ColNames>reading_room_id</ColNames>
       <RefColNames>id</RefColNames>
       <RefTableName>reading_rooms</RefTableName>
     </foreign-key>
-    <foreign-key id="335" parent="304" name="FKh2u8th1yjf2s5jhalmw9dpvfo">
+    <foreign-key id="345" parent="305" name="FKh2u8th1yjf2s5jhalmw9dpvfo">
       <ColNames>user_id</ColNames>
       <RefColNames>user_id</RefColNames>
       <RefTableName>user</RefTableName>
     </foreign-key>
-    <index id="336" parent="304" name="PRIMARY">
+    <index id="346" parent="305" name="PRIMARY">
       <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <index id="337" parent="304" name="FKebmr8nq1gkgco2hkpslxp6odb">
+    <index id="347" parent="305" name="FKebmr8nq1gkgco2hkpslxp6odb">
       <ColNames>reading_room_id</ColNames>
       <Type>btree</Type>
     </index>
-    <index id="338" parent="304" name="FKh2u8th1yjf2s5jhalmw9dpvfo">
-      <ColNames>user_id</ColNames>
-      <Type>btree</Type>
-    </index>
-    <key id="339" parent="304" name="PRIMARY">
-      <NameSurrogate>1</NameSurrogate>
-      <Primary>1</Primary>
-      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
-    </key>
-    <column id="340" parent="305" name="id">
-      <AutoIncrement>1</AutoIncrement>
-      <NotNull>1</NotNull>
-      <Position>1</Position>
-      <StoredType>bigint|0s</StoredType>
-    </column>
-    <column id="341" parent="305" name="created_date">
-      <Position>2</Position>
-      <StoredType>datetime(6)|0s</StoredType>
-    </column>
-    <column id="342" parent="305" name="modified_date">
-      <Position>3</Position>
-      <StoredType>datetime(6)|0s</StoredType>
-    </column>
-    <column id="343" parent="305" name="expiration">
-      <NotNull>1</NotNull>
-      <Position>4</Position>
-      <StoredType>datetime(6)|0s</StoredType>
-    </column>
-    <column id="344" parent="305" name="refresh_token">
-      <NotNull>1</NotNull>
-      <Position>5</Position>
-      <StoredType>varchar(512)|0s</StoredType>
-    </column>
-    <column id="345" parent="305" name="user_id">
-      <NotNull>1</NotNull>
-      <Position>6</Position>
-      <StoredType>bigint|0s</StoredType>
-    </column>
-    <foreign-key id="346" parent="305" name="FKfgk1klcib7i15utalmcqo7krt">
-      <ColNames>user_id</ColNames>
-      <RefColNames>user_id</RefColNames>
-      <RefTableName>user</RefTableName>
-    </foreign-key>
-    <index id="347" parent="305" name="PRIMARY">
-      <ColNames>id</ColNames>
-      <Type>btree</Type>
-      <Unique>1</Unique>
-    </index>
-    <index id="348" parent="305" name="FKfgk1klcib7i15utalmcqo7krt">
+    <index id="348" parent="305" name="FKh2u8th1yjf2s5jhalmw9dpvfo">
       <ColNames>user_id</ColNames>
       <Type>btree</Type>
     </index>
@@ -1282,7 +1281,7 @@ sys|schema||mysql.sys|localhost|TRIGGER|G</Grants>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="350" parent="306" name="theme_id">
+    <column id="350" parent="306" name="id">
       <AutoIncrement>1</AutoIncrement>
       <NotNull>1</NotNull>
       <Position>1</Position>
@@ -1296,76 +1295,124 @@ sys|schema||mysql.sys|localhost|TRIGGER|G</Grants>
       <Position>3</Position>
       <StoredType>datetime(6)|0s</StoredType>
     </column>
-    <column id="353" parent="306" name="bgm_url">
+    <column id="353" parent="306" name="expiration">
+      <NotNull>1</NotNull>
       <Position>4</Position>
-      <StoredType>varchar(255)|0s</StoredType>
+      <StoredType>datetime(6)|0s</StoredType>
     </column>
-    <column id="354" parent="306" name="image_url">
+    <column id="354" parent="306" name="refresh_token">
+      <NotNull>1</NotNull>
       <Position>5</Position>
-      <StoredType>varchar(255)|0s</StoredType>
+      <StoredType>varchar(512)|0s</StoredType>
     </column>
-    <index id="355" parent="306" name="PRIMARY">
-      <ColNames>theme_id</ColNames>
+    <column id="355" parent="306" name="user_id">
+      <NotNull>1</NotNull>
+      <Position>6</Position>
+      <StoredType>bigint|0s</StoredType>
+    </column>
+    <foreign-key id="356" parent="306" name="FKfgk1klcib7i15utalmcqo7krt">
+      <ColNames>user_id</ColNames>
+      <RefColNames>user_id</RefColNames>
+      <RefTableName>user</RefTableName>
+    </foreign-key>
+    <index id="357" parent="306" name="PRIMARY">
+      <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="356" parent="306" name="PRIMARY">
+    <index id="358" parent="306" name="FKfgk1klcib7i15utalmcqo7krt">
+      <ColNames>user_id</ColNames>
+      <Type>btree</Type>
+    </index>
+    <key id="359" parent="306" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="357" parent="307" name="user_id">
+    <column id="360" parent="307" name="id">
       <AutoIncrement>1</AutoIncrement>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>bigint|0s</StoredType>
     </column>
-    <column id="358" parent="307" name="created_date">
+    <column id="361" parent="307" name="created_date">
       <Position>2</Position>
       <StoredType>datetime(6)|0s</StoredType>
     </column>
-    <column id="359" parent="307" name="modified_date">
+    <column id="362" parent="307" name="modified_date">
       <Position>3</Position>
       <StoredType>datetime(6)|0s</StoredType>
     </column>
-    <column id="360" parent="307" name="email">
+    <column id="363" parent="307" name="bgm_url">
       <Position>4</Position>
-      <StoredType>varchar(25)|0s</StoredType>
-    </column>
-    <column id="361" parent="307" name="nickname">
-      <Position>5</Position>
-      <StoredType>varchar(30)|0s</StoredType>
-    </column>
-    <column id="362" parent="307" name="password">
-      <Position>6</Position>
       <StoredType>varchar(255)|0s</StoredType>
     </column>
-    <column id="363" parent="307" name="role">
-      <NotNull>1</NotNull>
-      <Position>7</Position>
-      <StoredType>enum(&apos;ADMIN&apos;, &apos;USER&apos;)|0e</StoredType>
-    </column>
-    <column id="364" parent="307" name="status">
-      <NotNull>1</NotNull>
-      <Position>8</Position>
-      <StoredType>enum(&apos;ACTIVE&apos;, &apos;DELETED&apos;, &apos;INACTIVE&apos;)|0e</StoredType>
+    <column id="364" parent="307" name="image_url">
+      <Position>5</Position>
+      <StoredType>varchar(255)|0s</StoredType>
     </column>
     <index id="365" parent="307" name="PRIMARY">
-      <ColNames>user_id</ColNames>
+      <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <index id="366" parent="307" name="UKob8kqyqqgmefl0aco34akdtpe">
-      <ColNames>email</ColNames>
-      <Type>btree</Type>
-      <Unique>1</Unique>
-    </index>
-    <key id="367" parent="307" name="PRIMARY">
+    <key id="366" parent="307" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <key id="368" parent="307" name="UKob8kqyqqgmefl0aco34akdtpe">
+    <column id="367" parent="308" name="user_id">
+      <AutoIncrement>1</AutoIncrement>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StoredType>bigint|0s</StoredType>
+    </column>
+    <column id="368" parent="308" name="created_date">
+      <Position>2</Position>
+      <StoredType>datetime(6)|0s</StoredType>
+    </column>
+    <column id="369" parent="308" name="modified_date">
+      <Position>3</Position>
+      <StoredType>datetime(6)|0s</StoredType>
+    </column>
+    <column id="370" parent="308" name="email">
+      <Position>4</Position>
+      <StoredType>varchar(25)|0s</StoredType>
+    </column>
+    <column id="371" parent="308" name="nickname">
+      <Position>5</Position>
+      <StoredType>varchar(30)|0s</StoredType>
+    </column>
+    <column id="372" parent="308" name="password">
+      <Position>6</Position>
+      <StoredType>varchar(255)|0s</StoredType>
+    </column>
+    <column id="373" parent="308" name="role">
+      <NotNull>1</NotNull>
+      <Position>7</Position>
+      <StoredType>enum(&apos;ADMIN&apos;, &apos;USER&apos;)|0e</StoredType>
+    </column>
+    <column id="374" parent="308" name="status">
+      <NotNull>1</NotNull>
+      <Position>8</Position>
+      <StoredType>enum(&apos;ACTIVE&apos;, &apos;DELETED&apos;, &apos;INACTIVE&apos;)|0e</StoredType>
+    </column>
+    <index id="375" parent="308" name="PRIMARY">
+      <ColNames>user_id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <index id="376" parent="308" name="UKob8kqyqqgmefl0aco34akdtpe">
+      <ColNames>email</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="377" parent="308" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <key id="378" parent="308" name="UKob8kqyqqgmefl0aco34akdtpe">
       <UnderlyingIndexName>UKob8kqyqqgmefl0aco34akdtpe</UnderlyingIndexName>
     </key>
   </database-model>

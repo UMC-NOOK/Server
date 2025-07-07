@@ -60,7 +60,7 @@ public class QReadingRoom extends EntityPathBase<ReadingRoom> {
 
     public QReadingRoom(Class<? extends ReadingRoom> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.theme = inits.isInitialized("theme") ? new QTheme(forProperty("theme"), inits.get("theme")) : null;
+        this.theme = inits.isInitialized("theme") ? new QTheme(forProperty("theme")) : null;
     }
 
 }

@@ -19,7 +19,15 @@ public class QHashtag extends EntityPathBase<Hashtag> {
 
     public static final QHashtag hashtag = new QHashtag("hashtag");
 
+    public final umc.nook.QBaseTimeEntity _super = new umc.nook.QBaseTimeEntity(this);
+
+    //inherited
+    public final DateTimePath<java.time.LocalDateTime> createdDate = _super.createdDate;
+
     public final NumberPath<Long> id = createNumber("id", Long.class);
+
+    //inherited
+    public final DateTimePath<java.time.LocalDateTime> modifiedDate = _super.modifiedDate;
 
     public final EnumPath<HashtagName> name = createEnum("name", HashtagName.class);
 
