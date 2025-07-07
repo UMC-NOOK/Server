@@ -39,11 +39,12 @@ public class ReadingRoomService {
 
         return readingRooms.stream().map(room -> {
 
+            // 실시간 접속자 수는 Redis에서 조회
             String connectedKey = "ReadingRoom:" + room.getId() + ":users";
-            String joinedKey = "ReadingRoom:" + room.getId() + ":joinedUsers";
-
             Long connectedCount = redisTemplate.opsForSet().size(connectedKey);
-            Long joinedCount = redisTemplate.opsForSet().size(joinedKey);
+
+            // 가입자 수는 DB에서 조회
+            int joinedCount = readingRoomUserRepository.countByReadingRoom(room);
 
             List<String> hashtagNames = room.getHashtags().stream()
                     .map(hashtag -> hashtag.getHashtag().getName().name()) // enum이면 .name()
@@ -55,14 +56,14 @@ public class ReadingRoomService {
                     .description(room.getDescription())
                     .hashtags(hashtagNames)
                     .currentUserCount(connectedCount != null ? connectedCount.intValue() : 0)
-                    .totalUserCount(joinedCount != null ? joinedCount.intValue() : 0)
+                    .totalUserCount(joinedCount)
                     .themeImageUrl(room.getTheme().getImageUrl())
                     .build();
 
         }).collect(Collectors.toList());
     }
 
-    // 리딩룸 가입, DB + Redis에 저장
+    // 리딩룸 가입, DB에 저장
     public Long joinRoom(Long roomId, CustomUserDetails userDetails) {
         ReadingRoom room = readingRoomRepository.findById(roomId)
                 .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
@@ -89,10 +90,6 @@ public class ReadingRoomService {
                 .build();
         readingRoomUserRepository.save(userEntry);
 
-        // Redis에 저장
-        redisTemplate.opsForSet().add("ReadingRoom:" + roomId + ":joinedUsers", user.getUserId().toString());
-
         return roomId;
     }
-
 }
