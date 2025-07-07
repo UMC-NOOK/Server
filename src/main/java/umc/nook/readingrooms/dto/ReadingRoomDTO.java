@@ -16,5 +16,6 @@ public class ReadingRoomDTO {
         private List<String> hashtags;
         private int currentUserCount;
         private int totalUserCount;
+        private String themeImageUrl;
     }
 }

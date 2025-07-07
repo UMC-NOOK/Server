@@ -45,6 +45,7 @@ public class ReadingRoomService {
                     .hashtags(hashtagNames)
                     .currentUserCount(connectedCount != null ? connectedCount.intValue() : 0)
                     .totalUserCount(joinedCount != null ? joinedCount.intValue() : 0)
+                    .themeImageUrl(room.getTheme().getImageUrl())
                     .build();
 
         }).collect(Collectors.toList());
