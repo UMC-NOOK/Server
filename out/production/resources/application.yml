@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: nook-api
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/${DB}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${USERNAME}
+    password: ${PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    open-in-view: false
+  redis:
+    host: localhost
+    port: 6379
+jwt:
+  secret: ${JWTSECRET}

@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="Gradle: com.kjetland:mbknor-jackson-jsonschema_2.12:1.0.34" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="com.kjetland" artifactId="mbknor-jackson-jsonschema_2.12" version="1.0.34" baseVersion="1.0.34" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.kjetland/mbknor-jackson-jsonschema_2.12/1.0.34/dd12d41cb6612022f38aef38c3a87b6772c29305/mbknor-jackson-jsonschema_2.12-1.0.34.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
