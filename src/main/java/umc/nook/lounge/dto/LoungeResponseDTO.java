@@ -36,6 +36,7 @@ public class LoungeResponseDTO {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class SectionDTO{
+        private String sectionId;
         private Integer categoryId;
         private String categoryName;
         private String queryType;

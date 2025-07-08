@@ -17,6 +17,7 @@ public class AladinResponseDTO {
         private String isbn13;
         private String title;
         private String author;
+        private String categoryName;
         private String publisher;
         private String cover;
     }

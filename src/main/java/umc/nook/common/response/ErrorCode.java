@@ -15,7 +15,8 @@ public enum ErrorCode implements BaseCode {
     INVALID_TOKEN(HttpStatus.BAD_REQUEST,"ACCOUNT-005" ,"유효하지 않는 토큰입니다." ),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "ACCOUNT-006", "토큰이 만료되었습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "ACCOUNT-007", "인증이 필요합니다."),
-    EMAIL_DUPLICATE(HttpStatus.BAD_REQUEST,"ACCOUNT-008" ,"중복된 이메일입니다." );
+    EMAIL_DUPLICATE(HttpStatus.BAD_REQUEST,"ACCOUNT-008" ,"중복된 이메일입니다." ),
+    INVALID_CATEGORY(HttpStatus.NOT_FOUND, "LOUNGE-005", "요청한 카테고리가 존재하지 않습니다.");
 
 
     private final HttpStatus httpStatus;
