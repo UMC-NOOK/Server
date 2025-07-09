@@ -48,4 +48,11 @@ public class ReadingRoomController {
         readingRoomService.deleteRoom(roomId, user);
         return ApiResponse.onSuccess(roomId, SuccessCode.OK);
     }
+
+    @Operation(summary = "호스트가 리딩룸을 수정합니다.")
+    @PatchMapping("/{roomId}")
+    public ApiResponse<Long> updateReadingRoom(@PathVariable Long roomId, @RequestBody ReadingRoomDTO.ReadingRoomRequestDTO dto, @AuthenticationPrincipal CustomUserDetails user) {
+        readingRoomService.updateRoom(roomId, dto, user);
+        return ApiResponse.onSuccess(roomId, SuccessCode.OK);
+    }
 }

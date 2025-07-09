@@ -27,4 +27,13 @@ public class ReadingRoomDTO {
         private List<String> hashtags;
         private Long themeId;
     }
+
+    @Getter
+    @Builder
+    public static class ReadingRoomThemeUpdateDTO {
+        private Long roomId;
+        private String imageUrl;
+        private String bgmUrl;
+    }
+
 }

@@ -146,7 +146,6 @@ public class ReadingRoomService {
         readingRoomHashtagRepository.saveAll(hashtagMappings);
 
         return readingRoom.getId();
-
     }
 
     // 리딩룸 삭제
@@ -176,6 +175,81 @@ public class ReadingRoomService {
 
         // 삭제된 리딩룸 ID 반환
         return roomId;
+    }
 
+    @Transactional
+    public void updateRoom(Long roomId, ReadingRoomDTO.ReadingRoomRequestDTO dto, CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
+
+        ReadingRoom room = readingRoomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        // 해당 유저가 이 리딩룸의 HOST인지 확인
+        boolean isHost = readingRoomUserRepository.existsByReadingRoomAndUserAndRole(room, user, Role.HOST);
+        if (!isHost) throw new CustomException(ErrorCode.HOST_ONLY);
+
+        // 테마 변경 여부 추적
+        boolean themeChanged = false;
+        Theme updatedTheme = room.getTheme(); // 기본값은 현재 테마
+
+        // 이름 수정
+        if (dto.getName() != null) {
+            room.updateName(dto.getName());
+        }
+
+        // 설명 수정
+        if (dto.getDescription() != null) {
+            room.updateDescription(dto.getDescription());
+        }
+
+        // 테마 수정
+        if (dto.getThemeId() != null) {
+            Theme newTheme = themeRepository.findById(dto.getThemeId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.THEME_NOT_FOUND));
+            room.updateTheme(newTheme);
+            updatedTheme = newTheme;
+            themeChanged = true;
+        }
+
+        // 해시태그 수정
+        if (dto.getHashtags() != null) {
+            // 기존 해시태그 매핑 제거
+            readingRoomHashtagRepository.deleteByReadingRoom(room);
+
+            // 최대 3개까지 등록
+            List<ReadingRoomHashtag> newMappings = dto.getHashtags().stream()
+                    .limit(3)
+                    .map(name -> {
+                        HashtagName hashtagName;
+                        try {
+                            hashtagName = HashtagName.valueOf(name);
+                        } catch (IllegalArgumentException e) {
+                            throw new CustomException(ErrorCode.HASHTAG_NOT_FOUND);
+                        }
+
+                        Hashtag hashtag = hashtagRepository.findByName(hashtagName)
+                                .orElseThrow(() -> new CustomException(ErrorCode.HASHTAG_NOT_FOUND));
+
+                        return ReadingRoomHashtag.builder()
+                                .readingRoom(room)
+                                .hashtag(hashtag)
+                                .build();
+                    })
+                    .toList();
+
+            readingRoomHashtagRepository.saveAll(newMappings);
+        }
+
+        // WebSocket broadcast - 테마가 변경된 경우에만
+        if (themeChanged) {
+            messagingTemplate.convertAndSend("/readingroom/sub/updated-theme",
+                    ReadingRoomDTO.ReadingRoomThemeUpdateDTO.builder()
+                            .roomId(room.getId())
+                            .imageUrl(updatedTheme.getImageUrl())
+                            .bgmUrl(updatedTheme.getBgmUrl())
+                            .build()
+            );
+        }
     }
 }
