@@ -27,7 +27,8 @@ public enum ErrorCode implements BaseCode {
     THEME_NOT_FOUND(HttpStatus.NOT_FOUND, "THEME-001", "테마를 찾을 수 없습니다."),
 
     //해시태그 관련
-    HASHTAG_NOT_FOUND(HttpStatus.NOT_FOUND, "HASHTAG-001", "해시태그를 찾을 수 없습니다.");
+    HASHTAG_NOT_FOUND(HttpStatus.NOT_FOUND, "HASHTAG-001", "해시태그를 찾을 수 없습니다."),
+    TOO_MANY_HASHTAGS(HttpStatus.BAD_REQUEST, "HASHTAG-002", "해시태그는 최대 3개까지 선택 가능합니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

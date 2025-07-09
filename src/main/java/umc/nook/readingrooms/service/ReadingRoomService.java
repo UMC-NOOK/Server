@@ -102,6 +102,10 @@ public class ReadingRoomService {
 
         User user = userDetails.getUser();
 
+        if (readingRoomRequestDTO.getHashtags().size() > 3) {
+            throw new CustomException(ErrorCode.TOO_MANY_HASHTAGS);
+        }
+
         Theme theme = themeRepository.findById(readingRoomRequestDTO.getThemeId())
                 .orElseThrow(() -> new CustomException(ErrorCode.THEME_NOT_FOUND));
 
