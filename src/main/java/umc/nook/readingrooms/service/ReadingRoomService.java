@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import umc.nook.common.exception.CustomException;
@@ -27,6 +28,7 @@ public class ReadingRoomService {
     private final ThemeRepository themeRepository;
     private final HashtagRepository hashtagRepository;
     private final ReadingRoomHashtagRepository readingRoomHashtagRepository;
+    private final SimpMessagingTemplate messagingTemplate;
     private final RedisTemplate<String, String> redisTemplate;
 
     // 전체 리딩룸 조회
@@ -165,7 +167,11 @@ public class ReadingRoomService {
         String usersKey = "ReadingRoom:" + roomId + ":users";
         redisTemplate.delete(usersKey);
 
+        // WebSocket broadcast
+        messagingTemplate.convertAndSend("/readingroom/sub/removed", roomId);
+
         // 삭제된 리딩룸 ID 반환
         return roomId;
+
     }
 }
