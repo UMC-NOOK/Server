@@ -42,4 +42,10 @@ public class ReadingRoomController {
         return ApiResponse.onSuccess(createdRoomId, SuccessCode.OK);
     }
 
+    @Operation(summary = "호스트가 리딩룸을 삭제합니다.")
+    @DeleteMapping("/{roomId}")
+    public ApiResponse<Long> deleteReadingRoom(@PathVariable Long roomId, @AuthenticationPrincipal CustomUserDetails user) {
+        readingRoomService.deleteRoom(roomId, user);
+        return ApiResponse.onSuccess(roomId, SuccessCode.OK);
+    }
 }

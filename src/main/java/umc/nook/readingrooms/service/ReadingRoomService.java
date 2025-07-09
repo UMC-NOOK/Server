@@ -94,7 +94,7 @@ public class ReadingRoomService {
         return roomId;
     }
 
-    //리딩룸 생성, DB에 저장
+    // 리딩룸 생성, DB에 저장
     @Transactional
     public Long createRoom(ReadingRoomDTO.ReadingRoomRequestDTO readingRoomRequestDTO, CustomUserDetails userDetails) {
 
@@ -118,7 +118,7 @@ public class ReadingRoomService {
                 .build();
         readingRoomUserRepository.save(readingRoomUser);
 
-        //TODO: 추후 해시태그 예외처리 리팩토링 예정
+        // TODO: 추후 해시태그 예외처리 리팩토링 예정
         List<ReadingRoomHashtag> hashtagMappings = readingRoomRequestDTO.getHashtags().stream()
                 .map(name -> {
                     HashtagName hashtagName;
@@ -141,5 +141,31 @@ public class ReadingRoomService {
 
         return readingRoom.getId();
 
+    }
+
+    // 리딩룸 삭제
+    @Transactional
+    public Long deleteRoom(Long roomId, CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
+
+        ReadingRoom readingRoom = readingRoomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        // 해당 유저가 이 리딩룸의 HOST인지 확인
+        boolean isHost = readingRoomUserRepository.existsByReadingRoomAndUserAndRole(readingRoom, user, Role.HOST);
+        if (!isHost) {
+            throw new CustomException(ErrorCode.HOST_ONLY);
+        }
+
+        // 리딩룸 삭제
+        readingRoomRepository.delete(readingRoom);
+
+        // Redis 정리 (실시간 접속자 정보)
+        String usersKey = "ReadingRoom:" + roomId + ":users";
+        redisTemplate.delete(usersKey);
+
+        // 삭제된 리딩룸 ID 반환
+        return roomId;
     }
 }
