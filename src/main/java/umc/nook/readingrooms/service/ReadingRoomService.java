@@ -94,6 +94,7 @@ public class ReadingRoomService {
         return roomId;
     }
 
+    //리딩룸 생성, DB에 저장
     @Transactional
     public Long createRoom(ReadingRoomDTO.ReadingRoomRequestDTO readingRoomRequestDTO, CustomUserDetails userDetails) {
 
@@ -117,13 +118,14 @@ public class ReadingRoomService {
                 .build();
         readingRoomUserRepository.save(readingRoomUser);
 
+        //TODO: 추후 해시태그 예외처리 리팩토링 예정
         List<ReadingRoomHashtag> hashtagMappings = readingRoomRequestDTO.getHashtags().stream()
                 .map(name -> {
                     HashtagName hashtagName;
                     try {
                         hashtagName = HashtagName.valueOf(name);
                     } catch (IllegalArgumentException e) {
-                        throw new CustomException(ErrorCode.HASHTAG_NOT_FOUND); // 적절한 에러코드
+                        throw new CustomException(ErrorCode.HASHTAG_NOT_FOUND);
                     }
 
                     Hashtag hashtag = hashtagRepository.findByName(hashtagName)
