@@ -20,8 +20,13 @@ public enum ErrorCode implements BaseCode {
     //리딩룸 관련
     READING_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM-001", "리딩룸을 찾을 수 없습니다."),
     ALREADY_JOINED_READING_ROOM(HttpStatus.CONFLICT, "ROOM-002", "이미 가입한 리딩룸입니다."),
-    ROOM_CAPACITY_EXCEEDED(HttpStatus.BAD_REQUEST, "ROOM-003", "리딩룸의 최대 인원 수를 초과했습니다.");
+    ROOM_CAPACITY_EXCEEDED(HttpStatus.BAD_REQUEST, "ROOM-003", "리딩룸의 최대 인원 수를 초과했습니다."),
 
+    //테마 관련
+    THEME_NOT_FOUND(HttpStatus.NOT_FOUND, "THEME-001", "테마를 찾을 수 없습니다."),
+
+    //해시태그 관련
+    HASHTAG_NOT_FOUND(HttpStatus.NOT_FOUND, "HASHTAG-001", "해시태그를 찾을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

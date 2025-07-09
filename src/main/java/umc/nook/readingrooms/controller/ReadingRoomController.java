@@ -28,11 +28,18 @@ public class ReadingRoomController {
         return ApiResponse.onSuccess(readingRoomService.getAllReadingRooms(page), SuccessCode.OK);
     }
 
-    @Operation(summary = "사용자가 리딩룸에 가입합니다.", description = "현재 로그인한 사용자가 리딩룸에 가입합니다.")
+    @Operation(summary = "사용자가 리딩룸에 가입합니다.", description = "가입한 리딩룸 ID를 반환합니다.")
     @PostMapping("/{roomId}/join")
     public ApiResponse<Long> joinReadingRoom(@PathVariable Long roomId, @AuthenticationPrincipal CustomUserDetails user) {
         Long joinedRoomId = readingRoomService.joinRoom(roomId, user);
         return ApiResponse.onSuccess(joinedRoomId, SuccessCode.OK);
+    }
+
+    @Operation(summary = "사용자가 리딩룸을 생성합니다.", description = "생성한 리딩룸 ID를 반환합니다.")
+    @PostMapping
+    public ApiResponse<Long> createReadingRoom(@RequestBody ReadingRoomDTO.ReadingRoomRequestDTO readingRoomRequestDTO, @AuthenticationPrincipal CustomUserDetails user) {
+        Long createdRoomId = readingRoomService.createRoom(readingRoomRequestDTO, user);
+        return ApiResponse.onSuccess(createdRoomId, SuccessCode.OK);
     }
 
 }

@@ -35,5 +35,4 @@ public class ReadingRoom extends BaseTimeEntity {
     @OneToMany(mappedBy = "readingRoom", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReadingRoomUser> users = new ArrayList<>();
 
-
 }

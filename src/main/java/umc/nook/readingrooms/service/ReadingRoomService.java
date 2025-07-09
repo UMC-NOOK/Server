@@ -8,16 +8,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
-import umc.nook.readingrooms.domain.ReadingRoom;
-import umc.nook.readingrooms.domain.ReadingRoomUser;
-import umc.nook.readingrooms.domain.Role;
+import umc.nook.readingrooms.domain.*;
 import umc.nook.readingrooms.dto.ReadingRoomDTO;
-import umc.nook.readingrooms.repository.ReadingRoomRepository;
-import umc.nook.readingrooms.repository.ReadingRoomUserRepository;
+import umc.nook.readingrooms.repository.*;
 import umc.nook.users.domain.User;
-import umc.nook.users.service.CustomUserDetailService;
 import umc.nook.users.service.CustomUserDetails;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,6 +24,9 @@ public class ReadingRoomService {
 
     private final ReadingRoomRepository readingRoomRepository;
     private final ReadingRoomUserRepository readingRoomUserRepository;
+    private final ThemeRepository themeRepository;
+    private final HashtagRepository hashtagRepository;
+    private final ReadingRoomHashtagRepository readingRoomHashtagRepository;
     private final RedisTemplate<String, String> redisTemplate;
 
     // 전체 리딩룸 조회
@@ -64,6 +64,7 @@ public class ReadingRoomService {
     }
 
     // 리딩룸 가입, DB에 저장
+    @Transactional
     public Long joinRoom(Long roomId, CustomUserDetails userDetails) {
         ReadingRoom room = readingRoomRepository.findById(roomId)
                 .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
@@ -91,5 +92,52 @@ public class ReadingRoomService {
         readingRoomUserRepository.save(userEntry);
 
         return roomId;
+    }
+
+    @Transactional
+    public Long createRoom(ReadingRoomDTO.ReadingRoomRequestDTO readingRoomRequestDTO, CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
+
+        Theme theme = themeRepository.findById(readingRoomRequestDTO.getThemeId())
+                .orElseThrow(() -> new CustomException(ErrorCode.THEME_NOT_FOUND));
+
+        ReadingRoom readingRoom = ReadingRoom.builder()
+                .name(readingRoomRequestDTO.getName())
+                .description(readingRoomRequestDTO.getDescription())
+                .theme(theme)
+                .build();
+        readingRoomRepository.save(readingRoom);
+
+        ReadingRoomUser readingRoomUser = ReadingRoomUser.builder()
+                .readingRoom(readingRoom)
+                .user(user)
+                .role(Role.HOST)
+                .lastAccessedAt(LocalDateTime.now())
+                .build();
+        readingRoomUserRepository.save(readingRoomUser);
+
+        List<ReadingRoomHashtag> hashtagMappings = readingRoomRequestDTO.getHashtags().stream()
+                .map(name -> {
+                    HashtagName hashtagName;
+                    try {
+                        hashtagName = HashtagName.valueOf(name);
+                    } catch (IllegalArgumentException e) {
+                        throw new CustomException(ErrorCode.HASHTAG_NOT_FOUND); // 적절한 에러코드
+                    }
+
+                    Hashtag hashtag = hashtagRepository.findByName(hashtagName)
+                            .orElseThrow(() -> new CustomException(ErrorCode.HASHTAG_NOT_FOUND));
+
+                    return ReadingRoomHashtag.builder()
+                            .readingRoom(readingRoom)
+                            .hashtag(hashtag)
+                            .build();
+                })
+                .toList();
+        readingRoomHashtagRepository.saveAll(hashtagMappings);
+
+        return readingRoom.getId();
+
     }
 }
