@@ -20,8 +20,16 @@ public enum ErrorCode implements BaseCode {
     //리딩룸 관련
     READING_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM-001", "리딩룸을 찾을 수 없습니다."),
     ALREADY_JOINED_READING_ROOM(HttpStatus.CONFLICT, "ROOM-002", "이미 가입한 리딩룸입니다."),
-    ROOM_CAPACITY_EXCEEDED(HttpStatus.BAD_REQUEST, "ROOM-003", "리딩룸의 최대 인원 수를 초과했습니다.");
+    ROOM_CAPACITY_EXCEEDED(HttpStatus.BAD_REQUEST, "ROOM-003", "리딩룸의 최대 인원 수를 초과했습니다."),
 
+    // 페이지
+    INVALID_PAGE(HttpStatus.BAD_REQUEST, "PAGE-001", "유효하지 않은 'page' 값입니다."),
+    INVALID_LIMIT(HttpStatus.BAD_REQUEST, "PAGE-002", "유효하지 않은 'limit' 값입니다."),
+
+    // 라운지
+    INVALID_MALLTYPE(HttpStatus.BAD_REQUEST, "LOUNGE-001", "유효하지 않은 'mallType' 값입니다."),
+    INVALID_SECTION(HttpStatus.BAD_REQUEST, "LOUNGE-002", "유효하지 않은 'sectionId' 값입니다."),
+    INVALID_CATEGORY(HttpStatus.NOT_FOUND, "LOUNGE-003", "요청한 카테고리가 존재하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
