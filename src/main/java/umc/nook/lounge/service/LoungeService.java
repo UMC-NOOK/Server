@@ -6,9 +6,11 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
+import umc.nook.book.domain.MallType;
 import umc.nook.book.repository.CategoryRepository;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
+import umc.nook.lounge.converter.LoungeConverter;
 import umc.nook.lounge.dto.LoungeResponseDTO;
 
 import java.util.ArrayList;
@@ -20,120 +22,135 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class LoungeService {
 
+    private static final String SECTION_BEST = "best";
+    private static final String SECTION_NEW = "new";
+    private static final String SECTION_FAVORITE_BEST = "favorite_best";
+
+    private static final String QUERY_TYPE_BESTSELLER = "BESTSELLER";
+    private static final String QUERY_TYPE_ITEMNEWALL = "ITEMNEWALL";
+
+    private static final int LIMIT = 6;
+
     private final AladinService aladinService;
     private final CategoryRepository categoryRepository;
 
     public LoungeResponseDTO.LoungeBookResultDTO getLoungeBooks(String mallType, String sectionId,
-                                                                Integer categoryId, String queryType,
-                                                                int page, int limit, String token) {
-
-        // 파라미터 유효성 검사 필요
-        // 카테고리 분류 필요
-        // 에러 처리 필요
+                                                                Integer categoryId, int page, String token) {
 
         List<LoungeResponseDTO.SectionDTO> sections = new ArrayList<>();
 
+        // 추천 페이지
         if ("RECOMMENDATION".equalsIgnoreCase(mallType)) {
-            if (sectionId == null) {
-                // 1. 주간 베스트셀러
-                sections.add(fetchSection("best", null, "", "BESTSELLER", "BOOK", page, limit));
-
-                // 2. 개인 선호 카테고리
-                // 카테고리 하드 코딩(추후에 선호 카테고리 기능 개발 예정)
-                int favoriteCateogoryId = 170; // 국내도서>경제경영
-                String favoriteCategoryName = getCategoryNameById(170);
-                sections.add(fetchSection("favorite_best", favoriteCateogoryId, favoriteCategoryName,
-                        "BESTSELLER", "BOOK", page, limit));
-            } else if (sectionId.equalsIgnoreCase("best")) {
-                // 1. 주간 베스트셀러
-                sections.add(fetchSection(sectionId, null, "", queryType, "BOOK", page, limit));
-            }
-            else{
-                // 2. 개인 선호 카테고리
-                // 카테고리 하드 코딩(추후에 선호 카테고리 기능 개발 예정)
-                int favoriteCateogoryId = 170; // 국내도서>경제경영
-                String favoriteCategoryName = getCategoryNameById(170);
-                sections.add(fetchSection(sectionId, favoriteCateogoryId, favoriteCategoryName,
-                        queryType, "BOOK", page, limit));
-            }
+            handleRecommendation(sections, sectionId, categoryId, page, token);
         }
+        // 몰 타입 페이지
         else {
-            if (sectionId == null) {
-                // 1. 신간
-                sections.add(fetchSection("new", null, "",
-                        "ITEMNEWALL", mallType, page, limit));
-
-                // 2. mallType 별 주요 카테고리(하드코딩) 베스트셀러
-                List<Integer> categoryIds = getCategoryIdsByMallType(mallType);
-                for (Integer cid : categoryIds) {
-                    String categoryName = getCategoryNameById(cid);
-                    sections.add(fetchSection("best", cid, categoryName, "BESTSELLER",
-                            mallType, page, limit));
-                }
-            } else if (sectionId.equalsIgnoreCase("new")) {
-                // 1. 신간
-                sections.add(fetchSection(sectionId, null, "",
-                        "ITEMNEWALL", mallType, page, limit));
-            }else{
-                // 2. mallType 별 주요 카테고리(하드코딩) 베스트셀러
-                sections.add(fetchSection(sectionId, categoryId, getCategoryNameById(categoryId), "BESTSELLER",
-                        mallType, page, limit));
-            }
-
+            handleMallType(sections, sectionId, categoryId, mallType, page);
         }
+
         return LoungeResponseDTO.LoungeBookResultDTO.builder()
                 .sections(sections)
                 .build();
     }
 
     private LoungeResponseDTO.SectionDTO fetchSection(
-        String sectionId, Integer categoryId, String categoryName, String queryType,
-        String searchTarget, int page, int limit) {
-        String categoryIdStr = (categoryId != null) ? String.valueOf(categoryId) : null;
-        int start = (page - 1) * limit + 1;
+        String sectionId, Integer categoryId, String categoryName,String queryType,
+        String mallType, int page) {
 
-        AladinResponseDTO.paginationDTO response = aladinService.fetchBooks(
-                queryType, searchTarget, start, limit, categoryIdStr
+        String categoryIdStr = (categoryId != null) ? String.valueOf(categoryId) : null;
+        int start = (page - 1) * LIMIT + 1;
+
+        AladinResponseDTO.PaginationDTO response = aladinService.fetchBooks(
+                queryType, mallType, start, LIMIT, categoryIdStr
         ).block();
 
         List<LoungeResponseDTO.BookDTO> books = new ArrayList<>();
 
 
         if (response != null && response.getItem() != null) {
-            for (AladinResponseDTO.loungeBookDTO item : response.getItem()) {
+            for (AladinResponseDTO.LoungeBookDTO item : response.getItem()) {
                 if (isBookIncluded(item.getCategoryName())) {
-                    books.add(LoungeResponseDTO.BookDTO.builder()
-                            .isbn13(item.getIsbn13())
-                            .title(item.getTitle())
-                            .author(item.getAuthor())
-                            .publisher(item.getPublisher())
-                            .coverImageUrl(item.getCover())
-                            .build());
+                    books.add(LoungeConverter.toBookDTO(item));
                 }
             }
         }
 
 
         int totalItems = response != null ? response.getTotalResults() : 0;
-        int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / limit) : 0;
+        int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / LIMIT) : 0;
 
-        LoungeResponseDTO.PaginationDTO pagination = LoungeResponseDTO.PaginationDTO.builder()
-                .currentPage(page)
-                .pageSize(limit)
-                .totalItems(totalItems)
-                .totalPages(totalPages)
-                .build();
+        LoungeResponseDTO.PaginationDTO pagination = LoungeConverter.toPaginiationDTO(
+                page, LIMIT, totalItems, totalPages
+        );
 
-        return LoungeResponseDTO.SectionDTO.builder()
-                .sectionId(sectionId)
-                .categoryId(categoryId)
-                .categoryName(categoryName)
-                .queryType(queryType)
-                .books(books)
-                .pagination(pagination)
-                .build();
-
+        return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books, pagination);
     }
+
+    private void handleRecommendation(
+            List<LoungeResponseDTO.SectionDTO> sections, String sectionId, Integer categoryId, int page, String token) {
+
+        if (sectionId == null) {
+            // 추천 페이지 전체 조회 (1페이지)
+            addBestSection(sections, SECTION_BEST, categoryId, page);
+            addBestSection(sections, SECTION_FAVORITE_BEST, getFavoriteCategory(token), page);
+        }
+        else if (sectionId.equalsIgnoreCase("best")) {
+            // 주간 베스트셀러의 특정 페이지 조회
+            addBestSection(sections, SECTION_BEST, categoryId, page);
+        }
+        else{
+            // 사용자 선호 카테고리 베스트셀러의 특정 페이지 조회
+            addBestSection(sections, SECTION_FAVORITE_BEST, getFavoriteCategory(token), page);
+        }
+    }
+
+    private void handleMallType(
+            List<LoungeResponseDTO.SectionDTO> sections, String sectionId, Integer categoryId,
+            String mallType, int page
+    ) {
+        if (sectionId == null) {
+            // 몰 타입 페이지 전체 조회 (1 페이지)
+            addNewSection(sections, categoryId, mallType, page);
+            List<Integer> categoryIds = getCategoryIdsByMallType(mallType);
+            for (Integer cid : categoryIds) {
+                addBestSection(sections, SECTION_BEST, cid, page);
+            }
+        }
+        else if (sectionId.equalsIgnoreCase("new")) {
+            // 신간의 특정 페이지 조회
+            addNewSection(sections, categoryId, mallType, page);
+        }
+        else{
+            // 몰 타입의 특정 카테고리 베스트셀러의 특정 페이지 조회
+            addBestSection(sections, SECTION_BEST, categoryId, page);
+        }
+    }
+    private void addBestSection(
+            List<LoungeResponseDTO.SectionDTO> sections, String sectionId, Integer categoryId, int page
+    ) {
+        String categoryName = getCategoryNameById(categoryId);
+        LoungeResponseDTO.SectionDTO section = fetchSection(
+                sectionId, categoryId, categoryName, QUERY_TYPE_BESTSELLER, "BOOK", page
+        );
+        sections.add(section);
+    }
+
+    private void addNewSection(
+            List<LoungeResponseDTO.SectionDTO> sections, Integer categoryId, String mallType, int page
+    ) {
+        String categoryName = getCategoryNameById(categoryId);
+        LoungeResponseDTO.SectionDTO section = fetchSection(
+                SECTION_NEW, categoryId, categoryName, QUERY_TYPE_ITEMNEWALL, mallType, page
+        );
+        sections.add(section);
+    }
+
+    // 사용자 선호 카테고리 추출
+    // 추후 개발 예정
+    private int getFavoriteCategory(String token) {
+        return 170; // 하드 코딩
+    }
+
 
     // 책의 카테고리가 도서 정책에 포함되는지 여부(true -> 포함 O, false -> 포함 x)
     private boolean isBookIncluded(String fullCategoryName) {
@@ -159,8 +176,8 @@ public class LoungeService {
         if (fullCategoryName != null && !fullCategoryName.isBlank()) {
             String[] parts = fullCategoryName.split(">");
             if (parts.length >= 2) {
-                String mallType = parts[0].trim();
-                String firstDepth = parts[1].trim();
+                String mallType = parts[0].trim(); // 몰타입 추출
+                String firstDepth = parts[1].trim(); // 1depth 추출
 
                 // 1depth 제외 체크
                 Set<String> excludes1 = excluded1Depth.getOrDefault(mallType, Set.of());
@@ -170,7 +187,7 @@ public class LoungeService {
 
                 // 2depth 문자열 포함 제외 체크
                 if (parts.length >= 3) {
-                    String secondDepth = parts[2].trim();
+                    String secondDepth = parts[2].trim(); // 2depth 추출
                     if (excluded2DepthContains.containsKey(mallType)) {
                         Map<String, List<String>> firstDepthMap = excluded2DepthContains.get(mallType);
                         if (firstDepthMap.containsKey(firstDepth)) {
@@ -189,17 +206,20 @@ public class LoungeService {
 
     // 몰타입 별로 정해진 4개의 카테고리 정의
     private List<Integer> getCategoryIdsByMallType(String mallType) {
-        if ("BOOK".equalsIgnoreCase(mallType)) {
+        if ("BOOK".equalsIgnoreCase(mallType)) {// 국내도서
             return List.of(170, 1, 656, 336); // 경제경영, 소설/시/희곡, 인문학, 자기계발
-        } else if ("FOREIGN".equalsIgnoreCase(mallType)) {
+        } else if ("FOREIGN".equalsIgnoreCase(mallType)) { // 외국도서
             return List.of(90835, 90845, 90853, 90848); // 경제경영, 에세이, 인문/사회, 일본/문학 ? 예술/대중문화
-        } else if ("EBOOK".equalsIgnoreCase(mallType)) {
+        } else if ("EBOOK".equalsIgnoreCase(mallType)) { // 전자책
             return List.of(38405,38416, 38396, 78871); // 과학, 만화, 소설/시/희곡, 판타지/무협
         }
         return List.of();
     }
 
     private String getCategoryNameById(Integer categoryId) {
+        if (categoryId == null) {
+            return null;
+        }
         return categoryRepository.findCategoryNameByAladinCategoryId(categoryId)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_CATEGORY));
     }

@@ -13,7 +13,7 @@ public class AladinResponseDTO {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class loungeBookDTO{
+    public static class LoungeBookDTO{
         private String isbn13;
         private String title;
         private String author;
@@ -26,10 +26,10 @@ public class AladinResponseDTO {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class paginationDTO{
+    public static class PaginationDTO{
         private int totalResults;
         private int startIndex;
         private int itemsPerPage;
-        private List<loungeBookDTO> item;
+        private List<LoungeBookDTO> item;
     }
 }

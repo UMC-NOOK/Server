@@ -39,7 +39,6 @@ public class LoungeResponseDTO {
         private String sectionId;
         private Integer categoryId;
         private String categoryName;
-        private String queryType;
         private List<BookDTO> books;
         private PaginationDTO pagination;
     }

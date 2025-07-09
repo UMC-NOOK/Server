@@ -5,16 +5,19 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import umc.nook.common.response.ApiResponse;
 import umc.nook.common.response.SuccessCode;
 import umc.nook.lounge.dto.LoungeResponseDTO;
 import umc.nook.lounge.service.LoungeService;
+import umc.nook.lounge.validation.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/lounge")
 @Tag(name = "Lounge", description = "라운지 도서 API")
+@Validated
 public class LoungeController {
 
     private final LoungeService loungeService;
@@ -29,9 +32,9 @@ public class LoungeController {
     @Parameters({
             @Parameter(
                     name = "mallType",
-                    description = "조회할 도서의 몰 타입 (RECOMMENDATION, BOOK, FOREIGN, EBOOK)",
-                    required = true,
-                    example = "BOOK"
+                    description = "조회할 도서의 몰 타입 (RECOMMENDATION, BOOK, FOREIGN, EBOOK / 기본값: RECOMMENDATION)",
+                    required = false,
+                    example = "RECOMMENDATION"
             ),
             @Parameter(
                     name = "sectionId",
@@ -46,37 +49,23 @@ public class LoungeController {
                     example = "1"
             ),
             @Parameter(
-                    name = "queryType",
-                    description = "베스트셀러/신간 구분 (BESTSELLER, ITEMNEWALL)",
-                    required = false,
-                    example = "BESTSELLER"
-            ),
-            @Parameter(
                     name = "page",
                     description = "조회할 페이지 번호 (기본값: 1)",
                     required = false,
                     example = "1"
-            ),
-            @Parameter(
-                    name = "limit",
-                    description = "한 페이지에 보여줄 도서 개수 (기본값: 6)",
-                    required = false,
-                    example = "6"
             )
     })
     @GetMapping("/books")
     public ApiResponse<LoungeResponseDTO.LoungeBookResultDTO> getLoungeBooks(
-            @RequestParam String mallType,
-            @RequestParam(required = false) String sectionId,
-            @RequestParam(required = false) Integer categoryId,
-            @RequestParam(required = false) String queryType,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "6") int limit,
+            @ValidatedMallType @RequestParam(defaultValue = "RECOMMENDATION") String mallType,
+            @ValidatedSection @RequestParam(required = false) String sectionId,
+            @ValidatedCategory @RequestParam(required = false) Integer categoryId,
+            @ValidatedPage @RequestParam(defaultValue = "1") int page,
             @Parameter(hidden = true) @RequestHeader("Authorization") String token
 
     ) {
         LoungeResponseDTO.LoungeBookResultDTO result = loungeService.getLoungeBooks(
-                mallType, sectionId, categoryId, queryType, page, limit, token
+                mallType, sectionId, categoryId, page, token
         );
         return ApiResponse.onSuccess(result, SuccessCode.OK);
     }

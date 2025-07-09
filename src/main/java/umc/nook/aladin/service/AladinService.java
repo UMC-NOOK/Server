@@ -16,7 +16,7 @@ public class AladinService {
     @Value("${aladin.ttbkey}")
     private String ttbKey;
 
-    public Mono<AladinResponseDTO.paginationDTO> fetchBooks(String queryType, String searchTarget, int start,
+    public Mono<AladinResponseDTO.PaginationDTO> fetchBooks(String queryType, String searchTarget, int start,
                                                       int maxResults, String categoryId) {
         // type 검증/구분 필요 (book, foreign, ebook)
         return aladinWebClient.get()
@@ -38,6 +38,6 @@ public class AladinService {
                 })
                 .retrieve()
                 //.onStatus(status -> ..) 예외처리 필요
-                .bodyToMono(AladinResponseDTO.paginationDTO.class);
+                .bodyToMono(AladinResponseDTO.PaginationDTO.class);
     }
 }

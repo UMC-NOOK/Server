@@ -10,4 +10,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     @Query("SELECT c.categoryName FROM Category c WHERE c.aladinCategoryId = :aladinCategoryId")
     Optional<String> findCategoryNameByAladinCategoryId(int aladinCategoryId);
+
+    boolean existsByAladinCategoryId(int aladinCategoryId);
 }

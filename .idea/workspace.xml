@@ -5,164 +5,30 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f940e27-636a-4e1b-9d02-7b89b51402a1" name="변경" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources/4d8a409f-dce9-4798-9534-422cfd8231c1.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources/4d8a409f-dce9-4798-9534-422cfd8231c1/storage_v2/_src_/schema/information_schema.FNRwLQ.meta" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources/4d8a409f-dce9-4798-9534-422cfd8231c1/storage_v2/_src_/schema/mysql.osA4Bg.meta" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources/4d8a409f-dce9-4798-9534-422cfd8231c1/storage_v2/_src_/schema/performance_schema.kIw0nw.meta" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources/4d8a409f-dce9-4798-9534-422cfd8231c1/storage_v2/_src_/schema/sys.zb4BAA.meta" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/controller/ReadingRoomController.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/Hashtag$HashtagBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/Hashtag.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/HashtagName.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/QHashtag.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/QReadingRoom.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/QReadingRoomHashtag.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/QReadingRoomUser.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/QTheme.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/ReadingRoom$ReadingRoomBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/ReadingRoom.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/ReadingRoomHashtag$ReadingRoomHashtagBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/ReadingRoomHashtag.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/ReadingRoomUser$ReadingRoomUserBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/ReadingRoomUser.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/Role.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/Theme$ThemeBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/domain/Theme.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO$ReadingRoomResponseDTOBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/dto/ReadingRoomDTO.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/repository/ReadingRoomRepository.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/repository/ReadingRoomUserRepository.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/readingrooms/service/ReadingRoomService.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/generated/generated/umc/nook/QBaseTimeEntity.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/generated/generated/umc/nook/readingrooms/domain/QHashtag.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/generated/generated/umc/nook/readingrooms/domain/QReadingRoom.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/generated/generated/umc/nook/readingrooms/domain/QReadingRoomHashtag.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/generated/generated/umc/nook/readingrooms/domain/QReadingRoomUser.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/generated/generated/umc/nook/readingrooms/domain/QTheme.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/generated/generated/umc/nook/users/domain/QRefreshToken.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/generated/generated/umc/nook/users/domain/QUser.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/BaseTimeEntity.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/NookApplication.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/QBaseTimeEntity.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/config/SwaggerConfig.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/config/WebSecurityConfig.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/exception/CustomException.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/exception/CustomExceptionHandler.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/exception/ExceptionAdvice.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/response/ApiResponse$ApiResponseBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/response/ApiResponse.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/response/BaseCode.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/response/ErrorCode.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/response/SuccessCode.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/controller/ReadingRoomController.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/Hashtag$HashtagBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/Hashtag.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/HashtagName.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/QHashtag.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/QReadingRoom.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/QReadingRoomHashtag.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/QReadingRoomUser.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/QTheme.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/ReadingRoom$ReadingRoomBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/ReadingRoom.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/ReadingRoomHashtag$ReadingRoomHashtagBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/ReadingRoomHashtag.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/ReadingRoomUser$ReadingRoomUserBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/ReadingRoomUser.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/Role.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/Theme$ThemeBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/Theme.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO$ReadingRoomResponseDTOBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/dto/ReadingRoomDTO.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/repository/ReadingRoomRepository.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/repository/ReadingRoomUserRepository.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/service/ReadingRoomService.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/domain/QRefreshToken.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/domain/QUser.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/domain/RefreshToken$RefreshTokenBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/domain/RefreshToken.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/domain/RoleType.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/domain/Status.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/domain/User$UserBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/domain/User.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/dto/SecurityExceptionDTO.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/dto/UserDTO$LoginDto.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/dto/UserDTO$LoginResponseDTO.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/dto/UserDTO$SignUpDto.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/dto/UserDTO$TokenRequestDto.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/dto/UserDTO$TokenResponseDto$TokenResponseDtoBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/dto/UserDTO$TokenResponseDto.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/dto/UserDTO$UserResponseDTO.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/dto/UserDTO.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/repository/RefreshTokenRepository.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/repository/UserRepository.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/service/CustomUserDetailService.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/service/CustomUserDetails.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/service/JwtProvider.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/service/errorHandler/CustomAccessDeniedHandler.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/service/errorHandler/CustomAuthenticationEntryPoint.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/service/filter/JwtAuthFilter.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/service/filter/JwtExceptionFilter.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/out/production/resources/application.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QHashtag.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QReadingRoom.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QReadingRoomHashtag.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QReadingRoomUser.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QTheme.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/controller/ReadingRoomController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/domain/Hashtag.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/domain/HashtagName.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/domain/ReadingRoom.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/domain/ReadingRoomHashtag.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/domain/ReadingRoomUser.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/domain/Role.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/domain/Theme.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/dto/ReadingRoomDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/repository/ReadingRoomRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/repository/ReadingRoomUserRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/service/ReadingRoomService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.14.2/checksums/checksums.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.14.2/checksums/checksums.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.14.2/checksums/md5-checksums.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.14.2/checksums/md5-checksums.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.14.2/checksums/sha1-checksums.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.14.2/checksums/sha1-checksums.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.14.2/executionHistory/executionHistory.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.14.2/executionHistory/executionHistory.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.14.2/executionHistory/executionHistory.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.14.2/executionHistory/executionHistory.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.14.2/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.14.2/fileHashes/fileHashes.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.14.2/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.14.2/fileHashes/fileHashes.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.14.2/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.14.2/fileHashes/resourceHashesCache.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/outputFiles.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/outputFiles.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/file-system.probe" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/file-system.probe" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/classes/java/main/umc/nook/common/response/ApiResponse$ApiResponseBuilder.class" beforeDir="false" afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/common/response/ApiResponse$ApiResponseBuilder.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/classes/java/main/umc/nook/users/domain/QUser.class" beforeDir="false" afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/users/domain/QUser.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/classes/java/main/umc/nook/users/domain/RefreshToken$RefreshTokenBuilder.class" beforeDir="false" afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/users/domain/RefreshToken$RefreshTokenBuilder.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/classes/java/main/umc/nook/users/domain/User$UserBuilder.class" beforeDir="false" afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/users/domain/User$UserBuilder.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/classes/java/main/umc/nook/users/domain/User.class" beforeDir="false" afterPath="$PROJECT_DIR$/build/classes/java/main/umc/nook/users/domain/User.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/libs/nook-0.0.1-SNAPSHOT-plain.jar" beforeDir="false" afterPath="$PROJECT_DIR$/build/libs/nook-0.0.1-SNAPSHOT-plain.jar" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/libs/nook-0.0.1-SNAPSHOT.jar" beforeDir="false" afterPath="$PROJECT_DIR$/build/libs/nook-0.0.1-SNAPSHOT.jar" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/reports/problems/problems-report.html" beforeDir="false" afterPath="$PROJECT_DIR$/build/reports/problems/problems-report.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/reports/tests/test/classes/umc.nook.NookApplicationTests.html" beforeDir="false" afterPath="$PROJECT_DIR$/build/reports/tests/test/classes/umc.nook.NookApplicationTests.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/reports/tests/test/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/build/reports/tests/test/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/reports/tests/test/packages/umc.nook.html" beforeDir="false" afterPath="$PROJECT_DIR$/build/reports/tests/test/packages/umc.nook.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/resources/main/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/build/resources/main/application.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/test-results/test/TEST-umc.nook.NookApplicationTests.xml" beforeDir="false" afterPath="$PROJECT_DIR$/build/test-results/test/TEST-umc.nook.NookApplicationTests.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/test-results/test/binary/output.bin" beforeDir="false" afterPath="$PROJECT_DIR$/build/test-results/test/binary/output.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/test-results/test/binary/output.bin.idx" beforeDir="false" afterPath="$PROJECT_DIR$/build/test-results/test/binary/output.bin.idx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/test-results/test/binary/results.bin" beforeDir="false" afterPath="$PROJECT_DIR$/build/test-results/test/binary/results.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/bootJar/MANIFEST.MF" beforeDir="false" afterPath="$PROJECT_DIR$/build/tmp/bootJar/MANIFEST.MF" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/UserService.class.uniqueId0" beforeDir="false" afterPath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/UserService.class.uniqueId0" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/UserService.class.uniqueId6" beforeDir="false" afterPath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/UserService.class.uniqueId6" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/previous-compilation-data.bin" beforeDir="false" afterPath="$PROJECT_DIR$/build/tmp/compileJava/previous-compilation-data.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/jar/MANIFEST.MF" beforeDir="false" afterPath="$PROJECT_DIR$/build/tmp/jar/MANIFEST.MF" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/users/controller/UserController.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/controller/UserController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/users/service/UserService.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/users/service/UserService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/generated/umc/nook/users/domain/QUser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/generated/umc/nook/users/domain/QUser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/users/domain/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/users/domain/User.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QReadingRoom.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QReadingRoom.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QReadingRoomHashtag.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QReadingRoomHashtag.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QTheme.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QTheme.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/dto/AladinResponseDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/dto/AladinResponseDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/service/AladinService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/service/AladinService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/book/repository/CategoryRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/book/repository/CategoryRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/book/service/CategoryService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/book/service/CategoryService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/common/response/ErrorCode.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/common/response/ErrorCode.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/controller/LoungeController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/controller/LoungeController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/converter/LoungeConverter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/converter/LoungeConverter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/dto/LoungeResponseDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/dto/LoungeResponseDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/service/LoungeService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/service/LoungeService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/annotation/ValidatedCategory.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/annotation/ValidatedCategory.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/annotation/ValidatedMallType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/annotation/ValidatedMallType.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/annotation/ValidatedPage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/annotation/ValidatedPage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/annotation/ValidatedSection.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/annotation/ValidatedSection.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/validator/CategoryValidator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/validator/CategoryValidator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/validator/MallTypeValidator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/validator/MallTypeValidator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/validator/PageValidator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/validator/PageValidator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/validator/SectionValidator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/validator/SectionValidator.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -174,11 +40,32 @@
       <ProjectState />
     </projectState>
   </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <task path="$PROJECT_DIR$">
+          <activation />
+        </task>
+        <projects_view>
+          <tree_state>
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="nook" type="f1a62948:ProjectNode" />
+              </path>
+            </expand>
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
+  </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Enum" />
         <option value="Interface" />
+        <option value="AnnotationType" />
         <option value="Class" />
       </list>
     </option>
@@ -195,16 +82,17 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Gradle.NookApplicationTests.executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.Server [:umc.nook.NookApplication.main()].executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/#3-lounge-api 병합 중&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Gradle.NookApplicationTests.executor": "Run",
+    "Gradle.Server [:umc.nook.NookApplication.main()].executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "feature/#3-lounge-api",
+    "kotlin-language-version-configured": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="애플리케이션.NookApplication">
     <configuration name="NookApplication" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <envs>
@@ -271,5 +159,29 @@
       <updated>1751712328884</updated>
     </task>
     <servers />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-method">
+          <url>file://$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/annotation/ValidatedMallType.java</url>
+          <line>14</line>
+          <properties class="umc.nook.lounge.validation.annotation.ValidatedMallType" method="groups">
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-method">
+          <url>file://$PROJECT_DIR$/src/main/java/umc/nook/lounge/service/LoungeService.java</url>
+          <line>155</line>
+          <properties class="umc.nook.lounge.service.LoungeService" method="isBookIncluded">
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

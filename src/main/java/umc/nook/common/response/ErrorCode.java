@@ -16,7 +16,15 @@ public enum ErrorCode implements BaseCode {
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "ACCOUNT-006", "토큰이 만료되었습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "ACCOUNT-007", "인증이 필요합니다."),
     EMAIL_DUPLICATE(HttpStatus.BAD_REQUEST,"ACCOUNT-008" ,"중복된 이메일입니다." ),
-    INVALID_CATEGORY(HttpStatus.NOT_FOUND, "LOUNGE-005", "요청한 카테고리가 존재하지 않습니다.");
+
+    // 페이지
+    INVALID_PAGE(HttpStatus.BAD_REQUEST, "PAGE-001", "유효하지 않은 'page' 값입니다."),
+    INVALID_LIMIT(HttpStatus.BAD_REQUEST, "PAGE-002", "유효하지 않은 'limit' 값입니다."),
+
+    // 라운지
+    INVALID_MALLTYPE(HttpStatus.BAD_REQUEST, "LOUNGE-001", "유효하지 않은 'mallType' 값입니다."),
+    INVALID_SECTION(HttpStatus.BAD_REQUEST, "LOUNGE-002", "유효하지 않은 'sectionId' 값입니다."),
+    INVALID_CATEGORY(HttpStatus.NOT_FOUND, "LOUNGE-003", "요청한 카테고리가 존재하지 않습니다.");
 
 
     private final HttpStatus httpStatus;
