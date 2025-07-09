@@ -29,8 +29,6 @@ public class QReadingRoomHashtag extends EntityPathBase<ReadingRoomHashtag> {
 
     public final QHashtag hashtag;
 
-    public final EnumPath<HashtagName> hashtagName = createEnum("hashtagName", HashtagName.class);
-
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
     //inherited
