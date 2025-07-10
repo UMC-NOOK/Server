@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 import umc.nook.common.response.ApiResponse;
 import umc.nook.common.response.SuccessCode;
 import umc.nook.lounge.dto.LoungeResponseDTO;
@@ -56,7 +57,7 @@ public class LoungeController {
             )
     })
     @GetMapping("/books")
-    public ApiResponse<LoungeResponseDTO.LoungeBookResultDTO> getLoungeBooks(
+    public Mono<ApiResponse<LoungeResponseDTO.LoungeBookResultDTO>> getLoungeBooks(
             @ValidatedMallType @RequestParam(defaultValue = "RECOMMENDATION") String mallType,
             @ValidatedSection @RequestParam(required = false) String sectionId,
             @ValidatedCategory @RequestParam(required = false) Integer categoryId,
@@ -64,9 +65,8 @@ public class LoungeController {
             @Parameter(hidden = true) @RequestHeader("Authorization") String token
 
     ) {
-        LoungeResponseDTO.LoungeBookResultDTO result = loungeService.getLoungeBooks(
-                mallType, sectionId, categoryId, page, token
-        );
-        return ApiResponse.onSuccess(result, SuccessCode.OK);
+
+        return loungeService.getLoungeBooks(mallType, sectionId, categoryId, page, token)
+                .map(result -> ApiResponse.onSuccess(result, SuccessCode.OK));
     }
 }

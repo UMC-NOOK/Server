@@ -5,20 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f940e27-636a-4e1b-9d02-7b89b51402a1" name="변경" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/common/response/ErrorCode.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/response/ErrorCode.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/controller/ReadingRoomController.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/controller/ReadingRoomController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/ReadingRoomUser.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/ReadingRoomUser.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO$ReadingRoomResponseDTOBuilder.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO$ReadingRoomResponseDTOBuilder.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/repository/ReadingRoomUserRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/repository/ReadingRoomUserRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/service/ReadingRoomService.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/service/ReadingRoomService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/common/response/ErrorCode.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/common/response/ErrorCode.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/controller/ReadingRoomController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/controller/ReadingRoomController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/domain/ReadingRoomUser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/domain/ReadingRoomUser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/dto/ReadingRoomDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/dto/ReadingRoomDTO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/repository/ReadingRoomUserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/repository/ReadingRoomUserRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/service/ReadingRoomService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/service/ReadingRoomService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QReadingRoomUser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QReadingRoomUser.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,17 +61,17 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Gradle.NookApplicationTests.executor": "Run",
-    "Gradle.Server [:umc.nook.NookApplication.main()].executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "feature/#3-lounge-api 병합 중",
-    "kotlin-language-version-configured": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Gradle.NookApplicationTests.executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.Server [:umc.nook.NookApplication.main()].executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/#11-search-api&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="애플리케이션.NookApplication">
     <configuration name="NookApplication" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <envs>

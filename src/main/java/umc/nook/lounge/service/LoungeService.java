@@ -3,6 +3,7 @@ package umc.nook.lounge.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
@@ -34,115 +35,111 @@ public class LoungeService {
     private final AladinService aladinService;
     private final CategoryRepository categoryRepository;
 
-    public LoungeResponseDTO.LoungeBookResultDTO getLoungeBooks(String mallType, String sectionId,
-                                                                Integer categoryId, int page, String token) {
-
-        List<LoungeResponseDTO.SectionDTO> sections = new ArrayList<>();
+    public Mono<LoungeResponseDTO.LoungeBookResultDTO> getLoungeBooks(
+            String mallType, String sectionId, Integer categoryId, int page, String token) {
 
         // 추천 페이지
         if ("RECOMMENDATION".equalsIgnoreCase(mallType)) {
-            handleRecommendation(sections, sectionId, categoryId, page, token);
+            return handleRecommendation(sectionId, categoryId, page, token);
         }
         // 몰 타입 페이지
         else {
-            handleMallType(sections, sectionId, categoryId, mallType, page);
+            return handleMallType(sectionId, categoryId, mallType, page);
         }
-
-        return LoungeResponseDTO.LoungeBookResultDTO.builder()
-                .sections(sections)
-                .build();
     }
 
-    private LoungeResponseDTO.SectionDTO fetchSection(
+    private Mono<LoungeResponseDTO.SectionDTO> fetchSection(
         String sectionId, Integer categoryId, String categoryName,String queryType,
         String mallType, int page) {
 
         String categoryIdStr = (categoryId != null) ? String.valueOf(categoryId) : null;
         int start = (page - 1) * LIMIT + 1;
 
-        AladinResponseDTO.PaginationDTO response = aladinService.fetchBooks(
-                queryType, mallType, start, LIMIT, categoryIdStr
-        ).block();
+        return aladinService.fetchBooks(queryType, mallType, start, LIMIT, categoryIdStr)
+                .map(response -> {
+                    List<LoungeResponseDTO.BookDTO> books = new ArrayList<>();
+                    if (response != null && response.getItem() != null) {
+                        for (AladinResponseDTO.LoungeBookDTO item : response.getItem()) {
+                            if (isBookIncluded(item.getCategoryName())) {
+                                books.add(LoungeConverter.toBookDTO(item));
+                            }
+                        }
+                    }
 
-        List<LoungeResponseDTO.BookDTO> books = new ArrayList<>();
+                    int totalItems = response != null ? response.getTotalResults() : 0;
+                    int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / LIMIT) : 0;
 
+                    LoungeResponseDTO.PaginationDTO pagination = LoungeConverter.toPaginiationDTO(
+                            page, LIMIT, totalItems, totalPages
+                    );
 
-        if (response != null && response.getItem() != null) {
-            for (AladinResponseDTO.LoungeBookDTO item : response.getItem()) {
-                if (isBookIncluded(item.getCategoryName())) {
-                    books.add(LoungeConverter.toBookDTO(item));
-                }
-            }
-        }
-
-
-        int totalItems = response != null ? response.getTotalResults() : 0;
-        int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / LIMIT) : 0;
-
-        LoungeResponseDTO.PaginationDTO pagination = LoungeConverter.toPaginiationDTO(
-                page, LIMIT, totalItems, totalPages
-        );
-
-        return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books, pagination);
+                    return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books, pagination);
+                });
     }
 
-    private void handleRecommendation(
-            List<LoungeResponseDTO.SectionDTO> sections, String sectionId, Integer categoryId, int page, String token) {
+    private Mono<LoungeResponseDTO.LoungeBookResultDTO> handleRecommendation(
+            String sectionId, Integer categoryId, int page, String token) {
 
         if (sectionId == null) {
             // 추천 페이지 전체 조회 (1페이지)
-            addBestSection(sections, SECTION_BEST, categoryId, page);
-            addBestSection(sections, SECTION_FAVORITE_BEST, getFavoriteCategory(token), page);
+            Mono<LoungeResponseDTO.SectionDTO> bestSection = getBestSection(SECTION_BEST, categoryId, page);
+            Mono<LoungeResponseDTO.SectionDTO> favoriteSection = getBestSection(SECTION_FAVORITE_BEST, getFavoriteCategory(token), page);
+
+            return Mono.zip(bestSection, favoriteSection)
+                    .map(tuple -> LoungeConverter.toResultDTO(
+                            List.of(tuple.getT1(), tuple.getT2())
+                    ));
         }
-        else if (sectionId.equalsIgnoreCase("best")) {
+        else if (sectionId.equalsIgnoreCase(SECTION_BEST)) {
             // 주간 베스트셀러의 특정 페이지 조회
-            addBestSection(sections, SECTION_BEST, categoryId, page);
+            return getBestSection(SECTION_BEST, categoryId, page)
+                    .map(section -> LoungeConverter.toResultDTO(List.of(section)));
         }
         else{
             // 사용자 선호 카테고리 베스트셀러의 특정 페이지 조회
-            addBestSection(sections, SECTION_FAVORITE_BEST, getFavoriteCategory(token), page);
+            return getBestSection(SECTION_FAVORITE_BEST, getFavoriteCategory(token), page)
+                    .map(section -> LoungeConverter.toResultDTO(List.of(section)));
         }
     }
 
-    private void handleMallType(
-            List<LoungeResponseDTO.SectionDTO> sections, String sectionId, Integer categoryId,
-            String mallType, int page
+    private Mono<LoungeResponseDTO.LoungeBookResultDTO> handleMallType(
+            String sectionId, Integer categoryId, String mallType, int page
     ) {
         if (sectionId == null) {
             // 몰 타입 페이지 전체 조회 (1 페이지)
-            addNewSection(sections, categoryId, mallType, page);
+            Mono<LoungeResponseDTO.SectionDTO> newSection = getNewSection(categoryId, mallType, page);
             List<Integer> categoryIds = getCategoryIdsByMallType(mallType);
+            List<Mono<LoungeResponseDTO.SectionDTO>> bestSections = new ArrayList<>();
             for (Integer cid : categoryIds) {
-                addBestSection(sections, SECTION_BEST, cid, page);
+                bestSections.add(getBestSection(SECTION_BEST, cid, page));
             }
+            return Mono.zip(newSection, Flux.merge(bestSections).collectList())
+                    .map(tuple -> {
+                        List<LoungeResponseDTO.SectionDTO> sections = new ArrayList<>();
+                        sections.add(tuple.getT1());
+                        sections.addAll(tuple.getT2());
+                        return LoungeConverter.toResultDTO(sections);
+                    });
         }
         else if (sectionId.equalsIgnoreCase("new")) {
             // 신간의 특정 페이지 조회
-            addNewSection(sections, categoryId, mallType, page);
+            return getNewSection(categoryId, mallType, page)
+                    .map(section -> LoungeConverter.toResultDTO(List.of(section)));
         }
         else{
             // 몰 타입의 특정 카테고리 베스트셀러의 특정 페이지 조회
-            addBestSection(sections, SECTION_BEST, categoryId, page);
+            return getBestSection(SECTION_BEST, categoryId, page)
+                    .map(section -> LoungeConverter.toResultDTO(List.of(section)));
         }
     }
-    private void addBestSection(
-            List<LoungeResponseDTO.SectionDTO> sections, String sectionId, Integer categoryId, int page
-    ) {
+    private Mono<LoungeResponseDTO.SectionDTO> getBestSection(String sectionId, Integer categoryId, int page) {
         String categoryName = getCategoryNameById(categoryId);
-        LoungeResponseDTO.SectionDTO section = fetchSection(
-                sectionId, categoryId, categoryName, QUERY_TYPE_BESTSELLER, "BOOK", page
-        );
-        sections.add(section);
+        return fetchSection(sectionId, categoryId, categoryName, QUERY_TYPE_BESTSELLER, "BOOK", page);
     }
 
-    private void addNewSection(
-            List<LoungeResponseDTO.SectionDTO> sections, Integer categoryId, String mallType, int page
-    ) {
+    private Mono<LoungeResponseDTO.SectionDTO> getNewSection(Integer categoryId, String mallType, int page) {
         String categoryName = getCategoryNameById(categoryId);
-        LoungeResponseDTO.SectionDTO section = fetchSection(
-                SECTION_NEW, categoryId, categoryName, QUERY_TYPE_ITEMNEWALL, mallType, page
-        );
-        sections.add(section);
+        return fetchSection(SECTION_NEW, categoryId, categoryName, QUERY_TYPE_ITEMNEWALL, mallType, page);
     }
 
     // 사용자 선호 카테고리 추출
