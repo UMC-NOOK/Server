@@ -35,5 +35,16 @@ public class ReadingRoom extends BaseTimeEntity {
     @OneToMany(mappedBy = "readingRoom", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReadingRoomUser> users = new ArrayList<>();
 
+    public void updateName(String name) {
+        this.name = name;
+    }
+
+    public void updateDescription(String description) {
+        this.description = description;
+    }
+
+    public void updateTheme(Theme theme) {
+        this.theme = theme;
+    }
 
 }

@@ -21,6 +21,14 @@ public enum ErrorCode implements BaseCode {
     READING_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM-001", "리딩룸을 찾을 수 없습니다."),
     ALREADY_JOINED_READING_ROOM(HttpStatus.CONFLICT, "ROOM-002", "이미 가입한 리딩룸입니다."),
     ROOM_CAPACITY_EXCEEDED(HttpStatus.BAD_REQUEST, "ROOM-003", "리딩룸의 최대 인원 수를 초과했습니다."),
+    HOST_ONLY(HttpStatus.UNAUTHORIZED, "ROOM-004" ,"리딩룸의 호스트만 수행할 수 있습니다." ),
+
+    //테마 관련
+    THEME_NOT_FOUND(HttpStatus.NOT_FOUND, "THEME-001", "테마를 찾을 수 없습니다."),
+
+    //해시태그 관련
+    HASHTAG_NOT_FOUND(HttpStatus.NOT_FOUND, "HASHTAG-001", "해시태그를 찾을 수 없습니다."),
+    TOO_MANY_HASHTAGS(HttpStatus.BAD_REQUEST, "HASHTAG-002", "해시태그는 최대 3개까지 선택 가능합니다."),
 
     // 페이지
     INVALID_PAGE(HttpStatus.BAD_REQUEST, "PAGE-001", "유효하지 않은 'page' 값입니다."),

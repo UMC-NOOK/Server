@@ -49,7 +49,8 @@ public class WebSecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/api/**",
-                                "/swagger-resources/**")
+                                "/swagger-resources/**",
+                                "/readingroom-ws/**")
                         .permitAll()
                         .requestMatchers("/api/**").permitAll()
                         .anyRequest().authenticated());

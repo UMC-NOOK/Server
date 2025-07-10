@@ -18,4 +18,22 @@ public class ReadingRoomDTO {
         private int totalUserCount;
         private String themeImageUrl;
     }
+
+    @Getter
+    @Builder
+    public static class ReadingRoomRequestDTO {
+        private String name;
+        private String description;
+        private List<String> hashtags;
+        private Long themeId;
+    }
+
+    @Getter
+    @Builder
+    public static class ReadingRoomThemeUpdateDTO {
+        private Long roomId;
+        private String imageUrl;
+        private String bgmUrl;
+    }
+
 }
