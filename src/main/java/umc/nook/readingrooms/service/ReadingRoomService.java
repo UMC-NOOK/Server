@@ -241,7 +241,7 @@ public class ReadingRoomService {
         }
 
         // 테마 수정
-        if (dto.getThemeId() != null) {
+        if (dto.getThemeId() != null && !dto.getThemeId().equals(room.getTheme().getId())) {
             Theme newTheme = themeRepository.findById(dto.getThemeId())
                     .orElseThrow(() -> new CustomException(ErrorCode.THEME_NOT_FOUND));
             room.updateTheme(newTheme);
