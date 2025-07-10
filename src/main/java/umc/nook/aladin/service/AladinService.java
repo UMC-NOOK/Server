@@ -16,7 +16,7 @@ public class AladinService {
     @Value("${aladin.ttbkey}")
     private String ttbKey;
 
-    public Mono<AladinResponseDTO.PaginationDTO> fetchBooks(String queryType, String searchTarget, int start,
+    public Mono<AladinResponseDTO.LoungeResultDTO> fetchBooks(String queryType, String searchTarget, int start,
                                                       int maxResults, String categoryId) {
         // type 검증/구분 필요 (book, foreign, ebook)
         return aladinWebClient.get()
@@ -38,6 +38,24 @@ public class AladinService {
                 })
                 .retrieve()
                 //.onStatus(status -> ..) 예외처리 필요
-                .bodyToMono(AladinResponseDTO.PaginationDTO.class);
+                .bodyToMono(AladinResponseDTO.LoungeResultDTO.class);
     }
+
+    public Mono<AladinResponseDTO.SearchResultDTO> searchBooks(String query, int start, int maxResults) {
+        return aladinWebClient.get()
+                .uri(uriBuilder -> {
+                    return uriBuilder
+                            .path("/ItemSearch.aspx")
+                            .queryParam("ttbkey", ttbKey)
+                            .queryParam("Query", query)
+                            .queryParam("MaxResults", maxResults)
+                            .queryParam("start", start)
+                            .queryParam("output", "js")
+                            .queryParam("Version", "20131101")
+                            .build();
+                })
+                .retrieve()
+                .bodyToMono(AladinResponseDTO.SearchResultDTO.class);
+    }
+
 }

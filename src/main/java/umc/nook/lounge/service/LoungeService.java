@@ -1,18 +1,18 @@
 package umc.nook.lounge.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
-import umc.nook.book.domain.MallType;
 import umc.nook.book.repository.CategoryRepository;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.lounge.converter.LoungeConverter;
 import umc.nook.lounge.dto.LoungeResponseDTO;
+import umc.nook.users.domain.User;
+import umc.nook.users.service.CustomUserDetails;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,11 +36,13 @@ public class LoungeService {
     private final CategoryRepository categoryRepository;
 
     public Mono<LoungeResponseDTO.LoungeBookResultDTO> getLoungeBooks(
-            String mallType, String sectionId, Integer categoryId, int page, String token) {
+            String mallType, String sectionId, Integer categoryId, int page, CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
 
         // 추천 페이지
         if ("RECOMMENDATION".equalsIgnoreCase(mallType)) {
-            return handleRecommendation(sectionId, categoryId, page, token);
+            return handleRecommendation(sectionId, categoryId, page, user);
         }
         // 몰 타입 페이지
         else {
@@ -78,12 +80,12 @@ public class LoungeService {
     }
 
     private Mono<LoungeResponseDTO.LoungeBookResultDTO> handleRecommendation(
-            String sectionId, Integer categoryId, int page, String token) {
+            String sectionId, Integer categoryId, int page, User user) {
 
         if (sectionId == null) {
             // 추천 페이지 전체 조회 (1페이지)
             Mono<LoungeResponseDTO.SectionDTO> bestSection = getBestSection(SECTION_BEST, categoryId, page);
-            Mono<LoungeResponseDTO.SectionDTO> favoriteSection = getBestSection(SECTION_FAVORITE_BEST, getFavoriteCategory(token), page);
+            Mono<LoungeResponseDTO.SectionDTO> favoriteSection = getBestSection(SECTION_FAVORITE_BEST, getFavoriteCategory(user), page);
 
             return Mono.zip(bestSection, favoriteSection)
                     .map(tuple -> LoungeConverter.toResultDTO(
@@ -97,7 +99,7 @@ public class LoungeService {
         }
         else{
             // 사용자 선호 카테고리 베스트셀러의 특정 페이지 조회
-            return getBestSection(SECTION_FAVORITE_BEST, getFavoriteCategory(token), page)
+            return getBestSection(SECTION_FAVORITE_BEST, getFavoriteCategory(user), page)
                     .map(section -> LoungeConverter.toResultDTO(List.of(section)));
         }
     }
@@ -121,7 +123,7 @@ public class LoungeService {
                         return LoungeConverter.toResultDTO(sections);
                     });
         }
-        else if (sectionId.equalsIgnoreCase("new")) {
+        else if (sectionId.equalsIgnoreCase(SECTION_NEW)) {
             // 신간의 특정 페이지 조회
             return getNewSection(categoryId, mallType, page)
                     .map(section -> LoungeConverter.toResultDTO(List.of(section)));
@@ -144,7 +146,7 @@ public class LoungeService {
 
     // 사용자 선호 카테고리 추출
     // 추후 개발 예정
-    private int getFavoriteCategory(String token) {
+    private int getFavoriteCategory(User user) {
         return 170; // 하드 코딩
     }
 

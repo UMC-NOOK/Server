@@ -5,9 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f940e27-636a-4e1b-9d02-7b89b51402a1" name="변경" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QReadingRoomUser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/generated/umc/nook/readingrooms/domain/QReadingRoomUser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/dto/AladinResponseDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/dto/AladinResponseDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/service/AladinService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/service/AladinService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/service/LoungeService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/service/LoungeService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,17 +62,18 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Gradle.NookApplicationTests.executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.Server [:umc.nook.NookApplication.main()].executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/#11-search-api&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Gradle.NookApplicationTests.executor": "Run",
+    "Gradle.Server [:umc.nook.NookApplication.main()].executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "feature/#11-search-api",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/nook"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="애플리케이션.NookApplication">
     <configuration name="NookApplication" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <envs>
@@ -118,8 +120,8 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Gradle.NookApplicationTests" />
       <item itemvalue="애플리케이션.NookApplication" />
+      <item itemvalue="Gradle.NookApplicationTests" />
     </list>
     <recent_temporary>
       <list>
@@ -153,7 +155,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-method">
           <url>file://$PROJECT_DIR$/src/main/java/umc/nook/lounge/service/LoungeService.java</url>
-          <line>155</line>
+          <line>150</line>
           <properties class="umc.nook.lounge.service.LoungeService" method="isBookIncluded">
             <option name="EMULATED" value="true" />
             <option name="WATCH_EXIT" value="false" />
