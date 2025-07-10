@@ -28,7 +28,16 @@ public enum ErrorCode implements BaseCode {
 
     //해시태그 관련
     HASHTAG_NOT_FOUND(HttpStatus.NOT_FOUND, "HASHTAG-001", "해시태그를 찾을 수 없습니다."),
-    TOO_MANY_HASHTAGS(HttpStatus.BAD_REQUEST, "HASHTAG-002", "해시태그는 최대 3개까지 선택 가능합니다.");
+    TOO_MANY_HASHTAGS(HttpStatus.BAD_REQUEST, "HASHTAG-002", "해시태그는 최대 3개까지 선택 가능합니다."),
+
+    // 페이지
+    INVALID_PAGE(HttpStatus.BAD_REQUEST, "PAGE-001", "유효하지 않은 'page' 값입니다."),
+    INVALID_LIMIT(HttpStatus.BAD_REQUEST, "PAGE-002", "유효하지 않은 'limit' 값입니다."),
+
+    // 라운지
+    INVALID_MALLTYPE(HttpStatus.BAD_REQUEST, "LOUNGE-001", "유효하지 않은 'mallType' 값입니다."),
+    INVALID_SECTION(HttpStatus.BAD_REQUEST, "LOUNGE-002", "유효하지 않은 'sectionId' 값입니다."),
+    INVALID_CATEGORY(HttpStatus.NOT_FOUND, "LOUNGE-003", "요청한 카테고리가 존재하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

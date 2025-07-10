@@ -22,3 +22,8 @@ spring:
     port: 6379
 jwt:
   secret: ${JWTSECRET}
+
+
+aladin:
+  base-url: http://www.aladin.co.kr/ttb/api
+  ttbkey: ${ALADIN_TTBKEY}
