@@ -65,6 +65,43 @@ public class ReadingRoomService {
         }).collect(Collectors.toList());
     }
 
+    //사용자가 가입한 리딩룸 조회
+    @Transactional(readOnly = true)
+    public List<ReadingRoomDTO.ReadingRoomResponseDTO> getJoinedReadingRooms(int page, CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
+
+        int pageSize = 12;
+        PageRequest pageRequest = PageRequest.of(page, pageSize);
+        Page<ReadingRoomUser> joinedReadingRooms = readingRoomUserRepository.findByUser(user, pageRequest);
+
+        return joinedReadingRooms.stream()
+                .map(join -> {
+                    ReadingRoom room = join.getReadingRoom();
+
+                    //가입자수는 DB에서 조회
+                    int joinedCount = readingRoomUserRepository.countByReadingRoom(room);
+
+                    // 실시간 접속자 수는 Redis에서 조회
+                    String connectedKey = "ReadingRoom:" + room.getId() + ":users";
+                    Long connectedCount = redisTemplate.opsForSet().size(connectedKey);
+
+                    List<String> hashtagNames = room.getHashtags().stream()
+                            .map(h -> h.getHashtag().getName().name())
+                            .toList();
+
+                    return ReadingRoomDTO.ReadingRoomResponseDTO.builder()
+                            .roomId(room.getId())
+                            .name(room.getName())
+                            .description(room.getDescription())
+                            .hashtags(hashtagNames)
+                            .currentUserCount(connectedCount != null ? connectedCount.intValue() : 0)
+                            .totalUserCount(joinedCount)
+                            .themeImageUrl(room.getTheme().getImageUrl())
+                            .build();
+                }).toList();
+    }
+
     // 리딩룸 가입, DB에 저장
     @Transactional
     public Long joinRoom(Long roomId, CustomUserDetails userDetails) {

@@ -9,7 +9,6 @@ import umc.nook.common.response.ApiResponse;
 import umc.nook.common.response.SuccessCode;
 import umc.nook.readingrooms.dto.ReadingRoomDTO;
 import umc.nook.readingrooms.service.ReadingRoomService;
-import umc.nook.users.domain.User;
 import umc.nook.users.service.CustomUserDetails;
 
 import java.util.List;
@@ -26,6 +25,12 @@ public class ReadingRoomController {
     @GetMapping
     public ApiResponse<List<ReadingRoomDTO.ReadingRoomResponseDTO>> getAllReadingRooms(@RequestParam(defaultValue = "0") int page) {
         return ApiResponse.onSuccess(readingRoomService.getAllReadingRooms(page), SuccessCode.OK);
+    }
+
+    @Operation(summary = "사용자가 가입한 리딩룸 목록을 조회합니다.")
+    @GetMapping("/join")
+    public ApiResponse<List<ReadingRoomDTO.ReadingRoomResponseDTO>> joinedReadingRoom(@RequestParam(defaultValue = "0") int page, @AuthenticationPrincipal CustomUserDetails user) {
+        return ApiResponse.onSuccess(readingRoomService.getJoinedReadingRooms(page, user),SuccessCode.OK);
     }
 
     @Operation(summary = "사용자가 리딩룸에 가입합니다.", description = "가입한 리딩룸 ID를 반환합니다.")
