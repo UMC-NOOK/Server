@@ -15,6 +15,7 @@ import umc.nook.common.response.ErrorCode;
 import umc.nook.common.response.SuccessCode;
 import umc.nook.lounge.validation.annotation.ValidatedPage;
 import umc.nook.search.dto.SearchResponseDTO;
+import umc.nook.search.service.RecentQueryService;
 import umc.nook.search.service.SearchService;
 import umc.nook.users.service.CustomUserDetails;
 
@@ -26,12 +27,13 @@ import umc.nook.users.service.CustomUserDetails;
 public class SearchController {
 
     private final SearchService searchService;
+    private final RecentQueryService recentQueryService;
 
     @Operation(
             summary = "책 검색",
             description = """
-            사용자가 입력한 검색어(책 제목, 저자, ISBN)를 기반으로 도서를 검색합니다.
-            """
+                    사용자가 입력한 검색어(책 제목, 저자, ISBN)를 기반으로 도서를 검색합니다.
+                    """
     )
     @Parameters({
             @Parameter(
@@ -51,11 +53,56 @@ public class SearchController {
             @RequestParam(required = false) String query,
             @ValidatedPage @RequestParam(defaultValue = "1") int page,
             @AuthenticationPrincipal CustomUserDetails userDetails
-            ) {
+    ) {
         if (query == null || query.isBlank()) {
             return Mono.error(new CustomException(ErrorCode.INVALID_QUERY));
         }
         return searchService.searchBooks(query, page, userDetails)
                 .map(result -> ApiResponse.onSuccess(result, SuccessCode.OK));
+    }
+
+    @Operation(
+            summary = "최근 검색어 조회",
+            description = """
+                    사용자의 최근 검색어를 조회합니다.(최대 10개)
+                    """
+    )
+    @GetMapping("/recentQueries")
+    public ApiResponse<SearchResponseDTO.RecentQueryResultDTO> getRecentQueries(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ApiResponse.onSuccess(recentQueryService.getRecentQueries(userDetails), SuccessCode.OK);
+    }
+
+    @Operation(
+            summary = "최근 검색어 삭제",
+            description = """
+                    특정 최근 검색어를 삭제합니다.
+                    """
+    )
+    @Parameters({
+            @Parameter(
+                    name = "recentQueryId",
+                    description = "삭제할 검색어의 id",
+                    required = true
+            )
+    })
+    @DeleteMapping("/recentQueries/{recentQueryId}")
+    public ApiResponse<Void> deleteRecentQuery(@PathVariable Long recentQueryId,
+                                                 @AuthenticationPrincipal CustomUserDetails userDetails) {
+        recentQueryService.deleteRecentQuery(userDetails, recentQueryId);
+        return ApiResponse.onSuccess(null, SuccessCode.OK);
+    }
+
+    @Operation(
+            summary = "최근 검색어 전체 삭제",
+            description = """
+                    모든 최근 검색어를 삭제합니다.
+                    """
+    )
+    @DeleteMapping("/recentQueries")
+    public ApiResponse<Void> deleteAllRecentQueries(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        recentQueryService.deleteAllRecentQueries(userDetails);
+        return ApiResponse.onSuccess(null, SuccessCode.OK);
     }
 }

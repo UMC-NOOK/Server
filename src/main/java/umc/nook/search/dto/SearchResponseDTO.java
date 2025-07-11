@@ -27,6 +27,15 @@ public class SearchResponseDTO {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
+    public static class RecentQueryDTO{
+        private Long recentQueryId;
+        private String query;
+    }
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class PaginationDTO{
         private int currentPage;
         private int pageSize;
@@ -42,4 +51,14 @@ public class SearchResponseDTO {
         private List<BookDTO> books;
         private PaginationDTO pagination;
     }
+
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class RecentQueryResultDTO{
+        private List<RecentQueryDTO> recentQueries;
+    }
+
 }

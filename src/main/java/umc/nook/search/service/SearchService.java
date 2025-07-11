@@ -8,7 +8,9 @@ import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
 import umc.nook.lounge.converter.LoungeConverter;
 import umc.nook.search.converter.SearchConverter;
+import umc.nook.search.domain.RecentQuery;
 import umc.nook.search.dto.SearchResponseDTO;
+import umc.nook.search.repository.RecentQueryRepository;
 import umc.nook.users.domain.User;
 import umc.nook.users.service.CustomUserDetails;
 
@@ -24,6 +26,7 @@ public class SearchService {
     private static int LIMIT = 10;
 
     private final AladinService aladinService;
+    private final RecentQueryService recentQueryService;
 
     public Mono<SearchResponseDTO.SearchResultDTO> searchBooks(String query, int page, CustomUserDetails userDetails) {
         User user = userDetails.getUser();
@@ -40,7 +43,7 @@ public class SearchService {
                     }
                     int totalItems = response != null ? response.getTotalResults() : 0;
                     int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / LIMIT) : 0;
-
+                    recentQueryService.saveRecentQuery(user, query);
                     return SearchResponseDTO.SearchResultDTO.builder()
                             .books(books)
                             .pagination(SearchConverter.toPaginiationDTO(page, LIMIT, totalItems, totalPages))
@@ -48,5 +51,4 @@ public class SearchService {
                 });
 
     }
-
 }
