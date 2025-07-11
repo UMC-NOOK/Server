@@ -29,6 +29,8 @@ public class QReadingRoomUser extends EntityPathBase<ReadingRoomUser> {
 
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
+    public final DateTimePath<java.time.LocalDateTime> lastAccessedAt = createDateTime("lastAccessedAt", java.time.LocalDateTime.class);
+
     //inherited
     public final DateTimePath<java.time.LocalDateTime> modifiedDate = _super.modifiedDate;
 
