@@ -39,8 +39,6 @@ public class SearchService {
                     List<SearchResponseDTO.BookDTO> books = new ArrayList<>();
                     if (response != null && response.getItem() != null) {
                         for (AladinResponseDTO.SearchBookDTO item : response.getItem()) {
-                            System.out.println("title = " + item.getTitle());
-                            System.out.println("categoryName = " + item.getCategoryName());
                             if (BookFilterUtils.isBookIncluded(item.getCategoryName())) {
                                 books.add(SearchConverter.toBookDTO(item));
                             }
