@@ -1,5 +1,7 @@
 package umc.nook.readingrooms.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,6 +20,7 @@ import umc.nook.users.service.CustomUserDetails;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,6 +36,7 @@ public class ReadingRoomService {
     private final ReadingRoomHashtagRepository readingRoomHashtagRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
 
     // 전체 리딩룸 조회
     @Transactional(readOnly = true)
@@ -230,6 +234,7 @@ public class ReadingRoomService {
         return roomId;
     }
 
+    // 리딩룸 정보 수정
     @Transactional
     public void updateRoom(Long roomId, ReadingRoomDTO.ReadingRoomRequestDTO dto, CustomUserDetails userDetails) {
 
@@ -306,6 +311,7 @@ public class ReadingRoomService {
         }
     }
 
+    // 리딩룸 입장
     @Transactional
     public ReadingRoomDTO.ReadingRoomEnterResponse enterRoom(ReadingRoomDTO.ReadingRoomEnterRequest dto) {
         // 리딩룸 존재 확인
@@ -324,24 +330,30 @@ public class ReadingRoomService {
         readingRoomUser.updateLastAccessedAt();
 
         // Redis에서 중복 입장 체크 후 처리
-        String key = "ReadingRoom:Users:" + room.getId();
-        String userIdStr = user.getUserId().toString();
+        String hashKey = "ReadingRoom:Users:" + dto.getRoomId();
+        String userIdStr = String.valueOf(dto.getUserId());
 
-        Set<String> currentUserIds = redisTemplate.opsForSet().members(key);
-        if (currentUserIds == null || !currentUserIds.contains(userIdStr)) {
-            redisTemplate.opsForSet().add(key, userIdStr);
+        // JSON 저장
+        if (!redisTemplate.opsForHash().hasKey(hashKey, userIdStr)) {
+            try {
+                ReadingRoomDTO.UserDTO dtoToStore = ReadingRoomDTO.UserDTO.from(user);
+                String json = objectMapper.writeValueAsString(dtoToStore);
+                redisTemplate.opsForHash().put(hashKey, userIdStr, json);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Redis 저장 중 JSON 직렬화 오류", e);
+            }
         }
 
-        // Redis에 저장된 유저 ID들 기준으로 현재 유저 리스트 구성
-        Set<String> updatedUserIds = redisTemplate.opsForSet().members(key);
-        List<ReadingRoomDTO.UserDTO> userDTOs = updatedUserIds.stream()
-                .map(idStr -> {
-                    Long id = Long.parseLong(idStr);
-                    User u = userRepository.findById(id)
-                            .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-                    return ReadingRoomDTO.UserDTO.from(u);
-                })
-                .toList();
+        // Redis에서 전체 유저 JSON 가져오기
+        Map<Object, Object> redisUserMap = redisTemplate.opsForHash().entries(hashKey);
+        List<ReadingRoomDTO.UserDTO> currentUsers = redisUserMap.values().stream()
+                .map(json -> {
+                    try {
+                        return objectMapper.readValue((String) json, ReadingRoomDTO.UserDTO.class);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException("JSON parsing error", e);
+                    }
+                }).toList();
 
         // 응답 DTO 반환
         return ReadingRoomDTO.ReadingRoomEnterResponse.builder()
@@ -349,12 +361,14 @@ public class ReadingRoomService {
                 .imageUrl(room.getTheme().getImageUrl())
                 .bgmUrl(room.getTheme().getBgmUrl())
                 .bgmEnabled(room.isBgmEnabled())
-                .currentUsers(userDTOs)
+                .currentUsers(currentUsers)
                 .build();
     }
 
+    // 호스트가 전체 bgm 설정
     @Transactional
     public void toggleBgm(ReadingRoomDTO.ReadingRoomBgmToggleRequest dto) {
+
         ReadingRoom room = readingRoomRepository.findById(dto.getRoomId())
                 .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
 

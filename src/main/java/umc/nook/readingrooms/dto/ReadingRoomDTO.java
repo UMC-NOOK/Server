@@ -1,9 +1,6 @@
 package umc.nook.readingrooms.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
+import lombok.*;
 import umc.nook.users.domain.User;
 import umc.nook.users.dto.UserDTO;
 
@@ -42,6 +39,8 @@ public class ReadingRoomDTO {
 
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ReadingRoomEnterRequest {
         private Long roomId;
         private Long userId;
@@ -49,6 +48,8 @@ public class ReadingRoomDTO {
 
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ReadingRoomEnterResponse {
         private Long roomId;
         private String imageUrl;
@@ -59,6 +60,8 @@ public class ReadingRoomDTO {
 
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ReadingRoomBgmToggleRequest {
         private Long roomId;
         private Long userId;
@@ -67,6 +70,7 @@ public class ReadingRoomDTO {
 
     @Getter
     @Builder
+    @NoArgsConstructor
     @AllArgsConstructor
     public static class UserDTO {
 
@@ -85,6 +89,8 @@ public class ReadingRoomDTO {
 
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class UserJoinBroadcast {
         private Long roomId;
         private List<ReadingRoomDTO.UserDTO> currentUsers;
