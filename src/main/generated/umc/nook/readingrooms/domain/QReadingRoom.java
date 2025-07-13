@@ -24,6 +24,8 @@ public class QReadingRoom extends EntityPathBase<ReadingRoom> {
 
     public final umc.nook.QBaseTimeEntity _super = new umc.nook.QBaseTimeEntity(this);
 
+    public final BooleanPath bgmEnabled = createBoolean("bgmEnabled");
+
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdDate = _super.createdDate;
 

@@ -22,6 +22,8 @@ public class QUser extends EntityPathBase<User> {
 
     public final umc.nook.QBaseTimeEntity _super = new umc.nook.QBaseTimeEntity(this);
 
+    public final EnumPath<CharacterColor> characterColor = createEnum("characterColor", CharacterColor.class);
+
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdDate = _super.createdDate;
 

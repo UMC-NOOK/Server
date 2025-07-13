@@ -25,6 +25,9 @@ public class ReadingRoom extends BaseTimeEntity {
     @Column(length = 30, nullable = false)
     private String description;
 
+    @Column(name = "bgm_enabled", nullable = false)
+    private boolean bgmEnabled = true;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "theme_id", nullable = false)
     private Theme theme;
@@ -45,6 +48,10 @@ public class ReadingRoom extends BaseTimeEntity {
 
     public void updateTheme(Theme theme) {
         this.theme = theme;
+    }
+
+    public void toggleBgm(boolean bgmOn) {
+        this.bgmEnabled = bgmOn;
     }
 
 }

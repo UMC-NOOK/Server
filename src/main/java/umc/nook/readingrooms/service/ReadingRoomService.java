@@ -13,16 +13,19 @@ import umc.nook.readingrooms.domain.*;
 import umc.nook.readingrooms.dto.ReadingRoomDTO;
 import umc.nook.readingrooms.repository.*;
 import umc.nook.users.domain.User;
+import umc.nook.users.repository.UserRepository;
 import umc.nook.users.service.CustomUserDetails;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ReadingRoomService {
 
+    private final UserRepository userRepository;
     private final ReadingRoomRepository readingRoomRepository;
     private final ReadingRoomUserRepository readingRoomUserRepository;
     private final ThemeRepository themeRepository;
@@ -129,6 +132,19 @@ public class ReadingRoomService {
                 .role(Role.GUEST)
                 .build();
         readingRoomUserRepository.save(userEntry);
+
+        // WebSocket broadcast
+        List<ReadingRoomUser> joinedUsers = readingRoomUserRepository.findAllByReadingRoom(room);
+        List<ReadingRoomDTO.UserDTO> userDTOs = joinedUsers.stream()
+                .map(joinedUser -> ReadingRoomDTO.UserDTO.from(joinedUser.getUser()))
+                .toList();
+
+        ReadingRoomDTO.UserJoinBroadcast payload = ReadingRoomDTO.UserJoinBroadcast.builder()
+                .roomId(room.getId())
+                .currentUsers(userDTOs)
+                .build();
+
+        messagingTemplate.convertAndSend("/sub/readingroom/" + room.getId() + "/join", payload);
 
         return roomId;
     }
@@ -288,5 +304,68 @@ public class ReadingRoomService {
                             .build()
             );
         }
+    }
+
+    @Transactional
+    public ReadingRoomDTO.ReadingRoomEnterResponse enterRoom(ReadingRoomDTO.ReadingRoomEnterRequest dto) {
+        // 리딩룸 존재 확인
+        ReadingRoom room = readingRoomRepository.findById(dto.getRoomId())
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        // 유저 존재 확인
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        // 해당 유저가 리딩룸에 가입되어 있는지 확인
+        ReadingRoomUser readingRoomUser = readingRoomUserRepository.findByReadingRoomAndUser(room, user)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_JOINED_ROOM));
+
+        // 입장 시점 기록 (lastAccessedAt 갱신)
+        readingRoomUser.updateLastAccessedAt();
+
+        // Redis에서 중복 입장 체크 후 처리
+        String key = "ReadingRoom:Users:" + room.getId();
+        String userIdStr = user.getUserId().toString();
+
+        Set<String> currentUserIds = redisTemplate.opsForSet().members(key);
+        if (currentUserIds == null || !currentUserIds.contains(userIdStr)) {
+            redisTemplate.opsForSet().add(key, userIdStr);
+        }
+
+        // Redis에 저장된 유저 ID들 기준으로 현재 유저 리스트 구성
+        Set<String> updatedUserIds = redisTemplate.opsForSet().members(key);
+        List<ReadingRoomDTO.UserDTO> userDTOs = updatedUserIds.stream()
+                .map(idStr -> {
+                    Long id = Long.parseLong(idStr);
+                    User u = userRepository.findById(id)
+                            .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+                    return ReadingRoomDTO.UserDTO.from(u);
+                })
+                .toList();
+
+        // 응답 DTO 반환
+        return ReadingRoomDTO.ReadingRoomEnterResponse.builder()
+                .roomId(room.getId())
+                .imageUrl(room.getTheme().getImageUrl())
+                .bgmUrl(room.getTheme().getBgmUrl())
+                .bgmEnabled(room.isBgmEnabled())
+                .currentUsers(userDTOs)
+                .build();
+    }
+
+    @Transactional
+    public void toggleBgm(ReadingRoomDTO.ReadingRoomBgmToggleRequest dto) {
+        ReadingRoom room = readingRoomRepository.findById(dto.getRoomId())
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        boolean isHost = readingRoomUserRepository.existsByReadingRoomAndUserAndRole(room, user, Role.HOST);
+        if (!isHost) {
+            throw new CustomException(ErrorCode.HOST_ONLY);
+        }
+
+        room.toggleBgm(dto.isBgmOn());
     }
 }
