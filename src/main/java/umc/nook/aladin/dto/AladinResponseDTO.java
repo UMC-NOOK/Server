@@ -42,6 +42,7 @@ public class AladinResponseDTO {
         private String author;
         private String publisher;
         private String cover;
+        private String categoryName;
         private String pubDate;
         private String mallType;
     }

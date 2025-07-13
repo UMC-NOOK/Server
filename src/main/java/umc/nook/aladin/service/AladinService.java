@@ -7,6 +7,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 @Service
 @RequiredArgsConstructor
 public class AladinService {
@@ -57,5 +61,4 @@ public class AladinService {
                 .retrieve()
                 .bodyToMono(AladinResponseDTO.SearchResultDTO.class);
     }
-
 }

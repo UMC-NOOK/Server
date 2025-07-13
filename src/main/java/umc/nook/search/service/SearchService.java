@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
+import umc.nook.book.utils.BookFilterUtils;
 import umc.nook.lounge.converter.LoungeConverter;
 import umc.nook.search.converter.SearchConverter;
 import umc.nook.search.domain.RecentQuery;
@@ -38,7 +39,11 @@ public class SearchService {
                     List<SearchResponseDTO.BookDTO> books = new ArrayList<>();
                     if (response != null && response.getItem() != null) {
                         for (AladinResponseDTO.SearchBookDTO item : response.getItem()) {
-                            books.add(SearchConverter.toBookDTO(item));
+                            System.out.println("title = " + item.getTitle());
+                            System.out.println("categoryName = " + item.getCategoryName());
+                            if (BookFilterUtils.isBookIncluded(item.getCategoryName())) {
+                                books.add(SearchConverter.toBookDTO(item));
+                            }
                         }
                     }
                     int totalItems = response != null ? response.getTotalResults() : 0;
