@@ -15,6 +15,7 @@ public class SearchConverter {
                 .isbn13(bookDTO.getIsbn13())
                 .title(bookDTO.getTitle())
                 .author(bookDTO.getAuthor())
+                .publisher(bookDTO.getPublisher())
                 .publicationDate(bookDTO.getPubDate())
                 .coverImageUrl(bookDTO.getCover())
                 .mallType(bookDTO.getMallType())

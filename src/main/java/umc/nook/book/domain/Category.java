@@ -27,6 +27,7 @@ public class Category {
 
     private int aladinCategoryId;
 
+    @Builder.Default
     @OneToMany(mappedBy = "category")
     private List<Book> books = new ArrayList<>();
 
