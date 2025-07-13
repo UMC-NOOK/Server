@@ -5,20 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f940e27-636a-4e1b-9d02-7b89b51402a1" name="변경" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/common/response/ErrorCode.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/common/response/ErrorCode.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/controller/ReadingRoomController.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/controller/ReadingRoomController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/ReadingRoomUser.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/domain/ReadingRoomUser.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO$ReadingRoomResponseDTOBuilder.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO$ReadingRoomResponseDTOBuilder.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/dto/ReadingRoomDTO$ReadingRoomResponseDTO.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/repository/ReadingRoomUserRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/repository/ReadingRoomUserRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/service/ReadingRoomService.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/classes/umc/nook/readingrooms/service/ReadingRoomService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/common/response/ErrorCode.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/common/response/ErrorCode.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/controller/ReadingRoomController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/controller/ReadingRoomController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/domain/ReadingRoomUser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/domain/ReadingRoomUser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/dto/ReadingRoomDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/dto/ReadingRoomDTO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/repository/ReadingRoomUserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/repository/ReadingRoomUserRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/service/ReadingRoomService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/service/ReadingRoomService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/33cb33e2-b3d3-4b31-a1b8-51b3eca35a15.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/33cb33e2-b3d3-4b31-a1b8-51b3eca35a15/storage_v2/_src_/schema/information_schema.FNRwLQ.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/33cb33e2-b3d3-4b31-a1b8-51b3eca35a15/storage_v2/_src_/schema/mysql.osA4Bg.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/33cb33e2-b3d3-4b31-a1b8-51b3eca35a15/storage_v2/_src_/schema/performance_schema.kIw0nw.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/33cb33e2-b3d3-4b31-a1b8-51b3eca35a15/storage_v2/_src_/schema/sys.zb4BAA.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/98dbcac6-fdf4-4775-87c0-c57ccdef32b2.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/98dbcac6-fdf4-4775-87c0-c57ccdef32b2/storage_v2/_src_/schema/information_schema.FNRwLQ.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/98dbcac6-fdf4-4775-87c0-c57ccdef32b2/storage_v2/_src_/schema/mysql.osA4Bg.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/98dbcac6-fdf4-4775-87c0-c57ccdef32b2/storage_v2/_src_/schema/performance_schema.kIw0nw.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/98dbcac6-fdf4-4775-87c0-c57ccdef32b2/storage_v2/_src_/schema/sys.zb4BAA.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,6 +62,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "kimdanha"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/UMC-NOOK/Server.git",
+    "accountId": "eab89b0a-cba5-4b65-8060-60e662050ba0"
+  }
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
   &quot;associatedIndex&quot;: 7
@@ -76,11 +87,26 @@
   "keyToString": {
     "Gradle.NookApplicationTests.executor": "Run",
     "Gradle.Server [:umc.nook.NookApplication.main()].executor": "Run",
+    "RequestMappingsPanelOrder0": "0",
+    "RequestMappingsPanelOrder1": "1",
+    "RequestMappingsPanelWidth0": "75",
+    "RequestMappingsPanelWidth1": "75",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "feature/#3-lounge-api 병합 중",
-    "kotlin-language-version-configured": "true"
+    "git-widget-placeholder": "feature/#13-readingroom-access",
+    "kotlin-language-version-configured": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
+  },
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "mysql"
+    ]
   }
 }]]></component>
   <component name="RunManager" selected="애플리케이션.NookApplication">
@@ -89,8 +115,8 @@
         <env name="ALADIN_TTBKEY" value="ttbzzq39020039001" />
         <env name="DB" value="nook" />
         <env name="JWTSECRET" value="bXlzdXBlcnNlY3JldGtleWZvcm15and0cHJvamVjdDEyMzQ=" />
-        <env name="PASSWORD" value="nook123" />
-        <env name="USERNAME" value="nookuser" />
+        <env name="PASSWORD" value="root" />
+        <env name="USERNAME" value="root" />
       </envs>
       <option name="MAIN_CLASS_NAME" value="umc.nook.NookApplication" />
       <module name="nook.main" />
@@ -128,8 +154,16 @@
       <RunAsTest>true</RunAsTest>
       <method v="2" />
     </configuration>
+    <configuration name="NookApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="nook.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="umc.nook.NookApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <list>
       <item itemvalue="Gradle.NookApplicationTests" />
+      <item itemvalue="Spring Boot.NookApplication" />
       <item itemvalue="애플리케이션.NookApplication" />
     </list>
     <recent_temporary>
@@ -139,6 +173,14 @@
       </list>
     </recent_temporary>
   </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.25410.129" />
+        <option value="bundled-js-predefined-d6986cc7102b-6a121458b545-JavaScript-IU-251.25410.129" />
+      </set>
+    </attachedChunks>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="애플리케이션 수준" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="디폴트 작업">
@@ -147,8 +189,12 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1751712328884</updated>
+      <workItem from="1752383931927" duration="642000" />
     </task>
     <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

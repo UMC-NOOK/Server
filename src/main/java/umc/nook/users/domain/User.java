@@ -36,6 +36,10 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private Status status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "character_color", nullable = false)
+    private CharacterColor characterColor;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReadingRoomUser> joinedRooms = new ArrayList<>();
 
