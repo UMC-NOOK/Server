@@ -21,6 +21,7 @@ public class ReadingRoomDTO {
     }
 
     @Getter
+    @Setter
     @Builder
     public static class ReadingRoomRequestDTO {
         private String name;
@@ -38,6 +39,7 @@ public class ReadingRoomDTO {
     }
 
     @Getter
+    @Setter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
@@ -59,6 +61,7 @@ public class ReadingRoomDTO {
     }
 
     @Getter
+    @Setter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
