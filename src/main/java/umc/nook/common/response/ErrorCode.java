@@ -45,10 +45,10 @@ public enum ErrorCode implements BaseCode {
     BOOK_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "BOOK-003", "서비스 정책에 의해 조회할 수 없는 도서입니다."),
 
     // 리뷰
-    REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW_001", "요청한 리뷰가 존재하지 않습니다."),
+    REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW-001", "요청한 리뷰가 존재하지 않습니다."),
     INVALID_RATING(HttpStatus.BAD_REQUEST, "REVIEW-002", "유효하지 않은 평점입니다."),
-    INVALID_REVIEW(HttpStatus.BAD_REQUEST, "REVIEW_003", "유효하지 않은 리뷰입니다."),
-    
+    INVALID_REVIEW(HttpStatus.BAD_REQUEST, "REVIEW-003", "유효하지 않은 리뷰입니다."),
+
     // 라운지
     INVALID_MALLTYPE(HttpStatus.BAD_REQUEST, "LOUNGE-001", "유효하지 않은 'mallType' 값입니다."),
     INVALID_SECTION(HttpStatus.BAD_REQUEST, "LOUNGE-002", "유효하지 않은 'sectionId' 값입니다."),
