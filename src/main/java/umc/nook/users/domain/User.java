@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import umc.nook.BaseTimeEntity;
 import umc.nook.readingrooms.domain.ReadingRoomUser;
+import umc.nook.review.domain.Review;
 import umc.nook.search.domain.RecentQuery;
 
 import java.util.ArrayList;
@@ -43,4 +44,8 @@ public class User extends BaseTimeEntity {
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecentQuery> recentQueries = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Review> reviews = new ArrayList<>();
 }

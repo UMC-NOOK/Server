@@ -54,6 +54,7 @@ public class AladinService {
                             .queryParam("ttbkey", ttbKey)
                             .queryParam("Query", query)
                             .queryParam("MaxResults", maxResults)
+//                            .queryParam("SearchTarget", "")
                             .queryParam("start", start)
                             .queryParam("cover", "Big")
                             .queryParam("output", "js")

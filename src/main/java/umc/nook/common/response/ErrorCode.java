@@ -16,6 +16,7 @@ public enum ErrorCode implements BaseCode {
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "ACCOUNT-006", "토큰이 만료되었습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "ACCOUNT-007", "인증이 필요합니다."),
     EMAIL_DUPLICATE(HttpStatus.BAD_REQUEST,"ACCOUNT-008" ,"중복된 이메일입니다." ),
+    PERMISSION_DENIED(HttpStatus.FORBIDDEN, "ACCOUNT-009", "권한이 없습니다."),
 
     //리딩룸 관련
     READING_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM-001", "리딩룸을 찾을 수 없습니다."),
@@ -43,6 +44,11 @@ public enum ErrorCode implements BaseCode {
     INVALID_ISBN13(HttpStatus.BAD_REQUEST, "BOOK-002", "유효하지 않은 ISBN-13 형식입니다."),
     BOOK_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "BOOK-003", "서비스 정책에 의해 조회할 수 없는 도서입니다."),
 
+    // 리뷰
+    REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW_001", "요청한 리뷰가 존재하지 않습니다."),
+    INVALID_RATING(HttpStatus.BAD_REQUEST, "REVIEW-002", "유효하지 않은 평점입니다."),
+    INVALID_REVIEW(HttpStatus.BAD_REQUEST, "REVIEW_003", "유효하지 않은 리뷰입니다."),
+    
     // 라운지
     INVALID_MALLTYPE(HttpStatus.BAD_REQUEST, "LOUNGE-001", "유효하지 않은 'mallType' 값입니다."),
     INVALID_SECTION(HttpStatus.BAD_REQUEST, "LOUNGE-002", "유효하지 않은 'sectionId' 값입니다."),
