@@ -15,6 +15,7 @@ import umc.nook.book.repository.CategoryRepository;
 import umc.nook.book.utils.BookFilterUtils;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
+import umc.nook.review.service.ReviewService;
 import umc.nook.users.domain.User;
 import umc.nook.users.service.CustomUserDetails;
 
@@ -27,8 +28,9 @@ import java.util.List;
 public class BookService {
 
     private final BookRepository bookRepository;
-    private final AladinService aladinService;
     private final CategoryRepository categoryRepository;
+    private final AladinService aladinService;
+    private final ReviewService reviewService;
 
     @Transactional
     public BookResponseDTO.BookDetailResultDTO getBookDetails(String isbn13, CustomUserDetails userDetails) {
@@ -42,6 +44,7 @@ public class BookService {
 
             return BookResponseDTO.BookDetailResultDTO.builder()
                     .book(bookDetailDTO)
+                    .reviewData(reviewService.getReviews(isbn13, userDetails, 1))
                     .bestInThisCategory(bestList)
                     .build();
         }
@@ -81,6 +84,7 @@ public class BookService {
 
         return BookResponseDTO.BookDetailResultDTO.builder()
                 .book(BookConverter.toBookDetailDTO(savedBook))
+                .reviewData(reviewService.getReviews(isbn13, userDetails, 1))
                 .bestInThisCategory(bestList)
                 .build();
     }

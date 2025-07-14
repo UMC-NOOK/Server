@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import umc.nook.book.converter.BookConverter;
+import umc.nook.review.dto.ReviewResponseDTO;
 
 import java.util.List;
 
@@ -47,6 +48,7 @@ public class BookResponseDTO {
     @NoArgsConstructor
     public static class BookDetailResultDTO{
         private BookDetailDTO book;
+        private ReviewResponseDTO.ReviewResultDTO reviewData;
         private List<BestInThisCategoryDTO> bestInThisCategory;
     }
 
