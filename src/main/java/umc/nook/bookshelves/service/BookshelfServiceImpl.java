@@ -1,2 +1,217 @@
-package umc.nook.bookshelves.service;public class BookshelfServiceImpl {
+package umc.nook.bookshelves.service;
+
+
+import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.Tuple;
+import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import umc.nook.books.domain.Book;
+import umc.nook.books.domain.QBook;
+import umc.nook.books.domain.QReview;
+import umc.nook.books.repository.BookRepository;
+import umc.nook.bookshelves.domain.QUserBookShelf;
+import umc.nook.bookshelves.domain.ReadingStatus;
+import umc.nook.bookshelves.domain.UserBookShelf;
+import umc.nook.bookshelves.dto.BookShelfDTO;
+import umc.nook.bookshelves.repository.UserBookshelfRepository;
+import umc.nook.common.exception.CustomException;
+import umc.nook.common.response.ErrorCode;
+import umc.nook.users.domain.User;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.YearMonth;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class BookshelfServiceImpl implements BookshelfService {
+
+    private final BookRepository bookRepository;
+    private final UserBookshelfRepository userBookshelfRepository;
+    private final JPAQueryFactory queryFactory;
+
+    @Transactional
+    @Override
+    public String registerBook(BookShelfDTO.RegisterBookDTO registerBookDTO, User user) {
+        Book thisBook = bookRepository.findByBookId(registerBookDTO.getBookId());
+        if (thisBook == null) {
+            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
+        }
+
+        boolean alreadyRegistered = userBookshelfRepository.existsByUserAndBook(user, thisBook);
+        if (alreadyRegistered) {
+            throw new CustomException(ErrorCode.DUPLICATE_BOOK_IN_SHELF);
+        }
+        UserBookShelf userBook = UserBookShelf.builder()
+                .book(thisBook)
+                .recordedAt(registerBookDTO.getDate())
+                .readingStatus(registerBookDTO.getReadingStatus())
+                .user(user)
+                .build();
+
+        userBookshelfRepository.save(userBook);
+        return  "서재에 책이 성공적으로 등록되었습니다.";
+    }
+
+    @Override
+    @Transactional
+    public String deleteBook(Long bookId, User user) {
+        Book thisBook = bookRepository.findByBookId(bookId);
+        if (thisBook == null) {
+            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
+        }
+        boolean isRegistered = userBookshelfRepository.existsByUserAndBook(user, thisBook);
+        if (isRegistered) {
+            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
+        }
+        return "책이 성공적으로 서재에서 삭제되었습니다.";
+    }
+
+    @Override
+    @Transactional
+    public String changeBookState(Long bookId, User user){
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_FOUND));
+        UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, book);
+        if (userBook == null)
+            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
+
+        ReadingStatus currentStatus = userBook.getReadingStatus();
+        if (currentStatus == ReadingStatus.READING) {
+            throw new CustomException(ErrorCode.ALREADY_READING);
+        }
+
+        if (currentStatus == ReadingStatus.FINISHED) {
+            throw new CustomException(ErrorCode.ALREADY_FINISHED);
+        }
+
+        userBook.updateReadingStatus(ReadingStatus.READING);
+        userBookshelfRepository.save(userBook);
+
+        return "해당 책이 '독서중' 상태로 변경되었습니다.";
+    }
+
+    @Override
+    public List<BookShelfDTO.DailyBooksResponseDTO> getMonthlyBooks(User user, YearMonth yearMonth) {
+        QUserBookShelf ub = QUserBookShelf.userBookShelf;
+        QBook book = QBook.book;
+
+        // 월 시작일과 종료일 계산
+        LocalDate start = yearMonth.atDay(1);
+        LocalDate end = yearMonth.atEndOfMonth();
+
+        // recordedAt이 null이 아니고, 월 범위에 포함된 책들 조회
+        List<Tuple> result = queryFactory
+                .select(ub.recordedAt, book.bookId, book.coverImageUrl)
+                .from(ub)
+                .join(ub.book, book)
+                .where(
+                        ub.user.eq(user),
+                        ub.recordedAt.isNotNull(),
+                        ub.recordedAt.between(start, end)
+                )
+                .orderBy(ub.recordedAt.asc())
+                .fetch();
+
+        // 날짜 기준으로 Grouping
+        Map<LocalDate, List<BookShelfDTO.BookThumbnail>> grouped = result.stream()
+                .collect(Collectors.groupingBy(
+                        t -> t.get(ub.recordedAt),
+                        LinkedHashMap::new,
+                        Collectors.mapping(
+                                t -> new BookShelfDTO.BookThumbnail(
+                                        t.get(book.bookId),
+                                        t.get(book.coverImageUrl)
+                                ),
+                                Collectors.toList()
+                        )
+                ));
+
+        // Group된 결과를 DTO 리스트로 변환
+        return grouped.entrySet().stream()
+                .map(entry -> new BookShelfDTO.DailyBooksResponseDTO(entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
+
+
+    @Override
+    public BookShelfDTO.CursorPageDTO<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
+            User user, String statusStr, Long cursorBookId, int size, String sort) {
+
+        QUserBookShelf ub = QUserBookShelf.userBookShelf;
+        QBook book = QBook.book;
+        QReview review = QReview.review;
+
+        ReadingStatus status = ReadingStatus.valueOf(statusStr.toUpperCase());
+
+        OrderSpecifier<?> orderSpecifier;
+        switch (sort.toLowerCase()) {
+            case "title" -> orderSpecifier = book.title.asc();
+            case "latest" -> orderSpecifier = ub.recordedAt.desc();
+            // TODO : 최근 기록순으로 추후 수정
+           // case "recent" -> orderSpecifier = ub.recordedAt.desc();
+            case "rating" -> orderSpecifier = review.rating.desc().nullsLast();
+            default -> orderSpecifier = ub.recordedAt.desc();
+        }
+
+        BooleanBuilder condition = new BooleanBuilder()
+                .and(ub.user.eq(user))
+                .and(ub.readingStatus.eq(status));
+
+        if (cursorBookId != null) {
+            condition.and(book.bookId.lt(cursorBookId));
+        }
+
+
+
+        List<Tuple> result = queryFactory
+                .select(
+                        book.bookId,
+                        book.title,
+                        book.author,
+                        book.publisher,
+                        book.coverImageUrl,
+                        ub.readingStatus.stringValue(),
+                        review.rating
+                )
+                .from(ub)
+                .join(book).on(ub.book.eq(book))
+                .leftJoin(review).on(
+                        review.book.eq(book),
+                        review.user.eq(user)
+                )
+                .where(condition)
+                .orderBy(orderSpecifier)
+                .limit(size + 1)
+                .fetch();
+
+        List<BookShelfDTO.UserBookListResponseDTO> content = result.stream()
+                .limit(size)
+                .map(t -> new BookShelfDTO.UserBookListResponseDTO(
+                        t.get(book.bookId),
+                        t.get(book.title),
+                        t.get(book.author),
+                        t.get(book.publisher),
+                        t.get(book.coverImageUrl),
+                        t.get(ub.readingStatus.stringValue()),
+                        t.get(review.rating) != null ? t.get(review.rating).floatValue() : null
+                ))
+                .toList();
+
+        Long nextCursor = result.size() > size ? result.get(size).get(book.bookId) : null;
+        boolean hasNext = result.size() > size;
+
+        return new BookShelfDTO.CursorPageDTO<>(content, nextCursor, hasNext);
+    }
+
+
+
 }

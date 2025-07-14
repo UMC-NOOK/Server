@@ -1,2 +1,5 @@
-package umc.nook.bookshelves.domain;public enum ReadingStatus {
+package umc.nook.bookshelves.domain;
+
+public enum ReadingStatus {
+    READING, FINISHED, BOOKMARK
 }
