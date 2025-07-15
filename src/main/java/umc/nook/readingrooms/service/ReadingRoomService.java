@@ -41,6 +41,7 @@ public class ReadingRoomService {
 
     //웹소켓 이벤트 발행
     private void publishWebSocketEvent(Long roomId, ReadingRoomDTO.ReadingRoomEventType eventType, Object payload) {
+
         String destination = "/sub/readingroom/" + roomId;
         Object actualPayloadToSend = payload;
 
@@ -223,7 +224,19 @@ public class ReadingRoomService {
         return readingRoom.getId();
     }
 
-    // 리딩룸 삭제
+    // 리딩룸 HOST인지 GUEST인지 확인하고 삭제/탈퇴만
+    @Transactional(readOnly = true)
+    public String getUserRoleInRoom(Long roomId, CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        ReadingRoom room = readingRoomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        return readingRoomUserRepository.findByReadingRoomAndUser(room, user)
+                .map(readingRoomUser -> readingRoomUser.getRole().name())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_JOINED_ROOM));
+    }
+
+    // HOST: 리딩룸 삭제
     @Transactional
     public Long deleteRoom(Long roomId, CustomUserDetails userDetails) {
 
@@ -246,9 +259,24 @@ public class ReadingRoomService {
         redisTemplate.delete(usersHashKey);
 
         // WebSocket broadcast
-        messagingTemplate.convertAndSend("/readingroom/sub/removed", roomId);
+        publishWebSocketEvent(roomId, ReadingRoomDTO.ReadingRoomEventType.ROOM_REMOVED, roomId);
 
         // 삭제된 리딩룸 ID 반환
+        return roomId;
+    }
+
+    @Transactional
+    public Long leaveRoom(Long roomId, CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
+
+        ReadingRoom readingRoom = readingRoomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        ReadingRoomUser readingRoomUser = readingRoomUserRepository.findByReadingRoomAndUser(readingRoom, user)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_JOINED_ROOM));
+
+        readingRoomUserRepository.delete(readingRoomUser);
         return roomId;
     }
 
@@ -331,6 +359,7 @@ public class ReadingRoomService {
     // 리딩룸 입장
     @Transactional
     public ReadingRoomDTO.ReadingRoomEnterResponse enterRoom(ReadingRoomDTO.ReadingRoomEnterRequest dto) {
+
         // 리딩룸 존재 확인
         ReadingRoom room = readingRoomRepository.findById(dto.getRoomId())
                 .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
@@ -374,7 +403,7 @@ public class ReadingRoomService {
         // WebSocket broadcast
         ReadingRoomDTO.UserEventPayload userEnterEventPayload = ReadingRoomDTO.UserEventPayload.builder()
                 .userId(dto.getUserId())
-                .nickname(user.getNickname())
+                .nickname(user.getNickname()) // 현재는 사용자 이름만
                 .characterColor(user.getCharacterColor().name())
                 .currentUsers(currentUsers)
                 .build();

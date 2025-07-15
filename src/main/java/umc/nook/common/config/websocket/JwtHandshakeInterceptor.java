@@ -10,6 +10,7 @@ import org.springframework.http.server.ServletServerHttpRequest;
 
 import java.util.Map;
 
+//쿼리스트링에서 액세스 토큰 추출할 때 사용하는데 일단 보류
 public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
     @Override
