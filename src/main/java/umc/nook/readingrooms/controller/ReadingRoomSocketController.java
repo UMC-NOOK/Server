@@ -1,6 +1,7 @@
 package umc.nook.readingrooms.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -10,27 +11,26 @@ import umc.nook.readingrooms.dto.ReadingRoomDTO;
 import umc.nook.readingrooms.service.ReadingRoomService;
 import umc.nook.users.service.CustomUserDetails;
 
+@Slf4j
 @RequiredArgsConstructor
 @Controller
 public class ReadingRoomSocketController {
 
-    private final SimpMessagingTemplate messagingTemplate;
     private final ReadingRoomService readingRoomService;
 
     @MessageMapping("/enter")
     public void enterRoom(ReadingRoomDTO.ReadingRoomEnterRequest dto,
                           @AuthenticationPrincipal CustomUserDetails userPrincipal) {
         dto.setUserId(userPrincipal.getUser().getUserId());
-
-        ReadingRoomDTO.ReadingRoomEnterResponse response = readingRoomService.enterRoom(dto);
-        messagingTemplate.convertAndSend("/readingroom/sub/readingroom/" + dto.getRoomId(), response);
+        log.info("WebSocket: User {} requesting to enter room {}", dto.getUserId(), dto.getRoomId());
+        readingRoomService.enterRoom(dto);
     }
 
-    @MessageMapping("/toggle-bgm")
-    public void toggleBgm(@Payload ReadingRoomDTO.ReadingRoomBgmToggleRequest dto,
-                          @AuthenticationPrincipal CustomUserDetails userPrincipal) {
+    @MessageMapping("/pub/toggle-bgm")
+    public void handleToggleBgm(@Payload ReadingRoomDTO.ReadingRoomBgmToggleRequest dto,
+                                @AuthenticationPrincipal CustomUserDetails userPrincipal) {
         dto.setUserId(userPrincipal.getUser().getUserId());
+        log.info("WebSocket: User {} toggling BGM in room {}: {}", dto.getUserId(), dto.getRoomId(), dto.isBgmOn());
         readingRoomService.toggleBgm(dto);
-        messagingTemplate.convertAndSend("/sub/readingroom/" + dto.getRoomId() + "/bgm-toggle", dto);
     }
 }

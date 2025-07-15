@@ -8,6 +8,14 @@ import java.util.List;
 
 public class ReadingRoomDTO {
 
+    public enum ReadingRoomEventType {
+        BGM_TOGGLE,     // BGM 토글
+        USER_ENTER,     // 사용자 입장
+        USER_LEAVE,     // 사용자 퇴장
+        ROOM_INFO_UPDATE, // 리딩룸 정보 수정
+        ROOM_REMOVED //리딩룸 삭제
+    }
+
     @Getter
     @Builder
     public static class ReadingRoomResponseDTO {
@@ -90,13 +98,14 @@ public class ReadingRoomDTO {
         }
     }
 
-    @Getter
-    @Builder
+    @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class UserJoinBroadcast {
-        private Long roomId;
-        private List<ReadingRoomDTO.UserDTO> currentUsers;
+    @Builder
+    public static class UserEventPayload {
+        private Long userId;
+        private String nickname;
+        private String characterColor;
+        private List<UserDTO> currentUsers;
     }
-
 }

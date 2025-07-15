@@ -5,20 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f940e27-636a-4e1b-9d02-7b89b51402a1" name="변경" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/08b9324d-1abe-425b-a58f-ec813471a2bc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/08b9324d-1abe-425b-a58f-ec813471a2bc/storage_v2/_src_/schema/information_schema.FNRwLQ.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/08b9324d-1abe-425b-a58f-ec813471a2bc/storage_v2/_src_/schema/mysql.osA4Bg.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/08b9324d-1abe-425b-a58f-ec813471a2bc/storage_v2/_src_/schema/performance_schema.kIw0nw.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/08b9324d-1abe-425b-a58f-ec813471a2bc/storage_v2/_src_/schema/sys.zb4BAA.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/45aa77cf-cf8c-4ba7-b8b8-d56cf504e28c.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/45aa77cf-cf8c-4ba7-b8b8-d56cf504e28c/storage_v2/_src_/schema/information_schema.FNRwLQ.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/45aa77cf-cf8c-4ba7-b8b8-d56cf504e28c/storage_v2/_src_/schema/mysql.osA4Bg.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/45aa77cf-cf8c-4ba7-b8b8-d56cf504e28c/storage_v2/_src_/schema/performance_schema.kIw0nw.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/45aa77cf-cf8c-4ba7-b8b8-d56cf504e28c/storage_v2/_src_/schema/sys.zb4BAA.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/be049f44-b062-48f8-b374-587da40d586e.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/common/config/websocket/WebSocketConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/common/config/websocket/WebSocketConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/controller/ReadingRoomSocketController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/controller/ReadingRoomSocketController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/dto/ReadingRoomDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/dto/ReadingRoomDTO.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/service/ReadingRoomService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/service/ReadingRoomService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -56,8 +45,8 @@
       <list>
         <option value="Interface" />
         <option value="AnnotationType" />
-        <option value="Enum" />
         <option value="Class" />
+        <option value="Enum" />
       </list>
     </option>
   </component>
@@ -194,7 +183,7 @@
       <workItem from="1752383931927" duration="2684000" />
       <workItem from="1752466590743" duration="5000" />
       <workItem from="1752466611509" duration="4698000" />
-      <workItem from="1752572880923" duration="2006000" />
+      <workItem from="1752572880923" duration="5668000" />
     </task>
     <servers />
   </component>
