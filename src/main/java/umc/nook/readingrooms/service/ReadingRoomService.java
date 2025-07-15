@@ -3,6 +3,7 @@ package umc.nook.readingrooms.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReadingRoomService {
@@ -136,19 +138,6 @@ public class ReadingRoomService {
                 .role(Role.GUEST)
                 .build();
         readingRoomUserRepository.save(userEntry);
-
-        // WebSocket broadcast
-        List<ReadingRoomUser> joinedUsers = readingRoomUserRepository.findAllByReadingRoom(room);
-        List<ReadingRoomDTO.UserDTO> userDTOs = joinedUsers.stream()
-                .map(joinedUser -> ReadingRoomDTO.UserDTO.from(joinedUser.getUser()))
-                .toList();
-
-        ReadingRoomDTO.UserJoinBroadcast payload = ReadingRoomDTO.UserJoinBroadcast.builder()
-                .roomId(room.getId())
-                .currentUsers(userDTOs)
-                .build();
-
-        messagingTemplate.convertAndSend("/sub/readingroom/" + room.getId() + "/join", payload);
 
         return roomId;
     }
