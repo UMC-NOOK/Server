@@ -38,6 +38,8 @@ public class QUser extends EntityPathBase<User> {
 
     public final ListPath<umc.nook.search.domain.RecentQuery, umc.nook.search.domain.QRecentQuery> recentQueries = this.<umc.nook.search.domain.RecentQuery, umc.nook.search.domain.QRecentQuery>createList("recentQueries", umc.nook.search.domain.RecentQuery.class, umc.nook.search.domain.QRecentQuery.class, PathInits.DIRECT2);
 
+    public final ListPath<umc.nook.review.domain.Review, umc.nook.review.domain.QReview> reviews = this.<umc.nook.review.domain.Review, umc.nook.review.domain.QReview>createList("reviews", umc.nook.review.domain.Review.class, umc.nook.review.domain.QReview.class, PathInits.DIRECT2);
+
     public final EnumPath<RoleType> role = createEnum("role", RoleType.class);
 
     public final EnumPath<Status> status = createEnum("status", Status.class);

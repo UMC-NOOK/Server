@@ -40,6 +40,8 @@ public class QBook extends EntityPathBase<Book> {
 
     public final StringPath publisher = createString("publisher");
 
+    public final ListPath<umc.nook.review.domain.Review, umc.nook.review.domain.QReview> reviews = this.<umc.nook.review.domain.Review, umc.nook.review.domain.QReview>createList("reviews", umc.nook.review.domain.Review.class, umc.nook.review.domain.QReview.class, PathInits.DIRECT2);
+
     public final StringPath title = createString("title");
 
     public QBook(String variable) {
