@@ -62,6 +62,13 @@ dependencies {
 			"jakarta.annotation:jakarta.annotation-api",
 			"jakarta.persistence:jakarta.persistence-api"
 	)
+
+	// WebSocket
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+
+	// WebClient
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 }
 
 tasks.named('test') {

@@ -18,8 +18,6 @@ public class QTheme extends EntityPathBase<Theme> {
 
     private static final long serialVersionUID = -1894851341L;
 
-    private static final PathInits INITS = PathInits.DIRECT2;
-
     public static final QTheme theme = new QTheme("theme");
 
     public final umc.nook.QBaseTimeEntity _super = new umc.nook.QBaseTimeEntity(this);
@@ -36,27 +34,18 @@ public class QTheme extends EntityPathBase<Theme> {
     //inherited
     public final DateTimePath<java.time.LocalDateTime> modifiedDate = _super.modifiedDate;
 
-    public final QReadingRoom readingRoom;
+    public final ListPath<ReadingRoom, QReadingRoom> readingRooms = this.<ReadingRoom, QReadingRoom>createList("readingRooms", ReadingRoom.class, QReadingRoom.class, PathInits.DIRECT2);
 
     public QTheme(String variable) {
-        this(Theme.class, forVariable(variable), INITS);
+        super(Theme.class, forVariable(variable));
     }
 
     public QTheme(Path<? extends Theme> path) {
-        this(path.getType(), path.getMetadata(), PathInits.getFor(path.getMetadata(), INITS));
+        super(path.getType(), path.getMetadata());
     }
 
     public QTheme(PathMetadata metadata) {
-        this(metadata, PathInits.getFor(metadata, INITS));
-    }
-
-    public QTheme(PathMetadata metadata, PathInits inits) {
-        this(Theme.class, metadata, inits);
-    }
-
-    public QTheme(Class<? extends Theme> type, PathMetadata metadata, PathInits inits) {
-        super(type, metadata, inits);
-        this.readingRoom = inits.isInitialized("readingRoom") ? new QReadingRoom(forProperty("readingRoom"), inits.get("readingRoom")) : null;
+        super(Theme.class, metadata);
     }
 
 }

@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import umc.nook.BaseTimeEntity;
-import umc.nook.books.domain.Book;
+import umc.nook.book.domain.Book;
 import umc.nook.users.domain.User;
 
 import java.time.LocalDate;

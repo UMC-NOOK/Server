@@ -5,6 +5,8 @@ import lombok.*;
 import umc.nook.BaseTimeEntity;
 import umc.nook.users.domain.User;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "reading_rooms_users")
 @Getter
@@ -24,6 +26,9 @@ public class ReadingRoomUser extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @Column(name = "last_accessed_at")
+    private LocalDateTime lastAccessedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -8,10 +8,9 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import umc.nook.books.domain.Book;
-import umc.nook.books.domain.QBook;
-import umc.nook.books.domain.QReview;
-import umc.nook.books.repository.BookRepository;
+import umc.nook.book.domain.Book;
+import umc.nook.book.domain.QBook;
+import umc.nook.book.repository.BookRepository;
 import umc.nook.bookshelves.domain.QUserBookShelf;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.domain.UserBookShelf;
@@ -22,7 +21,6 @@ import umc.nook.common.response.ErrorCode;
 import umc.nook.users.domain.User;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -104,24 +102,24 @@ public class BookshelfServiceImpl implements BookshelfService {
         QBook book = QBook.book;
 
         // 월 시작일과 종료일 계산
-        LocalDate start = yearMonth.atDay(1);
-        LocalDate end = yearMonth.atEndOfMonth();
+        LocalDate startDate = yearMonth.atDay(1);
+        LocalDate endDate = yearMonth.atEndOfMonth();
 
-        // recordedAt이 null이 아니고, 월 범위에 포함된 책들 조회
+        // recordedAt이 null이 아닌 월 내 책들 조회
         List<Tuple> result = queryFactory
                 .select(ub.recordedAt, book.bookId, book.coverImageUrl)
                 .from(ub)
                 .join(ub.book, book)
                 .where(
                         ub.user.eq(user),
-                        ub.recordedAt.isNotNull(),
-                        ub.recordedAt.between(start, end)
+                        ub.recordedAt.between(startDate, endDate)
                 )
                 .orderBy(ub.recordedAt.asc())
                 .fetch();
 
-        // 날짜 기준으로 Grouping
-        Map<LocalDate, List<BookShelfDTO.BookThumbnail>> grouped = result.stream()
+        // 날짜별로 책 썸네일들을 그룹화
+        Map<LocalDate, List<BookShelfDTO.BookThumbnail>> groupedBooks = result.stream()
+                .filter(t -> t.get(ub.recordedAt) != null) // null safety
                 .collect(Collectors.groupingBy(
                         t -> t.get(ub.recordedAt),
                         LinkedHashMap::new,
@@ -134,8 +132,8 @@ public class BookshelfServiceImpl implements BookshelfService {
                         )
                 ));
 
-        // Group된 결과를 DTO 리스트로 변환
-        return grouped.entrySet().stream()
+        // DTO로 변환
+        return groupedBooks.entrySet().stream()
                 .map(entry -> new BookShelfDTO.DailyBooksResponseDTO(entry.getKey(), entry.getValue()))
                 .toList();
     }
@@ -145,7 +143,6 @@ public class BookshelfServiceImpl implements BookshelfService {
     @Override
     public BookShelfDTO.CursorPageDTO<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
             User user, String statusStr, Long cursorBookId, int size, String sort) {
-
         QUserBookShelf ub = QUserBookShelf.userBookShelf;
         QBook book = QBook.book;
         QReview review = QReview.review;

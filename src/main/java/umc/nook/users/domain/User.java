@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import umc.nook.BaseTimeEntity;
 import umc.nook.readingrooms.domain.ReadingRoomUser;
+import umc.nook.search.domain.RecentQuery;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +23,7 @@ public class User extends BaseTimeEntity {
 
     @Column(length = 25, unique = true)
     private String email;
-    
+
     private String password;
 
     @Column(length = 30)
@@ -39,4 +40,7 @@ public class User extends BaseTimeEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReadingRoomUser> joinedRooms = new ArrayList<>();
 
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RecentQuery> recentQueries = new ArrayList<>();
 }
