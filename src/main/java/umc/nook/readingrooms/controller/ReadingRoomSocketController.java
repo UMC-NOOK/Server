@@ -7,6 +7,8 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import umc.nook.common.response.ApiResponse;
+import umc.nook.common.response.SuccessCode;
 import umc.nook.readingrooms.dto.ReadingRoomDTO;
 import umc.nook.readingrooms.service.ReadingRoomService;
 import umc.nook.users.service.CustomUserDetails;
@@ -19,11 +21,11 @@ public class ReadingRoomSocketController {
     private final ReadingRoomService readingRoomService;
 
     @MessageMapping("/enter")
-    public void enterRoom(ReadingRoomDTO.ReadingRoomEnterRequest dto,
-                          @AuthenticationPrincipal CustomUserDetails userPrincipal) {
+    public ApiResponse<ReadingRoomDTO.ReadingRoomEnterResponse> enterRoom(ReadingRoomDTO.ReadingRoomEnterRequest dto,
+                                 @AuthenticationPrincipal CustomUserDetails userPrincipal) {
         dto.setUserId(userPrincipal.getUser().getUserId());
         log.info("WebSocket: User {} requesting to enter room {}", dto.getUserId(), dto.getRoomId());
-        readingRoomService.enterRoom(dto);
+        return ApiResponse.onSuccess(readingRoomService.enterRoom(dto), SuccessCode.OK);
     }
 
     @MessageMapping("/pub/toggle-bgm")
