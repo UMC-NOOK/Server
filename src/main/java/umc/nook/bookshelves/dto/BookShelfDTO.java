@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import umc.nook.bookshelves.domain.ReadingStatus;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter

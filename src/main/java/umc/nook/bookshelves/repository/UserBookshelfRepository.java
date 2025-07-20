@@ -14,5 +14,5 @@ public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Lon
 
     UserBookShelf findByUserAndBook(User user, Book book);
 
-    public List<Tuple> findUserBooksGroupedByDate(Long userId, YearMonth yearMonth);
+    void deleteByUserAndBook(User user, Book thisBook);
 }

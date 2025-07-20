@@ -3,13 +3,12 @@ package umc.nook.bookshelves.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import umc.nook.bookshelves.dto.BookShelfDTO;
-import umc.nook.bookshelves.service.BookshelfService;
+import umc.nook.bookshelves.service.BookShelfService;
 import umc.nook.common.response.ApiResponse;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.common.response.SuccessCode;
@@ -24,7 +23,7 @@ import java.time.format.DateTimeParseException;
 @Tag(name = "Bookshelf API", description = "서재 API")
 public class BookShelfController {
 
-    private final BookshelfService bookshelfService;
+    private final BookShelfService bookshelfService;
 
     @PostMapping("/register")
     @Operation(summary = "서재 책 등록", description = "서재에 책을 등록합니다.")
@@ -76,7 +75,7 @@ public class BookShelfController {
     @GetMapping
     @Operation(
             summary = "서재 상태별 조회",
-            description = "찜(WISH), 독서중(READING), 완독(COMPLETED) 상태 중 하나를 선택해 책 목록을 조회합니다. 정렬 기준도 선택할 수 있습니다."
+            description = "찜(WISH), 독서중(READING), 완독(COMPLETED) 상태 중 하나를 선택하고, 정렬 기준도 선택하여 조회합니다."
     )
     @Parameters({
             @Parameter(name = "status", description = "서재 상태 필터: BOOKMARK / READING / COMPLETED", required = true, example = "READING"),
@@ -93,8 +92,5 @@ public class BookShelfController {
         var response = bookshelfService.getUserBooks(userDetails.getUser(), status, cursorBookId, size, sort);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
-
-
-
 
 }
