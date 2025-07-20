@@ -2,7 +2,9 @@ package umc.nook.book.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import reactor.core.publisher.Mono;
 import umc.nook.book.domain.Category;
+import umc.nook.book.domain.MallType;
 
 import java.util.Optional;
 
@@ -12,4 +14,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     Optional<String> findCategoryNameByAladinCategoryId(int aladinCategoryId);
 
     boolean existsByAladinCategoryId(int aladinCategoryId);
+
+    Optional<Category> findByCategoryNameAndMallType(String categoryName, MallType mallType);
 }

@@ -1,17 +1,19 @@
 package umc.nook.lounge.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
-import umc.nook.book.domain.MallType;
 import umc.nook.book.repository.CategoryRepository;
+import umc.nook.book.utils.BookFilterUtils;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.lounge.converter.LoungeConverter;
 import umc.nook.lounge.dto.LoungeResponseDTO;
+import umc.nook.users.domain.User;
+import umc.nook.users.service.CustomUserDetails;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,174 +36,119 @@ public class LoungeService {
     private final AladinService aladinService;
     private final CategoryRepository categoryRepository;
 
-    public LoungeResponseDTO.LoungeBookResultDTO getLoungeBooks(String mallType, String sectionId,
-                                                                Integer categoryId, int page, String token) {
+    public Mono<LoungeResponseDTO.LoungeBookResultDTO> getLoungeBooks(
+            String mallType, String sectionId, Integer categoryId, int page, CustomUserDetails userDetails) {
 
-        List<LoungeResponseDTO.SectionDTO> sections = new ArrayList<>();
+        User user = userDetails.getUser();
 
         // 추천 페이지
         if ("RECOMMENDATION".equalsIgnoreCase(mallType)) {
-            handleRecommendation(sections, sectionId, categoryId, page, token);
+            return handleRecommendation(sectionId, categoryId, page, user);
         }
         // 몰 타입 페이지
         else {
-            handleMallType(sections, sectionId, categoryId, mallType, page);
+            return handleMallType(sectionId, categoryId, mallType, page);
         }
-
-        return LoungeResponseDTO.LoungeBookResultDTO.builder()
-                .sections(sections)
-                .build();
     }
 
-    private LoungeResponseDTO.SectionDTO fetchSection(
+    private Mono<LoungeResponseDTO.SectionDTO> fetchSection(
         String sectionId, Integer categoryId, String categoryName,String queryType,
         String mallType, int page) {
 
         String categoryIdStr = (categoryId != null) ? String.valueOf(categoryId) : null;
         int start = (page - 1) * LIMIT + 1;
 
-        AladinResponseDTO.PaginationDTO response = aladinService.fetchBooks(
-                queryType, mallType, start, LIMIT, categoryIdStr
-        ).block();
+        return aladinService.fetchBooks(queryType, mallType, start, LIMIT, categoryIdStr)
+                .map(response -> {
+                    List<LoungeResponseDTO.BookDTO> books = new ArrayList<>();
+                    if (response != null && response.getItem() != null) {
+                        for (AladinResponseDTO.LoungeBookDTO item : response.getItem()) {
+                            if (BookFilterUtils.isBookIncluded(item.getCategoryName())) {
+                                books.add(LoungeConverter.toBookDTO(item));
+                            }
+                        }
+                    }
 
-        List<LoungeResponseDTO.BookDTO> books = new ArrayList<>();
+                    int totalItems = response != null ? response.getTotalResults() : 0;
+                    int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / LIMIT) : 0;
 
+                    LoungeResponseDTO.PaginationDTO pagination = LoungeConverter.toPaginiationDTO(
+                            page, LIMIT, totalItems, totalPages
+                    );
 
-        if (response != null && response.getItem() != null) {
-            for (AladinResponseDTO.LoungeBookDTO item : response.getItem()) {
-                if (isBookIncluded(item.getCategoryName())) {
-                    books.add(LoungeConverter.toBookDTO(item));
-                }
-            }
-        }
-
-
-        int totalItems = response != null ? response.getTotalResults() : 0;
-        int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / LIMIT) : 0;
-
-        LoungeResponseDTO.PaginationDTO pagination = LoungeConverter.toPaginiationDTO(
-                page, LIMIT, totalItems, totalPages
-        );
-
-        return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books, pagination);
+                    return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books, pagination);
+                });
     }
 
-    private void handleRecommendation(
-            List<LoungeResponseDTO.SectionDTO> sections, String sectionId, Integer categoryId, int page, String token) {
+    private Mono<LoungeResponseDTO.LoungeBookResultDTO> handleRecommendation(
+            String sectionId, Integer categoryId, int page, User user) {
 
         if (sectionId == null) {
             // 추천 페이지 전체 조회 (1페이지)
-            addBestSection(sections, SECTION_BEST, categoryId, page);
-            addBestSection(sections, SECTION_FAVORITE_BEST, getFavoriteCategory(token), page);
+            Mono<LoungeResponseDTO.SectionDTO> bestSection = getBestSection(SECTION_BEST, categoryId, page);
+            Mono<LoungeResponseDTO.SectionDTO> favoriteSection = getBestSection(SECTION_FAVORITE_BEST, getFavoriteCategory(user), page);
+
+            return Mono.zip(bestSection, favoriteSection)
+                    .map(tuple -> LoungeConverter.toResultDTO(
+                            List.of(tuple.getT1(), tuple.getT2())
+                    ));
         }
-        else if (sectionId.equalsIgnoreCase("best")) {
+        else if (sectionId.equalsIgnoreCase(SECTION_BEST)) {
             // 주간 베스트셀러의 특정 페이지 조회
-            addBestSection(sections, SECTION_BEST, categoryId, page);
+            return getBestSection(SECTION_BEST, categoryId, page)
+                    .map(section -> LoungeConverter.toResultDTO(List.of(section)));
         }
         else{
             // 사용자 선호 카테고리 베스트셀러의 특정 페이지 조회
-            addBestSection(sections, SECTION_FAVORITE_BEST, getFavoriteCategory(token), page);
+            return getBestSection(SECTION_FAVORITE_BEST, getFavoriteCategory(user), page)
+                    .map(section -> LoungeConverter.toResultDTO(List.of(section)));
         }
     }
 
-    private void handleMallType(
-            List<LoungeResponseDTO.SectionDTO> sections, String sectionId, Integer categoryId,
-            String mallType, int page
+    private Mono<LoungeResponseDTO.LoungeBookResultDTO> handleMallType(
+            String sectionId, Integer categoryId, String mallType, int page
     ) {
         if (sectionId == null) {
             // 몰 타입 페이지 전체 조회 (1 페이지)
-            addNewSection(sections, categoryId, mallType, page);
+            Mono<LoungeResponseDTO.SectionDTO> newSection = getNewSection(categoryId, mallType, page);
             List<Integer> categoryIds = getCategoryIdsByMallType(mallType);
+            List<Mono<LoungeResponseDTO.SectionDTO>> bestSections = new ArrayList<>();
             for (Integer cid : categoryIds) {
-                addBestSection(sections, SECTION_BEST, cid, page);
+                bestSections.add(getBestSection(SECTION_BEST, cid, page));
             }
+            return Mono.zip(newSection, Flux.merge(bestSections).collectList())
+                    .map(tuple -> {
+                        List<LoungeResponseDTO.SectionDTO> sections = new ArrayList<>();
+                        sections.add(tuple.getT1());
+                        sections.addAll(tuple.getT2());
+                        return LoungeConverter.toResultDTO(sections);
+                    });
         }
-        else if (sectionId.equalsIgnoreCase("new")) {
+        else if (sectionId.equalsIgnoreCase(SECTION_NEW)) {
             // 신간의 특정 페이지 조회
-            addNewSection(sections, categoryId, mallType, page);
+            return getNewSection(categoryId, mallType, page)
+                    .map(section -> LoungeConverter.toResultDTO(List.of(section)));
         }
         else{
             // 몰 타입의 특정 카테고리 베스트셀러의 특정 페이지 조회
-            addBestSection(sections, SECTION_BEST, categoryId, page);
+            return getBestSection(SECTION_BEST, categoryId, page)
+                    .map(section -> LoungeConverter.toResultDTO(List.of(section)));
         }
     }
-    private void addBestSection(
-            List<LoungeResponseDTO.SectionDTO> sections, String sectionId, Integer categoryId, int page
-    ) {
+    private Mono<LoungeResponseDTO.SectionDTO> getBestSection(String sectionId, Integer categoryId, int page) {
         String categoryName = getCategoryNameById(categoryId);
-        LoungeResponseDTO.SectionDTO section = fetchSection(
-                sectionId, categoryId, categoryName, QUERY_TYPE_BESTSELLER, "BOOK", page
-        );
-        sections.add(section);
+        return fetchSection(sectionId, categoryId, categoryName, QUERY_TYPE_BESTSELLER, "BOOK", page);
     }
 
-    private void addNewSection(
-            List<LoungeResponseDTO.SectionDTO> sections, Integer categoryId, String mallType, int page
-    ) {
+    private Mono<LoungeResponseDTO.SectionDTO> getNewSection(Integer categoryId, String mallType, int page) {
         String categoryName = getCategoryNameById(categoryId);
-        LoungeResponseDTO.SectionDTO section = fetchSection(
-                SECTION_NEW, categoryId, categoryName, QUERY_TYPE_ITEMNEWALL, mallType, page
-        );
-        sections.add(section);
+        return fetchSection(SECTION_NEW, categoryId, categoryName, QUERY_TYPE_ITEMNEWALL, mallType, page);
     }
 
     // 사용자 선호 카테고리 추출
     // 추후 개발 예정
-    private int getFavoriteCategory(String token) {
+    private int getFavoriteCategory(User user) {
         return 170; // 하드 코딩
-    }
-
-
-    // 책의 카테고리가 도서 정책에 포함되는지 여부(true -> 포함 O, false -> 포함 x)
-    private boolean isBookIncluded(String fullCategoryName) {
-        // 1depth 제외 카테고리 맵
-        Map<String, Set<String>> excluded1Depth = Map.of(
-                "국내도서", Set.of("고등학교참고서", "수험서/자격증", "잡지", "중학교참고서", "초등학교참고서", "Gift"),
-                "외국도서", Set.of("게임/토이", "달력/다이어리/연감", "문구/비도서", "수험서", "해외잡지"),
-                "eBook", Set.of("19+", "가격대별 eBook", "고등학교참고서", "수험서/자격증", "잡지", "중고등참고서", "중학교참고서", "초등참고서", "Gift")
-        );
-
-        // 2depth 제외 조건 맵 (문자열 포함 여부)
-        Map<String, Map<String, List<String>>> excluded2DepthContains = Map.of(
-                "국내도서", Map.of(
-                        "달력/기타", List.of("달력", "다이어리", "가계부")
-                ),
-                "외국도서", Map.of(
-                        "독일 도서", List.of("CD/CD-ROM/DVD"),
-                        "어린이", List.of("캐릭터"),
-                        "일본 도서", List.of("애니메이션 굿즈", "엔터테인먼트", "잡지", "지브리 작품전", "캘린더", "CD/DVD"),
-                        "중국 도서", List.of("CD/DVD/VCD")
-                )
-        );
-        if (fullCategoryName != null && !fullCategoryName.isBlank()) {
-            String[] parts = fullCategoryName.split(">");
-            if (parts.length >= 2) {
-                String mallType = parts[0].trim(); // 몰타입 추출
-                String firstDepth = parts[1].trim(); // 1depth 추출
-
-                // 1depth 제외 체크
-                Set<String> excludes1 = excluded1Depth.getOrDefault(mallType, Set.of());
-                if (excludes1.contains(firstDepth)) {
-                    return false;
-                }
-
-                // 2depth 문자열 포함 제외 체크
-                if (parts.length >= 3) {
-                    String secondDepth = parts[2].trim(); // 2depth 추출
-                    if (excluded2DepthContains.containsKey(mallType)) {
-                        Map<String, List<String>> firstDepthMap = excluded2DepthContains.get(mallType);
-                        if (firstDepthMap.containsKey(firstDepth)) {
-                            for (String keyword : firstDepthMap.get(firstDepth)) {
-                                if (secondDepth.contains(keyword)) {
-                                    return false;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return true;
     }
 
     // 몰타입 별로 정해진 4개의 카테고리 정의

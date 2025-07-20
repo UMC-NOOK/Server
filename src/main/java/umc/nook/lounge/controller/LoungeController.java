@@ -5,13 +5,16 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 import umc.nook.common.response.ApiResponse;
 import umc.nook.common.response.SuccessCode;
 import umc.nook.lounge.dto.LoungeResponseDTO;
 import umc.nook.lounge.service.LoungeService;
 import umc.nook.lounge.validation.annotation.*;
+import umc.nook.users.service.CustomUserDetails;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,14 +42,12 @@ public class LoungeController {
             @Parameter(
                     name = "sectionId",
                     description = "각 섹션의 ID (best, new, favorite_best)",
-                    required = false,
-                    example = "best"
+                    required = false
             ),
             @Parameter(
                     name = "categoryId",
                     description = "페이지네이션을 적용할 카테고리의 알라딘 ID. 응답 본문에서 categoryID 값 참고",
-                    required = false,
-                    example = "1"
+                    required = false
             ),
             @Parameter(
                     name = "page",
@@ -56,17 +57,15 @@ public class LoungeController {
             )
     })
     @GetMapping("/books")
-    public ApiResponse<LoungeResponseDTO.LoungeBookResultDTO> getLoungeBooks(
+    public Mono<ApiResponse<LoungeResponseDTO.LoungeBookResultDTO>> getLoungeBooks(
             @ValidatedMallType @RequestParam(defaultValue = "RECOMMENDATION") String mallType,
             @ValidatedSection @RequestParam(required = false) String sectionId,
             @ValidatedCategory @RequestParam(required = false) Integer categoryId,
             @ValidatedPage @RequestParam(defaultValue = "1") int page,
-            @Parameter(hidden = true) @RequestHeader("Authorization") String token
+            @AuthenticationPrincipal CustomUserDetails userDetails
+            ) {
 
-    ) {
-        LoungeResponseDTO.LoungeBookResultDTO result = loungeService.getLoungeBooks(
-                mallType, sectionId, categoryId, page, token
-        );
-        return ApiResponse.onSuccess(result, SuccessCode.OK);
+        return loungeService.getLoungeBooks(mallType, sectionId, categoryId, page, userDetails)
+                .map(result -> ApiResponse.onSuccess(result, SuccessCode.OK));
     }
 }

@@ -27,7 +27,8 @@ public class Category {
 
     private int aladinCategoryId;
 
-    @OneToMany(mappedBy = "category")
+    @Builder.Default
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Book> books = new ArrayList<>();
 
     public static Category of(MallType mallType, String categoryName, int aladinCategoryId) {

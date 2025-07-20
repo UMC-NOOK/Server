@@ -22,6 +22,8 @@ public class QBook extends EntityPathBase<Book> {
 
     public static final QBook book = new QBook("book");
 
+    public final StringPath author = createString("author");
+
     public final NumberPath<Long> bookId = createNumber("bookId", Long.class);
 
     public final QCategory category;
@@ -34,9 +36,11 @@ public class QBook extends EntityPathBase<Book> {
 
     public final NumberPath<Integer> pages = createNumber("pages", Integer.class);
 
-    public final DateTimePath<java.time.LocalDateTime> publicationDate = createDateTime("publicationDate", java.time.LocalDateTime.class);
+    public final StringPath publicationDate = createString("publicationDate");
 
     public final StringPath publisher = createString("publisher");
+
+    public final ListPath<umc.nook.review.domain.Review, umc.nook.review.domain.QReview> reviews = this.<umc.nook.review.domain.Review, umc.nook.review.domain.QReview>createList("reviews", umc.nook.review.domain.Review.class, umc.nook.review.domain.QReview.class, PathInits.DIRECT2);
 
     public final StringPath title = createString("title");
 

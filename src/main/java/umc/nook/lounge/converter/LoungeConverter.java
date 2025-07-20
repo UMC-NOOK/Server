@@ -38,4 +38,10 @@ public class LoungeConverter {
                 .build();
     }
 
+    public static LoungeResponseDTO.LoungeBookResultDTO toResultDTO(List<LoungeResponseDTO.SectionDTO> sections) {
+        return LoungeResponseDTO.LoungeBookResultDTO.builder()
+                .sections(sections)
+                .build();
+    }
+
 }

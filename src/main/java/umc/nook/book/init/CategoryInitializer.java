@@ -1,7 +1,6 @@
 package umc.nook.book.init;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -13,7 +12,6 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class CategoryInitializer implements ApplicationRunner {
 
     private final CategoryRepository categoryRepository;
@@ -124,10 +122,6 @@ public class CategoryInitializer implements ApplicationRunner {
                     Category.of(MallType.EBOOK, "BL", 139379)
             );
             categoryRepository.saveAll(categories);
-            log.info("카테고리 초기 데이터가 저장되었습니다.");
-        }
-        else {
-            log.info("카테고리 데이터가 이미 존재합니다. 초기화하지 않습니다.");
         }
     }
 }
