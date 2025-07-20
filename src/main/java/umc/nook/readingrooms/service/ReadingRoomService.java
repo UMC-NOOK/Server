@@ -1,6 +1,9 @@
 package umc.nook.readingrooms.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -13,16 +16,20 @@ import umc.nook.readingrooms.domain.*;
 import umc.nook.readingrooms.dto.ReadingRoomDTO;
 import umc.nook.readingrooms.repository.*;
 import umc.nook.users.domain.User;
+import umc.nook.users.repository.UserRepository;
 import umc.nook.users.service.CustomUserDetails;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReadingRoomService {
 
+    private final UserRepository userRepository;
     private final ReadingRoomRepository readingRoomRepository;
     private final ReadingRoomUserRepository readingRoomUserRepository;
     private final ThemeRepository themeRepository;
@@ -30,6 +37,38 @@ public class ReadingRoomService {
     private final ReadingRoomHashtagRepository readingRoomHashtagRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    //웹소켓 이벤트 발행
+    private void publishWebSocketEvent(Long roomId, ReadingRoomDTO.ReadingRoomEventType eventType, Object payload) {
+
+        String destination = "/sub/readingroom/" + roomId;
+        Object actualPayloadToSend = payload;
+
+        switch(eventType) {
+            case BGM_TOGGLE:
+                destination += "/bgm-toggle";
+                break;
+            case USER_ENTER:
+                destination += "/user-enter";
+                break;
+            case USER_LEAVE:
+                destination += "/user-leave";
+                break;
+            case ROOM_INFO_UPDATE:
+                destination += "/room-info-update";
+                break;
+            case ROOM_REMOVED:
+                destination += "/room-removed";
+                break;
+            default:
+                log.warn("Unhandled event type for WebSocket publishing: {}", eventType);
+        }
+
+        messagingTemplate.convertAndSend(destination, actualPayloadToSend);
+        log.info("Published WebSocket event to {}: {} with payload type {}", destination, eventType, payload.getClass().getSimpleName());
+
+    }
 
     // 전체 리딩룸 조회
     @Transactional(readOnly = true)
@@ -42,8 +81,8 @@ public class ReadingRoomService {
         return readingRooms.stream().map(room -> {
 
             // 실시간 접속자 수는 Redis에서 조회
-            String connectedKey = "ReadingRoom:" + room.getId() + ":users";
-            Long connectedCount = redisTemplate.opsForSet().size(connectedKey);
+            String hashKey = "ReadingRoom:Users:" + room.getId();
+            Long connectedCount = redisTemplate.opsForHash().size(hashKey);
 
             // 가입자 수는 DB에서 조회
             int joinedCount = readingRoomUserRepository.countByReadingRoom(room);
@@ -83,8 +122,8 @@ public class ReadingRoomService {
                     int joinedCount = readingRoomUserRepository.countByReadingRoom(room);
 
                     // 실시간 접속자 수는 Redis에서 조회
-                    String connectedKey = "ReadingRoom:" + room.getId() + ":users";
-                    Long connectedCount = redisTemplate.opsForSet().size(connectedKey);
+                    String hashKey = "ReadingRoom:Users:" + room.getId();
+                    Long connectedCount = redisTemplate.opsForHash().size(hashKey);
 
                     List<String> hashtagNames = room.getHashtags().stream()
                             .map(h -> h.getHashtag().getName().name())
@@ -185,7 +224,19 @@ public class ReadingRoomService {
         return readingRoom.getId();
     }
 
-    // 리딩룸 삭제
+    // 리딩룸 HOST인지 GUEST인지 확인하고 삭제/탈퇴만
+    @Transactional(readOnly = true)
+    public String getUserRoleInRoom(Long roomId, CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        ReadingRoom room = readingRoomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        return readingRoomUserRepository.findByReadingRoomAndUser(room, user)
+                .map(readingRoomUser -> readingRoomUser.getRole().name())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_JOINED_ROOM));
+    }
+
+    // HOST: 리딩룸 삭제
     @Transactional
     public Long deleteRoom(Long roomId, CustomUserDetails userDetails) {
 
@@ -204,16 +255,33 @@ public class ReadingRoomService {
         readingRoomRepository.delete(readingRoom);
 
         // Redis 정리 (실시간 접속자 정보)
-        String usersKey = "ReadingRoom:" + roomId + ":users";
-        redisTemplate.delete(usersKey);
+        String usersHashKey = "ReadingRoom:Users:" + roomId;
+        redisTemplate.delete(usersHashKey);
 
         // WebSocket broadcast
-        messagingTemplate.convertAndSend("/readingroom/sub/removed", roomId);
+        publishWebSocketEvent(roomId, ReadingRoomDTO.ReadingRoomEventType.ROOM_REMOVED, roomId);
 
         // 삭제된 리딩룸 ID 반환
         return roomId;
     }
 
+    //GUEST: 리딩룸 탈퇴
+    @Transactional
+    public Long leaveRoom(Long roomId, CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
+
+        ReadingRoom readingRoom = readingRoomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        ReadingRoomUser readingRoomUser = readingRoomUserRepository.findByReadingRoomAndUser(readingRoom, user)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_JOINED_ROOM));
+
+        readingRoomUserRepository.delete(readingRoomUser);
+        return roomId;
+    }
+
+    // 리딩룸 정보 수정
     @Transactional
     public void updateRoom(Long roomId, ReadingRoomDTO.ReadingRoomRequestDTO dto, CustomUserDetails userDetails) {
 
@@ -241,7 +309,7 @@ public class ReadingRoomService {
         }
 
         // 테마 수정
-        if (dto.getThemeId() != null) {
+        if (dto.getThemeId() != null && !dto.getThemeId().equals(room.getTheme().getId())) {
             Theme newTheme = themeRepository.findById(dto.getThemeId())
                     .orElseThrow(() -> new CustomException(ErrorCode.THEME_NOT_FOUND));
             room.updateTheme(newTheme);
@@ -280,13 +348,136 @@ public class ReadingRoomService {
 
         // WebSocket broadcast - 테마가 변경된 경우에만
         if (themeChanged) {
-            messagingTemplate.convertAndSend("/readingroom/sub/updated-theme",
-                    ReadingRoomDTO.ReadingRoomThemeUpdateDTO.builder()
-                            .roomId(room.getId())
-                            .imageUrl(updatedTheme.getImageUrl())
-                            .bgmUrl(updatedTheme.getBgmUrl())
-                            .build()
-            );
+            ReadingRoomDTO.ReadingRoomThemeUpdateDTO payload = ReadingRoomDTO.ReadingRoomThemeUpdateDTO.builder()
+                    .roomId(room.getId())
+                    .imageUrl(updatedTheme.getImageUrl())
+                    .bgmUrl(updatedTheme.getBgmUrl())
+                    .build();
+            publishWebSocketEvent(room.getId(), ReadingRoomDTO.ReadingRoomEventType.ROOM_INFO_UPDATE, payload);
         }
+    }
+
+    // 리딩룸 입장
+    @Transactional
+    public void enterRoom(ReadingRoomDTO.ReadingRoomEnterRequest request) {
+
+        // 리딩룸 존재 확인
+        ReadingRoom room = readingRoomRepository.findById(request.getRoomId())
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        // 유저 존재 확인
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        // 해당 유저가 리딩룸에 가입되어 있는지 확인
+        ReadingRoomUser readingRoomUser = readingRoomUserRepository.findByReadingRoomAndUser(room, user)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_JOINED_ROOM));
+
+        // 입장 시점 기록 (lastAccessedAt 갱신)
+        readingRoomUser.updateLastAccessedAt();
+
+        // Redis에 JSON으로 사용자 정보 저장
+        String hashKey = "ReadingRoom:Users:" + room.getId();
+        String userIdStr = String.valueOf(user.getUserId());
+
+        if (!redisTemplate.opsForHash().hasKey(hashKey, userIdStr)) {
+            try {
+                ReadingRoomDTO.UserDTO dtoToStore = ReadingRoomDTO.UserDTO.from(user);
+                String json = objectMapper.writeValueAsString(dtoToStore);
+                redisTemplate.opsForHash().put(hashKey, userIdStr, json);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Redis 저장 중 JSON 직렬화 오류", e);
+            }
+        }
+
+        // Redis에서 전체 유저 JSON 가져오기 (새로 입장한 사용자 포함)
+        Map<Object, Object> redisUserMap = redisTemplate.opsForHash().entries(hashKey);
+        List<ReadingRoomDTO.UserDTO> currentUsers = redisUserMap.values().stream()
+                .map(json -> {
+                    try {
+                        return objectMapper.readValue((String) json, ReadingRoomDTO.UserDTO.class);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException("JSON parsing error", e);
+                    }
+                }).toList();
+
+        // WebSocket broadcast
+        ReadingRoomDTO.UserEventPayload userEnterEventPayload = ReadingRoomDTO.UserEventPayload.builder()
+                .userId(user.getUserId())
+                .nickname(user.getNickname()) // 현재는 사용자 이름만
+                .characterColor(user.getCharacterColor().name())
+                .currentUsers(currentUsers)
+                .build();
+        publishWebSocketEvent(room.getId(), ReadingRoomDTO.ReadingRoomEventType.USER_ENTER, userEnterEventPayload);
+    }
+
+    // 호스트가 전체 bgm 설정
+    @Transactional
+    public void toggleBgm(ReadingRoomDTO.ReadingRoomBgmToggleRequest dto) {
+
+        ReadingRoom room = readingRoomRepository.findById(dto.getRoomId())
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        // 사용자가 HOST인지 확인
+        boolean isHost = readingRoomUserRepository.existsByReadingRoomAndUserAndRole(room, user, Role.HOST);
+        if (!isHost) {
+            throw new CustomException(ErrorCode.HOST_ONLY);
+        }
+
+        // BGM 토글
+        room.toggleBgm(dto.isBgmOn());
+
+        // WebSocket broadcast
+        ReadingRoomDTO.ReadingRoomBgmToggleRequest payload = ReadingRoomDTO.ReadingRoomBgmToggleRequest.builder()
+                .roomId(dto.getRoomId())
+                .userId(dto.getUserId())
+                .bgmOn(dto.isBgmOn())
+                .build();
+        publishWebSocketEvent(dto.getRoomId(), ReadingRoomDTO.ReadingRoomEventType.BGM_TOGGLE, payload);
+    }
+
+    // 리딩룸 퇴장
+    @Transactional
+    public void leaveRoom(ReadingRoomDTO.ReadingRoomLeaveRequest dto) {
+
+        // 리딩룸 존재 확인
+        ReadingRoom room = readingRoomRepository.findById(dto.getRoomId())
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        // 유저 존재 확인
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        // 해당 유저가 리딩룸에 가입되어 있는지 확인
+        readingRoomUserRepository.findByReadingRoomAndUser(room, user)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_JOINED_ROOM));
+
+        // Redis에서 사용자 제거
+        String hashKey = "ReadingRoom:Users:" + dto.getRoomId();
+        String userIdStr = String.valueOf(dto.getUserId());
+        redisTemplate.opsForHash().delete(hashKey, userIdStr);
+
+        // Redis에서 현재 남아있는 사용자 목록 가져오기
+        Map<Object, Object> redisUserMap = redisTemplate.opsForHash().entries(hashKey);
+        List<ReadingRoomDTO.UserDTO> currentUsers = redisUserMap.values().stream()
+                .map(json -> {
+                    try {
+                        return objectMapper.readValue((String) json, ReadingRoomDTO.UserDTO.class);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException("JSON parsing error", e);
+                    }
+                }).toList();
+
+        // WebSocket broadcast (USER_LEAVE)
+        ReadingRoomDTO.UserEventPayload payload = ReadingRoomDTO.UserEventPayload.builder()
+                .userId(dto.getUserId())
+                .nickname(user.getNickname())
+                .characterColor(user.getCharacterColor().name())
+                .currentUsers(currentUsers)
+                .build();
+        publishWebSocketEvent(room.getId(), ReadingRoomDTO.ReadingRoomEventType.USER_LEAVE, payload);
     }
 }

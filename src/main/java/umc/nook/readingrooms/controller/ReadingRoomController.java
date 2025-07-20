@@ -48,9 +48,16 @@ public class ReadingRoomController {
     }
 
     @Operation(summary = "호스트가 리딩룸을 삭제합니다.")
-    @DeleteMapping("/{roomId}")
+    @DeleteMapping("/{roomId}/host")
     public ApiResponse<Long> deleteReadingRoom(@PathVariable Long roomId, @AuthenticationPrincipal CustomUserDetails user) {
         readingRoomService.deleteRoom(roomId, user);
+        return ApiResponse.onSuccess(roomId, SuccessCode.OK);
+    }
+
+    @Operation(summary = "게스트가 가입한 리딩룸에서 탈퇴합니다.")
+    @DeleteMapping("/{roomId}/guest")
+    public ApiResponse<Long> leaveReadingRoom(@PathVariable Long roomId, @AuthenticationPrincipal CustomUserDetails user) {
+        readingRoomService.leaveRoom(roomId, user);
         return ApiResponse.onSuccess(roomId, SuccessCode.OK);
     }
 
@@ -59,5 +66,12 @@ public class ReadingRoomController {
     public ApiResponse<Long> updateReadingRoom(@PathVariable Long roomId, @RequestBody ReadingRoomDTO.ReadingRoomRequestDTO dto, @AuthenticationPrincipal CustomUserDetails user) {
         readingRoomService.updateRoom(roomId, dto, user);
         return ApiResponse.onSuccess(roomId, SuccessCode.OK);
+    }
+
+    @Operation(summary = "사용자가 리딩룸의 호스트인지 게스트인지 확인합니다.")
+    @GetMapping("/{roomId}/my-role")
+    public ApiResponse<String> getMyRoleInRoom(@PathVariable Long roomId, @AuthenticationPrincipal CustomUserDetails user) {
+        String role = readingRoomService.getUserRoleInRoom(roomId, user);
+        return ApiResponse.onSuccess(role, SuccessCode.OK);
     }
 }
