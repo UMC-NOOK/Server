@@ -5,8 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f940e27-636a-4e1b-9d02-7b89b51402a1" name="변경" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/common/config/WebSecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/common/config/WebSecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/common/config/websocket/JwtChannelInterceptor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/common/config/websocket/JwtChannelInterceptor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/common/config/websocket/JwtHandshakeInterceptor.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/common/config/websocket/WebSocketConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/common/config/websocket/WebSocketConfig.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/controller/ReadingRoomSocketController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/controller/ReadingRoomSocketController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/dto/ReadingRoomDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/dto/ReadingRoomDTO.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/service/ReadingRoomService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/readingrooms/service/ReadingRoomService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -44,8 +51,8 @@
       <list>
         <option value="Interface" />
         <option value="AnnotationType" />
-        <option value="Class" />
         <option value="Enum" />
+        <option value="Class" />
       </list>
     </option>
   </component>
@@ -183,7 +190,7 @@
       <workItem from="1752466590743" duration="5000" />
       <workItem from="1752466611509" duration="4698000" />
       <workItem from="1752572880923" duration="7990000" />
-      <workItem from="1752924481250" duration="710000" />
+      <workItem from="1752924481250" duration="21602000" />
     </task>
     <servers />
   </component>

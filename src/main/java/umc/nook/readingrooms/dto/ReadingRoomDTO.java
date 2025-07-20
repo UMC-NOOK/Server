@@ -57,18 +57,6 @@ public class ReadingRoomDTO {
     }
 
     @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ReadingRoomEnterResponse {
-        private Long roomId;
-        private String imageUrl;
-        private String bgmUrl;
-        private boolean bgmEnabled;
-        private List<UserDTO> currentUsers;
-    }
-
-    @Getter
     @Setter
     @Builder
     @NoArgsConstructor
@@ -107,5 +95,15 @@ public class ReadingRoomDTO {
         private String nickname;
         private String characterColor;
         private List<UserDTO> currentUsers;
+    }
+
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ReadingRoomLeaveRequest {
+        private Long roomId;
+        private Long userId;
     }
 }

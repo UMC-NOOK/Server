@@ -2,12 +2,18 @@ package umc.nook.readingrooms.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ApiResponse;
+import umc.nook.common.response.ErrorCode;
 import umc.nook.common.response.SuccessCode;
 import umc.nook.readingrooms.dto.ReadingRoomDTO;
 import umc.nook.readingrooms.service.ReadingRoomService;
@@ -21,18 +27,21 @@ public class ReadingRoomSocketController {
     private final ReadingRoomService readingRoomService;
 
     @MessageMapping("/enter")
-    public ApiResponse<ReadingRoomDTO.ReadingRoomEnterResponse> enterRoom(ReadingRoomDTO.ReadingRoomEnterRequest dto,
-                                 @AuthenticationPrincipal CustomUserDetails userPrincipal) {
-        dto.setUserId(userPrincipal.getUser().getUserId());
-        log.info("WebSocket: User {} requesting to enter room {}", dto.getUserId(), dto.getRoomId());
-        return ApiResponse.onSuccess(readingRoomService.enterRoom(dto), SuccessCode.OK);
+    @SendTo("/sub/readingroom/user-enter")
+    public void enterRoom(
+            @Payload ReadingRoomDTO.ReadingRoomEnterRequest request) {
+        readingRoomService.enterRoom(request);
     }
 
-    @MessageMapping("/pub/toggle-bgm")
-    public void handleToggleBgm(@Payload ReadingRoomDTO.ReadingRoomBgmToggleRequest dto,
-                                @AuthenticationPrincipal CustomUserDetails userPrincipal) {
-        dto.setUserId(userPrincipal.getUser().getUserId());
-        log.info("WebSocket: User {} toggling BGM in room {}: {}", dto.getUserId(), dto.getRoomId(), dto.isBgmOn());
+    @MessageMapping("/toggle-bgm")
+    public void handleToggleBgm(
+            @Payload ReadingRoomDTO.ReadingRoomBgmToggleRequest dto) {
         readingRoomService.toggleBgm(dto);
+    }
+
+    @MessageMapping("/leave")
+    public void leaveRoom(
+            @Payload ReadingRoomDTO.ReadingRoomLeaveRequest dto) {
+        readingRoomService.leaveRoom(dto);
     }
 }
