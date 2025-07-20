@@ -114,7 +114,6 @@
       <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
       <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
       <DebugAllEnabled>false</DebugAllEnabled>
-      <RunAsTest>true</RunAsTest>
       <method v="2" />
     </configuration>
     <configuration name="NookApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
@@ -125,8 +124,8 @@
       </method>
     </configuration>
     <list>
-      <item itemvalue="애플리케이션.NookApplication" />
       <item itemvalue="Gradle.NookApplicationTests" />
+      <item itemvalue="애플리케이션.NookApplication" />
     </list>
     <recent_temporary>
       <list>
@@ -168,7 +167,7 @@
         <line-breakpoint enabled="true" type="java-method">
           <url>file://$PROJECT_DIR$/src/main/java/umc/nook/lounge/validation/annotation/ValidatedMallType.java</url>
           <line>14</line>
-          <properties class="umc.nook.lounge.validation.annotation.ValidatedMallType" method="groups">
+          <properties class="umc.nook.lounge.validation.annotation.ValidatedMallType">
             <option name="EMULATED" value="true" />
             <option name="WATCH_EXIT" value="false" />
           </properties>
@@ -177,7 +176,7 @@
         <line-breakpoint enabled="true" type="java-method">
           <url>file://$PROJECT_DIR$/src/main/java/umc/nook/lounge/service/LoungeService.java</url>
           <line>150</line>
-          <properties class="umc.nook.lounge.service.LoungeService" method="isBookIncluded">
+          <properties class="umc.nook.lounge.service.LoungeService">
             <option name="EMULATED" value="true" />
             <option name="WATCH_EXIT" value="false" />
           </properties>

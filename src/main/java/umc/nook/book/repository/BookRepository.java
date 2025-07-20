@@ -7,4 +7,6 @@ import umc.nook.book.domain.Book;
 public interface BookRepository extends JpaRepository<Book, Long> {
 
     Book findByIsbn13(String isbn13);
+
+    Book findByBookId(Long bookId);
 }
