@@ -65,7 +65,7 @@ dependencies {
 
 	// WebSocket
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
-
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
 
 	// WebClient
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'

@@ -5,10 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f940e27-636a-4e1b-9d02-7b89b51402a1" name="변경" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/dto/AladinResponseDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/dto/AladinResponseDTO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/service/AladinService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/aladin/service/AladinService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/service/LoungeService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/umc/nook/lounge/service/LoungeService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,9 +39,9 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Enum" />
         <option value="Interface" />
         <option value="AnnotationType" />
+        <option value="Enum" />
         <option value="Class" />
       </list>
     </option>
@@ -53,6 +49,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;kimdanha&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/UMC-NOOK/Server.git&quot;,
+    &quot;accountId&quot;: &quot;eab89b0a-cba5-4b65-8060-60e662050ba0&quot;
+  }
+}</component>
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
   &quot;associatedIndex&quot;: 7
@@ -62,26 +70,16 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Gradle.NookApplicationTests.executor": "Run",
-    "Gradle.Server [:umc.nook.NookApplication.main()].executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "feature/#11-search-api",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/nook"
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="애플리케이션.NookApplication">
     <configuration name="NookApplication" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <envs>
         <env name="ALADIN_TTBKEY" value="ttbzzq39020039001" />
         <env name="DB" value="nook" />
         <env name="JWTSECRET" value="bXlzdXBlcnNlY3JldGtleWZvcm15and0cHJvamVjdDEyMzQ=" />
-        <env name="PASSWORD" value="nook123" />
-        <env name="USERNAME" value="nookuser" />
+        <env name="PASSWORD" value="root" />
+        <env name="USERNAME" value="root" />
       </envs>
       <option name="MAIN_CLASS_NAME" value="umc.nook.NookApplication" />
       <module name="nook.main" />
@@ -119,6 +117,13 @@
       <RunAsTest>true</RunAsTest>
       <method v="2" />
     </configuration>
+    <configuration name="NookApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="nook.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="umc.nook.NookApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <list>
       <item itemvalue="애플리케이션.NookApplication" />
       <item itemvalue="Gradle.NookApplicationTests" />
@@ -130,6 +135,14 @@
       </list>
     </recent_temporary>
   </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.25410.129" />
+        <option value="bundled-js-predefined-d6986cc7102b-6a121458b545-JavaScript-IU-251.25410.129" />
+      </set>
+    </attachedChunks>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="애플리케이션 수준" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="디폴트 작업">
@@ -138,8 +151,16 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1751712328884</updated>
+      <workItem from="1752383931927" duration="2684000" />
+      <workItem from="1752466590743" duration="5000" />
+      <workItem from="1752466611509" duration="4698000" />
+      <workItem from="1752572880923" duration="7990000" />
+      <workItem from="1752924481250" duration="21602000" />
     </task>
     <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
