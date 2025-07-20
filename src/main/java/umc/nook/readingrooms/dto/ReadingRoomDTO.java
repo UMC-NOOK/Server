@@ -2,7 +2,6 @@ package umc.nook.readingrooms.dto;
 
 import lombok.*;
 import umc.nook.users.domain.User;
-import umc.nook.users.dto.UserDTO;
 
 import java.util.List;
 
