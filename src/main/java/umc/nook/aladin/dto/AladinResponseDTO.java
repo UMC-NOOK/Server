@@ -1,5 +1,6 @@
 package umc.nook.aladin.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,6 +15,25 @@ public class AladinResponseDTO {
     @SuperBuilder
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class WrapperDTO {
+        private String version;
+        private String logo;
+        private String title;
+        private String link;
+        private String pubDate;
+        private int totalResults;
+        private int startIndex;
+        private int itemsPerPage;
+        private List<AladinResponseDTO.BookDetailDTO> item;
+    }
+
+
+    @Getter
+    @SuperBuilder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class PaginationDTO{
         private int totalResults;
         private int startIndex;
@@ -24,6 +44,7 @@ public class AladinResponseDTO {
     @SuperBuilder
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class LoungeBookDTO{
         private String isbn13;
         private String title;
@@ -36,6 +57,7 @@ public class AladinResponseDTO {
     @SuperBuilder
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class SearchBookDTO{
         private String isbn13;
         private String title;
@@ -51,6 +73,7 @@ public class AladinResponseDTO {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class BookDetailDTO{
         private String isbn13;
         private String title;
@@ -73,6 +96,7 @@ public class AladinResponseDTO {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class BestInThisCategoryDTO{
         private String isbn13;
         private String title;
@@ -86,6 +110,7 @@ public class AladinResponseDTO {
     @SuperBuilder
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class LoungeResultDTO extends PaginationDTO{
         private List<LoungeBookDTO> item;
     }
@@ -94,6 +119,7 @@ public class AladinResponseDTO {
     @SuperBuilder
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class SearchResultDTO extends PaginationDTO{
         private List<SearchBookDTO> item;
     }
@@ -102,6 +128,7 @@ public class AladinResponseDTO {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class LookUpResultDTO{
         private List<BookDetailDTO> item;
     }
@@ -110,6 +137,7 @@ public class AladinResponseDTO {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class SubInfo{
         private Integer itemPage;
     }
