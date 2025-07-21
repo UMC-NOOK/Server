@@ -21,7 +21,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/records")
-@Tag(name = "독서 기록", description = "독서 기록 API")
+@Tag(name = "Book Record API", description = "독서 기록 API")
 public class RecordController {
 
     private final RecordService recordService;
@@ -139,6 +139,21 @@ public class RecordController {
             @RequestParam Long bookId
     ) {
         List<ChatDTO.ChatResponseDTO> response = recordService.viewChatMessages(userDetails.getUser(), bookId);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
+    }
+
+    @Operation(
+            summary = "기록된 문장/감상 목록 조회",
+            description = "특정 책에 대해 기록된 독서 문장(감상 전 본문 문장들)을 시간순으로 조회합니다."
+    )
+    @GetMapping("/sentence/list")
+    public ApiResponse<List<RecordDTO.RecordResponseDTO>> viewSentences(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam Long bookId
+    ) {
+        List<RecordDTO.RecordResponseDTO> response =
+                recordService.viewRecordsByBookId(userDetails.getUser(), bookId);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 

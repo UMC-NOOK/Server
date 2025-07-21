@@ -11,8 +11,8 @@ import java.util.List;
 @Entity
 @Getter
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "book_record")
 public class BookRecord extends BaseTimeEntity {
 

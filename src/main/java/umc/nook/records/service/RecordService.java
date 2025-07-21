@@ -59,8 +59,14 @@ public class RecordService {
                 book.getTitle(),
                 requestDTO.getMessage()
         );
+
         ChatType gptChatType = gptResponse.isEssay() ? ChatType.COMMENT : ChatType.SYSTEM;
-        ChatRecord gptMessage = requestDTO.toEntity(gptChatType,userBook);
+        ChatRecord gptMessage = ChatRecord.builder()
+                .bookshelf(userBook)
+                .role(gptChatType)
+                .content(gptResponse.getContent())
+                .build();
+
         chatRecordRepository.save(gptMessage);
         return new ChatDTO.ChatResponseDTO(gptMessage);
     }
@@ -68,20 +74,13 @@ public class RecordService {
 
     @Transactional
     public List<ChatDTO.ChatResponseDTO> viewChatMessages(User user, Long bookId) {
-        // 책 조회
         Book book = bookRepository.findByBookId(bookId);
         if (book == null)
             throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
-
-        // 유저의 해당 책 서재 확인
         UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, book);
         if (userBook == null)
             throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
-
-        // 채팅 기록 조회 (시간 순 정렬)
-        List<ChatRecord> chatRecords = chatRecordRepository.findByBookshelfOrderByCreatedAtAsc(userBook);
-
-        // DTO로 변환
+        List<ChatRecord> chatRecords = chatRecordRepository.findByBookshelfOrderByCreatedDateAsc(userBook);
         return chatRecords.stream()
                 .map(ChatDTO.ChatResponseDTO::new)
                 .toList();
@@ -91,6 +90,9 @@ public class RecordService {
     public RecordDTO.SentenceResponseDTO saveSentence(User user, RecordDTO.RecordRequestDTO requestDTO) {
         Book book = bookRepository.findByBookId(requestDTO.getBookId());
         UserBookShelf userBookShelf = userBookshelfRepository.findByUserAndBook(user, book);
+        if (userBookShelf == null) {
+            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
+        }
         BookRecord sentence = requestDTO.toEntity(userBookShelf);
         sentence.setRecordType(RecordType.RECORD);
         bookRecordRepository.save(sentence);
@@ -99,9 +101,15 @@ public class RecordService {
 
     @Transactional
     public RecordDTO.CommentResponseDTO saveCommentary(User user, RecordDTO.CommentRequestDTO requestDTO) {
-        BookRecord parent = bookRecordRepository.findById(requestDTO.getParentRecordId())
-                .orElseThrow(() -> new CustomException(ErrorCode.RECORD_NOT_FOUND));
-        UserBookShelf userBookShelf = parent.getBookshelf();
+        BookRecord parent = null;
+        if (requestDTO.getParentRecordId()!=null){
+            parent = bookRecordRepository.findById(requestDTO.getParentRecordId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.RECORD_NOT_FOUND));
+        }
+        Book book = bookRepository.findByBookId(requestDTO.getBookId());
+        if (book == null)
+            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
+        UserBookShelf userBookShelf = userBookshelfRepository.findByUserAndBook(user,book);
         BookRecord comment = requestDTO.toEntity(userBookShelf, parent);
         comment.setRecordType(RecordType.COMMENTARY);
         bookRecordRepository.save(comment);
@@ -122,6 +130,8 @@ public class RecordService {
     public RecordDTO.SentenceResponseDTO updateSentence(User user, RecordDTO.RecordUpdateRequestDTO updateRequestDTO) {
         BookRecord record = bookRecordRepository.findById(updateRequestDTO.getRecordId())
                 .orElseThrow(() -> new CustomException(ErrorCode.RECORD_NOT_FOUND));
+        if (record.getRecordType()!=RecordType.RECORD)
+            throw new CustomException(ErrorCode.INVALID_RECORD_TYPE);
         record.updateRecord(updateRequestDTO.getPage(), updateRequestDTO.getContent());
         return new RecordDTO.SentenceResponseDTO(record);
     }
@@ -130,6 +140,8 @@ public class RecordService {
     public RecordDTO.CommentResponseDTO updateComment(User user, Long commentId, RecordDTO.CommentUpdateRequestDTO updateRequestDTO) {
         BookRecord comment = bookRecordRepository.findById(commentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RECORD_NOT_FOUND));
+        if (comment.getRecordType()!=RecordType.COMMENTARY)
+            throw new CustomException(ErrorCode.INVALID_RECORD_TYPE);
         comment.updateCommentary(updateRequestDTO.getContent());
         return new RecordDTO.CommentResponseDTO(comment);
     }
@@ -138,6 +150,8 @@ public class RecordService {
     public void deleteComment(User user, Long commentId) {
         BookRecord comment = bookRecordRepository.findById(commentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RECORD_NOT_FOUND));
+        if (comment.getRecordType()!=RecordType.COMMENTARY)
+            throw new CustomException(ErrorCode.INVALID_RECORD_TYPE);
         bookRecordRepository.delete(comment);
     }
 
@@ -145,7 +159,9 @@ public class RecordService {
     public void deleteRecord(User user, Long recordId) {
         BookRecord record = bookRecordRepository.findById(recordId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RECORD_NOT_FOUND));
-        // 댓글 먼저 삭제
+        if (record.getRecordType()!=RecordType.RECORD)
+            throw new CustomException(ErrorCode.INVALID_RECORD_TYPE);
+        // 감상 먼저 삭제
         List<BookRecord> comments = bookRecordRepository.findAllByParent(record);
         bookRecordRepository.deleteAll(comments);
         // 본문 삭제

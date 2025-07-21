@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
 public class RecordDTO {
 
@@ -114,6 +113,7 @@ public class RecordDTO {
         private LocalDateTime createdDate;
 
         public SentenceResponseDTO(BookRecord sentence) {
+            this.sentenceId = sentence.getId();
             this.page = sentence.getPage();
             this.content = sentence.getContent();
             this.createdDate = sentence.getCreatedDate();
