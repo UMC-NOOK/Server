@@ -12,8 +12,6 @@ import umc.nook.records.domain.ChatType;
 import java.time.LocalDateTime;
 
 @Getter
-@AllArgsConstructor
-@NoArgsConstructor
 public class ChatDTO {
 
     @AllArgsConstructor

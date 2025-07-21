@@ -27,6 +27,7 @@ jwt:
 aladin:
   base-url: http://www.aladin.co.kr/ttb/api
   ttbkey: ${ALADIN_TTBKEY}
+
 openai:
   api:
     key: ${OPENAI_KEY}

@@ -7,7 +7,7 @@ import umc.nook.records.domain.ChatRecord;
 import java.util.List;
 
 public interface ChatRecordRepository extends JpaRepository<ChatRecord,Long> {
-    List<ChatRecord> findByBookshelfIdOrderByCreatedAt(Long bookshelfId);
+    List<ChatRecord> findByBookshelfIdOrderByCreatedDate(Long bookshelfId);
 
-    List<ChatRecord> findByBookshelfOrderByCreatedAtAsc(UserBookShelf userBook);
+    List<ChatRecord> findByBookshelfOrderByCreatedDateAsc(UserBookShelf userBook);
 }
