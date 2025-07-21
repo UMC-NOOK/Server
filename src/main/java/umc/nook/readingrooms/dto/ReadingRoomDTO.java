@@ -105,4 +105,11 @@ public class ReadingRoomDTO {
         private Long roomId;
         private Long userId;
     }
+
+    @Getter
+    @AllArgsConstructor
+    public static class ReadingBookRequest {
+        private Long bookId;
+        private String title;
+    }
 }

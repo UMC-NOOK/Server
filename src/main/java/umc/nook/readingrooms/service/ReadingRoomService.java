@@ -485,13 +485,16 @@ public class ReadingRoomService {
     }
 
     @Transactional(readOnly = true)
-    public List<String> getReadingBooksInRoom(CustomUserDetails userDetails) {
+    public List<ReadingRoomDTO.ReadingBookRequest> getReadingBooksInRoom(CustomUserDetails userDetails) {
 
         User user = userDetails.getUser();
 
         return userBookshelfRepository.findByUserAndReadingStatus(user, ReadingStatus.READING)
                 .stream()
-                .map(shelf -> shelf.getBook().getTitle())
+                .map(shelf -> new ReadingRoomDTO.ReadingBookRequest(
+                        shelf.getBook().getBookId(),      // bookId
+                        shelf.getBook().getTitle()    // title
+                ))
                 .collect(Collectors.toList());
     }
 }

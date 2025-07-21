@@ -77,8 +77,8 @@ public class ReadingRoomController {
 
     @Operation(summary = "사용자가 독서중인 책 제목을 조회합니다.")
     @GetMapping("/reading")
-    public ApiResponse<List<String>> getReadingBooksInRoom(@AuthenticationPrincipal CustomUserDetails user) {
-        List<String> name = readingRoomService.getReadingBooksInRoom(user);
+    public ApiResponse<List<ReadingRoomDTO.ReadingBookRequest>> getReadingBooksInRoom(@AuthenticationPrincipal CustomUserDetails user) {
+        List<ReadingRoomDTO.ReadingBookRequest> name = readingRoomService.getReadingBooksInRoom(user);
         return ApiResponse.onSuccess(name, SuccessCode.OK);
     }
 }
