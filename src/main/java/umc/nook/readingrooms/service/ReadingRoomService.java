@@ -64,6 +64,9 @@ public class ReadingRoomService {
             case ROOM_REMOVED:
                 destination += "/room-removed";
                 break;
+            case READING_BOOKS:
+                destination += "/reading-books";
+                break;
             default:
                 log.warn("Unhandled event type for WebSocket publishing: {}", eventType);
         }
@@ -496,6 +499,12 @@ public class ReadingRoomService {
                         shelf.getBook().getTitle()    // title
                 ))
                 .collect(Collectors.toList());
+    }
+
+    // 독서중인 책 설정
+    @Transactional
+    public void readingBooks(ReadingRoomDTO.ReadingBookPayload payload) {
+        publishWebSocketEvent(payload.getRoomId(), ReadingRoomDTO.ReadingRoomEventType.READING_BOOKS, payload);
     }
 }
 
