@@ -10,6 +10,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import umc.nook.bookshelves.domain.ReadingStatus;
+import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.readingrooms.domain.*;
@@ -38,6 +40,7 @@ public class ReadingRoomService {
     private final SimpMessagingTemplate messagingTemplate;
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final UserBookshelfRepository userBookshelfRepository;
 
     //웹소켓 이벤트 발행
     private void publishWebSocketEvent(Long roomId, ReadingRoomDTO.ReadingRoomEventType eventType, Object payload) {
@@ -480,4 +483,16 @@ public class ReadingRoomService {
                 .build();
         publishWebSocketEvent(room.getId(), ReadingRoomDTO.ReadingRoomEventType.USER_LEAVE, payload);
     }
+
+    @Transactional(readOnly = true)
+    public List<String> getReadingBooksInRoom(CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
+
+        return userBookshelfRepository.findByUserAndReadingStatus(user, ReadingStatus.READING)
+                .stream()
+                .map(shelf -> shelf.getBook().getTitle())
+                .collect(Collectors.toList());
+    }
 }
+
