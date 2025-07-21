@@ -1,2 +1,5 @@
-package umc.nook.records.domain;public enum RecordType {
+package umc.nook.records.domain;
+
+public enum RecordType {
+    RECORD, COMMENTARY
 }
