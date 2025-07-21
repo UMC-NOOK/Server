@@ -39,8 +39,9 @@ public class User extends BaseTimeEntity {
     private Status status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "character_color", nullable = false)
-    private CharacterColor characterColor;
+    @Column(name = "character_color")
+    @Builder.Default
+    private CharacterColor characterColor = CharacterColor.ORANGE;
 
     //TODO: 별명 추가
 

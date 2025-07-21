@@ -9,4 +9,6 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     Book findByIsbn13(String isbn13);
 
     Book findByBookId(Long bookId);
+
+    boolean existsByIsbn13(String isbn13);
 }

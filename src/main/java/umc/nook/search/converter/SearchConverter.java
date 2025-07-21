@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 
 public class SearchConverter {
 
-    public static SearchResponseDTO.BookDTO toBookDTO(AladinResponseDTO.SearchBookDTO bookDTO) {
+    public static SearchResponseDTO.BookDTO toBookDTO(AladinResponseDTO.BookDetailDTO bookDTO) {
         return SearchResponseDTO.BookDTO.builder()
                 .isbn13(bookDTO.getIsbn13())
                 .title(bookDTO.getTitle())

@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
+import umc.nook.book.service.BookService;
 import umc.nook.book.utils.BookFilterUtils;
 import umc.nook.lounge.converter.LoungeConverter;
 import umc.nook.search.converter.SearchConverter;
@@ -27,31 +28,34 @@ public class SearchService {
     private static int LIMIT = 10;
 
     private final AladinService aladinService;
+    private final BookService bookService;
     private final RecentQueryService recentQueryService;
 
-    public Mono<SearchResponseDTO.SearchResultDTO> searchBooks(String query, int page, CustomUserDetails userDetails) {
+    @Transactional
+    public SearchResponseDTO.SearchResultDTO searchBooks(String query, int page, CustomUserDetails userDetails) {
         User user = userDetails.getUser();
 
         int start = (page - 1) * LIMIT + 1;
 
-        return aladinService.searchBooks(query, start, LIMIT)
-                .map(response -> {
-                    List<SearchResponseDTO.BookDTO> books = new ArrayList<>();
-                    if (response != null && response.getItem() != null) {
-                        for (AladinResponseDTO.SearchBookDTO item : response.getItem()) {
-                            if (BookFilterUtils.isBookIncluded(item.getCategoryName())) {
-                                books.add(SearchConverter.toBookDTO(item));
-                            }
-                        }
+        AladinResponseDTO.ResultDTO response = aladinService.searchBooks(query, start, LIMIT);
+        List<SearchResponseDTO.BookDTO> books = new ArrayList<>();
+        if (response != null && response.getItem() != null) {
+            for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
+                if (BookFilterUtils.isBookIncluded(item.getCategoryName())) {
+                    if (!bookService.existsByIsbn13(item.getIsbn13())) {
+                        bookService.addBook(item.getIsbn13());
                     }
-                    int totalItems = response != null ? response.getTotalResults() : 0;
-                    int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / LIMIT) : 0;
-                    recentQueryService.saveRecentQuery(user, query);
-                    return SearchResponseDTO.SearchResultDTO.builder()
-                            .books(books)
-                            .pagination(SearchConverter.toPaginiationDTO(page, LIMIT, totalItems, totalPages))
-                            .build();
-                });
+                    books.add(SearchConverter.toBookDTO(item));
+                }
+            }
+        }
+        int totalItems = response != null ? response.getTotalResults() : 0;
+        int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / LIMIT) : 0;
+        recentQueryService.saveRecentQuery(user, query);
+        return SearchResponseDTO.SearchResultDTO.builder()
+                .books(books)
+                .pagination(SearchConverter.toPaginiationDTO(page, LIMIT, totalItems, totalPages))
+                .build();
 
     }
 }
