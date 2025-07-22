@@ -1,13 +1,15 @@
 package umc.nook.lounge.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
+import umc.nook.book.domain.CategoryCount;
+import umc.nook.book.domain.CategoryCountByName;
 import umc.nook.book.repository.CategoryRepository;
 import umc.nook.book.utils.BookFilterUtils;
+import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.lounge.converter.LoungeConverter;
@@ -17,8 +19,6 @@ import umc.nook.users.service.CustomUserDetails;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +34,7 @@ public class LoungeService {
     private static final int LIMIT = 6;
 
     private final AladinService aladinService;
+    private final UserBookshelfRepository userBookshelfRepository;
     private final CategoryRepository categoryRepository;
 
     public LoungeResponseDTO.LoungeBookResultDTO getLoungeBooks(
@@ -80,10 +81,13 @@ public class LoungeService {
 
     private LoungeResponseDTO.LoungeBookResultDTO handleRecommendation(
             String sectionId, Integer categoryId, int page, User user) {
+
         if (sectionId == null) {
             // 추천 페이지 전체 조회 (1페이지)
             LoungeResponseDTO.SectionDTO bestSection = getBestSection(SECTION_BEST, categoryId, page);
-            LoungeResponseDTO.SectionDTO favoriteSection = getBestSection(SECTION_FAVORITE_BEST, getFavoriteCategory(user), page);
+            int favoriteCategory = getFavoriteCategory(user).get(0).getAladinCategoryId();
+            LoungeResponseDTO.SectionDTO favoriteSection = getBestSection(
+                    SECTION_FAVORITE_BEST, favoriteCategory, page);
 
             return LoungeConverter.toResultDTO(List.of(bestSection, favoriteSection));
         } else if (sectionId.equalsIgnoreCase(SECTION_BEST)) {
@@ -92,7 +96,9 @@ public class LoungeService {
             return LoungeConverter.toResultDTO(List.of(section));
         } else {
             // 사용자 선호 카테고리 베스트셀러의 특정 페이지 조회
-            LoungeResponseDTO.SectionDTO section = getBestSection(SECTION_FAVORITE_BEST, getFavoriteCategory(user), page);
+            int favoriteCategory = getFavoriteCategory(user).get(0).getAladinCategoryId();
+            LoungeResponseDTO.SectionDTO section = getBestSection(
+                    SECTION_FAVORITE_BEST, favoriteCategory, page);
             return LoungeConverter.toResultDTO(List.of(section));
         }
     }
@@ -135,8 +141,16 @@ public class LoungeService {
 
     // 사용자 선호 카테고리 추출
     // 추후 개발 예정
-    private int getFavoriteCategory(User user) {
-        return 170; // 하드 코딩
+    private List<CategoryCount> getFavoriteCategory(User user) {
+        Long count = userBookshelfRepository.countByUser_UserId(user.getUserId());
+        if (count == 0L) {
+            System.out.println("count == 0");
+            return userBookshelfRepository.findCategoryCountGlobal(PageRequest.of(0, 1));
+        }
+        else{
+            return userBookshelfRepository.findCategoryCountByUserId(
+                    user.getUserId(), PageRequest.of(0, 1));
+        }
     }
 
     // 몰타입 별로 정해진 4개의 카테고리 정의
@@ -157,5 +171,33 @@ public class LoungeService {
         }
         return categoryRepository.findCategoryNameByAladinCategoryId(categoryId)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_CATEGORY));
+    }
+
+
+    public LoungeResponseDTO.CategoryResultDTO getFavoriteCategories(CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Long totalCount = userBookshelfRepository.countByUser_UserId(user.getUserId());
+        long topCountSum = 0L;
+
+        List<CategoryCountByName> categories =
+                userBookshelfRepository.findCategoryCountByUserIdGroupByName(
+                        user.getUserId(), PageRequest.of(0, 5));
+
+        LoungeResponseDTO.CategoryResultDTO categoryResultDTO = new LoungeResponseDTO.CategoryResultDTO();
+        for (CategoryCountByName c : categories) {
+            categoryResultDTO.getCategories().add(LoungeConverter.toCategoryDTO(c));
+            topCountSum += c.getCount();
+        }
+
+        long otherCount = totalCount - topCountSum;
+        System.out.println("otherCount = " + otherCount);
+        if (otherCount > 0) {
+            categoryResultDTO.getCategories().add(LoungeResponseDTO.CategoryDTO.builder()
+                    .categoryName("기타")
+                    .count(otherCount)
+                    .build());
+        }
+
+        return categoryResultDTO;
     }
 }

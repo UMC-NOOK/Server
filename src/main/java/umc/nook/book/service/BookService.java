@@ -14,6 +14,7 @@ import umc.nook.book.dto.BookResponseDTO;
 import umc.nook.book.repository.BookRepository;
 import umc.nook.book.repository.CategoryRepository;
 import umc.nook.book.utils.BookFilterUtils;
+import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.review.service.ReviewService;
@@ -32,14 +33,16 @@ public class BookService {
     private final CategoryRepository categoryRepository;
     private final AladinService aladinService;
     private final ReviewService reviewService;
+    private final UserBookshelfRepository userBookshelfRepository;
 
     @Transactional
     public BookResponseDTO.BookDetailResultDTO getBookDetails(String isbn13, CustomUserDetails userDetails) {
         User user = userDetails.getUser();
 
-        if (existsByIsbn13(isbn13)) {
+        if (bookRepository.existsByIsbn13(isbn13)) {
             Book book = bookRepository.findByIsbn13(isbn13);
-            BookResponseDTO.BookDetailDTO bookDetailDTO = BookConverter.toBookDetailDTO(book);
+            boolean registeredBookshelf = userBookshelfRepository.existsByUserAndBook(user, book);
+            BookResponseDTO.BookDetailDTO bookDetailDTO = BookConverter.toBookDetailDTO(book, registeredBookshelf   );
             List<BookResponseDTO.BestInThisCategoryDTO> bestList = getBestInThisCategory(
                     book.getCategory().getAladinCategoryId());
 
@@ -52,12 +55,12 @@ public class BookService {
 
 
         Book savedBook = addBook(isbn13);
-
+        boolean registeredBookshelf = userBookshelfRepository.existsByUserAndBook(user, savedBook);
         List<BookResponseDTO.BestInThisCategoryDTO> bestList =
                 getBestInThisCategory(savedBook.getCategory().getAladinCategoryId());
 
         return BookResponseDTO.BookDetailResultDTO.builder()
-                .book(BookConverter.toBookDetailDTO(savedBook))
+                .book(BookConverter.toBookDetailDTO(savedBook, registeredBookshelf))
                 .reviewData(reviewService.getReviews(isbn13, userDetails, 1))
                 .bestInThisCategory(bestList)
                 .build();
@@ -96,8 +99,8 @@ public class BookService {
         return bookRepository.save(bookEntity);
     }
 
-    public boolean existsByIsbn13(String isbn13) {
-        return bookRepository.existsByIsbn13(isbn13);
+    public Book findByIsbn13(String isbn13) {
+        return bookRepository.findByIsbn13(isbn13);
     }
 
     public Category getCategoryByFullName(String categoryFullName) {

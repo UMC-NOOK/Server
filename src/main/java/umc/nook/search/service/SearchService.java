@@ -3,22 +3,19 @@ package umc.nook.search.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
+import umc.nook.book.domain.Book;
 import umc.nook.book.service.BookService;
 import umc.nook.book.utils.BookFilterUtils;
-import umc.nook.lounge.converter.LoungeConverter;
+import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.search.converter.SearchConverter;
-import umc.nook.search.domain.RecentQuery;
 import umc.nook.search.dto.SearchResponseDTO;
-import umc.nook.search.repository.RecentQueryRepository;
 import umc.nook.users.domain.User;
 import umc.nook.users.service.CustomUserDetails;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +27,7 @@ public class SearchService {
     private final AladinService aladinService;
     private final BookService bookService;
     private final RecentQueryService recentQueryService;
+    private final UserBookshelfRepository userBookshelfRepository;
 
     @Transactional
     public SearchResponseDTO.SearchResultDTO searchBooks(String query, int page, CustomUserDetails userDetails) {
@@ -42,10 +40,12 @@ public class SearchService {
         if (response != null && response.getItem() != null) {
             for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
                 if (BookFilterUtils.isBookIncluded(item.getCategoryName())) {
-                    if (!bookService.existsByIsbn13(item.getIsbn13())) {
-                        bookService.addBook(item.getIsbn13());
+                    Book book = bookService.findByIsbn13(item.getIsbn13());
+                    if (book == null) {
+                        book = bookService.addBook(item.getIsbn13());
                     }
-                    books.add(SearchConverter.toBookDTO(item));
+                    boolean registeredBookshelf = userBookshelfRepository.existsByUserAndBook(user, book);
+                    books.add(SearchConverter.toBookDTO(item, book.getBookId(), registeredBookshelf));
                 }
             }
         }
@@ -54,7 +54,7 @@ public class SearchService {
         recentQueryService.saveRecentQuery(user, query);
         return SearchResponseDTO.SearchResultDTO.builder()
                 .books(books)
-                .pagination(SearchConverter.toPaginiationDTO(page, LIMIT, totalItems, totalPages))
+                .pagination(SearchConverter.toPaginationDTO(page, LIMIT, totalItems, totalPages))
                 .build();
 
     }

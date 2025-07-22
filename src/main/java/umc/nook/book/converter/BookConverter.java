@@ -37,7 +37,7 @@ public class BookConverter {
                 .build();
     }
 
-    public static BookResponseDTO.BookDetailDTO toBookDetailDTO(Book book) {
+    public static BookResponseDTO.BookDetailDTO toBookDetailDTO(Book book, boolean registeredBookshelf) {
         return BookResponseDTO.BookDetailDTO.builder()
                 .bookId(book.getBookId())
                 .isbn13(book.getIsbn13())
@@ -50,6 +50,7 @@ public class BookConverter {
                 .category(book.getCategory().getCategoryName())
                 .description(book.getDescription())
                 .coverImageUrl(book.getCoverImageUrl())
+                .registeredBookshelf(registeredBookshelf)
                 .build();
     }
 

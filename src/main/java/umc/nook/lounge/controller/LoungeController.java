@@ -69,4 +69,18 @@ public class LoungeController {
         return ApiResponse.onSuccess(result, SuccessCode.OK);
     }
 
+
+    @Operation(
+            summary = "홈 화면 선호 카테고리",
+            description = """
+            홈 화면에서 가장 많이 읽은 카테고리들을 조회합니다.
+            top 5 + 나머지는 기타로 합쳐서 처리합니다.
+            """
+    )
+    @GetMapping("/categories")
+    public ApiResponse<LoungeResponseDTO.CategoryResultDTO> getFavoriteCategories(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ApiResponse.onSuccess(loungeService.getFavoriteCategories(userDetails), SuccessCode.OK);
+    }
 }

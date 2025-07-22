@@ -1,6 +1,7 @@
 package umc.nook.lounge.converter;
 
 import umc.nook.aladin.dto.AladinResponseDTO;
+import umc.nook.book.domain.CategoryCountByName;
 import umc.nook.lounge.dto.LoungeResponseDTO;
 
 import java.util.List;
@@ -44,4 +45,10 @@ public class LoungeConverter {
                 .build();
     }
 
+    public static LoungeResponseDTO.CategoryDTO toCategoryDTO(CategoryCountByName count) {
+        return LoungeResponseDTO.CategoryDTO.builder()
+                .categoryName(count.getCategoryName())
+                .count(count.getCount())
+                .build();
+    }
 }

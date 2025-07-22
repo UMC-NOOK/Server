@@ -4,14 +4,13 @@ import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.search.domain.RecentQuery;
 import umc.nook.search.dto.SearchResponseDTO;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class SearchConverter {
 
-    public static SearchResponseDTO.BookDTO toBookDTO(AladinResponseDTO.BookDetailDTO bookDTO) {
+    public static SearchResponseDTO.BookDTO toBookDTO(AladinResponseDTO.BookDetailDTO bookDTO, Long bookId, boolean registeredBookshelf) {
         return SearchResponseDTO.BookDTO.builder()
+                .bookId(bookId)
                 .isbn13(bookDTO.getIsbn13())
                 .title(bookDTO.getTitle())
                 .author(bookDTO.getAuthor())
@@ -19,10 +18,11 @@ public class SearchConverter {
                 .publicationDate(bookDTO.getPubDate())
                 .coverImageUrl(bookDTO.getCover())
                 .mallType(bookDTO.getMallType())
+                .registeredBookshelf(registeredBookshelf)
                 .build();
     }
 
-    public static SearchResponseDTO.PaginationDTO toPaginiationDTO(int page, int limit, int totalItems, int totalPages) {
+    public static SearchResponseDTO.PaginationDTO toPaginationDTO(int page, int limit, int totalItems, int totalPages) {
         return SearchResponseDTO.PaginationDTO.builder()
                 .currentPage(page)
                 .pageSize(limit)
