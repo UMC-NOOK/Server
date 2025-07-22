@@ -21,16 +21,14 @@ import umc.nook.bookshelves.dto.BookShelfDTO;
 import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
+import umc.nook.records.domain.QBookRecord;
 import umc.nook.review.domain.QReview;
 import umc.nook.users.domain.User;
 import umc.nook.users.service.CustomUserDetails;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -149,6 +147,7 @@ public class BookShelfService {
         QUserBookShelf ub = QUserBookShelf.userBookShelf;
         QBook book = QBook.book;
         QReview review = QReview.review;
+        QBookRecord record = QBookRecord.bookRecord;
 
         ReadingStatus status = ReadingStatus.valueOf(statusStr.toUpperCase());
 
@@ -184,7 +183,26 @@ public class BookShelfService {
                     .orderBy(review.rating.desc().nullsLast())
                     .limit(size + 1)
                     .fetch();
-        } else {
+        }
+        else if ("recent".equalsIgnoreCase(sort)) {
+            result = queryFactory
+                    .select(
+                            book.bookId,
+                            book.title,
+                            book.author,
+                            book.publisher,
+                            book.coverImageUrl,
+                            ub.readingStatus.stringValue()
+                    )
+                    .from(ub)
+                    .join(ub.book, book)
+                    .leftJoin(record).on(record.bookshelf.eq(ub))
+                    .where(condition)
+                    .orderBy(record.createdDate.desc().nullsLast())
+                    .limit(size + 1)
+                    .fetch();
+        }
+        else {
             OrderSpecifier<?> orderSpecifier = switch (sort.toLowerCase()) {
                 case "title" -> book.title.asc();
                 case "latest" -> ub.createdDate.desc();
@@ -232,5 +250,14 @@ public class BookShelfService {
         return new BookShelfDTO.CursorPageDTO<>(content, nextCursor, hasNext);
     }
 
+    public BookShelfDTO.RegisteredBookListResponseDTO viewRegisteredDatesInMonth(User user, YearMonth yearMonth) {
+        List<LocalDate> dates = userBookshelfRepository.findAllByUser(user).stream()
+                .filter(b -> b.getBook() != null)
+                .map(b -> b.getCreatedDate().toLocalDate())
+                .filter(date -> YearMonth.from(date).equals(yearMonth))
+                .sorted()
+                .collect(Collectors.toList());
+        return new BookShelfDTO.RegisteredBookListResponseDTO(dates);
+    }
 
 }
