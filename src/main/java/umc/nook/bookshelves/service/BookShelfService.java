@@ -24,10 +24,7 @@ import umc.nook.users.domain.User;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -229,6 +226,16 @@ public class BookShelfService {
         return new BookShelfDTO.CursorPageDTO<>(content, nextCursor, hasNext);
     }
 
+    public BookShelfDTO.RegisteredBookListResponseDTO viewRegisteredDatesInMonth(User user, YearMonth yearMonth) {
+        List<LocalDate> dates = userBookshelfRepository.findAllByUser(user).stream()
+                .filter(b -> b.getBook() != null)
+                .map(b -> b.getCreatedDate().toLocalDate())
+                .filter(date -> YearMonth.from(date).equals(yearMonth))
+                .sorted()
+                .collect(Collectors.toList());
+
+        return new BookShelfDTO.RegisteredBookListResponseDTO(dates);
+    }
 
 
 }

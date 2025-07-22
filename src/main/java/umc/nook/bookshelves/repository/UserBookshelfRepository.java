@@ -15,4 +15,8 @@ public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Lon
     UserBookShelf findByUserAndBook(User user, Book book);
 
     void deleteByUserAndBook(User user, Book thisBook);
+
+    UserBookShelf findByUser(User user);
+
+    List<UserBookShelf> findAllByUser(User user);
 }

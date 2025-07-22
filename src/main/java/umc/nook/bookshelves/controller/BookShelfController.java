@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import umc.nook.bookshelves.dto.BookShelfDTO;
@@ -91,6 +92,16 @@ public class BookShelfController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         var response = bookshelfService.getUserBooks(userDetails.getUser(), status, cursorBookId, size, sort);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
+    }
+
+    @GetMapping("/registered-dates")
+    @Operation(summary = "해당 월의 책 등록 날짜 목록 조회")
+    public ApiResponse<BookShelfDTO.RegisteredBookListResponseDTO> getRegisteredDatesInMonth(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth yearMonth
+    ) {
+        return ApiResponse.onSuccess(
+                bookshelfService.viewRegisteredDatesInMonth(userDetails.getUser(), yearMonth),SuccessCode.OK);
     }
 
 }
