@@ -7,9 +7,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import umc.nook.BaseTimeEntity;
 import umc.nook.book.domain.Book;
+import umc.nook.records.domain.BookRecord;
 import umc.nook.users.domain.User;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "user_bookshelf", uniqueConstraints = {
@@ -41,6 +44,8 @@ public class UserBookShelf extends BaseTimeEntity {
     @Column(name = "recorded_at")
     private LocalDate recordedAt;
 
+    @OneToMany(mappedBy = "bookshelf", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BookRecord> records = new ArrayList<>();
 
     public void updateReadingStatus(ReadingStatus reading) {
         this.readingStatus = reading;

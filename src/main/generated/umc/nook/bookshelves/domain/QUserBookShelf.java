@@ -38,6 +38,8 @@ public class QUserBookShelf extends EntityPathBase<UserBookShelf> {
 
     public final DatePath<java.time.LocalDate> recordedAt = createDate("recordedAt", java.time.LocalDate.class);
 
+    public final ListPath<umc.nook.records.domain.BookRecord, umc.nook.records.domain.QBookRecord> records = this.<umc.nook.records.domain.BookRecord, umc.nook.records.domain.QBookRecord>createList("records", umc.nook.records.domain.BookRecord.class, umc.nook.records.domain.QBookRecord.class, PathInits.DIRECT2);
+
     public final umc.nook.users.domain.QUser user;
 
     public QUserBookShelf(String variable) {

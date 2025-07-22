@@ -96,6 +96,12 @@ public class BookShelfController {
 
     @GetMapping("/registered-dates")
     @Operation(summary = "해당 월의 책 등록 날짜 목록 조회")
+    @Parameter(
+            name = "yearMonth",
+            description = "조회할 연월 (형식: yyyy-MM)",
+            example = "2025-06",
+            required = true
+    )
     public ApiResponse<BookShelfDTO.RegisteredBookListResponseDTO> getRegisteredDatesInMonth(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth yearMonth
@@ -103,5 +109,9 @@ public class BookShelfController {
         return ApiResponse.onSuccess(
                 bookshelfService.viewRegisteredDatesInMonth(userDetails.getUser(), yearMonth),SuccessCode.OK);
     }
+
+    // TODO 최근 남긴 독서 기록 - 책명, 책id, 기록 id
+    // TODO 지금 독서 중인 책 - 책명, 책id, 기록id
+    // TODO 서재 독서 통계
 
 }

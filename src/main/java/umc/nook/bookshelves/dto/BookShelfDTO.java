@@ -85,5 +85,4 @@ public class BookShelfDTO {
         private List<LocalDate> dates;
     }
 
-
 }
