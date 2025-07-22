@@ -190,7 +190,6 @@ public class LoungeService {
         }
 
         long otherCount = totalCount - topCountSum;
-        System.out.println("otherCount = " + otherCount);
         if (otherCount > 0) {
             categoryResultDTO.getCategories().add(LoungeResponseDTO.CategoryDTO.builder()
                     .categoryName("기타")
