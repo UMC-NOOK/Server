@@ -8,8 +8,10 @@ import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import umc.nook.book.domain.Book;
+import umc.nook.book.domain.CategoryCount;
 import umc.nook.book.domain.QBook;
 import umc.nook.book.repository.BookRepository;
 import umc.nook.bookshelves.domain.QUserBookShelf;
@@ -22,6 +24,7 @@ import umc.nook.common.response.ErrorCode;
 import umc.nook.records.domain.QBookRecord;
 import umc.nook.review.domain.QReview;
 import umc.nook.users.domain.User;
+import umc.nook.users.service.CustomUserDetails;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -256,6 +259,5 @@ public class BookShelfService {
                 .collect(Collectors.toList());
         return new BookShelfDTO.RegisteredBookListResponseDTO(dates);
     }
-
 
 }

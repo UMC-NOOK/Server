@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class LoungeResponseDTO {
@@ -49,5 +50,23 @@ public class LoungeResponseDTO {
     @AllArgsConstructor
     public static class LoungeBookResultDTO{
         private List<SectionDTO> sections;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CategoryResultDTO{
+        @Builder.Default
+        List<CategoryDTO> categories = new ArrayList<>();
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CategoryDTO{
+        String categoryName;
+        Long count;
     }
 }

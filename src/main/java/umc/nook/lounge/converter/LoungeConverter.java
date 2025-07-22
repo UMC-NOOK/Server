@@ -1,13 +1,14 @@
 package umc.nook.lounge.converter;
 
 import umc.nook.aladin.dto.AladinResponseDTO;
+import umc.nook.book.domain.CategoryCountByName;
 import umc.nook.lounge.dto.LoungeResponseDTO;
 
 import java.util.List;
 
 public class LoungeConverter {
 
-    public static LoungeResponseDTO.BookDTO toBookDTO(AladinResponseDTO.LoungeBookDTO item) {
+    public static LoungeResponseDTO.BookDTO toBookDTO(AladinResponseDTO.BookDetailDTO item) {
         return LoungeResponseDTO.BookDTO.builder()
                 .isbn13(item.getIsbn13())
                 .title(item.getTitle())
@@ -17,7 +18,7 @@ public class LoungeConverter {
                 .build();
     }
 
-    public static LoungeResponseDTO.PaginationDTO toPaginiationDTO(int page, int limit, int totalItems, int totalPages) {
+    public static LoungeResponseDTO.PaginationDTO toPaginationDTO(int page, int limit, int totalItems, int totalPages) {
         return LoungeResponseDTO.PaginationDTO.builder()
                 .currentPage(page)
                 .pageSize(limit)
@@ -44,4 +45,10 @@ public class LoungeConverter {
                 .build();
     }
 
+    public static LoungeResponseDTO.CategoryDTO toCategoryDTO(CategoryCountByName count) {
+        return LoungeResponseDTO.CategoryDTO.builder()
+                .categoryName(count.getCategoryName())
+                .count(count.getCount())
+                .build();
+    }
 }

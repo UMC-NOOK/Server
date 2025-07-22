@@ -3,6 +3,7 @@ package umc.nook.aladin.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import umc.nook.aladin.converter.AladinConverter;
@@ -16,89 +17,64 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AladinService {
 
-    private final WebClient aladinWebClient;
+    private final RestTemplate restTemplate;
 
     @Value("${aladin.ttbkey}")
     private String ttbKey;
 
-    public Mono<AladinResponseDTO.LoungeResultDTO> fetchBooks(String queryType, String searchTarget, int start,
-                                                      int maxResults, String categoryId) {
-        // type 검증/구분 필요 (book, foreign, ebook)
-        return aladinWebClient.get()
-                .uri(uriBuilder -> {
-                    uriBuilder
-                            .path("/ItemList.aspx")
-                            .queryParam("ttbkey", ttbKey)
-                            .queryParam("QueryType", queryType)
-                            .queryParam("MaxResults", maxResults)
-                            .queryParam("start", start)
-                            .queryParam("SearchTarget", searchTarget)
-                            .queryParam("SubSearchTarget", "Book")
-                            .queryParam("cover", "Big")
-                            .queryParam("output", "js")
-                            .queryParam("Version", "20131101");
-                    if (categoryId != null && !categoryId.isBlank()) {
-                        uriBuilder.queryParam("CategoryId", categoryId);
-                    }
-                    return uriBuilder.build();
-                })
-                .retrieve()
-                //.onStatus(status -> ..) 예외처리 필요
-                .bodyToMono(AladinResponseDTO.LoungeResultDTO.class);
+    private static final String ALADIN_BASE_URL = "https://www.aladin.co.kr/ttb/api";
+
+    public AladinResponseDTO.ResultDTO fetchBooks(
+            String queryType, String searchTarget, int start, int maxResults, String categoryId) {
+
+        StringBuilder url = new StringBuilder(ALADIN_BASE_URL + "/ItemList.aspx?");
+        url.append("ttbkey=").append(ttbKey)
+                .append("&QueryType=").append(queryType)
+                .append("&MaxResults=").append(maxResults)
+                .append("&start=").append(start)
+                .append("&SubSearchTarget=Book")
+                .append("&cover=Big")
+                .append("&output=js")
+                .append("&Version=20131101");
+        if (searchTarget != null) url.append("&SearchTarget=").append(searchTarget);
+        if (categoryId != null && !categoryId.isBlank()) url.append("&CategoryId=").append(categoryId);
+
+        return restTemplate.getForObject(url.toString(), AladinResponseDTO.ResultDTO.class);
     }
 
-    public Mono<AladinResponseDTO.SearchResultDTO> searchBooks(String query, int start, int maxResults) {
-        return aladinWebClient.get()
-                .uri(uriBuilder -> {
-                    return uriBuilder
-                            .path("/ItemSearch.aspx")
-                            .queryParam("ttbkey", ttbKey)
-                            .queryParam("Query", query)
-                            .queryParam("MaxResults", maxResults)
-//                            .queryParam("SearchTarget", "")
-                            .queryParam("start", start)
-                            .queryParam("cover", "Big")
-                            .queryParam("output", "js")
-                            .queryParam("Version", "20131101")
-                            .build();
-                })
-                .retrieve()
-                .bodyToMono(AladinResponseDTO.SearchResultDTO.class);
+    public AladinResponseDTO.ResultDTO searchBooks(String query, int start, int maxResults) {
+        StringBuilder url = new StringBuilder(ALADIN_BASE_URL + "/ItemSearch.aspx?");
+        url.append("ttbkey=").append(ttbKey)
+                .append("&Query=").append(query)
+                .append("&MaxResults=").append(maxResults)
+                .append("&start=").append(start)
+                .append("&cover=Big")
+                .append("&output=js")
+                .append("&Version=20131101");
+        return restTemplate.getForObject(url.toString(), AladinResponseDTO.ResultDTO.class);
     }
 
-    public Mono<AladinResponseDTO.LookUpResultDTO> lookUpBook(String isbn13) {
-        return aladinWebClient.get()
-                .uri(uriBuilder -> {
-                    return uriBuilder
-                            .path("/ItemLookUp.aspx")
-                            .queryParam("ttbkey", ttbKey)
-                            .queryParam("itemIdType", "ISBN13")
-                            .queryParam("itemId", isbn13)
-                            .queryParam("cover", "Big")
-                            .queryParam("output", "js")
-                            .queryParam("Version", "20131101")
-                            .build();
-                })
-                .retrieve()
-                .bodyToMono(AladinResponseDTO.LookUpResultDTO.class);
+    public AladinResponseDTO.ResultDTO lookUpBook(String isbn13) {
+        StringBuilder url = new StringBuilder(ALADIN_BASE_URL + "/ItemLookUp.aspx?");
+        url.append("ttbkey=").append(ttbKey)
+                .append("&itemIdType=ISBN13")
+                .append("&itemId=").append(isbn13)
+                .append("&cover=Big")
+                .append("&output=js")
+                .append("&Version=20131101");
+        return restTemplate.getForObject(url.toString(), AladinResponseDTO.ResultDTO.class);
     }
 
-    Mono<AladinResponseDTO.BestInThisCategoryDTO> getBestCategoryBooks(String categoryId) {
-        return aladinWebClient.get()
-                .uri(uriBuilder -> {
-                    return uriBuilder
-                            .path("/ItemList.aspx")
-                            .queryParam("ttbkey", ttbKey)
-                            .queryParam("QueryType", "Bestseller")
-                            .queryParam("MaxResults", 5)
-                            .queryParam("SubSearchTarget", "Book")
-                            .queryParam("cover", "Big")
-                            .queryParam("output", "js")
-                            .queryParam("Version", "20131101")
-                            .queryParam("CategoryId", categoryId)
-                            .build();
-                })
-                .retrieve()
-                .bodyToMono(AladinResponseDTO.BestInThisCategoryDTO.class);
+    public AladinResponseDTO.BestInThisCategoryDTO getBestCategoryBooks(String categoryId) {
+        StringBuilder url = new StringBuilder(ALADIN_BASE_URL + "/ItemList.aspx?");
+        url.append("ttbkey=").append(ttbKey)
+                .append("&QueryType=Bestseller")
+                .append("&MaxResults=5")
+                .append("&SubSearchTarget=Book")
+                .append("&cover=Big")
+                .append("&output=js")
+                .append("&Version=20131101")
+                .append("&CategoryId=").append(categoryId);
+        return restTemplate.getForObject(url.toString(), AladinResponseDTO.BestInThisCategoryDTO.class);
     }
 }

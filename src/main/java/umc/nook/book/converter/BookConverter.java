@@ -2,7 +2,11 @@ package umc.nook.book.converter;
 
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.book.domain.Book;
+import umc.nook.book.domain.Category;
+import umc.nook.book.domain.MallType;
 import umc.nook.book.dto.BookResponseDTO;
+import umc.nook.common.exception.CustomException;
+import umc.nook.common.response.ErrorCode;
 
 public class BookConverter {
 
@@ -23,7 +27,7 @@ public class BookConverter {
                 .build();
     }
 
-    public static BookResponseDTO.BestInThisCategoryDTO toBestInThisCategoryDTO(AladinResponseDTO.LoungeBookDTO bookDTO) {
+    public static BookResponseDTO.BestInThisCategoryDTO toBestInThisCategoryDTO(AladinResponseDTO.BookDetailDTO bookDTO) {
         return BookResponseDTO.BestInThisCategoryDTO.builder()
                 .isbn13(bookDTO.getIsbn13())
                 .title(bookDTO.getTitle())
@@ -33,7 +37,7 @@ public class BookConverter {
                 .build();
     }
 
-    public static BookResponseDTO.BookDetailDTO toBookDetailDTO(Book book) {
+    public static BookResponseDTO.BookDetailDTO toBookDetailDTO(Book book, boolean registeredBookshelf) {
         return BookResponseDTO.BookDetailDTO.builder()
                 .bookId(book.getBookId())
                 .isbn13(book.getIsbn13())
@@ -46,6 +50,21 @@ public class BookConverter {
                 .category(book.getCategory().getCategoryName())
                 .description(book.getDescription())
                 .coverImageUrl(book.getCoverImageUrl())
+                .registeredBookshelf(registeredBookshelf)
+                .build();
+    }
+
+    public static Book toBook(AladinResponseDTO.BookDetailDTO bookDetailDTO, Category category) {
+        return Book.builder()
+                .isbn13(bookDetailDTO.getIsbn13())
+                .title(bookDetailDTO.getTitle())
+                .author(bookDetailDTO.getAuthor())
+                .publisher(bookDetailDTO.getPublisher())
+                .publicationDate(bookDetailDTO.getPubDate())
+                .pages(bookDetailDTO.getItemPage())
+                .description(bookDetailDTO.getDescription())
+                .coverImageUrl(bookDetailDTO.getCover())
+                .category(category)
                 .build();
     }
 }

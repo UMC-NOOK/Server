@@ -3,6 +3,7 @@ package umc.nook.book.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
 import umc.nook.book.converter.BookConverter;
@@ -13,6 +14,7 @@ import umc.nook.book.dto.BookResponseDTO;
 import umc.nook.book.repository.BookRepository;
 import umc.nook.book.repository.CategoryRepository;
 import umc.nook.book.utils.BookFilterUtils;
+import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.review.service.ReviewService;
@@ -31,14 +33,16 @@ public class BookService {
     private final CategoryRepository categoryRepository;
     private final AladinService aladinService;
     private final ReviewService reviewService;
+    private final UserBookshelfRepository userBookshelfRepository;
 
     @Transactional
     public BookResponseDTO.BookDetailResultDTO getBookDetails(String isbn13, CustomUserDetails userDetails) {
         User user = userDetails.getUser();
 
-        Book book = bookRepository.findByIsbn13(isbn13);
-        if (book != null) {
-            BookResponseDTO.BookDetailDTO bookDetailDTO = BookConverter.toBookDetailDTO(book);
+        if (bookRepository.existsByIsbn13(isbn13)) {
+            Book book = bookRepository.findByIsbn13(isbn13);
+            boolean registeredBookshelf = userBookshelfRepository.existsByUserAndBook(user, book);
+            BookResponseDTO.BookDetailDTO bookDetailDTO = BookConverter.toBookDetailDTO(book, registeredBookshelf   );
             List<BookResponseDTO.BestInThisCategoryDTO> bestList = getBestInThisCategory(
                     book.getCategory().getAladinCategoryId());
 
@@ -49,8 +53,34 @@ public class BookService {
                     .build();
         }
 
-        AladinResponseDTO.LookUpResultDTO result = aladinService.lookUpBook(isbn13).block();
+
+        Book savedBook = addBook(isbn13);
+        boolean registeredBookshelf = userBookshelfRepository.existsByUserAndBook(user, savedBook);
+        List<BookResponseDTO.BestInThisCategoryDTO> bestList =
+                getBestInThisCategory(savedBook.getCategory().getAladinCategoryId());
+
+        return BookResponseDTO.BookDetailResultDTO.builder()
+                .book(BookConverter.toBookDetailDTO(savedBook, registeredBookshelf))
+                .reviewData(reviewService.getReviews(isbn13, userDetails, 1))
+                .bestInThisCategory(bestList)
+                .build();
+    }
+
+    private List<BookResponseDTO.BestInThisCategoryDTO> getBestInThisCategory(int categoryId) {
+        AladinResponseDTO.ResultDTO bestList = aladinService.fetchBooks("bestseller", null, 1, 5, String.valueOf(categoryId));
+        List<BookResponseDTO.BestInThisCategoryDTO> bestInThisCategoryDTOList = new ArrayList<>();
+        if (bestList != null && bestList.getItem() != null) {
+            for (AladinResponseDTO.BookDetailDTO item : bestList.getItem()) {
+                bestInThisCategoryDTOList.add(BookConverter.toBestInThisCategoryDTO(item));
+            }
+        }
+        return bestInThisCategoryDTOList;
+    }
+
+    public Book addBook(String isbn13) {
+        AladinResponseDTO.ResultDTO result = aladinService.lookUpBook(isbn13);
         List<AladinResponseDTO.BookDetailDTO> items = result.getItem();
+
         if (items == null || items.isEmpty()) {
             throw new CustomException(ErrorCode.ISBN13_NOT_FOUND);
         }
@@ -60,44 +90,24 @@ public class BookService {
             throw new CustomException(ErrorCode.BOOK_NOT_ALLOWED);
         }
 
-        String[] parts = item.getCategoryName().split(">");
-        String categoryName = parts[1].trim();
-        Category category = categoryRepository.findByCategoryNameAndMallType(categoryName, MallType.valueOf(item.getMallType()))
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_CATEGORY));
-
-        Book bookEntity = Book.builder()
-                .isbn13(item.getIsbn13())
-                .title(item.getTitle())
-                .author(item.getAuthor())
-                .publisher(item.getPublisher())
-                .publicationDate(item.getPubDate())
-                .pages(item.getItemPage())
-                .description(item.getDescription())
-                .coverImageUrl(item.getCover())
-                .category(category)
-                .build();
-
-        Book savedBook = bookRepository.save(bookEntity);
-
-        List<BookResponseDTO.BestInThisCategoryDTO> bestList =
-                getBestInThisCategory(category.getAladinCategoryId());
-
-        return BookResponseDTO.BookDetailResultDTO.builder()
-                .book(BookConverter.toBookDetailDTO(savedBook))
-                .reviewData(reviewService.getReviews(isbn13, userDetails, 1))
-                .bestInThisCategory(bestList)
-                .build();
+        return bookRepository.save(addBookByBookDetailDTO(item));
     }
 
-    private List<BookResponseDTO.BestInThisCategoryDTO> getBestInThisCategory(int categoryId) {
-        AladinResponseDTO.LoungeResultDTO bestList = aladinService.fetchBooks("bestseller", null, 1, 5, String.valueOf(categoryId))
-                .block();
-        List<BookResponseDTO.BestInThisCategoryDTO> bestInThisCategoryDTOList = new ArrayList<>();
-        if (bestList != null && bestList.getItem() != null) {
-            for (AladinResponseDTO.LoungeBookDTO item : bestList.getItem()) {
-                bestInThisCategoryDTOList.add(BookConverter.toBestInThisCategoryDTO(item));
-            }
-        }
-        return bestInThisCategoryDTOList;
+    public Book addBookByBookDetailDTO(AladinResponseDTO.BookDetailDTO bookDetailDTO) {
+        Category category = getCategoryByFullName(bookDetailDTO.getCategoryName());
+        Book bookEntity = BookConverter.toBook(bookDetailDTO, category);
+        return bookRepository.save(bookEntity);
+    }
+
+    public Book findByIsbn13(String isbn13) {
+        return bookRepository.findByIsbn13(isbn13);
+    }
+
+    public Category getCategoryByFullName(String categoryFullName) {
+        String[] parts = categoryFullName.split(">");
+        String mallType = parts[0].trim();
+        String categoryName = parts[1].trim();
+        return categoryRepository.findByCategoryNameAndMallType(categoryName, MallType.fromDisplayName(mallType))
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_CATEGORY));
     }
 }
