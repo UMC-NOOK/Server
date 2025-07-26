@@ -2,10 +2,12 @@ package umc.nook.readingrooms.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
+import umc.nook.readingrooms.domain.ReadingRoom;
 import umc.nook.readingrooms.dto.ReadingRoomDTO;
 import umc.nook.readingrooms.service.ReadingRoomService;
 
@@ -33,5 +35,11 @@ public class ReadingRoomSocketController {
     public void leaveRoom(
             @Payload ReadingRoomDTO.ReadingRoomLeaveRequest dto) {
         readingRoomService.leaveRoom(dto);
+    }
+
+    @MessageMapping("/reading-books")
+    public void readingBooks(
+            @Payload ReadingRoomDTO.ReadingBookPayload payload) {
+        readingRoomService.readingBooks(payload);
     }
 }
