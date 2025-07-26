@@ -19,7 +19,6 @@ public class ReadingRoomSocketController {
     private final ReadingRoomService readingRoomService;
 
     @MessageMapping("/enter")
-    @SendTo("/sub/readingroom/user-enter")
     public void enterRoom(
             @Payload ReadingRoomDTO.ReadingRoomEnterRequest request) {
         readingRoomService.enterRoom(request);
