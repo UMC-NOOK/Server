@@ -111,8 +111,8 @@ public class AladinResponseDTO {
     @AllArgsConstructor
     @NoArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class LoungeResultDTO extends PaginationDTO{
-        private List<LoungeBookDTO> item;
+    public static class ResultDTO extends PaginationDTO{
+        private List<BookDetailDTO> item;
     }
 
     @Getter

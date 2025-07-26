@@ -78,5 +78,11 @@ public class BookShelfDTO {
         private boolean hasNext;
     }
 
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class RegisteredBookListResponseDTO {
+        private List<LocalDate> dates;
+    }
 
 }

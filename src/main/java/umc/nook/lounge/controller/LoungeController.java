@@ -57,7 +57,7 @@ public class LoungeController {
             )
     })
     @GetMapping("/books")
-    public Mono<ApiResponse<LoungeResponseDTO.LoungeBookResultDTO>> getLoungeBooks(
+    public ApiResponse<LoungeResponseDTO.LoungeBookResultDTO> getLoungeBooks(
             @ValidatedMallType @RequestParam(defaultValue = "RECOMMENDATION") String mallType,
             @ValidatedSection @RequestParam(required = false) String sectionId,
             @ValidatedCategory @RequestParam(required = false) Integer categoryId,
@@ -65,7 +65,22 @@ public class LoungeController {
             @AuthenticationPrincipal CustomUserDetails userDetails
             ) {
 
-        return loungeService.getLoungeBooks(mallType, sectionId, categoryId, page, userDetails)
-                .map(result -> ApiResponse.onSuccess(result, SuccessCode.OK));
+        LoungeResponseDTO.LoungeBookResultDTO result = loungeService.getLoungeBooks(mallType, sectionId, categoryId, page, userDetails);
+        return ApiResponse.onSuccess(result, SuccessCode.OK);
+    }
+
+
+    @Operation(
+            summary = "홈 화면 선호 카테고리",
+            description = """
+            홈 화면에서 가장 많이 읽은 카테고리들을 조회합니다.
+            top 5 + 나머지는 기타로 합쳐서 처리합니다.
+            """
+    )
+    @GetMapping("/categories")
+    public ApiResponse<LoungeResponseDTO.CategoryResultDTO> getFavoriteCategories(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ApiResponse.onSuccess(loungeService.getFavoriteCategories(userDetails), SuccessCode.OK);
     }
 }
