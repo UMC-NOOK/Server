@@ -29,7 +29,7 @@ public class RecordDTO {
         public BookRecord toEntity(UserBookShelf userBook) {
             return BookRecord.builder()
                     .bookshelf(userBook)
-                    .content(content)
+                    //.content(content)
                     .page(page)
                     .build();
         }
@@ -67,11 +67,12 @@ public class RecordDTO {
         public BookRecord toEntity(UserBookShelf userBookShelf, BookRecord parent) {
             return BookRecord.builder()
                     .content(content)
-                    .page(null) // 댓글에는 페이지 정보 없음
+                    .page(null)
                     .bookshelf(userBookShelf)
                     .parent(parent)
                     .build();
         }
+
     }
 
 
@@ -132,6 +133,20 @@ public class RecordDTO {
             this.commentId = comment.getId();
             this.content = comment.getContent();
             this.createdDate = comment.getCreatedDate();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MonthlyRecordRateResponseDTO {
+        private List<MonthRate> rates;
+
+        @Getter
+        @AllArgsConstructor
+        public static class MonthRate {
+            private int month; // 1 ~ 12
+            private double rate;
         }
     }
 

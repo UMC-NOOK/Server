@@ -2,6 +2,7 @@ package umc.nook.records.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import umc.nook.BaseTimeEntity;
 import umc.nook.bookshelves.domain.UserBookShelf;
 
@@ -19,7 +20,7 @@ public class ChatRecord extends BaseTimeEntity {
     @Column(name = "chat_record_id")
     private Long id;
 
-    @Column(name = "content", columnDefinition = "TEXT")
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "role")
@@ -29,4 +30,5 @@ public class ChatRecord extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bookshelf_id", nullable = false)
     private UserBookShelf bookshelf;
+
 }

@@ -18,6 +18,7 @@ import umc.nook.records.dto.RecordDTO;
 import umc.nook.records.service.RecordService;
 import umc.nook.users.service.CustomUserDetails;
 
+import java.time.Year;
 import java.time.YearMonth;
 import java.util.List;
 
@@ -160,5 +161,15 @@ public class RecordController {
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
+
+    @Operation(summary = "월별 독서 기록률 조회",
+            description = "사용자의 연도별 월별 독서 기록률을 조회합니다.")
+    @GetMapping("/rate")
+    public ApiResponse<RecordDTO.MonthlyRecordRateResponseDTO> getRecordRate(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Parameter(description = "기준 연도, 예: 2025") @RequestParam @DateTimeFormat(pattern = "yyyy") Year year
+    ) {
+        return ApiResponse.onSuccess(recordService.viewRecordRate(userDetails.getUser(), year),SuccessCode.OK);
+    }
 
 }

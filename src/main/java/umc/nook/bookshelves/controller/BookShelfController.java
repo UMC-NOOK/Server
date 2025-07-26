@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.dto.BookShelfDTO;
 import umc.nook.bookshelves.service.BookShelfService;
 import umc.nook.common.response.ApiResponse;
@@ -85,7 +86,7 @@ public class BookShelfController {
             @Parameter(name = "sort", description = "정렬 기준: recent(최근 등록순), latest(최근 기록순), title(제목순), rating(별점순)", required = false, example = "rating")
     })
     public ApiResponse<?> getUserBooks(
-            @RequestParam String status,
+            @RequestParam ReadingStatus status,
             @RequestParam(required = false) Long cursorBookId,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "recent") String sort,
@@ -110,8 +111,14 @@ public class BookShelfController {
                 bookshelfService.viewRegisteredDatesInMonth(userDetails.getUser(), yearMonth),SuccessCode.OK);
     }
 
+    @GetMapping("/insight")
+    @Operation(summary = "독서 통계 조회", description = "사용자의 전체 책 수와 상태별 책 수를 반환합니다.")
+    public ApiResponse<BookShelfDTO.BooksInsightDTO> getBooksInsight(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        BookShelfDTO.BooksInsightDTO insight = bookshelfService.viewBooksInsight(userDetails.getUser());
+        return ApiResponse.onSuccess(insight,SuccessCode.OK);
+    }
+
     // TODO 최근 남긴 독서 기록 - 책명, 책id, 기록 id
-    // TODO 지금 독서 중인 책 - 책명, 책id, 기록id
-    // TODO 서재 독서 통계
+    // TODO 지금 독서 중인 책 - 책명, 책id
 
 }

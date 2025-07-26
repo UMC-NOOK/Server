@@ -2,6 +2,7 @@ package umc.nook.records.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import umc.nook.BaseTimeEntity;
 import umc.nook.bookshelves.domain.UserBookShelf;
 
@@ -24,9 +25,6 @@ public class BookRecord extends BaseTimeEntity {
     @Column(name = "page")
     private String page;
 
-    @Column(name = "content", columnDefinition = "TEXT")
-    private String content;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bookshelf_id", nullable = false)
     private UserBookShelf bookshelf;
@@ -47,7 +45,11 @@ public class BookRecord extends BaseTimeEntity {
         this.content = content;
     }
 
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    private String content;
+
     public void updateCommentary(String content) {
         this.content = content;
     }
+
 }
