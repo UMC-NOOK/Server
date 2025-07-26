@@ -68,7 +68,10 @@ public enum ErrorCode implements BaseCode {
 
     // 기록
     RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "RECORD-001","기록이 존재하지 않습니다." ),
-    INVALID_RECORD_TYPE(HttpStatus.BAD_REQUEST, "RECORD-002", "유효하지 않은 기록 유형입니다.");
+    INVALID_RECORD_TYPE(HttpStatus.BAD_REQUEST, "RECORD-002", "유효하지 않은 기록 유형입니다."),
+
+    //프로필
+    PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "PROFILE-001", "프로필이 존재하지 않습니다" ),;
 
     private final HttpStatus httpStatus;
     private final String code;

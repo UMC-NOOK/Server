@@ -3,6 +3,7 @@ package umc.nook.users.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import umc.nook.BaseTimeEntity;
+import umc.nook.profile.domain.Profile;
 import umc.nook.readingrooms.domain.ReadingRoomUser;
 import umc.nook.review.domain.Review;
 import umc.nook.search.domain.RecentQuery;
@@ -38,13 +39,6 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private Status status;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "character_color")
-    @Builder.Default
-    private CharacterColor characterColor = CharacterColor.ORANGE;
-
-    //TODO: 별명 추가
-
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReadingRoomUser> joinedRooms = new ArrayList<>();
 
@@ -56,5 +50,11 @@ public class User extends BaseTimeEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews = new ArrayList<>();
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Profile profile;
 
+    public void setProfile(Profile profile) {
+        this.profile = profile;
+        profile.setUser(this);
+    }
 }
