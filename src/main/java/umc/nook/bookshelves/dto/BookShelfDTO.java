@@ -85,4 +85,22 @@ public class BookShelfDTO {
         private List<LocalDate> dates;
     }
 
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class BooksInsightDTO {
+        private Long totalBookCount;
+        private Long totalRecordCount;
+        private List<BooksInsightTypeDTO> statusCounts;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class BooksInsightTypeDTO {
+        private ReadingStatus readingStatus;
+        private int bookCount;
+    }
+
+
 }

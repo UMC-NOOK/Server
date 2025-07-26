@@ -8,6 +8,7 @@ import umc.nook.book.domain.Book;
 import umc.nook.book.repository.BookRepository;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.bookshelves.repository.UserBookshelfRepository;
+import umc.nook.bookshelves.service.BookShelfQueryService;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.records.domain.BookRecord;
@@ -22,6 +23,7 @@ import umc.nook.records.repository.BookRecordRepository;
 import umc.nook.records.repository.ChatRecordRepository;
 import umc.nook.users.domain.User;
 
+import java.time.Year;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,6 +39,8 @@ public class RecordService {
     private final ChatRecordRepository chatRecordRepository;
 
     private final BookRepository bookRepository;
+
+    private final BookShelfQueryService bookShelfQueryService;
 
     @Transactional
     public ChatDTO.ChatResponseDTO saveChatMessage(User user, ChatDTO.ChatRequestDTO requestDTO) throws JsonProcessingException {
@@ -86,6 +90,7 @@ public class RecordService {
                 .toList();
     }
 
+    // 독서 문장 등록
     @Transactional
     public RecordDTO.SentenceResponseDTO saveSentence(User user, RecordDTO.RecordRequestDTO requestDTO) {
         Book book = bookRepository.findByBookId(requestDTO.getBookId());
@@ -99,6 +104,7 @@ public class RecordService {
         return new RecordDTO.SentenceResponseDTO(sentence);
     }
 
+    // 독서 감상 등록
     @Transactional
     public RecordDTO.CommentResponseDTO saveCommentary(User user, RecordDTO.CommentRequestDTO requestDTO) {
         BookRecord parent = null;
@@ -116,6 +122,7 @@ public class RecordService {
         return new RecordDTO.CommentResponseDTO(comment);
     }
 
+    // 선택한 책 독서 기록 조회
     @Transactional
     public List<RecordDTO.RecordResponseDTO> viewRecordsByBookId(User user, Long bookId) {
         Book book = bookRepository.findByBookId(bookId);
@@ -126,8 +133,11 @@ public class RecordService {
                 .collect(Collectors.toList());
     }
 
+    // 문장 수정
     @Transactional
-    public RecordDTO.SentenceResponseDTO updateSentence(User user, RecordDTO.RecordUpdateRequestDTO updateRequestDTO) {
+    public RecordDTO.SentenceResponseDTO updateSentence(
+            User user,
+            RecordDTO.RecordUpdateRequestDTO updateRequestDTO) {
         BookRecord record = bookRecordRepository.findById(updateRequestDTO.getRecordId())
                 .orElseThrow(() -> new CustomException(ErrorCode.RECORD_NOT_FOUND));
         if (record.getRecordType()!=RecordType.RECORD)
@@ -136,8 +146,12 @@ public class RecordService {
         return new RecordDTO.SentenceResponseDTO(record);
     }
 
+    // 독서 감상 수정
     @Transactional
-    public RecordDTO.CommentResponseDTO updateComment(User user, Long commentId, RecordDTO.CommentUpdateRequestDTO updateRequestDTO) {
+    public RecordDTO.CommentResponseDTO updateComment(
+            User user,
+            Long commentId,
+            RecordDTO.CommentUpdateRequestDTO updateRequestDTO) {
         BookRecord comment = bookRecordRepository.findById(commentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RECORD_NOT_FOUND));
         if (comment.getRecordType()!=RecordType.COMMENTARY)
@@ -146,6 +160,7 @@ public class RecordService {
         return new RecordDTO.CommentResponseDTO(comment);
     }
 
+    // 독서 감상 삭제
     @Transactional
     public void deleteComment(User user, Long commentId) {
         BookRecord comment = bookRecordRepository.findById(commentId)
@@ -155,6 +170,7 @@ public class RecordService {
         bookRecordRepository.delete(comment);
     }
 
+    // 독서 문장 삭제
     @Transactional
     public void deleteRecord(User user, Long recordId) {
         BookRecord record = bookRecordRepository.findById(recordId)
@@ -168,5 +184,9 @@ public class RecordService {
         bookRecordRepository.delete(record);
     }
 
+    @Transactional
+    public RecordDTO.MonthlyRecordRateResponseDTO viewRecordRate(User user, Year year) {
+        return bookShelfQueryService.viewRecordRate(user,year);
+    }
 
 }
