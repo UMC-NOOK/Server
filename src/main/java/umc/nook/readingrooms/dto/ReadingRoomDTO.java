@@ -81,7 +81,7 @@ public class ReadingRoomDTO {
             return UserDTO.builder()
                     .userId(user.getUserId())
                     .nickname(user.getNickname())
-                    .characterColor(user.getCharacterColor().name())
+                    .characterColor(user.getProfile().getCharacterColor().name())
                     .build();
         }
     }
@@ -93,6 +93,7 @@ public class ReadingRoomDTO {
     public static class UserEventPayload {
         private Long userId;
         private String nickname;
+        private String alias;
         private String characterColor;
         private List<UserDTO> currentUsers;
     }

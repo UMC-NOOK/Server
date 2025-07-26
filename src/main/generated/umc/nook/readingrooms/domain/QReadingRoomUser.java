@@ -59,7 +59,7 @@ public class QReadingRoomUser extends EntityPathBase<ReadingRoomUser> {
     public QReadingRoomUser(Class<? extends ReadingRoomUser> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.readingRoom = inits.isInitialized("readingRoom") ? new QReadingRoom(forProperty("readingRoom"), inits.get("readingRoom")) : null;
-        this.user = inits.isInitialized("user") ? new umc.nook.users.domain.QUser(forProperty("user")) : null;
+        this.user = inits.isInitialized("user") ? new umc.nook.users.domain.QUser(forProperty("user"), inits.get("user")) : null;
     }
 
 }

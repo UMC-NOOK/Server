@@ -38,13 +38,6 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private Status status;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "character_color")
-    @Builder.Default
-    private CharacterColor characterColor = CharacterColor.ORANGE;
-
-    //TODO: 별명 추가
-
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReadingRoomUser> joinedRooms = new ArrayList<>();
 
@@ -56,5 +49,7 @@ public class User extends BaseTimeEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews = new ArrayList<>();
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Profile profile;
 
 }

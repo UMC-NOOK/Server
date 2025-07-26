@@ -18,11 +18,11 @@ public class QUser extends EntityPathBase<User> {
 
     private static final long serialVersionUID = -1434043359L;
 
+    private static final PathInits INITS = PathInits.DIRECT2;
+
     public static final QUser user = new QUser("user");
 
     public final umc.nook.QBaseTimeEntity _super = new umc.nook.QBaseTimeEntity(this);
-
-    public final EnumPath<CharacterColor> characterColor = createEnum("characterColor", CharacterColor.class);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdDate = _super.createdDate;
@@ -38,6 +38,8 @@ public class QUser extends EntityPathBase<User> {
 
     public final StringPath password = createString("password");
 
+    public final QProfile profile;
+
     public final ListPath<umc.nook.search.domain.RecentQuery, umc.nook.search.domain.QRecentQuery> recentQueries = this.<umc.nook.search.domain.RecentQuery, umc.nook.search.domain.QRecentQuery>createList("recentQueries", umc.nook.search.domain.RecentQuery.class, umc.nook.search.domain.QRecentQuery.class, PathInits.DIRECT2);
 
     public final ListPath<umc.nook.review.domain.Review, umc.nook.review.domain.QReview> reviews = this.<umc.nook.review.domain.Review, umc.nook.review.domain.QReview>createList("reviews", umc.nook.review.domain.Review.class, umc.nook.review.domain.QReview.class, PathInits.DIRECT2);
@@ -49,15 +51,24 @@ public class QUser extends EntityPathBase<User> {
     public final NumberPath<Long> userId = createNumber("userId", Long.class);
 
     public QUser(String variable) {
-        super(User.class, forVariable(variable));
+        this(User.class, forVariable(variable), INITS);
     }
 
     public QUser(Path<? extends User> path) {
-        super(path.getType(), path.getMetadata());
+        this(path.getType(), path.getMetadata(), PathInits.getFor(path.getMetadata(), INITS));
     }
 
     public QUser(PathMetadata metadata) {
-        super(User.class, metadata);
+        this(metadata, PathInits.getFor(metadata, INITS));
+    }
+
+    public QUser(PathMetadata metadata, PathInits inits) {
+        this(User.class, metadata, inits);
+    }
+
+    public QUser(Class<? extends User> type, PathMetadata metadata, PathInits inits) {
+        super(type, metadata, inits);
+        this.profile = inits.isInitialized("profile") ? new QProfile(forProperty("profile"), inits.get("profile")) : null;
     }
 
 }

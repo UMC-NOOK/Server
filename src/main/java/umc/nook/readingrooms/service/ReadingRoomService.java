@@ -410,8 +410,9 @@ public class ReadingRoomService {
         // WebSocket broadcast
         ReadingRoomDTO.UserEventPayload userEnterEventPayload = ReadingRoomDTO.UserEventPayload.builder()
                 .userId(user.getUserId())
-                .nickname(user.getNickname()) // 현재는 사용자 이름만
-                .characterColor(user.getCharacterColor().name())
+                .nickname(user.getNickname())
+                .alias(user.getProfile().getAlias())
+                .characterColor(user.getProfile().getCharacterColor().name())
                 .currentUsers(currentUsers)
                 .build();
         publishWebSocketEvent(room.getId(), ReadingRoomDTO.ReadingRoomEventType.USER_ENTER, userEnterEventPayload);
@@ -481,7 +482,7 @@ public class ReadingRoomService {
         ReadingRoomDTO.UserEventPayload payload = ReadingRoomDTO.UserEventPayload.builder()
                 .userId(dto.getUserId())
                 .nickname(user.getNickname())
-                .characterColor(user.getCharacterColor().name())
+                .characterColor(user.getProfile().getCharacterColor().name())
                 .currentUsers(currentUsers)
                 .build();
         publishWebSocketEvent(room.getId(), ReadingRoomDTO.ReadingRoomEventType.USER_LEAVE, payload);
