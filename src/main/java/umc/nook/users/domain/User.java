@@ -3,6 +3,7 @@ package umc.nook.users.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import umc.nook.BaseTimeEntity;
+import umc.nook.profile.domain.Profile;
 import umc.nook.readingrooms.domain.ReadingRoomUser;
 import umc.nook.review.domain.Review;
 import umc.nook.search.domain.RecentQuery;
@@ -52,4 +53,8 @@ public class User extends BaseTimeEntity {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Profile profile;
 
+    public void setProfile(Profile profile) {
+        this.profile = profile;
+        profile.setUser(this);
+    }
 }

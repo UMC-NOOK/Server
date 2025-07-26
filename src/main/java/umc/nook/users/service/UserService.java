@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
+import umc.nook.profile.domain.Profile;
 import umc.nook.users.domain.RoleType;
 import umc.nook.users.domain.Status;
 import umc.nook.users.domain.User;
@@ -40,6 +41,9 @@ public class UserService {
                 .role(RoleType.USER)
                 .status(Status.ACTIVE)
                 .build();
+
+        Profile profile = Profile.builder().build();
+        user.setProfile(profile);
 
         userRepository.save(user);
         return new UserDTO.UserResponseDTO(user);

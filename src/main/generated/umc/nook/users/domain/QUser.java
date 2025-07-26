@@ -38,7 +38,7 @@ public class QUser extends EntityPathBase<User> {
 
     public final StringPath password = createString("password");
 
-    public final QProfile profile;
+    public final umc.nook.profile.domain.QProfile profile;
 
     public final ListPath<umc.nook.search.domain.RecentQuery, umc.nook.search.domain.QRecentQuery> recentQueries = this.<umc.nook.search.domain.RecentQuery, umc.nook.search.domain.QRecentQuery>createList("recentQueries", umc.nook.search.domain.RecentQuery.class, umc.nook.search.domain.QRecentQuery.class, PathInits.DIRECT2);
 
@@ -68,7 +68,7 @@ public class QUser extends EntityPathBase<User> {
 
     public QUser(Class<? extends User> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.profile = inits.isInitialized("profile") ? new QProfile(forProperty("profile"), inits.get("profile")) : null;
+        this.profile = inits.isInitialized("profile") ? new umc.nook.profile.domain.QProfile(forProperty("profile"), inits.get("profile")) : null;
     }
 
 }

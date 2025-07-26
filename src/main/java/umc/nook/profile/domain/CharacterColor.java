@@ -1,4 +1,4 @@
-package umc.nook.users.domain;
+package umc.nook.profile.domain;
 
 public enum CharacterColor {
     BLUE,

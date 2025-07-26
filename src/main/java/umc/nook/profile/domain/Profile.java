@@ -1,11 +1,13 @@
-package umc.nook.users.domain;
+package umc.nook.profile.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import umc.nook.users.domain.User;
 
 @Entity
 @Table(name = "profile")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
@@ -20,7 +22,8 @@ public class Profile {
     private User user;
 
     @Column(length = 30)
-    private String alias; // 별명
+    @Builder.Default
+    private String alias = "프로 독자"; // 별명
 
     @Enumerated(EnumType.STRING)
     @Column(name = "character_color", nullable = false)

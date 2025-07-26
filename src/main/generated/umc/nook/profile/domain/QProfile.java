@@ -1,4 +1,4 @@
-package umc.nook.users.domain;
+package umc.nook.profile.domain;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -16,7 +16,7 @@ import com.querydsl.core.types.dsl.PathInits;
 @Generated("com.querydsl.codegen.DefaultEntitySerializer")
 public class QProfile extends EntityPathBase<Profile> {
 
-    private static final long serialVersionUID = 291787155L;
+    private static final long serialVersionUID = 1553470546L;
 
     private static final PathInits INITS = PathInits.DIRECT2;
 
@@ -30,7 +30,7 @@ public class QProfile extends EntityPathBase<Profile> {
 
     public final NumberPath<Long> profileId = createNumber("profileId", Long.class);
 
-    public final QUser user;
+    public final umc.nook.users.domain.QUser user;
 
     public QProfile(String variable) {
         this(Profile.class, forVariable(variable), INITS);
@@ -50,7 +50,7 @@ public class QProfile extends EntityPathBase<Profile> {
 
     public QProfile(Class<? extends Profile> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.user = inits.isInitialized("user") ? new QUser(forProperty("user"), inits.get("user")) : null;
+        this.user = inits.isInitialized("user") ? new umc.nook.users.domain.QUser(forProperty("user"), inits.get("user")) : null;
     }
 
 }
