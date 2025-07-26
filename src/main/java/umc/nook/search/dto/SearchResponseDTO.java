@@ -14,6 +14,7 @@ public class SearchResponseDTO {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class BookDTO{
+        private Long bookId;
         private String isbn13;
         private String title;
         private String author;
@@ -21,6 +22,7 @@ public class SearchResponseDTO {
         private String coverImageUrl;
         private String publicationDate;
         private String mallType;
+        private boolean registeredBookshelf;
     }
 
     @Getter

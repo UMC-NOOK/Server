@@ -10,6 +10,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import umc.nook.bookshelves.domain.ReadingStatus;
+import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.readingrooms.domain.*;
@@ -38,6 +40,7 @@ public class ReadingRoomService {
     private final SimpMessagingTemplate messagingTemplate;
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final UserBookshelfRepository userBookshelfRepository;
 
     //웹소켓 이벤트 발행
     private void publishWebSocketEvent(Long roomId, ReadingRoomDTO.ReadingRoomEventType eventType, Object payload) {
@@ -60,6 +63,9 @@ public class ReadingRoomService {
                 break;
             case ROOM_REMOVED:
                 destination += "/room-removed";
+                break;
+            case READING_BOOKS:
+                destination += "/reading-books";
                 break;
             default:
                 log.warn("Unhandled event type for WebSocket publishing: {}", eventType);
@@ -404,8 +410,9 @@ public class ReadingRoomService {
         // WebSocket broadcast
         ReadingRoomDTO.UserEventPayload userEnterEventPayload = ReadingRoomDTO.UserEventPayload.builder()
                 .userId(user.getUserId())
-                .nickname(user.getNickname()) // 현재는 사용자 이름만
-                .characterColor(user.getCharacterColor().name())
+                .nickname(user.getNickname())
+                .alias(user.getProfile().getAlias())
+                .characterColor(user.getProfile().getCharacterColor().name())
                 .currentUsers(currentUsers)
                 .build();
         publishWebSocketEvent(room.getId(), ReadingRoomDTO.ReadingRoomEventType.USER_ENTER, userEnterEventPayload);
@@ -475,9 +482,30 @@ public class ReadingRoomService {
         ReadingRoomDTO.UserEventPayload payload = ReadingRoomDTO.UserEventPayload.builder()
                 .userId(dto.getUserId())
                 .nickname(user.getNickname())
-                .characterColor(user.getCharacterColor().name())
+                .characterColor(user.getProfile().getCharacterColor().name())
                 .currentUsers(currentUsers)
                 .build();
         publishWebSocketEvent(room.getId(), ReadingRoomDTO.ReadingRoomEventType.USER_LEAVE, payload);
     }
+
+    @Transactional(readOnly = true)
+    public List<ReadingRoomDTO.ReadingBookRequest> getReadingBooksInRoom(CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
+
+        return userBookshelfRepository.findByUserAndReadingStatus(user, ReadingStatus.READING)
+                .stream()
+                .map(shelf -> new ReadingRoomDTO.ReadingBookRequest(
+                        shelf.getBook().getBookId(),      // bookId
+                        shelf.getBook().getTitle()    // title
+                ))
+                .collect(Collectors.toList());
+    }
+
+    // 독서중인 책 설정
+    @Transactional
+    public void readingBooks(ReadingRoomDTO.ReadingBookPayload payload) {
+        publishWebSocketEvent(payload.getRoomId(), ReadingRoomDTO.ReadingRoomEventType.READING_BOOKS, payload);
+    }
 }
+

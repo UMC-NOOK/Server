@@ -3,21 +3,19 @@ package umc.nook.search.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
+import umc.nook.book.domain.Book;
+import umc.nook.book.service.BookService;
 import umc.nook.book.utils.BookFilterUtils;
-import umc.nook.lounge.converter.LoungeConverter;
+import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.search.converter.SearchConverter;
-import umc.nook.search.domain.RecentQuery;
 import umc.nook.search.dto.SearchResponseDTO;
-import umc.nook.search.repository.RecentQueryRepository;
 import umc.nook.users.domain.User;
 import umc.nook.users.service.CustomUserDetails;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,31 +25,37 @@ public class SearchService {
     private static int LIMIT = 10;
 
     private final AladinService aladinService;
+    private final BookService bookService;
     private final RecentQueryService recentQueryService;
+    private final UserBookshelfRepository userBookshelfRepository;
 
-    public Mono<SearchResponseDTO.SearchResultDTO> searchBooks(String query, int page, CustomUserDetails userDetails) {
+    @Transactional
+    public SearchResponseDTO.SearchResultDTO searchBooks(String query, int page, CustomUserDetails userDetails) {
         User user = userDetails.getUser();
 
         int start = (page - 1) * LIMIT + 1;
 
-        return aladinService.searchBooks(query, start, LIMIT)
-                .map(response -> {
-                    List<SearchResponseDTO.BookDTO> books = new ArrayList<>();
-                    if (response != null && response.getItem() != null) {
-                        for (AladinResponseDTO.SearchBookDTO item : response.getItem()) {
-                            if (BookFilterUtils.isBookIncluded(item.getCategoryName())) {
-                                books.add(SearchConverter.toBookDTO(item));
-                            }
-                        }
+        AladinResponseDTO.ResultDTO response = aladinService.searchBooks(query, start, LIMIT);
+        List<SearchResponseDTO.BookDTO> books = new ArrayList<>();
+        if (response != null && response.getItem() != null) {
+            for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
+                if (BookFilterUtils.isBookIncluded(item.getCategoryName())) {
+                    Book book = bookService.findByIsbn13(item.getIsbn13());
+                    if (book == null) {
+                        book = bookService.addBook(item.getIsbn13());
                     }
-                    int totalItems = response != null ? response.getTotalResults() : 0;
-                    int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / LIMIT) : 0;
-                    recentQueryService.saveRecentQuery(user, query);
-                    return SearchResponseDTO.SearchResultDTO.builder()
-                            .books(books)
-                            .pagination(SearchConverter.toPaginiationDTO(page, LIMIT, totalItems, totalPages))
-                            .build();
-                });
+                    boolean registeredBookshelf = userBookshelfRepository.existsByUserAndBook(user, book);
+                    books.add(SearchConverter.toBookDTO(item, book.getBookId(), registeredBookshelf));
+                }
+            }
+        }
+        int totalItems = response != null ? response.getTotalResults() : 0;
+        int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / LIMIT) : 0;
+        recentQueryService.saveRecentQuery(user, query);
+        return SearchResponseDTO.SearchResultDTO.builder()
+                .books(books)
+                .pagination(SearchConverter.toPaginationDTO(page, LIMIT, totalItems, totalPages))
+                .build();
 
     }
 }

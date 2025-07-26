@@ -49,16 +49,16 @@ public class SearchController {
             )
     })
     @GetMapping("/books")
-    public Mono<ApiResponse<SearchResponseDTO.SearchResultDTO>> searchBooks(
+    public ApiResponse<SearchResponseDTO.SearchResultDTO> searchBooks(
             @RequestParam(required = false) String query,
             @ValidatedPage @RequestParam(defaultValue = "1") int page,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         if (query == null || query.isBlank()) {
-            return Mono.error(new CustomException(ErrorCode.INVALID_QUERY));
+            throw new CustomException(ErrorCode.INVALID_QUERY);
         }
-        return searchService.searchBooks(query, page, userDetails)
-                .map(result -> ApiResponse.onSuccess(result, SuccessCode.OK));
+        SearchResponseDTO.SearchResultDTO result = searchService.searchBooks(query, page, userDetails);
+        return ApiResponse.onSuccess(result, SuccessCode.OK);
     }
 
     @Operation(

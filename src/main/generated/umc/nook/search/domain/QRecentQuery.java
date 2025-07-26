@@ -48,7 +48,7 @@ public class QRecentQuery extends EntityPathBase<RecentQuery> {
 
     public QRecentQuery(Class<? extends RecentQuery> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.user = inits.isInitialized("user") ? new umc.nook.users.domain.QUser(forProperty("user")) : null;
+        this.user = inits.isInitialized("user") ? new umc.nook.users.domain.QUser(forProperty("user"), inits.get("user")) : null;
     }
 
 }

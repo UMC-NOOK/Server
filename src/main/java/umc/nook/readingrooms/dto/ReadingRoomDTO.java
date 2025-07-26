@@ -12,7 +12,8 @@ public class ReadingRoomDTO {
         USER_ENTER,     // 사용자 입장
         USER_LEAVE,     // 사용자 퇴장
         ROOM_INFO_UPDATE, // 리딩룸 정보 수정
-        ROOM_REMOVED //리딩룸 삭제
+        ROOM_REMOVED, //리딩룸 삭제
+        READING_BOOKS //독서중인 책
     }
 
     @Getter
@@ -80,7 +81,7 @@ public class ReadingRoomDTO {
             return UserDTO.builder()
                     .userId(user.getUserId())
                     .nickname(user.getNickname())
-                    .characterColor(user.getCharacterColor().name())
+                    .characterColor(user.getProfile().getCharacterColor().name())
                     .build();
         }
     }
@@ -92,6 +93,7 @@ public class ReadingRoomDTO {
     public static class UserEventPayload {
         private Long userId;
         private String nickname;
+        private String alias;
         private String characterColor;
         private List<UserDTO> currentUsers;
     }
@@ -104,5 +106,23 @@ public class ReadingRoomDTO {
     public static class ReadingRoomLeaveRequest {
         private Long roomId;
         private Long userId;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class ReadingBookRequest {
+        private Long bookId;
+        private String title;
+    }
+
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ReadingBookPayload {
+        private Long roomId;
+        private Long userId;
+        private Long bookId;
     }
 }
