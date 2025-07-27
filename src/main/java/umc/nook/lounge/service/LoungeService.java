@@ -151,8 +151,18 @@ public class LoungeService {
     private List<CategoryCount> getFavoriteCategory(User user) {
         Long count = userBookshelfRepository.countByUser_UserId(user.getUserId());
         if (count == 0L) {
-            System.out.println("count == 0");
-            return userBookshelfRepository.findCategoryCountGlobal(PageRequest.of(0, 1));
+            List<CategoryCount> categoryCountGlobal =
+                    userBookshelfRepository.findCategoryCountGlobal(PageRequest.of(0, 1));
+
+            // 전체 사용자가 서재에 등록한 책이 0개일 경우
+            if (categoryCountGlobal.isEmpty()) {
+                // 국내도서 소설/시/희곡을 기본 카테고리로 설정
+                LoungeResponseDTO.CategoryCountDTO categoryCountDTO =
+                        new LoungeResponseDTO.CategoryCountDTO(
+                                10L, 1, "소설/시/희곡", 0L);
+                return List.of(categoryCountDTO);
+            }
+            return categoryCountGlobal;
         }
         else{
             return userBookshelfRepository.findCategoryCountByUserId(

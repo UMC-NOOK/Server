@@ -54,8 +54,9 @@ public class User extends BaseTimeEntity {
     private Profile profile;
 
     @Setter
+    @Builder.Default
     @Column(nullable = false, columnDefinition = "int default 50")
-    private int goal;
+    private int goal = 50;
 
     public void setProfile(Profile profile) {
         this.profile = profile;

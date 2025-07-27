@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import umc.nook.book.domain.CategoryCount;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,5 +89,16 @@ public class LoungeResponseDTO {
     @AllArgsConstructor
     public static class GoalRequestDTO{
         private int goal;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CategoryCountDTO implements CategoryCount {
+        private Long categoryId;
+        private Integer aladinCategoryId;
+        private String categoryName;
+        private Long count;
     }
 }
