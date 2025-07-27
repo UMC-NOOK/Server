@@ -18,7 +18,7 @@ import umc.nook.users.service.CustomUserDetails;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/lounge")
+@RequestMapping("/api")
 @Tag(name = "Lounge", description = "라운지 도서 API")
 @Validated
 public class LoungeController {
@@ -56,7 +56,7 @@ public class LoungeController {
                     example = "1"
             )
     })
-    @GetMapping("/books")
+    @GetMapping("lounge/books")
     public ApiResponse<LoungeResponseDTO.LoungeBookResultDTO> getLoungeBooks(
             @ValidatedMallType @RequestParam(defaultValue = "RECOMMENDATION") String mallType,
             @ValidatedSection @RequestParam(required = false) String sectionId,
@@ -82,5 +82,35 @@ public class LoungeController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         return ApiResponse.onSuccess(loungeService.getFavoriteCategories(userDetails), SuccessCode.OK);
+    }
+
+    @Operation(
+            summary = "홈 화면 목표 조회",
+            description = """
+            홈 화면에서 설정한 독서 목표를 조회합니다.
+            
+            """
+    )
+    @GetMapping("/goals")
+    public ApiResponse<LoungeResponseDTO.GoalResultDTO> getGoal(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ApiResponse.onSuccess(loungeService.getGoal(userDetails), SuccessCode.OK);
+    }
+
+    @Operation(
+            summary = "홈 화면 목표 설정",
+            description = """
+            홈 화면에서 독서 목표를 설정합니다.
+            목표는 50, 100, 150, 200, 250, 300 중 하나의 값입니다.
+            """
+    )
+    @PatchMapping("/goals")
+    public ApiResponse<Void> modifyGoal(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody LoungeResponseDTO.GoalRequestDTO goalRequestDTO
+            ) {
+        loungeService.modifyGoal(userDetails, goalRequestDTO);
+        return ApiResponse.onSuccess(null, SuccessCode.OK);
     }
 }

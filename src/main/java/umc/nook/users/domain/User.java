@@ -53,8 +53,15 @@ public class User extends BaseTimeEntity {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Profile profile;
 
+    @Column(nullable = false, columnDefinition = "int default 100")
+    private int goal;
+
     public void setProfile(Profile profile) {
         this.profile = profile;
         profile.setUser(this);
+    }
+
+    public void setGoal(int goal) {
+        this.goal = goal;
     }
 }

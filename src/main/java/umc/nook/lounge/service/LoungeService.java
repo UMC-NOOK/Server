@@ -3,22 +3,28 @@ package umc.nook.lounge.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
 import umc.nook.book.domain.CategoryCount;
 import umc.nook.book.domain.CategoryCountByName;
 import umc.nook.book.repository.CategoryRepository;
 import umc.nook.book.utils.BookFilterUtils;
+import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.lounge.converter.LoungeConverter;
 import umc.nook.lounge.dto.LoungeResponseDTO;
 import umc.nook.users.domain.User;
+import umc.nook.users.repository.UserRepository;
 import umc.nook.users.service.CustomUserDetails;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -33,9 +39,10 @@ public class LoungeService {
 
     private static final int LIMIT = 6;
 
-    private final AladinService aladinService;
     private final UserBookshelfRepository userBookshelfRepository;
     private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
+    private final AladinService aladinService;
 
     public LoungeResponseDTO.LoungeBookResultDTO getLoungeBooks(
             String mallType, String sectionId, Integer categoryId, int page, CustomUserDetails userDetails) {
@@ -198,5 +205,37 @@ public class LoungeService {
         }
 
         return categoryResultDTO;
+    }
+
+
+    public LoungeResponseDTO.GoalResultDTO getGoal(CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        List<ReadingStatus> readingStatuses = List.of(ReadingStatus.READING, ReadingStatus.FINISHED);
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = LocalDate.of(today.getYear(), 1, 1);
+        LocalDate endDate = LocalDate.of(today.getYear(), 12, 31);
+        long bookCountOfYear = userBookshelfRepository.countByUserAndReadingStatusInAndRecordedAtBetween(
+                user, readingStatuses, startDate, endDate);
+
+        return LoungeResponseDTO.GoalResultDTO.builder()
+                .name("dummy")
+                .nickname(user.getNickname())
+                .goal(user.getGoal())
+                .bookCount(bookCountOfYear)
+                .dDay((int) ChronoUnit.DAYS.between(today, endDate))
+                .build();
+    }
+
+    @Transactional
+    public void modifyGoal(CustomUserDetails userDetails, LoungeResponseDTO.GoalRequestDTO goalRequestDTO) {
+        Set<Integer> ALLOWED_GOALS = Set.of(50, 100, 150, 200, 250, 300);
+
+        if (!ALLOWED_GOALS.contains(goalRequestDTO.getGoal())) {
+            throw new CustomException(ErrorCode.INVALID_GOAL_VALUE);
+        }
+
+        User user = userRepository.findByUserId(userDetails.getUser().getUserId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        user.setGoal(goalRequestDTO.getGoal());
     }
 }

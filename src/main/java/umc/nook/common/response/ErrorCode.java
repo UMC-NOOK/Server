@@ -70,6 +70,9 @@ public enum ErrorCode implements BaseCode {
     RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "RECORD-001","기록이 존재하지 않습니다." ),
     INVALID_RECORD_TYPE(HttpStatus.BAD_REQUEST, "RECORD-002", "유효하지 않은 기록 유형입니다."),
 
+    // 목표
+    INVALID_GOAL_VALUE(HttpStatus.BAD_REQUEST, "GOAL-001", "유효하지 않은 목표 값입니다."),
+
     //프로필
     PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "PROFILE-001", "프로필이 존재하지 않습니다" ),;
 

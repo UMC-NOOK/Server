@@ -69,4 +69,24 @@ public class LoungeResponseDTO {
         String categoryName;
         Long count;
     }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GoalResultDTO{
+        private String name;
+        private String nickname;
+        private int goal;
+        private Long bookCount;
+        private int dDay;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GoalRequestDTO{
+        private int goal;
+    }
 }
