@@ -7,6 +7,7 @@ import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.users.domain.User;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 
@@ -72,4 +73,14 @@ public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Lon
     List<CategoryCountByName> findCategoryCountByUserIdGroupByName(@Param("userId") Long userId, Pageable pageable);
 
     Long countByUser_UserId(Long userId);
+
+    @Query("SELECT COUNT(ubs) FROM UserBookShelf ubs " +
+            "WHERE ubs.user = :user " +
+            "AND ubs.readingStatus IN (:statuses) " +
+            "AND ubs.recordedAt BETWEEN :startOfYear AND :endOfYear")
+    long countByUserAndReadingStatusInAndRecordedAtBetween(@Param("user") User user,
+                                                           @Param("statuses") List<ReadingStatus> statuses,
+                                                           @Param("startOfYear") LocalDate startOfYear,
+                                                           @Param("endOfYear") LocalDate endOfYear);
+
 }
