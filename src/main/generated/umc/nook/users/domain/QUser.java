@@ -31,6 +31,8 @@ public class QUser extends EntityPathBase<User> {
 
     public final NumberPath<Integer> goal = createNumber("goal", Integer.class);
 
+    public final BooleanPath isKakao = createBoolean("isKakao");
+
     public final ListPath<umc.nook.readingrooms.domain.ReadingRoomUser, umc.nook.readingrooms.domain.QReadingRoomUser> joinedRooms = this.<umc.nook.readingrooms.domain.ReadingRoomUser, umc.nook.readingrooms.domain.QReadingRoomUser>createList("joinedRooms", umc.nook.readingrooms.domain.ReadingRoomUser.class, umc.nook.readingrooms.domain.QReadingRoomUser.class, PathInits.DIRECT2);
 
     //inherited
