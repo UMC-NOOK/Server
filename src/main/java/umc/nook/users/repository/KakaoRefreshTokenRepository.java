@@ -12,5 +12,5 @@ public interface KakaoRefreshTokenRepository extends JpaRepository<KakaoRefreshT
 
     void deleteByUserId(Long userId);
 
-    String findRefreshTokenByUserId(Long userId);
+    KakaoRefreshToken findRefreshTokenByUserId(Long userId);
 }

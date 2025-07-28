@@ -167,6 +167,9 @@ public class UserService {
     // 카카오 토큰 조회
     @Transactional
     public String viewKakaoRefreshTokenByUser(Long userId) {
-        return kakaoRefreshTokenRepository.findRefreshTokenByUserId(userId);
+        KakaoRefreshToken refreshToken = kakaoRefreshTokenRepository.findRefreshTokenByUserId(userId);
+        if (refreshToken==null)
+            throw new CustomException(ErrorCode.INVALID_KAKAO_REFRESH_TOKEN);
+        return refreshToken.getRefreshToken();
     }
 }
