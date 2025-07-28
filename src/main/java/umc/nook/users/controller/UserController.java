@@ -83,14 +83,24 @@ public class UserController {
             description = "인가 코드 발급 url : https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=f7b98086764f9e26027fabdd1812417f&redirect_uri=http://nook-server/oauth")
     public ApiResponse<UserDTO.LoginResponseDTO> kakaoLogin(@RequestParam("code") String code, HttpServletResponse response) {
         UserDTO.LoginResponseDTO responseDto = userService.kakaoLogin(code);
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", responseDto.getToken().getRefreshToken())
+        ResponseCookie jwtRefreshTokenCookie = ResponseCookie.from("refreshToken", responseDto.getToken().getRefreshToken())
                 .httpOnly(true)
                 .secure(false)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(14))
                 .build();
-        response.setHeader("Set-Cookie", refreshTokenCookie.toString());
+
+        ResponseCookie kakaoRefreshTokenCookie = ResponseCookie.from("kakaoRefreshToken", userService.viewKakaoRefreshTokenByUser(responseDto.getUserId()))
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ofDays(60))
+                .build();
+
+        response.setHeader("Set-Cookie", jwtRefreshTokenCookie.toString());
+        response.addHeader("Set-Cookie", kakaoRefreshTokenCookie.toString());
 
         return ApiResponse.onSuccess(responseDto, SuccessCode.OK);
     }
@@ -102,7 +112,7 @@ public class UserController {
             HttpServletResponse response) {
         UserDTO.TokenResponseDto responseDto = userService.kakaoReissue(userDetails.getUser());
 
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", responseDto.getRefreshToken())
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("kakaoRefreshToken", responseDto.getRefreshToken())
                 .httpOnly(true)
                 .secure(false)
                 .sameSite("Lax")
