@@ -164,4 +164,9 @@ public class UserService {
         kakaoRefreshTokenRepository.deleteByUserId(user.getUserId());
     }
 
+    // 카카오 토큰 조회
+    @Transactional
+    public String viewKakaoRefreshTokenByUser(Long userId) {
+        return kakaoRefreshTokenRepository.findRefreshTokenByUserId(userId);
+    }
 }
