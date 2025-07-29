@@ -48,7 +48,7 @@ public class BookService {
 
             return BookResponseDTO.BookDetailResultDTO.builder()
                     .book(bookDetailDTO)
-                    .reviewData(reviewService.getReviews(isbn13, userDetails, 1))
+                    .reviewData(reviewService.getReviews(book.getBookId(), userDetails, 1))
                     .bestInThisCategory(bestList)
                     .build();
         }
@@ -61,7 +61,7 @@ public class BookService {
 
         return BookResponseDTO.BookDetailResultDTO.builder()
                 .book(BookConverter.toBookDetailDTO(savedBook, registeredBookshelf))
-                .reviewData(reviewService.getReviews(isbn13, userDetails, 1))
+                .reviewData(reviewService.getReviews(savedBook.getBookId(), userDetails, 1))
                 .bestInThisCategory(bestList)
                 .build();
     }

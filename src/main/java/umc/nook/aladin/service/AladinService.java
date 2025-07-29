@@ -46,6 +46,7 @@ public class AladinService {
         StringBuilder url = new StringBuilder(ALADIN_BASE_URL + "/ItemSearch.aspx?");
         url.append("ttbkey=").append(ttbKey)
                 .append("&Query=").append(query)
+                .append("&SearchTarget=").append("all")
                 .append("&MaxResults=").append(maxResults)
                 .append("&start=").append(start)
                 .append("&cover=Big")
@@ -77,4 +78,21 @@ public class AladinService {
                 .append("&CategoryId=").append(categoryId);
         return restTemplate.getForObject(url.toString(), AladinResponseDTO.BestInThisCategoryDTO.class);
     }
+
+//    public AladinResponseDTO.ResultDTO searchBooksByBestResult(String query, int start, int maxResults) {
+//        List<String> targets = List.of("Book", "Foreign", "Ebook");
+//        AladinResponseDTO.ResultDTO bestResult = null;
+//
+//        for (String target : targets) {
+//            AladinResponseDTO.ResultDTO result = searchBooks(query, start, maxResults, target);
+//
+//            if (result == null) continue;
+//
+//            if (bestResult == null || result.getTotalResults() > bestResult.getTotalResults()) {
+//                bestResult = result;
+//            }
+//        }
+//
+//        return bestResult;
+//    }
 }

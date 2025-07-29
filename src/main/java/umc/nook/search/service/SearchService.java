@@ -22,7 +22,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class SearchService {
 
-    private static int LIMIT = 10;
+    private static final int LIMIT = 10;
 
     private final AladinService aladinService;
     private final BookService bookService;
@@ -33,19 +33,23 @@ public class SearchService {
     public SearchResponseDTO.SearchResultDTO searchBooks(String query, int page, CustomUserDetails userDetails) {
         User user = userDetails.getUser();
 
-        int start = (page - 1) * LIMIT + 1;
+        int fetchSize = LIMIT * 2;
+        int start = (page - 1) * fetchSize + 1;
 
-        AladinResponseDTO.ResultDTO response = aladinService.searchBooks(query, start, LIMIT);
+        AladinResponseDTO.ResultDTO response = aladinService.searchBooks(query, start, fetchSize);
         List<SearchResponseDTO.BookDTO> books = new ArrayList<>();
         if (response != null && response.getItem() != null) {
             for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
-                if (BookFilterUtils.isBookIncluded(item.getCategoryName())) {
+                if (isValidBook(item)) {
                     Book book = bookService.findByIsbn13(item.getIsbn13());
                     if (book == null) {
                         book = bookService.addBook(item.getIsbn13());
                     }
                     boolean registeredBookshelf = userBookshelfRepository.existsByUserAndBook(user, book);
                     books.add(SearchConverter.toBookDTO(item, book.getBookId(), registeredBookshelf));
+                }
+                if (books.size() == LIMIT) {
+                    break;
                 }
             }
         }
@@ -57,5 +61,14 @@ public class SearchService {
                 .pagination(SearchConverter.toPaginationDTO(page, LIMIT, totalItems, totalPages))
                 .build();
 
+    }
+
+    private boolean isValidBook(AladinResponseDTO.BookDetailDTO item) {
+        return BookFilterUtils.isBookIncluded(item.getCategoryName())
+                && BookFilterUtils.isValidMallType(item.getMallType())
+                && item.getIsbn13() != null
+                && !item.getIsbn13().isBlank()
+                && item.getCategoryName() != null
+                && !item.getCategoryName().isBlank();
     }
 }

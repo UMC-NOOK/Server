@@ -228,11 +228,10 @@ public class LoungeService {
                 user, readingStatuses, startDate, endDate);
 
         return LoungeResponseDTO.GoalResultDTO.builder()
-                .name("dummy")
-                .nickname(user.getNickname())
+                .name(user.getNickname())
+                .nickname(user.getProfile().getAlias())
                 .goal(user.getGoal())
                 .bookCount(bookCountOfYear)
-                .dDay((int) ChronoUnit.DAYS.between(today, endDate))
                 .build();
     }
 
