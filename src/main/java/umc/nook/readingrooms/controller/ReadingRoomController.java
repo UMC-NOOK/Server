@@ -81,4 +81,20 @@ public class ReadingRoomController {
         List<ReadingRoomDTO.ReadingBookRequest> name = readingRoomService.getReadingBooksInRoom(user);
         return ApiResponse.onSuccess(name, SuccessCode.OK);
     }
+
+    @Operation(summary = "리딩룸에 가입한 사용자 이름과 호스트/게스트 정보를 조회합니다.")
+    @GetMapping("/{roomId}/joined-users")
+    public ApiResponse<List<ReadingRoomDTO.JoinedUsersResponseDTO>> getJoinedUsers(@PathVariable Long roomId, @AuthenticationPrincipal CustomUserDetails user) {
+        List<ReadingRoomDTO.JoinedUsersResponseDTO> name = readingRoomService.getJoinedUsersInRoom(roomId, user);
+        return ApiResponse.onSuccess(name, SuccessCode.OK);
+    }
+
+    @Operation(summary = "사용자가 최근 접속한 리딩룸 1개를 조회합니다.")
+    @GetMapping("/last-accessed")
+    public ApiResponse<ReadingRoomDTO.LastAccessedReadingRoomResponseDTO> getLastAccessedRoom(@AuthenticationPrincipal CustomUserDetails user) {
+        return ApiResponse.onSuccess(
+                readingRoomService.getLastAccessedRoom(user.getUser()),
+                SuccessCode.OK
+        );
+    }
 }
