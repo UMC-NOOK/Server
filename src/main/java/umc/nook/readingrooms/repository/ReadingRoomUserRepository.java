@@ -18,4 +18,5 @@ public interface ReadingRoomUserRepository extends JpaRepository<ReadingRoomUser
     boolean existsByReadingRoomAndUserAndRole(ReadingRoom readingRoom, User user, Role role);
     Optional<ReadingRoomUser> findByReadingRoomAndUser(ReadingRoom readingRoom, User user);
     List<ReadingRoomUser> findAllByReadingRoom(ReadingRoom readingRoom);
+    Optional<ReadingRoomUser> findTopByUserOrderByLastAccessedAtDesc(User user);
 }

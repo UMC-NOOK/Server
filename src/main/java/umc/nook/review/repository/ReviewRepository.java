@@ -7,5 +7,7 @@ import umc.nook.review.domain.Review;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
-    Page<Review> findByBookIsbn13(String isbn13, Pageable pageable);
+    Page<Review> findByBookBookId(Long BookId, Pageable pageable);
+
+    boolean existsByUserUserIdAndBookBookId(Long userId, Long bookId);
 }

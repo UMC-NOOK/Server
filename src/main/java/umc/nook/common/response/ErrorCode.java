@@ -60,6 +60,7 @@ public enum ErrorCode implements BaseCode {
     REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW-001", "요청한 리뷰가 존재하지 않습니다."),
     INVALID_RATING(HttpStatus.BAD_REQUEST, "REVIEW-002", "유효하지 않은 평점입니다."),
     INVALID_REVIEW(HttpStatus.BAD_REQUEST, "REVIEW-003", "유효하지 않은 리뷰입니다."),
+    REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-004", "이미 리뷰를 작성한 책입니다."),
 
     // 라운지
     INVALID_MALLTYPE(HttpStatus.BAD_REQUEST, "LOUNGE-001", "유효하지 않은 'mallType' 값입니다."),

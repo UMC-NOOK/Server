@@ -28,7 +28,8 @@ public class ReviewConverter {
         boolean ownedByUser = Objects.equals(reviewUser.getUserId(), user.getUserId());
         return ReviewResponseDTO.ReviewDTO.builder()
                 .reviewId(review.getReviewId())
-                .nickname(reviewUser.getNickname())
+                .name(reviewUser.getNickname())
+                .nickname(reviewUser.getProfile().getAlias())
                 .rating(review.getRating())
                 .content(review.getContent())
                 .reviewDate(review.getCreatedDate().toLocalDate())

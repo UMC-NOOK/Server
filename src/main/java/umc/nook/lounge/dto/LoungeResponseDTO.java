@@ -80,7 +80,6 @@ public class LoungeResponseDTO {
         private String nickname;
         private int goal;
         private Long bookCount;
-        private int dDay;
     }
 
     @Getter
