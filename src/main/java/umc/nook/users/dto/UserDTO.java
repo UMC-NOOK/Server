@@ -93,6 +93,30 @@ public class UserDTO {
         }
     }
 
+    @Getter
+    public static class KakaoLoginResponseDTO {
+
+        private Long userId;
+        private String email;
+        private String nickname;
+        private TokenResponseDto token;
+
+        private String kakaoRefreshToken;
+
+        public KakaoLoginResponseDTO(User user, TokenResponseDto token, String kakaoRefreshToken) {
+            this.userId = user.getUserId();
+            this.email = user.getEmail();
+            this.nickname = user.getNickname();
+            this.token = token;
+            this.kakaoRefreshToken = kakaoRefreshToken;
+        }
+
+        public UserDTO.LoginResponseDTO toLoginDTO(User user, TokenResponseDto token) {
+            return new UserDTO.LoginResponseDTO(user,token);
+        }
+    }
+
+
 }
 
 

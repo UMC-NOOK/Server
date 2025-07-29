@@ -1,15 +1,35 @@
 package umc.nook.users.oauth;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
+import lombok.Getter;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 @Getter
-@NoArgsConstructor
-public class KakaoReissueParams {
-    private String token_type;                  // 토큰 타입 (bearer)
-    private String access_token;                // 새 액세스 토큰
-    private String id_token;                    // ID 토큰 (선택적)
-    private Integer expires_in;                 // 액세스 토큰 만료 시간 (초)
-    private String refresh_token;               // 새 리프레시 토큰 (조건부 제공)
-    private Integer refresh_token_expires_in;   // 리프레시 토큰 만료 시간 (초)
+@Builder
+public class KakaoReissueRequestParams {
+
+    @JsonProperty("grant_type")
+    private final String grantType = "refresh_token";
+
+    @JsonProperty("client_id")
+    private final String clientId;
+
+    @JsonProperty("client_secret")
+    private final String clientSecret;
+
+    @JsonProperty("refresh_token")
+    private final String refreshToken;
+
+    public MultiValueMap<String, String> toMultiValueMap() {
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("grant_type", grantType);
+        map.add("client_id", clientId);
+        map.add("refresh_token", refreshToken);
+        map.add("client_secret", clientSecret);
+        return map;
+    }
 }

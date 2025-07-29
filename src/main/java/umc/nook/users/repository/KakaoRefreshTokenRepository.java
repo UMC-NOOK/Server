@@ -1,5 +1,6 @@
 package umc.nook.users.repository;
 
+import com.querydsl.core.group.GroupBy;
 import org.springframework.data.jpa.repository.JpaRepository;
 import umc.nook.users.domain.KakaoRefreshToken;
 
@@ -13,4 +14,8 @@ public interface KakaoRefreshTokenRepository extends JpaRepository<KakaoRefreshT
     void deleteByUserId(Long userId);
 
     KakaoRefreshToken findRefreshTokenByUserId(Long userId);
+
+    Optional<KakaoRefreshToken> findByRefreshToken(String refreshToken);
+
+
 }

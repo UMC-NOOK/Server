@@ -9,15 +9,15 @@ import org.springframework.util.MultiValueMap;
 @Getter
 @Builder
 @AllArgsConstructor
-public class KakaoParams {
+public class KakaoRequestParams {
     private String grantType;
     private String clientId;
     private String clientSecret;
     private String redirectUri;
     private String code;
 
-    public static KakaoParams of(String clientId, String clientSecret, String redirectUri, String code) {
-        return KakaoParams.builder()
+    public static KakaoRequestParams of(String clientId, String clientSecret, String redirectUri, String code) {
+        return KakaoRequestParams.builder()
                 .grantType("authorization_code")
                 .clientId(clientId)
                 .clientSecret(clientSecret)
