@@ -184,6 +184,8 @@ public class RecordService {
         bookRecordRepository.delete(record);
     }
 
+
+    // 독서 기록률 조회
     @Transactional
     public RecordDTO.MonthlyRecordRateResponseDTO viewRecordRate(User user, Year year) {
         return bookShelfQueryService.viewRecordRate(user,year);

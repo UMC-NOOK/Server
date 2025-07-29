@@ -29,7 +29,7 @@ public class RecordDTO {
         public BookRecord toEntity(UserBookShelf userBook) {
             return BookRecord.builder()
                     .bookshelf(userBook)
-                    //.content(content)
+                    .content(content)
                     .page(page)
                     .build();
         }
