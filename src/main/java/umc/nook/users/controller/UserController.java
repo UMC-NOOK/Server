@@ -1,7 +1,6 @@
 package umc.nook.users.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -81,6 +80,72 @@ public class UserController {
     public ApiResponse<UserDTO.UserResponseDTO> getMyInfo(@AuthenticationPrincipal CustomUserDetails userDetails) {
         return ApiResponse.onSuccess(userService.getUserInfo(userDetails.getUser()),SuccessCode.OK);
     }
+
+    @PostMapping("/kakao/login")
+    @Operation(summary = "카카오 로그인 (인가 코드 기반)",
+            description = "인가 코드 발급 url : https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=f7b98086764f9e26027fabdd1812417f&redirect_uri=http://nook-server/oauth")
+    public ApiResponse<UserDTO.LoginResponseDTO> kakaoLogin(@RequestParam("code") String code, HttpServletResponse response) {
+        UserDTO.LoginResponseDTO responseDto = userService.kakaoLogin(code);
+        ResponseCookie jwtRefreshTokenCookie = ResponseCookie.from("refreshToken", responseDto.getToken().getRefreshToken())
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ofDays(14))
+                .build();
+
+        ResponseCookie kakaoRefreshTokenCookie = ResponseCookie.from("kakaoRefreshToken", userService.viewKakaoRefreshTokenByUser(responseDto.getUserId()))
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ofDays(60))
+                .build();
+
+        response.setHeader("Set-Cookie", jwtRefreshTokenCookie.toString());
+        response.addHeader("Set-Cookie", kakaoRefreshTokenCookie.toString());
+
+        return ApiResponse.onSuccess(responseDto, SuccessCode.OK);
+    }
+
+    @PostMapping("/kakao/reissue")
+    @Operation(summary = "카카오 엑세스 토큰 재발급")
+    public ApiResponse<UserDTO.TokenResponseDto> kakaoReissue(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        UserDTO.TokenResponseDto responseDto = userService.kakaoReissue(userDetails.getUser());
+
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("kakaoRefreshToken", responseDto.getRefreshToken())
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ofDays(14))
+                .build();
+        response.setHeader("Set-Cookie", refreshTokenCookie.toString());
+
+        return ApiResponse.onSuccess(responseDto, SuccessCode.OK);
+    }
+
+    @PostMapping("/kakao/logout")
+    @Operation(summary = "카카오 로그아웃")
+    public ApiResponse<String> kakaoLogout(@AuthenticationPrincipal CustomUserDetails userDetails, HttpServletResponse response) {
+        userService.kakaoLogout(userDetails.getUser());
+
+        // 쿠키 삭제
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(0)
+                .build();
+        response.setHeader("Set-Cookie", deleteCookie.toString());
+
+        return ApiResponse.onSuccess("로그아웃 되었습니다." , SuccessCode.OK);
+    }
+
+
 
     @Operation(
             summary = "홈 화면 선호 카테고리",

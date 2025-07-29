@@ -10,10 +10,14 @@ import org.springframework.stereotype.Service;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.profile.domain.Profile;
+import umc.nook.users.domain.KakaoRefreshToken;
 import umc.nook.users.domain.RoleType;
 import umc.nook.users.domain.Status;
 import umc.nook.users.domain.User;
 import umc.nook.users.dto.UserDTO;
+import umc.nook.users.oauth.KakaoReissueParams;
+import umc.nook.users.oauth.OAuthService;
+import umc.nook.users.repository.KakaoRefreshTokenRepository;
 import umc.nook.users.repository.RefreshTokenRepository;
 import umc.nook.users.repository.UserRepository;
 
@@ -25,7 +29,11 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     private final RefreshTokenRepository refreshTokenRepository;
+
+    private final KakaoRefreshTokenRepository kakaoRefreshTokenRepository;
     private final JwtProvider jwtProvider;
+
+    private final OAuthService oAuthService;
 
     // 회원가입
     @Transactional
@@ -68,6 +76,7 @@ public class UserService {
     }
 
 
+    // 엑세스 토큰 재발급
     @Transactional
     public UserDTO.TokenResponseDto reissue(HttpServletRequest request) {
         String refreshToken = jwtProvider.extractRefreshToken(request)
@@ -104,4 +113,60 @@ public class UserService {
         return new UserDTO.UserResponseDTO(user);
     }
 
+    // 카카오 로그인
+    @Transactional
+    public UserDTO.LoginResponseDTO kakaoLogin(String code) {
+        return oAuthService.loginWithKakaoCode(code);
+    }
+
+
+    // 카카오 토큰 재발급
+    @Transactional
+    public UserDTO.TokenResponseDto kakaoReissue(User user) {
+        // 1. 기존 카카오 토큰 조회
+        KakaoRefreshToken oldToken = kakaoRefreshTokenRepository.findByUserId(user.getUserId())
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_KAKAO_REFRESH_TOKEN));
+
+        // 2. 카카오 서버에서 새 토큰 발급 받기
+        KakaoReissueParams newToken = oAuthService.reissueKakaoToken(oldToken.getRefreshToken());
+
+        // 3. 기존 토큰 삭제
+        kakaoRefreshTokenRepository.deleteByUserId(user.getUserId());
+
+        // 4. 새 토큰 저장
+        KakaoRefreshToken token = KakaoRefreshToken.builder()
+                .userId(user.getUserId())
+                .refreshToken(newToken.getRefresh_token())
+                .accessToken(newToken.getAccess_token())
+                .refreshTokenExpiresIn((long) newToken.getRefresh_token_expires_in())
+                .build();
+        kakaoRefreshTokenRepository.save(token);
+
+        // 5. JWT 토큰 재발급
+        String newAccessToken = jwtProvider.createAccessToken(user);
+        String newRefreshToken = jwtProvider.createRefreshToken(user);
+
+        return UserDTO.TokenResponseDto.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .build();
+    }
+
+
+    // 카카오 로그아웃
+    @Transactional
+    public void kakaoLogout(User user) {
+        KakaoRefreshToken token = kakaoRefreshTokenRepository.findByUserId(user.getUserId())
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REFRESH_TOKEN));
+        // 카카오 서버에 로그아웃 요청
+        oAuthService.kakaoLogout(token.getAccessToken());
+        // 저장된 토큰 삭제
+        kakaoRefreshTokenRepository.deleteByUserId(user.getUserId());
+    }
+
+    // 카카오 토큰 조회
+    @Transactional
+    public String viewKakaoRefreshTokenByUser(Long userId) {
+        return kakaoRefreshTokenRepository.findRefreshTokenByUserId(userId);
+    }
 }

@@ -75,7 +75,11 @@ public enum ErrorCode implements BaseCode {
     INVALID_GOAL_VALUE(HttpStatus.BAD_REQUEST, "GOAL-001", "유효하지 않은 목표 값입니다."),
 
     //프로필
-    PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "PROFILE-001", "프로필이 존재하지 않습니다" ),;
+    PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "PROFILE-001", "프로필이 존재하지 않습니다" ),
+
+    // OAUTH
+    INVALID_OAUTH_TOKEN(HttpStatus.BAD_REQUEST, "OAUTH-001", "유효하지 않은 카카오 토큰입니다."),
+    INVALID_KAKAO_REFRESH_TOKEN(HttpStatus.BAD_REQUEST, "OAUTH-002", "유효하지 않은 카카오 리프레시 토큰입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
