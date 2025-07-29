@@ -1,5 +1,6 @@
 package umc.nook.users.oauth;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,11 +11,12 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
-import umc.nook.readingrooms.domain.Role;
+import umc.nook.users.domain.KakaoRefreshToken;
 import umc.nook.users.domain.RoleType;
 import umc.nook.users.domain.Status;
 import umc.nook.users.domain.User;
 import umc.nook.users.dto.UserDTO;
+import umc.nook.users.repository.KakaoRefreshTokenRepository;
 import umc.nook.users.repository.UserRepository;
 import umc.nook.users.service.JwtProvider;
 
@@ -27,6 +29,7 @@ import java.util.Optional;
 public class OAuthService {
 
     private final UserRepository userRepository;
+    private final KakaoRefreshTokenRepository kakaoRefreshTokenRepository;
     private final JwtProvider jwtProvider;
     private final RestTemplate restTemplate;
 
@@ -54,19 +57,24 @@ public class OAuthService {
     /**
      * 카카오 인가 코드로부터 액세스 토큰 받기
      */
-    private String getKakaoAccessToken(String code) {
+    private KakaoResponseParams getKakaoAccessToken(String code) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        KakaoParams kakaoParams = KakaoParams.of(kakaoClientId, kakaoClientSecret, kakaoRedirectUri, code);
+        KakaoRequestParams kakaoParams = KakaoRequestParams.of(kakaoClientId, kakaoClientSecret, kakaoRedirectUri, code);
 
         HttpEntity<MultiValueMap<String, String>> request =
                 new HttpEntity<>(kakaoParams.toMultiValueMap(), headers);
 
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(kakaoTokenRequestUri, request, Map.class);
+            ResponseEntity<KakaoResponseParams> response = restTemplate.postForEntity(
+                    kakaoTokenRequestUri,
+                    request,
+                    KakaoResponseParams.class
+            );
+
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return (String) response.getBody().get("access_token");
+                return response.getBody();
             }
         } catch (Exception e) {
             log.error("카카오 토큰 요청 실패", e);
@@ -75,6 +83,7 @@ public class OAuthService {
 
         throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
     }
+
 
 
     /**
@@ -118,17 +127,12 @@ public class OAuthService {
     /**
      * 로그인 및 회원가입 통합 처리 (인가코드 기반)
      */
-    public UserDTO.LoginResponseDTO loginWithKakaoCode(String code) {
-        // 1. 카카오 액세스 토큰 요청
-        String kakaoAccessToken = getKakaoAccessToken(code);
+    @Transactional
+    public UserDTO.KakaoLoginResponseDTO loginWithKakaoCode(String code) {
+        KakaoResponseParams newToken = getKakaoAccessToken(code);
+        Map<String, Object> userAttribute = getKakaoUserAttributes(newToken.getAccessToken());
+        OAuth2Attribute attributes = OAuth2Attribute.of("kakao", userAttribute);
 
-        // 2. 카카오 사용자 정보 요청
-        Map<String, Object> userAttribute = getKakaoUserAttributes(kakaoAccessToken);
-
-        // 3. 카카오 사용자 정보를 OAuth2Attribute 객체로 변환
-        OAuth2Attribute attributes = OAuth2Attribute.of("kakao",  userAttribute);
-
-        // 4. 사용자 존재 여부 확인
         Optional<User> findUser = userRepository.findByEmail(attributes.getNickname());
         User user;
         if (findUser.isPresent()) {
@@ -140,36 +144,50 @@ public class OAuthService {
             userRepository.save(user);
         }
 
-        // 5. JWT 토큰 발급
         String accessToken = jwtProvider.createAccessToken(user);
         String refreshToken = jwtProvider.createRefreshToken(user);
+        UserDTO.TokenResponseDto jwtTokenResponse = new UserDTO.TokenResponseDto(accessToken, refreshToken);
 
-        UserDTO.TokenResponseDto jwtTokenResponse = new UserDTO.TokenResponseDto(accessToken,refreshToken);
+        KakaoRefreshToken token = kakaoRefreshTokenRepository.findByUserId(user.getUserId())
+                .map(existing -> {
+                    existing.updateToken(newToken.getRefreshToken(), newToken.getAccessToken(), (long) newToken.getRefreshTokenExpiresIn()); // update 메서드 활용
+                    return existing;
+                })
+                .orElseGet(() -> KakaoRefreshToken.builder()
+                        .userId(user.getUserId())
+                        .refreshToken(newToken.getRefreshToken())
+                        .accessToken(newToken.getAccessToken())
+                        .refreshTokenExpiresIn((long) newToken.getRefreshTokenExpiresIn())
+                        .build());
+        kakaoRefreshTokenRepository.save(token);
 
-        return new UserDTO.LoginResponseDTO(user, jwtTokenResponse);
+        // 6. 응답 DTO 반환
+        return new UserDTO.KakaoLoginResponseDTO(user, jwtTokenResponse, newToken.getRefreshToken());
     }
+
 
     /**
      *  카카오 토큰 재발급
      */
-    public KakaoReissueParams reissueKakaoToken(String refreshToken) {
+    public KakaoResponseParams reissueKakaoToken(String refreshToken) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("grant_type", "refresh_token");
-        params.add("client_id", kakaoClientId);
-        params.add("client_secret", kakaoClientSecret);
-        params.add("refresh_token", refreshToken);
+        KakaoReissueRequestParams kakaoParams = KakaoReissueRequestParams.builder()
+                .clientId(kakaoClientId)
+                .clientSecret(kakaoClientSecret)
+                .refreshToken(refreshToken)
+                .build();
 
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
+        HttpEntity<MultiValueMap<String, String>> requestEntity =
+                new HttpEntity<>(kakaoParams.toMultiValueMap(), headers);
 
         try {
-            ResponseEntity<KakaoReissueParams> response = restTemplate.exchange(
+            ResponseEntity<KakaoResponseParams> response = restTemplate.exchange(
                     kakaoTokenRequestUri,
                     HttpMethod.POST,
                     requestEntity,
-                    KakaoReissueParams.class
+                    KakaoResponseParams.class
             );
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
@@ -179,9 +197,9 @@ public class OAuthService {
             log.error("카카오 토큰 재발급 요청 실패", e);
             throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
         }
-
         throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
     }
+
 
     // 카카오 로그아웃
     public void kakaoLogout(String accessToken) {

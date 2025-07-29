@@ -83,10 +83,13 @@ public class UserController {
 
     @PostMapping("/kakao/login")
     @Operation(summary = "카카오 로그인 (인가 코드 기반)",
-            description = "인가 코드 발급 url : https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=f7b98086764f9e26027fabdd1812417f&redirect_uri=http://nook-server/oauth")
-    public ApiResponse<UserDTO.LoginResponseDTO> kakaoLogin(@RequestParam("code") String code, HttpServletResponse response) {
-        UserDTO.LoginResponseDTO responseDto = userService.kakaoLogin(code);
-        ResponseCookie jwtRefreshTokenCookie = ResponseCookie.from("refreshToken", responseDto.getToken().getRefreshToken())
+            description = "인가 코드 발급 url을 통해 받은 인가 코드를 입력하여 카카오 로그인을 진행합니다.")
+    public ApiResponse<UserDTO.KakaoLoginResponseDTO> kakaoLogin(@RequestParam("code") String code, HttpServletResponse response) {
+
+        UserDTO.KakaoLoginResponseDTO kakaoResponse = userService.kakaoLogin(code);
+
+        // 1. JWT 리프레시 토큰 쿠키
+        ResponseCookie jwtRefreshTokenCookie = ResponseCookie.from("refreshToken", kakaoResponse.getToken().getRefreshToken())
                 .httpOnly(true)
                 .secure(false)
                 .sameSite("Lax")
@@ -94,7 +97,8 @@ public class UserController {
                 .maxAge(Duration.ofDays(14))
                 .build();
 
-        ResponseCookie kakaoRefreshTokenCookie = ResponseCookie.from("kakaoRefreshToken", userService.viewKakaoRefreshTokenByUser(responseDto.getUserId()))
+        // 2. 카카오 리프레시 토큰 쿠키
+        ResponseCookie kakaoRefreshTokenCookie = ResponseCookie.from("kakaoRefreshToken", kakaoResponse.getKakaoRefreshToken())
                 .httpOnly(true)
                 .secure(false)
                 .sameSite("Lax")
@@ -105,16 +109,18 @@ public class UserController {
         response.setHeader("Set-Cookie", jwtRefreshTokenCookie.toString());
         response.addHeader("Set-Cookie", kakaoRefreshTokenCookie.toString());
 
-        return ApiResponse.onSuccess(responseDto, SuccessCode.OK);
+        return ApiResponse.onSuccess(kakaoResponse, SuccessCode.OK);
     }
+
 
     @PostMapping("/kakao/reissue")
     @Operation(summary = "카카오 엑세스 토큰 재발급")
     public ApiResponse<UserDTO.TokenResponseDto> kakaoReissue(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletRequest request,
             HttpServletResponse response) {
-        UserDTO.TokenResponseDto responseDto = userService.kakaoReissue(userDetails.getUser());
 
+        UserDTO.TokenResponseDto responseDto = userService.kakaoReissue(request);
+        // 쿠키 갱신
         ResponseCookie refreshTokenCookie = ResponseCookie.from("kakaoRefreshToken", responseDto.getRefreshToken())
                 .httpOnly(true)
                 .secure(false)
