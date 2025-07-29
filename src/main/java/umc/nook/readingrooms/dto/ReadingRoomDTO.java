@@ -1,6 +1,7 @@
 package umc.nook.readingrooms.dto;
 
 import lombok.*;
+import umc.nook.readingrooms.domain.Role;
 import umc.nook.users.domain.User;
 
 import java.util.List;
@@ -75,12 +76,14 @@ public class ReadingRoomDTO {
 
         private Long userId;
         private String nickname;
+        private String alias;
         private String characterColor;
 
         public static UserDTO from(User user) {
             return UserDTO.builder()
                     .userId(user.getUserId())
                     .nickname(user.getNickname())
+                    .alias(user.getProfile().getAlias())
                     .characterColor(user.getProfile().getCharacterColor().name())
                     .build();
         }
@@ -125,4 +128,24 @@ public class ReadingRoomDTO {
         private Long userId;
         private Long bookId;
     }
+
+    @Getter
+    @Builder
+    public static class JoinedUsersResponseDTO{
+        private Long userId;
+        private String nickname;
+        private Role role;
+        private Boolean isMe;
+    }
+
+    @Getter
+    @Builder
+    public static class LastAccessedReadingRoomResponseDTO {
+        private Long roomId;
+        private String name;
+        private String description;
+        private int currentUserCount;
+        private String themeImageUrl;
+    }
+
 }

@@ -507,5 +507,47 @@ public class ReadingRoomService {
     public void readingBooks(ReadingRoomDTO.ReadingBookPayload payload) {
         publishWebSocketEvent(payload.getRoomId(), ReadingRoomDTO.ReadingRoomEventType.READING_BOOKS, payload);
     }
+
+    //리딩룸에 가입한 사용자 조회
+    @Transactional
+    public List<ReadingRoomDTO.JoinedUsersResponseDTO> getJoinedUsersInRoom(Long roomId, CustomUserDetails currentUser) {
+
+        User me = currentUser.getUser(); // 현재 로그인한 유저
+
+        ReadingRoom room = readingRoomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        List<ReadingRoomUser> joinedUsers = readingRoomUserRepository.findAllByReadingRoom(room);
+
+        return joinedUsers.stream()
+                .map(joined -> ReadingRoomDTO.JoinedUsersResponseDTO.builder()
+                        .userId(joined.getUser().getUserId())
+                        .nickname(joined.getUser().getNickname())
+                        .role(joined.getRole())
+                        .isMe(joined.getUser().getUserId().equals(me.getUserId()))
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ReadingRoomDTO.LastAccessedReadingRoomResponseDTO getLastAccessedRoom(User user) {
+        ReadingRoomUser recent = readingRoomUserRepository
+                .findTopByUserOrderByLastAccessedAtDesc(user)
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        ReadingRoom room = recent.getReadingRoom();
+
+        String hashKey = "ReadingRoom:Users:" + room.getId();
+        Long connectedCount = redisTemplate.opsForHash().size(hashKey);
+
+        return ReadingRoomDTO.LastAccessedReadingRoomResponseDTO.builder()
+                .roomId(room.getId())
+                .name(room.getName())
+                .description(room.getDescription())
+                .currentUserCount(connectedCount != null ? connectedCount.intValue() : 0)
+                .themeImageUrl(room.getTheme().getImageUrl())
+                .build();
+    }
+
 }
 
