@@ -26,12 +26,13 @@ public class Book {
     @Column(length = 13, nullable = false, unique = true)
     private String isbn13;
 
-    @Column(length = 255)
+    @Column(length = 1000)
     private String title;
 
+    @Column(length = 1500)
     private String author;
 
-    @Column(length = 255)
+    @Column(length = 1500)
     private String publisher;
 
     private String publicationDate;

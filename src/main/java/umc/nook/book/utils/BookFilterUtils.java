@@ -59,4 +59,9 @@ public class BookFilterUtils {
         }
         return true;
     }
+
+    public static boolean isValidMallType(String mallType) {
+        Set<String> VALID_MALL_TYPES = Set.of("BOOK", "FOREIGN", "EBOOK");
+        return mallType != null && VALID_MALL_TYPES.contains(mallType.toUpperCase());
+    }
 }

@@ -69,48 +69,4 @@ public class LoungeController {
         return ApiResponse.onSuccess(result, SuccessCode.OK);
     }
 
-
-    @Operation(
-            summary = "홈 화면 선호 카테고리",
-            description = """
-            홈 화면에서 가장 많이 읽은 카테고리들을 조회합니다.
-            top 5 + 나머지는 기타로 합쳐서 처리합니다.
-            """
-    )
-    @GetMapping("/categories")
-    public ApiResponse<LoungeResponseDTO.CategoryResultDTO> getFavoriteCategories(
-            @AuthenticationPrincipal CustomUserDetails userDetails
-    ) {
-        return ApiResponse.onSuccess(loungeService.getFavoriteCategories(userDetails), SuccessCode.OK);
-    }
-
-    @Operation(
-            summary = "홈 화면 목표 조회",
-            description = """
-            홈 화면에서 설정한 독서 목표를 조회합니다.
-            
-            """
-    )
-    @GetMapping("/goals")
-    public ApiResponse<LoungeResponseDTO.GoalResultDTO> getGoal(
-            @AuthenticationPrincipal CustomUserDetails userDetails
-    ) {
-        return ApiResponse.onSuccess(loungeService.getGoal(userDetails), SuccessCode.OK);
-    }
-
-    @Operation(
-            summary = "홈 화면 목표 설정",
-            description = """
-            홈 화면에서 독서 목표를 설정합니다.
-            목표는 50, 100, 150, 200, 250, 300 중 하나의 값입니다.
-            """
-    )
-    @PatchMapping("/goals")
-    public ApiResponse<Void> modifyGoal(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody LoungeResponseDTO.GoalRequestDTO goalRequestDTO
-            ) {
-        loungeService.modifyGoal(userDetails, goalRequestDTO);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
-    }
 }

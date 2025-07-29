@@ -35,8 +35,8 @@ public class ReviewController {
     )
     @Parameters({
             @Parameter(
-                    name = "isbn13",
-                    description = "조회할 책의 ISBN-13 값.",
+                    name = "bookId",
+                    description = "조회할 책의 식별자.",
                     required = true
             ),
             @Parameter(
@@ -46,37 +46,38 @@ public class ReviewController {
                     example = "1"
             )
     })
-    @GetMapping("/books/{isbn13}/reviews")
+    @GetMapping("/books/{bookId}/reviews")
     public ApiResponse<ReviewResponseDTO.ReviewResultDTO> getReviews(
-            @PathVariable @ValidatedIsbn String isbn13,
+            @PathVariable Long bookId,
             @ValidatedPage @RequestParam(defaultValue = "1") int page,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        return ApiResponse.onSuccess(reviewService.getReviews(isbn13, userDetails, page), SuccessCode.OK);
+        return ApiResponse.onSuccess(reviewService.getReviews(bookId, userDetails, page), SuccessCode.OK);
     }
 
     @Operation(
             summary = "리뷰 작성",
             description = """
             특정 도서에 대한 리뷰를 작성하고 등록합니다.
+            동일한 도서에 중복 리뷰를 작성할 수 없습니다.
             평점, 리뷰 내용은 선택 사항 (둘중 하나는 있어야 함)
             """
     )
     @Parameters({
             @Parameter(
-                    name = "isbn13",
-                    description = "리뷰를 작성할 책의 ISBN-13 값.",
+                    name = "bookId",
+                    description = "리뷰를 작성할 책의 식별자.",
                     required = true
             )
     })
-    @PostMapping("/books/{isbn13}/reviews")
+    @PostMapping("/books/{bookId}/reviews")
     public ApiResponse<ReviewResponseDTO.ReviewDTO> addReview(
-            @PathVariable @ValidatedIsbn String isbn13,
+            @PathVariable Long bookId,
             @RequestBody @Validated ReviewRequestDTO.ReviewCreateDTO review,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
 
-        return ApiResponse.onSuccess(reviewService.addReview(isbn13, review, userDetails), SuccessCode.OK);
+        return ApiResponse.onSuccess(reviewService.addReview(bookId, review, userDetails), SuccessCode.OK);
     }
 
     @Operation(
