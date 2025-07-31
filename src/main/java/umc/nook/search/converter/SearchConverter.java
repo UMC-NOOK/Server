@@ -8,7 +8,7 @@ import java.util.List;
 
 public class SearchConverter {
 
-    public static SearchResponseDTO.BookDTO toBookDTO(AladinResponseDTO.BookDetailDTO bookDTO, Long bookId, boolean registeredBookshelf) {
+    public static SearchResponseDTO.BookDTO toBookDTO(AladinResponseDTO.BookDetailDTO bookDTO, Long bookId) {
         return SearchResponseDTO.BookDTO.builder()
                 .bookId(bookId)
                 .isbn13(bookDTO.getIsbn13())
@@ -18,7 +18,6 @@ public class SearchConverter {
                 .publicationDate(bookDTO.getPubDate())
                 .coverImageUrl(bookDTO.getCover())
                 .mallType(bookDTO.getMallType())
-                .registeredBookshelf(registeredBookshelf)
                 .build();
     }
 

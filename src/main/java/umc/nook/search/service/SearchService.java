@@ -27,7 +27,6 @@ public class SearchService {
     private final AladinService aladinService;
     private final BookService bookService;
     private final RecentQueryService recentQueryService;
-    private final UserBookshelfRepository userBookshelfRepository;
 
     @Transactional
     public SearchResponseDTO.SearchResultDTO searchBooks(String query, int page, CustomUserDetails userDetails) {
@@ -45,8 +44,7 @@ public class SearchService {
                     if (book == null) {
                         book = bookService.addBook(item.getIsbn13());
                     }
-                    boolean registeredBookshelf = userBookshelfRepository.existsByUserAndBook(user, book);
-                    books.add(SearchConverter.toBookDTO(item, book.getBookId(), registeredBookshelf));
+                    books.add(SearchConverter.toBookDTO(item, book.getBookId()));
                 }
                 if (books.size() == LIMIT) {
                     break;
@@ -64,11 +62,12 @@ public class SearchService {
     }
 
     private boolean isValidBook(AladinResponseDTO.BookDetailDTO item) {
-        return BookFilterUtils.isBookIncluded(item.getCategoryName())
-                && BookFilterUtils.isValidMallType(item.getMallType())
-                && item.getIsbn13() != null
+        return  item.getIsbn13() != null
                 && !item.getIsbn13().isBlank()
                 && item.getCategoryName() != null
-                && !item.getCategoryName().isBlank();
+                && !item.getCategoryName().isBlank()
+                && BookFilterUtils.isValidMallType(item.getMallType())
+                && BookFilterUtils.isBookIncluded(item.getCategoryName());
+
     }
 }

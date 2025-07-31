@@ -147,7 +147,6 @@ public class LoungeService {
     }
 
     // 사용자 선호 카테고리 추출
-    // 추후 개발 예정
     private List<CategoryCount> getFavoriteCategory(User user) {
         Long count = userBookshelfRepository.countByUser_UserId(user.getUserId());
         if (count == 0L) {
@@ -217,7 +216,7 @@ public class LoungeService {
         return categoryResultDTO;
     }
 
-
+    // 독서 목표 조회
     public LoungeResponseDTO.GoalResultDTO getGoal(CustomUserDetails userDetails) {
         User user = userDetails.getUser();
         List<ReadingStatus> readingStatuses = List.of(ReadingStatus.READING, ReadingStatus.FINISHED);
@@ -235,6 +234,7 @@ public class LoungeService {
                 .build();
     }
 
+    // 독서 목표 수정
     @Transactional
     public void modifyGoal(CustomUserDetails userDetails, LoungeResponseDTO.GoalRequestDTO goalRequestDTO) {
         Set<Integer> ALLOWED_GOALS = Set.of(50, 100, 150, 200, 250, 300);

@@ -22,7 +22,6 @@ public class SearchResponseDTO {
         private String coverImageUrl;
         private String publicationDate;
         private String mallType;
-        private boolean registeredBookshelf;
     }
 
     @Getter

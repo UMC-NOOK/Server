@@ -3,7 +3,6 @@ package umc.nook.book.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Mono;
 import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
 import umc.nook.book.converter.BookConverter;
@@ -77,6 +76,7 @@ public class BookService {
         return bestInThisCategoryDTOList;
     }
 
+    @Transactional
     public Book addBook(String isbn13) {
         AladinResponseDTO.ResultDTO result = aladinService.lookUpBook(isbn13);
         List<AladinResponseDTO.BookDetailDTO> items = result.getItem();
@@ -93,6 +93,7 @@ public class BookService {
         return bookRepository.save(addBookByBookDetailDTO(item));
     }
 
+    @Transactional
     public Book addBookByBookDetailDTO(AladinResponseDTO.BookDetailDTO bookDetailDTO) {
         Category category = getCategoryByFullName(bookDetailDTO.getCategoryName());
         Book bookEntity = BookConverter.toBook(bookDetailDTO, category);
