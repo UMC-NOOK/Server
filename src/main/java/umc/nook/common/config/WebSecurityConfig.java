@@ -46,6 +46,7 @@ public class WebSecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
+                                "/",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/api/**",
@@ -53,7 +54,6 @@ public class WebSecurityConfig {
                                 "/readingroom-ws/**",
                                 "/ws/**" )
                         .permitAll()
-                        .requestMatchers("/api/**").permitAll()
                         .anyRequest().authenticated());
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
