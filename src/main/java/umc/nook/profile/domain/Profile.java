@@ -35,4 +35,10 @@ public class Profile {
     @Builder.Default
     private BackgroundPattern backgroundPattern = BackgroundPattern.NONE;
 
+    public void update(String alias, CharacterColor color, BackgroundPattern pattern) {
+        this.alias = alias;
+        this.characterColor = color;
+        this.backgroundPattern = pattern;
+    }
+
 }
