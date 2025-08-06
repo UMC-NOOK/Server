@@ -7,6 +7,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import umc.nook.common.response.ApiResponse;
 import umc.nook.common.response.SuccessCode;
+import umc.nook.readingrooms.domain.HashtagName;
+import umc.nook.readingrooms.domain.ThemeName;
 import umc.nook.readingrooms.dto.ReadingRoomDTO;
 import umc.nook.readingrooms.service.ReadingRoomService;
 import umc.nook.users.service.CustomUserDetails;
@@ -42,8 +44,8 @@ public class ReadingRoomController {
 
     @Operation(summary = "사용자가 리딩룸을 생성합니다.", description = "생성한 리딩룸 ID를 반환합니다.")
     @PostMapping
-    public ApiResponse<Long> createReadingRoom(@RequestBody ReadingRoomDTO.ReadingRoomRequestDTO readingRoomRequestDTO, @AuthenticationPrincipal CustomUserDetails user) {
-        Long createdRoomId = readingRoomService.createRoom(readingRoomRequestDTO, user);
+    public ApiResponse<Long> createReadingRoom(@RequestParam ThemeName themeName, @RequestParam List<HashtagName> hashtags, @RequestBody ReadingRoomDTO.ReadingRoomRequestDTO readingRoomRequestDTO, @AuthenticationPrincipal CustomUserDetails user) {
+        Long createdRoomId = readingRoomService.createRoom(readingRoomRequestDTO, themeName, hashtags, user);
         return ApiResponse.onSuccess(createdRoomId, SuccessCode.OK);
     }
 
@@ -63,8 +65,8 @@ public class ReadingRoomController {
 
     @Operation(summary = "호스트가 리딩룸을 수정합니다.")
     @PatchMapping("/{roomId}")
-    public ApiResponse<Long> updateReadingRoom(@PathVariable Long roomId, @RequestBody ReadingRoomDTO.ReadingRoomRequestDTO dto, @AuthenticationPrincipal CustomUserDetails user) {
-        readingRoomService.updateRoom(roomId, dto, user);
+    public ApiResponse<Long> updateReadingRoom(@PathVariable Long roomId, @RequestParam ThemeName themeName, @RequestParam List<HashtagName> hashtags, @RequestBody ReadingRoomDTO.ReadingRoomRequestDTO dto, @AuthenticationPrincipal CustomUserDetails user) {
+        readingRoomService.updateRoom(roomId, dto, themeName, hashtags, user);
         return ApiResponse.onSuccess(roomId, SuccessCode.OK);
     }
 
