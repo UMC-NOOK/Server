@@ -180,20 +180,20 @@ public class ReadingRoomService {
 
     // 리딩룸 생성, DB에 저장
     @Transactional
-    public Long createRoom(ReadingRoomDTO.ReadingRoomRequestDTO readingRoomRequestDTO, CustomUserDetails userDetails) {
+    public Long createRoom(ReadingRoomDTO.ReadingRoomRequestDTO dto, ThemeName themeName, List<HashtagName> hashtags, CustomUserDetails userDetails) {
 
         User user = userDetails.getUser();
 
-        if (readingRoomRequestDTO.getHashtags().size() > 3) {
+        if (hashtags.size() > 3) {
             throw new CustomException(ErrorCode.TOO_MANY_HASHTAGS);
         }
 
-        Theme theme = themeRepository.findById(readingRoomRequestDTO.getThemeId())
+        Theme theme = themeRepository.findByName(themeName)
                 .orElseThrow(() -> new CustomException(ErrorCode.THEME_NOT_FOUND));
 
         ReadingRoom readingRoom = ReadingRoom.builder()
-                .name(readingRoomRequestDTO.getName())
-                .description(readingRoomRequestDTO.getDescription())
+                .name(dto.getName())
+                .description(dto.getDescription())
                 .theme(theme)
                 .build();
         readingRoomRepository.save(readingRoom);
@@ -206,17 +206,9 @@ public class ReadingRoomService {
                 .build();
         readingRoomUserRepository.save(readingRoomUser);
 
-        // TODO: 추후 해시태그 예외처리 리팩토링 예정
-        List<ReadingRoomHashtag> hashtagMappings = readingRoomRequestDTO.getHashtags().stream()
+        List<ReadingRoomHashtag> hashtagMappings = hashtags.stream()
                 .map(name -> {
-                    HashtagName hashtagName;
-                    try {
-                        hashtagName = HashtagName.valueOf(name);
-                    } catch (IllegalArgumentException e) {
-                        throw new CustomException(ErrorCode.HASHTAG_NOT_FOUND);
-                    }
-
-                    Hashtag hashtag = hashtagRepository.findByName(hashtagName)
+                    Hashtag hashtag = hashtagRepository.findByName(name)
                             .orElseThrow(() -> new CustomException(ErrorCode.HASHTAG_NOT_FOUND));
 
                     return ReadingRoomHashtag.builder()
@@ -225,12 +217,13 @@ public class ReadingRoomService {
                             .build();
                 })
                 .toList();
+
         readingRoomHashtagRepository.saveAll(hashtagMappings);
 
         return readingRoom.getId();
     }
 
-    // 리딩룸 HOST인지 GUEST인지 확인하고 삭제/탈퇴만
+    // 리딩룸 HOST인지 GUEST인지 확인
     @Transactional(readOnly = true)
     public String getUserRoleInRoom(Long roomId, CustomUserDetails userDetails) {
         User user = userDetails.getUser();
@@ -289,7 +282,7 @@ public class ReadingRoomService {
 
     // 리딩룸 정보 수정
     @Transactional
-    public void updateRoom(Long roomId, ReadingRoomDTO.ReadingRoomRequestDTO dto, CustomUserDetails userDetails) {
+    public void updateRoom(Long roomId, ReadingRoomDTO.ReadingRoomRequestDTO dto, ThemeName themeName, List<HashtagName> hashtags ,CustomUserDetails userDetails) {
 
         User user = userDetails.getUser();
 
@@ -315,8 +308,8 @@ public class ReadingRoomService {
         }
 
         // 테마 수정
-        if (dto.getThemeId() != null && !dto.getThemeId().equals(room.getTheme().getId())) {
-            Theme newTheme = themeRepository.findById(dto.getThemeId())
+        if (themeName != null && !themeName.equals(room.getTheme().getName())) {
+            Theme newTheme = themeRepository.findByName(themeName)
                     .orElseThrow(() -> new CustomException(ErrorCode.THEME_NOT_FOUND));
             room.updateTheme(newTheme);
             updatedTheme = newTheme;
@@ -324,22 +317,13 @@ public class ReadingRoomService {
         }
 
         // 해시태그 수정
-        if (dto.getHashtags() != null) {
-            // 기존 해시태그 매핑 제거
+        if (hashtags != null) {
             readingRoomHashtagRepository.deleteByReadingRoom(room);
 
-            // 최대 3개까지 등록
-            List<ReadingRoomHashtag> newMappings = dto.getHashtags().stream()
+            List<ReadingRoomHashtag> newMappings = hashtags.stream()
                     .limit(3)
                     .map(name -> {
-                        HashtagName hashtagName;
-                        try {
-                            hashtagName = HashtagName.valueOf(name);
-                        } catch (IllegalArgumentException e) {
-                            throw new CustomException(ErrorCode.HASHTAG_NOT_FOUND);
-                        }
-
-                        Hashtag hashtag = hashtagRepository.findByName(hashtagName)
+                        Hashtag hashtag = hashtagRepository.findByName(name)
                                 .orElseThrow(() -> new CustomException(ErrorCode.HASHTAG_NOT_FOUND));
 
                         return ReadingRoomHashtag.builder()

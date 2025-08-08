@@ -23,6 +23,9 @@ public class Theme extends BaseTimeEntity {
 
     private String bgmUrl;
 
+    @Enumerated(EnumType.STRING)
+    private ThemeName name;
+
     @OneToMany(mappedBy = "theme", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<ReadingRoom> readingRooms = new ArrayList<>();
 

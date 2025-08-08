@@ -35,8 +35,6 @@ public class ReadingRoomDTO {
     public static class ReadingRoomRequestDTO {
         private String name;
         private String description;
-        private List<String> hashtags;
-        private Long themeId;
     }
 
     @Getter
