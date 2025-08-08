@@ -8,12 +8,16 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import umc.nook.book.domain.Book;
 import umc.nook.book.domain.QBook;
 import umc.nook.bookshelves.domain.QUserBookShelf;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.bookshelves.dto.BookShelfDTO;
+import umc.nook.records.domain.BookRecord;
+import umc.nook.records.domain.ChatRecord;
 import umc.nook.records.domain.QBookRecord;
+import umc.nook.records.domain.QChatRecord;
 import umc.nook.records.dto.RecordDTO;
 import umc.nook.review.domain.QReview;
 import umc.nook.users.domain.User;
@@ -172,6 +176,7 @@ public class BookShelfQueryService {
                         Collectors.mapping(
                                 t -> new BookShelfDTO.BookThumbnail(
                                         t.get(book.bookId),
+                                        t.get(book.title),
                                         t.get(book.coverImageUrl)
                                 ),
                                 Collectors.toList()
@@ -252,5 +257,8 @@ public class BookShelfQueryService {
 
         return new RecordDTO.MonthlyRecordRateResponseDTO(rates);
     }
+
+
+
 
 }

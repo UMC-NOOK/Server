@@ -24,12 +24,14 @@ import umc.nook.common.response.ErrorCode;
 import umc.nook.records.domain.BookRecord;
 import umc.nook.records.domain.ChatRecord;
 import umc.nook.records.domain.QBookRecord;
+import umc.nook.records.domain.QChatRecord;
+import umc.nook.records.repository.BookRecordRepository;
+import umc.nook.records.repository.ChatRecordRepository;
 import umc.nook.review.domain.QReview;
 import umc.nook.users.domain.User;
 import umc.nook.users.service.CustomUserDetails;
 
-import java.time.LocalDate;
-import java.time.YearMonth;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,6 +43,9 @@ public class BookShelfService {
     private final UserBookshelfRepository userBookshelfRepository;
     private final BookShelfQueryService bookShelfQueryService;
 
+    private final ChatRecordRepository chatRecordRepository;
+    private final BookRecordRepository bookRecordRepository;
+
     // 서재에 책 등록
     @Transactional
     public String registerBook(BookShelfDTO.RegisterBookDTO registerBookDTO, User user) {
@@ -48,7 +53,6 @@ public class BookShelfService {
         if (thisBook == null) {
             throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
         }
-
         boolean alreadyRegistered = userBookshelfRepository.existsByUserAndBook(user, thisBook);
         if (alreadyRegistered) {
             throw new CustomException(ErrorCode.DUPLICATE_BOOK_IN_SHELF);
@@ -71,11 +75,13 @@ public class BookShelfService {
         if (thisBook == null) {
             throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
         }
-        boolean isRegistered = userBookshelfRepository.existsByUserAndBook(user, thisBook);
-        if (!isRegistered) {
-            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
-        }
-        userBookshelfRepository.deleteByUserAndBook(user,thisBook);
+        UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, thisBook);
+        if (userBook == null) throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
+        // ChatRecord 삭제
+        chatRecordRepository.deleteAllByBookshelf(userBook);
+        // BookRecord 삭제
+        bookRecordRepository.deleteAllByBookshelf(userBook);
+        userBookshelfRepository.delete(userBook);
         return "책이 성공적으로 서재에서 삭제되었습니다.";
     }
 
@@ -103,6 +109,7 @@ public class BookShelfService {
     }
 
 
+    // 서재 통계 조회
     public BookShelfDTO.BooksInsightDTO viewBooksInsight(User user) {
         return bookShelfQueryService.getBooksInsight(user);
     }
@@ -136,6 +143,32 @@ public class BookShelfService {
 
     public List<BookShelfDTO.DailyBooksResponseDTO> getMonthlyBooks(User user, YearMonth yearMonth) {
         return bookShelfQueryService.getMonthlyBooks(user, yearMonth);
+    }
+
+
+    // 지금 독서중인 책
+    public BookShelfDTO.BookThumbnail viewReadingBooks(User user) {
+        List<UserBookShelf> userBookShelfList = userBookshelfRepository.findByUserAndReadingStatusOrderByCreatedDateDesc(user,ReadingStatus.READING);
+        if (userBookShelfList.isEmpty()) {
+            throw new CustomException(ErrorCode.BOOKSHELF_IS_EMPTY);
+        }
+        return new BookShelfDTO.BookThumbnail(userBookShelfList.get(0).getBook());
+    }
+
+    // 이번주 서재에 등록한 책
+    public List<BookShelfDTO.BookThumbnail> viewWeeklyBookShelf(User user) {
+        LocalDate now = LocalDate.now();
+        LocalDate monday = now.with(DayOfWeek.MONDAY);
+        // 시작일 00:00:00 ~ 오늘 23:59:59
+        LocalDateTime startOfWeek = monday.atStartOfDay();
+        LocalDateTime endOfToday = now.atTime(LocalTime.MAX);
+
+        List<UserBookShelf> weeklyBooks = userBookshelfRepository
+                .findByUserAndCreatedDateBetweenOrderByCreatedDateDesc(user, startOfWeek, endOfToday);
+
+        return weeklyBooks.stream()
+                .map(ubs -> new BookShelfDTO.BookThumbnail(ubs.getBook()))
+                .collect(Collectors.toList());
     }
 
 }

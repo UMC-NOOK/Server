@@ -8,6 +8,7 @@ import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.users.domain.User;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 
@@ -83,4 +84,7 @@ public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Lon
                                                            @Param("startOfYear") LocalDate startOfYear,
                                                            @Param("endOfYear") LocalDate endOfYear);
 
+    List<UserBookShelf> findByUserAndReadingStatusOrderByCreatedDateDesc(User user, ReadingStatus reading);
+
+    List<UserBookShelf> findByUserAndCreatedDateBetweenOrderByCreatedDateDesc(User user, LocalDateTime startOfWeek, LocalDateTime endOfToday);
 }
