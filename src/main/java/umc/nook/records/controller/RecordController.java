@@ -172,4 +172,27 @@ public class RecordController {
         return ApiResponse.onSuccess(recordService.viewRecordRate(userDetails.getUser(), year),SuccessCode.OK);
     }
 
+    @PostMapping("/chat/{chatRecordId}/save-comment")
+    @Operation(summary = "눅톡 감상을 내 감상으로 저장", description = "눅톡으로 생성된 감상을 독서 기록 감상으로 저장합니다.")
+    public ApiResponse<RecordDTO.CommentResponseDTO> saveCommentFromChatRecord(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Parameter(description = "채팅 기록 ID") @PathVariable Long chatRecordId
+    ) {
+        return ApiResponse.onSuccess(
+                recordService.saveCommentFromChatRecord(userDetails.getUser(), chatRecordId),
+                SuccessCode.OK
+        );
+    }
+
+    @GetMapping("/recent")
+    @Operation(summary = "홈 화면 가장 최근에 기록한 책 정보 조회", description = "홈 화면에서 가장 최근에 독서 기록을 남긴 책 정보를 조회합니다.")
+    public ApiResponse<BookShelfDTO.BookThumbnail> viewRecentlyRecordedBook(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ApiResponse.onSuccess(
+                recordService.viewRecentlyRecordedBook(userDetails.getUser())
+                ,SuccessCode.OK
+        );
+    }
+
 }

@@ -5,6 +5,7 @@ import com.querydsl.core.annotations.QueryProjection;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import umc.nook.book.domain.Book;
 import umc.nook.bookshelves.domain.ReadingStatus;
 
 import java.time.LocalDate;
@@ -60,7 +61,15 @@ public class BookShelfDTO {
     @AllArgsConstructor
     public static class BookThumbnail {
         private Long bookId;
+
+        private String title;
         private String thumbnailUrl;
+
+        public BookThumbnail(Book book) {
+            this.bookId = book.getBookId();
+            this.title = book.getTitle();
+            this.thumbnailUrl = book.getCoverImageUrl();
+        }
     }
 
     @Getter
@@ -101,6 +110,5 @@ public class BookShelfDTO {
         private ReadingStatus readingStatus;
         private int bookCount;
     }
-
 
 }

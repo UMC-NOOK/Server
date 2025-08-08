@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.records.domain.BookRecord;
+import umc.nook.records.domain.ChatRecord;
 import umc.nook.records.domain.RecordType;
 
 import java.time.LocalDateTime;
@@ -149,7 +150,6 @@ public class RecordDTO {
             private double rate;
         }
     }
-
 
 
 }

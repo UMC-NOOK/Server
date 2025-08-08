@@ -7,24 +7,24 @@ import org.springframework.stereotype.Service;
 import umc.nook.book.domain.Book;
 import umc.nook.book.repository.BookRepository;
 import umc.nook.bookshelves.domain.UserBookShelf;
+import umc.nook.bookshelves.dto.BookShelfDTO;
 import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.bookshelves.service.BookShelfQueryService;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
-import umc.nook.records.domain.BookRecord;
-import umc.nook.records.domain.ChatRecord;
-import umc.nook.records.domain.ChatType;
-import umc.nook.records.domain.RecordType;
+import umc.nook.records.domain.*;
 import umc.nook.records.dto.ChatDTO;
 import umc.nook.records.dto.GptDTO;
 import umc.nook.records.dto.RecordDTO;
 import umc.nook.records.gpt.GptService;
 import umc.nook.records.repository.BookRecordRepository;
 import umc.nook.records.repository.ChatRecordRepository;
+import umc.nook.records.repository.RecentRecordProjection;
 import umc.nook.users.domain.User;
 
 import java.time.Year;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -184,11 +184,41 @@ public class RecordService {
         bookRecordRepository.delete(record);
     }
 
-
     // 독서 기록률 조회
     @Transactional
     public RecordDTO.MonthlyRecordRateResponseDTO viewRecordRate(User user, Year year) {
         return bookShelfQueryService.viewRecordRate(user,year);
+    }
+
+
+    // 눅톡으로 생성된 감상을 내 감상으로 붙여넣기
+    @Transactional
+    public RecordDTO.CommentResponseDTO saveCommentFromChatRecord(User user, Long chatRecordId) {
+        // 채팅 기록 조회
+        ChatRecord record = chatRecordRepository.findById(chatRecordId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CHAT_RECORD_NOT_FOUND));
+        // 내용 추출
+        String content = record.getContent();
+        // BookRecord 생성 및 저장
+        BookRecord newComment =  BookRecord.builder()
+                .bookshelf(record.getBookshelf())
+                .content(content)
+                .recordType(RecordType.COMMENTARY)
+                .page(null)
+                .build();
+        bookRecordRepository.save(newComment);
+        return new RecordDTO.CommentResponseDTO(newComment);
+    }
+
+    // 가장 최근 기록한 책 정보 조회
+    @Transactional
+    public BookShelfDTO.BookThumbnail viewRecentlyRecordedBook(User user) {
+        return bookRecordRepository.findMostRecentBookByUserId(user.getUserId())
+                .map(b -> new BookShelfDTO.BookThumbnail(
+                        b.getBookId(),
+                        b.getTitle(),
+                        b.getCoverImageUrl()))
+                .orElseThrow(()->new CustomException(ErrorCode.RECORD_NOT_EXIST));
     }
 
 }
