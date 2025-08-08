@@ -48,7 +48,6 @@ public class BookResponseDTO {
     @NoArgsConstructor
     public static class BookDetailResultDTO{
         private BookDetailDTO book;
-        private ReviewResponseDTO.ReviewResultDTO reviewData;
         private List<BestInThisCategoryDTO> bestInThisCategory;
     }
 

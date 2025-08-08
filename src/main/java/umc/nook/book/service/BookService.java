@@ -47,20 +47,18 @@ public class BookService {
 
             return BookResponseDTO.BookDetailResultDTO.builder()
                     .book(bookDetailDTO)
-                    .reviewData(reviewService.getReviews(book.getBookId(), userDetails, 1))
                     .bestInThisCategory(bestList)
                     .build();
         }
 
 
         Book savedBook = addBook(isbn13);
-        boolean registeredBookshelf = userBookshelfRepository.existsByUserAndBook(user, savedBook);
+//        boolean registeredBookshelf = userBookshelfRepository.existsByUserAndBook(user, savedBook);
         List<BookResponseDTO.BestInThisCategoryDTO> bestList =
                 getBestInThisCategory(savedBook.getCategory().getAladinCategoryId());
 
         return BookResponseDTO.BookDetailResultDTO.builder()
-                .book(BookConverter.toBookDetailDTO(savedBook, registeredBookshelf))
-                .reviewData(reviewService.getReviews(savedBook.getBookId(), userDetails, 1))
+                .book(BookConverter.toBookDetailDTO(savedBook, false))
                 .bestInThisCategory(bestList)
                 .build();
     }
