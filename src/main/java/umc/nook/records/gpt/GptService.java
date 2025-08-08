@@ -121,16 +121,13 @@ public class GptService {
                     .path("message")
                     .path("content")
                     .asText();
-
             // 문자열 자체가 JSON인지 파싱 시도
             ObjectMapper mapper = new ObjectMapper();
             JsonNode parsedNode = mapper.readTree(rawContent);
-
             // 구조 유효성 검사
             if (!parsedNode.has("isEssay") || !parsedNode.has("content")) {
                 throw new CustomException(ErrorCode.GPT_RESPONSE_FORMAT_ERROR);
             }
-
             // DTO로 변환
             return mapper.treeToValue(parsedNode, GptDTO.ChatRecordDTO.class);
 

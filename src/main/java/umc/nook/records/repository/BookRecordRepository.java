@@ -36,4 +36,6 @@ public interface BookRecordRepository extends JpaRepository<BookRecord,Long> {
         LIMIT 1
         """, nativeQuery = true)
     Optional<RecentRecordProjection> findMostRecentBookByUserId(@Param("userId") Long userId);
+
+    void deleteAllByBookshelf(UserBookShelf userBook);
 }

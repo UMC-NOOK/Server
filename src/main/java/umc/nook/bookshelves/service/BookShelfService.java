@@ -25,6 +25,8 @@ import umc.nook.records.domain.BookRecord;
 import umc.nook.records.domain.ChatRecord;
 import umc.nook.records.domain.QBookRecord;
 import umc.nook.records.domain.QChatRecord;
+import umc.nook.records.repository.BookRecordRepository;
+import umc.nook.records.repository.ChatRecordRepository;
 import umc.nook.review.domain.QReview;
 import umc.nook.users.domain.User;
 import umc.nook.users.service.CustomUserDetails;
@@ -40,6 +42,9 @@ public class BookShelfService {
     private final BookRepository bookRepository;
     private final UserBookshelfRepository userBookshelfRepository;
     private final BookShelfQueryService bookShelfQueryService;
+
+    private final ChatRecordRepository chatRecordRepository;
+    private final BookRecordRepository bookRecordRepository;
 
     // 서재에 책 등록
     @Transactional
@@ -70,10 +75,12 @@ public class BookShelfService {
         if (thisBook == null) {
             throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
         }
-        boolean isRegistered = userBookshelfRepository.existsByUserAndBook(user, thisBook);
-        if (!isRegistered) {
-            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
-        }
+        UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, thisBook);
+        if (userBook == null) throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
+        // ChatRecord 삭제
+        chatRecordRepository.deleteAllByUserBookShelf(userBook);
+        // BookRecord 삭제
+        bookRecordRepository.deleteAllByBookshelf(userBook);
         userBookshelfRepository.deleteByUserAndBook(user,thisBook);
         return "책이 성공적으로 서재에서 삭제되었습니다.";
     }
