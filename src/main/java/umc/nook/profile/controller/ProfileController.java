@@ -1,19 +1,17 @@
 package umc.nook.profile.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import umc.nook.common.response.ApiResponse;
 import umc.nook.common.response.SuccessCode;
-import umc.nook.profile.domain.Profile;
-import umc.nook.profile.dto.ProfileRequestDTO;
+import umc.nook.profile.domain.BackgroundPattern;
+import umc.nook.profile.domain.CharacterColor;
+import umc.nook.profile.dto.ProfileResponseDTO;
 import umc.nook.profile.service.ProfileService;
-import umc.nook.users.domain.User;
 import umc.nook.users.service.CustomUserDetails;
 
 @RestController
@@ -26,9 +24,32 @@ public class ProfileController {
 
     @Operation(summary = "프로필을 수정합니다.")
     @PatchMapping
-    public ApiResponse<Long> updateProfile(@RequestBody ProfileRequestDTO dto,
-                                            @AuthenticationPrincipal CustomUserDetails user) {
-        Long userId = profileService.updateProfile(dto, user);
+    public ApiResponse<Long> updateProfile(
+            @Parameter(description = "사용자 별명", example = "프로 독자")
+            @RequestParam String alias,
+
+            @Parameter(
+                    description = "캐릭터 색상",
+                    example = "ORANGE"
+            )
+            @RequestParam CharacterColor characterColor,
+
+            @Parameter(
+                    description = "배경 패턴",
+                    example = "NONE"
+            )
+            @RequestParam BackgroundPattern backgroundPattern,
+
+            @AuthenticationPrincipal CustomUserDetails user
+    ) {
+        Long userId = profileService.updateProfile(alias, characterColor, backgroundPattern, user);
         return ApiResponse.onSuccess(userId, SuccessCode.OK);
+    }
+
+    @Operation(summary = "프로필 정보를 조회합니다.")
+    @GetMapping
+    public ApiResponse<ProfileResponseDTO> getProfile(@AuthenticationPrincipal CustomUserDetails user) {
+        ProfileResponseDTO response = profileService.getProfile(user);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 }

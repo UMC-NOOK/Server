@@ -2,8 +2,6 @@ name: Spring Boot Application CICD with Docker
 on:
   push:
     branches: [ "develop" ]
-  pull_request:
-    branches: [ "develop" ]
 
 jobs:
   CI-CD:
