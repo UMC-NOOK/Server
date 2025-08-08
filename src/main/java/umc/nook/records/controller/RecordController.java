@@ -148,7 +148,7 @@ public class RecordController {
 
     @Operation(
             summary = "기록된 문장/감상 목록 조회",
-            description = "특정 책에 대해 기록된 독서 문장(감상 전 본문 문장들)을 시간순으로 조회합니다."
+            description = "특정 책에 대해 기록된 독서 문장/감상을 시간순으로 조회합니다."
     )
     @GetMapping("/sentence/list")
     public ApiResponse<List<RecordDTO.RecordResponseDTO>> viewSentences(
@@ -172,7 +172,7 @@ public class RecordController {
         return ApiResponse.onSuccess(recordService.viewRecordRate(userDetails.getUser(), year),SuccessCode.OK);
     }
 
-    @PostMapping("/chat/{chatRecordId}/save-comment")
+    @PostMapping("/chat/{chatRecordId}/save")
     @Operation(summary = "눅톡 감상을 내 감상으로 저장", description = "눅톡으로 생성된 감상을 독서 기록 감상으로 저장합니다.")
     public ApiResponse<RecordDTO.CommentResponseDTO> saveCommentFromChatRecord(
             @AuthenticationPrincipal CustomUserDetails userDetails,

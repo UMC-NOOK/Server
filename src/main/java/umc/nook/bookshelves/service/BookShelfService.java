@@ -78,10 +78,10 @@ public class BookShelfService {
         UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, thisBook);
         if (userBook == null) throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
         // ChatRecord 삭제
-        chatRecordRepository.deleteAllByUserBookShelf(userBook);
+        chatRecordRepository.deleteAllByBookshelf(userBook);
         // BookRecord 삭제
         bookRecordRepository.deleteAllByBookshelf(userBook);
-        userBookshelfRepository.deleteByUserAndBook(user,thisBook);
+        userBookshelfRepository.delete(userBook);
         return "책이 성공적으로 서재에서 삭제되었습니다.";
     }
 

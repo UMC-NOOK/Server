@@ -11,5 +11,5 @@ public interface ChatRecordRepository extends JpaRepository<ChatRecord,Long> {
 
     List<ChatRecord> findByBookshelfOrderByCreatedDateAsc(UserBookShelf userBook);
 
-    void deleteAllByUserBookShelf(UserBookShelf userBook);
+    void deleteAllByBookshelf(UserBookShelf userBook);
 }
