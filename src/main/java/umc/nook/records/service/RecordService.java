@@ -70,12 +70,12 @@ public class RecordService {
                 .role(gptChatType)
                 .content(gptResponse.getContent())
                 .build();
-
         chatRecordRepository.save(gptMessage);
         return new ChatDTO.ChatResponseDTO(gptMessage);
     }
 
 
+    // 선택한 책 눅톡 기록 조회
     @Transactional
     public List<ChatDTO.ChatResponseDTO> viewChatMessages(User user, Long bookId) {
         Book book = bookRepository.findByBookId(bookId);

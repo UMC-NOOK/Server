@@ -102,6 +102,7 @@ public class BookShelfService {
     }
 
 
+    // 서재 통계 조회
     public BookShelfDTO.BooksInsightDTO viewBooksInsight(User user) {
         return bookShelfQueryService.getBooksInsight(user);
     }
@@ -142,7 +143,7 @@ public class BookShelfService {
     public BookShelfDTO.BookThumbnail viewReadingBooks(User user) {
         List<UserBookShelf> userBookShelfList = userBookshelfRepository.findByUserAndReadingStatusOrderByCreatedDateDesc(user,ReadingStatus.READING);
         if (userBookShelfList.isEmpty()) {
-            throw new NoSuchElementException("현재 읽고 있는 책이 없습니다.");
+            throw new CustomException(ErrorCode.BOOKSHELF_IS_EMPTY);
         }
         return new BookShelfDTO.BookThumbnail(userBookShelfList.get(0).getBook());
     }
