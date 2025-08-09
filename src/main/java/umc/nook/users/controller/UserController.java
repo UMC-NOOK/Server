@@ -195,4 +195,13 @@ public class UserController {
         loungeService.modifyGoal(userDetails, goalRequestDTO);
         return ApiResponse.onSuccess(null, SuccessCode.OK);
     }
+
+
+    @DeleteMapping("/me")
+    @Operation(summary = "회원 탈퇴",
+            description = "로그인한 본인 계정을 탈퇴 처리합니다. 계정 정보는 30일 후에 자동 삭제됩니다.")
+    public ApiResponse<String> withdrawMe(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        String msg = userService.withdrawUser(userDetails.getUser());
+        return ApiResponse.onSuccess(msg,SuccessCode.OK);
+    }
 }

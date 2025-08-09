@@ -8,6 +8,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
@@ -53,6 +54,9 @@ public class OAuthService {
 
     @Value("${auth.kakao.logout-uri}")
     private String kakaoLogoutUri;
+
+    @Value("${auth.kakao.unlink-uri}")
+    private String kakaoUnlinkUri;
 
     /**
      * 카카오 인가 코드로부터 액세스 토큰 받기
@@ -114,11 +118,11 @@ public class OAuthService {
      */
     private User saveUser(OAuth2Attribute oAuth2Attribute) {
         String nickName = oAuth2Attribute.getNickname();
-
         return User.builder()
                 .role(RoleType.USER)
-                .email(nickName)
+                .email(oAuth2Attribute.getEmail())
                 .nickname(nickName)
+                .kakaoUserId(oAuth2Attribute.getKakaoUserId())
                 .status(Status.ACTIVE)
                 .isKakao(true)
                 .build();
@@ -224,5 +228,45 @@ public class OAuthService {
             throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
         }
     }
+
+    /**
+     * 카카오 계정 연결 해제 (액세스 토큰 기반)
+     */
+    public void unlinkWithAccessToken(String userAccessToken, Long kakaoUserId) {
+        if (userAccessToken == null || userAccessToken.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
+        }
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set(AUTHORIZATION_HEADER, TOKEN_TYPE + userAccessToken);
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            body.add("target_id_type", "user_id");
+            body.add("target_id", String.valueOf(kakaoUserId));
+            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    kakaoUnlinkUri,
+                    HttpMethod.POST,
+                    requestEntity,
+                    Map.class
+            );
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                log.warn("Kakao unlink failed. status={}, body={}", response.getStatusCode(), response.getBody());
+                throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
+            }
+            Object id = response.getBody().get("id"); // 성공 시 해제된 사용자 회원번호
+            log.info("Kakao admin unlink success. kakaoUserId={}", id);
+        } catch (RestClientResponseException e) {
+            log.warn("Kakao unlink failed. status={}, body={}", e.getRawStatusCode(), e.getResponseBodyAsString());
+            throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
+        } catch (Exception e) {
+            log.warn("Kakao unlink unexpected error", e);
+            throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
+        }
+    }
+
 }
 
