@@ -34,6 +34,8 @@ public class QTheme extends EntityPathBase<Theme> {
     //inherited
     public final DateTimePath<java.time.LocalDateTime> modifiedDate = _super.modifiedDate;
 
+    public final EnumPath<ThemeName> name = createEnum("name", ThemeName.class);
+
     public final ListPath<ReadingRoom, QReadingRoom> readingRooms = this.<ReadingRoom, QReadingRoom>createList("readingRooms", ReadingRoom.class, QReadingRoom.class, PathInits.DIRECT2);
 
     public QTheme(String variable) {
