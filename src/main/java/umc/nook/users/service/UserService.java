@@ -22,6 +22,8 @@ import umc.nook.users.repository.KakaoRefreshTokenRepository;
 import umc.nook.users.repository.RefreshTokenRepository;
 import umc.nook.users.repository.UserRepository;
 
+import java.time.LocalDateTime;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -183,5 +185,24 @@ public class UserService {
         return null;
     }
 
+    // 회원 탈퇴
+    @Transactional
+    public String withdrawUser(User user) {
+        // 카카오 계정 즉시 연결 해제
+        if (Boolean.TRUE.equals(user.getIsKakao()) && user.getKakaoUserId() != null) {
+            log.info("카카오 연결 해제 진행");
+            oAuthService.unlinkWithAccessToken(
+                    kakaoRefreshTokenRepository.findAccessTokenByUserId(user.getUserId()),
+                    user.getKakaoUserId());
+        }
+        oAuthService.unlinkWithAccessToken(
+                kakaoRefreshTokenRepository.findAccessTokenByUserId(user.getUserId()),
+                user.getKakaoUserId());
+        user.setDeletedAt(LocalDateTime.now());
+        log.info("사용자 탈퇴 완료");
+        user.setStatus(Status.INACTIVE);
+        userRepository.save(user);
+        return "회원 탈퇴가 완료되었습니다.";
+    }
 
 }

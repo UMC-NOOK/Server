@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode implements BaseCode {
 
     // 사용자
-
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT-001", "사용자를 찾을 수 없습니다."),
     DUPLICATE_NAME(HttpStatus.CONFLICT, "ACCOUNT-002", "중복된 닉네임입니다."),
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "ACCOUNT-003", "비밀번호가 유효하지 않습니다."),
@@ -19,6 +18,8 @@ public enum ErrorCode implements BaseCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "ACCOUNT-007", "인증이 필요합니다."),
     EMAIL_DUPLICATE(HttpStatus.BAD_REQUEST,"ACCOUNT-008" ,"중복된 이메일입니다." ),
     PERMISSION_DENIED(HttpStatus.FORBIDDEN, "ACCOUNT-009", "권한이 없습니다."),
+
+    USER_INACTIVE(HttpStatus.FORBIDDEN,"ACCOUNT-010", "탈퇴한 사용자입니다."),
 
     // 서재 관련
     BOOK_NOT_FOUND(HttpStatus.NOT_FOUND,"BOOK-001" ,"존재하지 않는 책입니다." ),

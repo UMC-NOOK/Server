@@ -18,4 +18,5 @@ public interface KakaoRefreshTokenRepository extends JpaRepository<KakaoRefreshT
     Optional<KakaoRefreshToken> findByRefreshToken(String refreshToken);
 
 
+    String findAccessTokenByUserId(Long userId);
 }
