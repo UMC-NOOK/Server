@@ -99,4 +99,10 @@ public class ReadingRoomController {
                 SuccessCode.OK
         );
     }
+
+    @Operation(summary = "리딩룸의 테마와 bgm을 조회합니다.")
+    @GetMapping("/{roomId}/themes")
+    public ApiResponse<ReadingRoomDTO.ReadingRoomThemeResponseDTO> getTheme(@PathVariable Long roomId) {
+        return ApiResponse.onSuccess(readingRoomService.getRoomTheme(roomId), SuccessCode.OK);
+    }
 }
