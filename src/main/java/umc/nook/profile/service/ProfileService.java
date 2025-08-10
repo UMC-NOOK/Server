@@ -10,6 +10,8 @@ import umc.nook.profile.domain.CharacterColor;
 import umc.nook.profile.domain.Profile;
 import umc.nook.profile.dto.ProfileResponseDTO;
 import umc.nook.profile.repository.ProfileRepository;
+import umc.nook.users.domain.User;
+import umc.nook.users.repository.UserRepository;
 import umc.nook.users.service.CustomUserDetails;
 
 @Service
@@ -17,6 +19,7 @@ import umc.nook.users.service.CustomUserDetails;
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public Long updateProfile(String alias, CharacterColor characterColor,
@@ -40,5 +43,15 @@ public class ProfileService {
                 .characterColor(profile.getCharacterColor())
                 .backgroundPattern(profile.getBackgroundPattern())
                 .build();
+    }
+
+    @Transactional
+    public Long updateNickname(String nickname, CustomUserDetails userDetails) {
+
+        User user = userDetails.getUser();
+
+        user.updateNickname(nickname);
+        return user.getUserId();
+
     }
 }

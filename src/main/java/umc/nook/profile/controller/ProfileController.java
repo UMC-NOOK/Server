@@ -52,4 +52,11 @@ public class ProfileController {
         ProfileResponseDTO response = profileService.getProfile(user);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
+
+    @Operation(summary = "사용자 이름을 수정합니다.")
+    @PutMapping("/nicknames")
+    public ApiResponse<Long> updateNickname(@RequestParam String nickname, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long userId = profileService.updateNickname(nickname, userDetails);
+        return ApiResponse.onSuccess(userId, SuccessCode.OK);
+    }
 }
