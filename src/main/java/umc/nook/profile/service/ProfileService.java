@@ -48,9 +48,13 @@ public class ProfileService {
     @Transactional
     public Long updateNickname(String nickname, CustomUserDetails userDetails) {
 
-        User user = userDetails.getUser();
+        Long userId = userDetails.getUser().getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         user.updateNickname(nickname);
+
         return user.getUserId();
 
     }
