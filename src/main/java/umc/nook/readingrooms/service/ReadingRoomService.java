@@ -533,5 +533,18 @@ public class ReadingRoomService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public ReadingRoomDTO.ReadingRoomThemeResponseDTO getRoomTheme(Long roomId) {
+
+        ReadingRoom room = readingRoomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
+
+        return ReadingRoomDTO.ReadingRoomThemeResponseDTO.builder()
+                .roomId(room.getId())
+                .themeName(room.getTheme().getName())
+                .imageUrl(room.getTheme().getImageUrl())
+                .bgmUrl(room.getTheme().getBgmUrl())
+                .build();
+    }
 }
 
