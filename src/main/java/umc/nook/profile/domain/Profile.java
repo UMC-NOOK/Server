@@ -23,17 +23,17 @@ public class Profile {
 
     @Column(length = 30)
     @Builder.Default
-    private String alias = "프로 독자"; // 별명
+    private String alias = "책방의 누키"; // 별명
 
     @Enumerated(EnumType.STRING)
     @Column(name = "character_color", nullable = false)
     @Builder.Default
-    private CharacterColor characterColor = CharacterColor.ORANGE;
+    private CharacterColor characterColor = CharacterColor.ORANGE; // 누키 색
 
     @Enumerated(EnumType.STRING)
     @Column(name = "background_pattern", nullable = false)
     @Builder.Default
-    private BackgroundPattern backgroundPattern = BackgroundPattern.NONE;
+    private BackgroundPattern backgroundPattern = BackgroundPattern.NONE; // 벽지
 
     public void update(String alias, CharacterColor color, BackgroundPattern pattern) {
         this.alias = alias;
