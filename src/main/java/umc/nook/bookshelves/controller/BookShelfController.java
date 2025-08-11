@@ -134,7 +134,7 @@ public class BookShelfController {
 
     @GetMapping("/weekly")
     @Operation(summary = "이번 주 등록한 책 목록 조회", description = "사용자가 이번 주에 서재에 등록한 책들을 조회합니다.")
-    public ApiResponse<List<BookShelfDTO.BookThumbnail>> viewWeeklyBookShelf(
+    public ApiResponse<List<BookShelfDTO.WeeklyBooksDTO>> viewWeeklyBookShelf(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         return ApiResponse.onSuccess(
