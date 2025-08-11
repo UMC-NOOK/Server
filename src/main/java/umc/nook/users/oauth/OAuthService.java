@@ -135,11 +135,12 @@ public class OAuthService {
     private User saveUser(OAuth2Attribute oAuth2Attribute) {
         String nickName = oAuth2Attribute.getNickname();
         String email = oAuth2Attribute.getEmail();
+        Long kakaoUserId = oAuth2Attribute.getKakaoUserId();
         return User.builder()
                 .role(RoleType.USER)
                 .email(email)
                 .nickname(nickName)
-                .kakaoUserId(oAuth2Attribute.getKakaoUserId())
+                .kakaoUserId(kakaoUserId)
                 .status(Status.ACTIVE)
                 .isKakao(true)
                 .build();
@@ -155,8 +156,9 @@ public class OAuthService {
         OAuth2Attribute attributes = OAuth2Attribute.of("kakao", userAttribute);
 
         Optional<User> findUser = userRepository.findAnyByEmail(attributes.getEmail());
+        Optional<User> findKakaoUser = userRepository.findByKakaoUserId(attributes.getKakaoUserId());
         User user;
-        if (findUser.isPresent()) {
+        if (findKakaoUser.isPresent()) {
             user = findUser.get();
             log.info("기존 사용자 로그인: {}", user.getEmail());
         } else {

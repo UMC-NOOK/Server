@@ -25,4 +25,6 @@ public interface UserRepository extends JpaRepository<User,Long> {
             "and   u.deletedAt <= :threshold " +
             "and   u.status = umc.nook.users.domain.Status.INACTIVE")
     int hardDeleteUsersOlderThan(@Param("threshold") LocalDateTime threshold);
+
+    Optional<User> findByKakaoUserId(Long kaKaoUserId);
 }
