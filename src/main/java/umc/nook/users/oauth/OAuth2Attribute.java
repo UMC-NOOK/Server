@@ -51,6 +51,7 @@ public class OAuth2Attribute {
         map.put("attributeKey", attributeKey);
         map.put("nickname", nickname);
         map.put("email", email);
+        map.put("kakaoUserId",kakaoUserId);
         return map;
     }
 }

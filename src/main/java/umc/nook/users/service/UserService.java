@@ -168,7 +168,7 @@ public class UserService {
         KakaoRefreshToken token = kakaoRefreshTokenRepository.findByUserId(user.getUserId())
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REFRESH_TOKEN));
         // 카카오 서버에 로그아웃 요청
-        oAuthService.kakaoLogout(token.getAccessToken());
+        oAuthService.buildKakaoLogoutRedirectUrl();
         // 저장된 토큰 삭제
         kakaoRefreshTokenRepository.deleteByUserId(user.getUserId());
     }
