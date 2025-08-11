@@ -159,7 +159,7 @@ public class OAuthService {
         Optional<User> findKakaoUser = userRepository.findByKakaoUserId(attributes.getKakaoUserId());
         User user;
         if (findKakaoUser.isPresent()) {
-            user = findUser.get();
+            user = findKakaoUser.get();
             log.info("기존 사용자 로그인: {}", user.getEmail());
         } else {
             log.info("새로운 사용자 생성: {}", attributes.getEmail());
