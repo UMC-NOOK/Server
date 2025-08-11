@@ -10,6 +10,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.users.domain.KakaoRefreshToken;
@@ -21,6 +22,7 @@ import umc.nook.users.repository.KakaoRefreshTokenRepository;
 import umc.nook.users.repository.UserRepository;
 import umc.nook.users.service.JwtProvider;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -100,21 +102,32 @@ public class OAuthService {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set(AUTHORIZATION_HEADER, TOKEN_TYPE + accessToken);
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
-            HttpEntity<Object> requestEntity = new HttpEntity<>(headers);
-            return restTemplate.exchange(
-                    kakaoMemberInfoRequestUri,
-                    HttpMethod.GET,
-                    requestEntity,
+            HttpEntity<?> req = new HttpEntity<>(headers);
+
+            ResponseEntity<Map> res = restTemplate.exchange(
+                    kakaoMemberInfoRequestUri, // ex) https://kapi.kakao.com/v2/user/me
+                    HttpMethod.POST,
+                    req,
                     Map.class
-            ).getBody();
+            );
 
+            Map body = res.getBody();
+            if (!res.getStatusCode().is2xxSuccessful() || body == null) {
+                log.error("카카오 사용자 정보 요청 실패 status={}, body={}", res.getStatusCode(), body);
+                throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
+            }
+            return body;
+        } catch (RestClientResponseException e) {
+            log.error("카카오 사용자 정보 요청 실패 status={}, body={}", e.getRawStatusCode(), e.getResponseBodyAsString());
+            throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
         } catch (Exception e) {
-            log.error("카카오 사용자 정보 요청 실패", e);
+            log.error("카카오 사용자 정보 요청 예외", e);
             throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
         }
     }
+
 
     /**
      * 사용자 저장 로직
@@ -141,7 +154,7 @@ public class OAuthService {
         Map<String, Object> userAttribute = getKakaoUserAttributes(newToken.getAccessToken());
         OAuth2Attribute attributes = OAuth2Attribute.of("kakao", userAttribute);
 
-        Optional<User> findUser = userRepository.findByEmail(attributes.getEmail());
+        Optional<User> findUser = userRepository.findAnyByEmail(attributes.getEmail());
         User user;
         if (findUser.isPresent()) {
             user = findUser.get();
@@ -208,28 +221,14 @@ public class OAuthService {
 
 
     // 카카오 로그아웃
-    public void kakaoLogout(String accessToken) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", kakaoClientId);
-        params.add("logout_redirect_uri", kakaoLogoutUri);
-
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
-
-        try {
-            restTemplate.exchange(
-                    kakaoLogoutUri,
-                    HttpMethod.POST,
-                    requestEntity,
-                    String.class
-            );
-        } catch (Exception e) {
-            log.error("카카오 로그아웃 요청 실패", e);
-            throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
-        }
+    public String buildKakaoLogoutRedirectUrl() {
+        // kakaoLogoutUri 예: https://kauth.kakao.com/oauth/logout
+        UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(kakaoLogoutUri)
+                .queryParam("client_id", kakaoClientId)
+                .queryParam("logout_redirect_uri", kakaoRedirectUri); // 로그아웃 후 돌아올 URL
+        return b.toUriString();
     }
+
 
     /**
      * 카카오 계정 연결 해제 (Admin Key 기반)
@@ -241,7 +240,7 @@ public class OAuthService {
 
         try {
             HttpHeaders headers = new HttpHeaders();
-            headers.set(AUTHORIZATION_HEADER, "KakaoAK " + kakaoAdminKey); // Admin Key 사용
+            headers.set(AUTHORIZATION_HEADER, "KakaoAK " + kakaoAdminKey);
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
