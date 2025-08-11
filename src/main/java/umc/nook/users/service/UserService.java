@@ -188,20 +188,22 @@ public class UserService {
     // 회원 탈퇴
     @Transactional
     public String withdrawUser(User user) {
-        // 카카오 계정 즉시 연결 해제
-        if (Boolean.TRUE.equals(user.getIsKakao()) && user.getKakaoUserId() != null) {
-            log.info("카카오 연결 해제 진행");
-            oAuthService.unlinkWithAccessToken(
-                    kakaoRefreshTokenRepository.findAccessTokenByUserId(user.getUserId()),
-                    user.getKakaoUserId());
+        // 이미 탈퇴 처리된 경우
+        if (user.getDeletedAt() != null || user.getStatus() == Status.INACTIVE) {
+            throw new CustomException(ErrorCode.USER_INACTIVE);
         }
-        oAuthService.unlinkWithAccessToken(
-                kakaoRefreshTokenRepository.findAccessTokenByUserId(user.getUserId()),
-                user.getKakaoUserId());
+        if (Boolean.TRUE.equals(user.getIsKakao()) && user.getKakaoUserId() != null) {
+            try {
+                oAuthService.unlinkWithAdminKey(user.getUserId());
+            } catch (Exception e) {
+                log.error("카카오 unlink 실패 (탈퇴는 계속 진행). userId={}, err={}", user.getUserId(), e.getMessage(), e);
+            }
+        }
         user.setDeletedAt(LocalDateTime.now());
         log.info("사용자 탈퇴 완료");
         user.setStatus(Status.INACTIVE);
         userRepository.save(user);
+        refreshTokenRepository.deleteByUser(user);
         return "회원 탈퇴가 완료되었습니다.";
     }
 
