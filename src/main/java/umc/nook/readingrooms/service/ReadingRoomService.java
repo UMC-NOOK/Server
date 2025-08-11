@@ -155,9 +155,11 @@ public class ReadingRoomService {
 
         User user = userDetails.getUser();
 
+        int MAX_NUMBER = 4;
+
         // 가입 인원이 4명 이상이면 예외 발생
         int memberCount = readingRoomUserRepository.countByReadingRoom(room);
-        if (memberCount >= 4) {
+        if (memberCount >= MAX_NUMBER) {
             throw new CustomException(ErrorCode.ROOM_CAPACITY_EXCEEDED);
         }
 
