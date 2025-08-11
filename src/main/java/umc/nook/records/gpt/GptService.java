@@ -4,10 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import umc.nook.common.exception.CustomException;
+import umc.nook.common.response.ErrorCode;
 import umc.nook.records.domain.ChatRecord;
 import umc.nook.records.dto.GptDTO;
 import umc.nook.records.repository.ChatRecordRepository;
@@ -15,6 +18,7 @@ import umc.nook.records.repository.ChatRecordRepository;
 import java.util.*;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class GptService {
     @Value("${openai.api.key}")
@@ -89,7 +93,6 @@ public class GptService {
 
         // 4. 사용자 입력 추가
         messages.add(Map.of("role", "user", "content", userMsg));
-        messages.add(Map.of("role", "user", "content", userMsg));
 
         // 5. Request 구성
         Map<String, Object> bodyMap = new HashMap<>();
@@ -110,17 +113,32 @@ public class GptService {
             String author,
             String title,
             String userMsg
-    ) throws JsonProcessingException {
-        JsonNode jsonNode = callChatGpt(bookshelfId, userName, author, title, userMsg);
-        String rawContent = jsonNode.path("choices").get(0).path("message").path("content").asText();
-
-        ObjectMapper mapper = new ObjectMapper();
-
+    ) {
         try {
-            return mapper.readValue(rawContent, GptDTO.ChatRecordDTO.class);
+            JsonNode responseNode = callChatGpt(bookshelfId, userName, author, title, userMsg);
+            String rawContent = responseNode
+                    .path("choices").get(0)
+                    .path("message")
+                    .path("content")
+                    .asText();
+            // 문자열 자체가 JSON인지 파싱 시도
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode parsedNode = mapper.readTree(rawContent);
+            // 구조 유효성 검사
+            if (!parsedNode.has("isEssay") || !parsedNode.has("content")) {
+                throw new CustomException(ErrorCode.GPT_RESPONSE_FORMAT_ERROR);
+            }
+            // DTO로 변환
+            return mapper.treeToValue(parsedNode, GptDTO.ChatRecordDTO.class);
+
         } catch (JsonProcessingException e) {
-            return new GptDTO.ChatRecordDTO(false, rawContent);
+            log.error("GPT 응답 파싱 실패", e);
+            throw new CustomException(ErrorCode.GPT_RESPONSE_FORMAT_ERROR);
+        } catch (NullPointerException | IndexOutOfBoundsException e) {
+            log.error("GPT 응답 구조 이상 (choices 배열 또는 message 누락)", e);
+            throw new CustomException(ErrorCode.GPT_RESPONSE_FORMAT_ERROR);
         }
     }
+
 
 }

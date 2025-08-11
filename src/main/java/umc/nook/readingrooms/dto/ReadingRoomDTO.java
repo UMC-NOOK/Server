@@ -2,6 +2,7 @@ package umc.nook.readingrooms.dto;
 
 import lombok.*;
 import umc.nook.readingrooms.domain.Role;
+import umc.nook.readingrooms.domain.ThemeName;
 import umc.nook.users.domain.User;
 
 import java.util.List;
@@ -146,4 +147,12 @@ public class ReadingRoomDTO {
         private String themeImageUrl;
     }
 
+    @Getter
+    @Builder
+    public static class ReadingRoomThemeResponseDTO {
+        private Long roomId;
+        private ThemeName themeName;
+        private String imageUrl;
+        private String bgmUrl;
+    }
 }

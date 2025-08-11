@@ -8,12 +8,16 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import umc.nook.book.domain.Book;
 import umc.nook.book.domain.QBook;
 import umc.nook.bookshelves.domain.QUserBookShelf;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.bookshelves.dto.BookShelfDTO;
+import umc.nook.records.domain.BookRecord;
+import umc.nook.records.domain.ChatRecord;
 import umc.nook.records.domain.QBookRecord;
+import umc.nook.records.domain.QChatRecord;
 import umc.nook.records.dto.RecordDTO;
 import umc.nook.review.domain.QReview;
 import umc.nook.users.domain.User;
@@ -23,6 +27,7 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static umc.nook.records.domain.QBookRecord.bookRecord;
 import static umc.nook.records.domain.QChatRecord.chatRecord;
@@ -172,6 +177,7 @@ public class BookShelfQueryService {
                         Collectors.mapping(
                                 t -> new BookShelfDTO.BookThumbnail(
                                         t.get(book.bookId),
+                                        t.get(book.title),
                                         t.get(book.coverImageUrl)
                                 ),
                                 Collectors.toList()
@@ -188,18 +194,21 @@ public class BookShelfQueryService {
         QUserBookShelf ub = QUserBookShelf.userBookShelf;
         QBookRecord record = bookRecord;
 
-        Long totalCount = queryFactory
+        Long totalCount = Optional.ofNullable(queryFactory
                 .select(ub.count())
                 .from(ub)
                 .where(ub.user.eq(user))
-                .fetchOne();
+                .fetchOne()
+        ).orElse(0L);
 
-        Long recordCount = queryFactory
+        Long recordCount = Optional.ofNullable(queryFactory
                 .select(record.count())
                 .from(record)
                 .where(record.bookshelf.user.eq(user))
-                .fetchOne();
+                .fetchOne()
+        ).orElse(0L);
 
+        // 상태별 집계
         List<Tuple> statusCounts = queryFactory
                 .select(ub.readingStatus, ub.count())
                 .from(ub)
@@ -207,13 +216,24 @@ public class BookShelfQueryService {
                 .groupBy(ub.readingStatus)
                 .fetch();
 
-        List<BookShelfDTO.BooksInsightTypeDTO> typeDTOs = statusCounts.stream()
-                .map(t -> new BookShelfDTO.BooksInsightTypeDTO(
-                        t.get(ub.readingStatus),
-                        t.get(ub.count()).intValue()
+        // Tuple -> Map<ReadingStatus, Long>
+        Map<ReadingStatus, Long> countMap = statusCounts.stream()
+                .collect(Collectors.toMap(
+                        t -> t.get(ub.readingStatus),
+                        t -> t.get(ub.count())
+                ));
+
+        // 필요한 상태(READING, COMPLETED, BOOKMARK)를 고정 순서로 0 기본값 포함해 생성
+        List<BookShelfDTO.BooksInsightTypeDTO> typeDTOs = Stream.of(
+                        ReadingStatus.READING,
+                        ReadingStatus.FINISHED,
+                        ReadingStatus.BOOKMARK
+                )
+                .map(st -> new BookShelfDTO.BooksInsightTypeDTO(
+                        st,
+                        countMap.getOrDefault(st, 0L).intValue()
                 ))
                 .toList();
-
         return new BookShelfDTO.BooksInsightDTO(totalCount, recordCount, typeDTOs);
     }
 
@@ -252,5 +272,8 @@ public class BookShelfQueryService {
 
         return new RecordDTO.MonthlyRecordRateResponseDTO(rates);
     }
+
+
+
 
 }

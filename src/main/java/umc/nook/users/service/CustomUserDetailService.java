@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
+import umc.nook.users.domain.Status;
 import umc.nook.users.domain.User;
 import umc.nook.users.repository.UserRepository;
 
@@ -21,11 +22,15 @@ public class CustomUserDetailService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) {
         log.info("loadUserByUsername() called with email: {}", email);
 
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.error("사용자를 찾을 수 없습니다: {}", email);
                     return new CustomException(ErrorCode.USER_NOT_FOUND);
                 });
+        if (user.getDeletedAt() != null || user.getStatus() == Status.INACTIVE) {
+            throw new CustomException(ErrorCode.USER_INACTIVE); // 탈퇴한 사용자의 로그인 차단
+        }
 
         return new CustomUserDetails(user);
     }

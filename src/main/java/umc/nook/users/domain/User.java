@@ -8,6 +8,7 @@ import umc.nook.readingrooms.domain.ReadingRoomUser;
 import umc.nook.review.domain.Review;
 import umc.nook.search.domain.RecentQuery;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +36,7 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private RoleType role;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status;
@@ -51,10 +53,22 @@ public class User extends BaseTimeEntity {
     private List<Review> reviews = new ArrayList<>();
 
     @Column(name = "is_kakao")
+    @Builder.Default
     private Boolean isKakao = false;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Profile profile;
+
+    @Setter
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    public void withdraw() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    @Column(name = "kakao_user_id", unique = true)
+    private Long kakaoUserId;
 
     @Setter
     @Builder.Default
@@ -66,4 +80,7 @@ public class User extends BaseTimeEntity {
         profile.setUser(this);
     }
 
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
 }
