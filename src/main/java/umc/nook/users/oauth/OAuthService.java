@@ -121,9 +121,10 @@ public class OAuthService {
      */
     private User saveUser(OAuth2Attribute oAuth2Attribute) {
         String nickName = oAuth2Attribute.getNickname();
+        String email = oAuth2Attribute.getEmail();
         return User.builder()
                 .role(RoleType.USER)
-                .email(oAuth2Attribute.getEmail())
+                .email(email)
                 .nickname(nickName)
                 .kakaoUserId(oAuth2Attribute.getKakaoUserId())
                 .status(Status.ACTIVE)
@@ -140,13 +141,13 @@ public class OAuthService {
         Map<String, Object> userAttribute = getKakaoUserAttributes(newToken.getAccessToken());
         OAuth2Attribute attributes = OAuth2Attribute.of("kakao", userAttribute);
 
-        Optional<User> findUser = userRepository.findByEmail(attributes.getNickname());
+        Optional<User> findUser = userRepository.findByEmail(attributes.getEmail());
         User user;
         if (findUser.isPresent()) {
             user = findUser.get();
             log.info("기존 사용자 로그인: {}", user.getEmail());
         } else {
-            log.info("새로운 사용자 생성: {}", attributes.getNickname());
+            log.info("새로운 사용자 생성: {}", attributes.getEmail());
             user = saveUser(attributes);
             userRepository.save(user);
         }
@@ -167,8 +168,6 @@ public class OAuthService {
                         .refreshTokenExpiresIn((long) newToken.getRefreshTokenExpiresIn())
                         .build());
         kakaoRefreshTokenRepository.save(token);
-
-        // 6. 응답 DTO 반환
         return new UserDTO.KakaoLoginResponseDTO(user, jwtTokenResponse, newToken.getRefreshToken());
     }
 
