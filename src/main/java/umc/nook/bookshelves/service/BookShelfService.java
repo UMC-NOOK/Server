@@ -100,6 +100,7 @@ public class BookShelfService {
         return bookShelfQueryService.getBooksInsight(user);
     }
 
+    @Transactional(readOnly = true)
     public BookShelfDTO.RegisteredBookListResponseDTO viewRegisteredDatesInMonth(User user, YearMonth yearMonth) {
         List<LocalDate> dates = userBookshelfRepository.findAllByUser(user).stream()
                 .filter(b -> b.getBook() != null)
@@ -143,6 +144,7 @@ public class BookShelfService {
     }
 
     // 이번주 서재에 등록한 책
+    @Transactional(readOnly = true)
     public List<BookShelfDTO.WeeklyBooksDTO> viewWeeklyBookShelf(User user) {
         LocalDate now = LocalDate.now();
         LocalDate monday = now.with(DayOfWeek.MONDAY);
