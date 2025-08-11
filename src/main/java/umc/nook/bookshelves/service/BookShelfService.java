@@ -146,17 +146,17 @@ public class BookShelfService {
     // 이번주 서재에 등록한 책
     @Transactional(readOnly = true)
     public List<BookShelfDTO.WeeklyBooksDTO> viewWeeklyBookShelf(User user) {
-        LocalDate now = LocalDate.now();
+        LocalDate now = LocalDate.now(ZoneId.of("Asia/Seoul"));
         LocalDate monday = now.with(DayOfWeek.MONDAY);
         LocalDateTime startOfWeek = monday.atStartOfDay();
         LocalDateTime endOfToday = now.atTime(LocalTime.MAX);
 
         List<UserBookShelf> weeklyBooks = userBookshelfRepository
-                .findByUserAndCreatedDateBetweenOrderByCreatedDateDesc(user, startOfWeek, endOfToday);
+                .findByUserAndCreatedDateBetweenOrderByRecordedAtAsc(user, startOfWeek, endOfToday);
 
         return weeklyBooks.stream()
                 .map(ubs -> new BookShelfDTO.WeeklyBooksDTO(
-                        ubs.getCreatedDate().getDayOfWeek().getValue(),
+                        ubs.getRecordedAt().getDayOfMonth(),
                         new BookShelfDTO.BookThumbnail(ubs.getBook())
                 ))
                 .collect(Collectors.toList());
