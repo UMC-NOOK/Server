@@ -87,7 +87,6 @@ public class BookService {
         if (!BookFilterUtils.isBookIncluded(item.getCategoryName())) {
             throw new CustomException(ErrorCode.BOOK_NOT_ALLOWED);
         }
-
         return bookRepository.save(addBookByBookDetailDTO(item));
     }
 
