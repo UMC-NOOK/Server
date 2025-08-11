@@ -264,7 +264,7 @@ public class ReadingRoomService {
         return roomId;
     }
 
-    //GUEST: 리딩룸 탈퇴
+    //GUEST: 리딩룸 삭제하지 않고 탈퇴만
     @Transactional
     public Long leaveRoom(Long roomId, CustomUserDetails userDetails) {
 
@@ -280,7 +280,7 @@ public class ReadingRoomService {
         return roomId;
     }
 
-    // 리딩룸 정보 수정
+    // 리딩룸 정보 수정 - 테마 변경시에만 WebSocket broadcast
     @Transactional
     public void updateRoom(Long roomId, ReadingRoomDTO.ReadingRoomRequestDTO dto, ThemeName themeName, List<HashtagName> hashtags ,CustomUserDetails userDetails) {
 
@@ -391,7 +391,7 @@ public class ReadingRoomService {
                     }
                 }).toList();
 
-        // WebSocket broadcast
+        // WebSocket broadcast - 입장한 사용자
         ReadingRoomDTO.UserEventPayload userEnterEventPayload = ReadingRoomDTO.UserEventPayload.builder()
                 .userId(user.getUserId())
                 .nickname(user.getNickname())
@@ -402,7 +402,7 @@ public class ReadingRoomService {
         publishWebSocketEvent(room.getId(), ReadingRoomDTO.ReadingRoomEventType.USER_ENTER, userEnterEventPayload);
     }
 
-    // 호스트가 전체 bgm 설정
+    // 호스트가 리딩룸 전체 bgm 토글
     @Transactional
     public void toggleBgm(ReadingRoomDTO.ReadingRoomBgmToggleRequest dto) {
 
@@ -421,7 +421,7 @@ public class ReadingRoomService {
         // BGM 토글
         room.toggleBgm(dto.isBgmOn());
 
-        // WebSocket broadcast
+        // WebSocket broadcast - bgm 토글 boolean값
         ReadingRoomDTO.ReadingRoomBgmToggleRequest payload = ReadingRoomDTO.ReadingRoomBgmToggleRequest.builder()
                 .roomId(dto.getRoomId())
                 .userId(dto.getUserId())
@@ -462,7 +462,7 @@ public class ReadingRoomService {
                     }
                 }).toList();
 
-        // WebSocket broadcast (USER_LEAVE)
+        // WebSocket broadcast - 퇴장한 사용자
         ReadingRoomDTO.UserEventPayload payload = ReadingRoomDTO.UserEventPayload.builder()
                 .userId(dto.getUserId())
                 .nickname(user.getNickname())
@@ -472,6 +472,7 @@ public class ReadingRoomService {
         publishWebSocketEvent(room.getId(), ReadingRoomDTO.ReadingRoomEventType.USER_LEAVE, payload);
     }
 
+    // 사용자가 독서중인 책 제목 조회
     @Transactional(readOnly = true)
     public List<ReadingRoomDTO.ReadingBookRequest> getReadingBooksInRoom(CustomUserDetails userDetails) {
 
@@ -486,9 +487,10 @@ public class ReadingRoomService {
                 .collect(Collectors.toList());
     }
 
-    // 독서중인 책 설정
+    //독서중인 책 설정
     @Transactional
     public void readingBooks(ReadingRoomDTO.ReadingBookPayload payload) {
+        // WebSocket broadcast - 독서중인 책 제목
         publishWebSocketEvent(payload.getRoomId(), ReadingRoomDTO.ReadingRoomEventType.READING_BOOKS, payload);
     }
 
@@ -498,6 +500,7 @@ public class ReadingRoomService {
 
         User me = currentUser.getUser(); // 현재 로그인한 유저
 
+        //리딩룸 존재하는지 확인
         ReadingRoom room = readingRoomRepository.findById(roomId)
                 .orElseThrow(() -> new CustomException(ErrorCode.READING_ROOM_NOT_FOUND));
 
@@ -513,6 +516,7 @@ public class ReadingRoomService {
                 .collect(Collectors.toList());
     }
 
+    // 최근 접속한 리딩룸 조회
     @Transactional(readOnly = true)
     public ReadingRoomDTO.LastAccessedReadingRoomResponseDTO getLastAccessedRoom(User user) {
         ReadingRoomUser recent = readingRoomUserRepository
@@ -533,6 +537,7 @@ public class ReadingRoomService {
                 .build();
     }
 
+    // 리딩룸 테마 조회
     @Transactional(readOnly = true)
     public ReadingRoomDTO.ReadingRoomThemeResponseDTO getRoomTheme(Long roomId) {
 
