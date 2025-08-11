@@ -30,8 +30,8 @@ public class OAuth2Attribute {
             Map<String, Object> kakaoProfile = (Map<String, Object>) kakaoAccount.get("profile");
             if (kakaoProfile != null) {
                 nickname = (String) kakaoProfile.get("nickname");
-                email = (String) kakaoProfile.get("email");
             }
+            email = (String) kakaoAccount.get("email");
         }
 
         Long kakaoUserId = attributes.get("id") != null ? ((Number) attributes.get("id")).longValue() : null;
@@ -45,11 +45,13 @@ public class OAuth2Attribute {
                 .build();
     }
 
+
     public Map<String, Object> convertToMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("attributeKey", attributeKey);
         map.put("nickname", nickname);
         map.put("email", email);
+        map.put("kakaoUserId",kakaoUserId);
         return map;
     }
 }

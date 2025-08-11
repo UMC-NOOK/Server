@@ -143,11 +143,9 @@ public class BookShelfService {
     }
 
     // 이번주 서재에 등록한 책
-    @Transactional(readOnly = true)
-    public List<BookShelfDTO.BookThumbnail> viewWeeklyBookShelf(User user) {
+    public List<BookShelfDTO.WeeklyBooksDTO> viewWeeklyBookShelf(User user) {
         LocalDate now = LocalDate.now();
         LocalDate monday = now.with(DayOfWeek.MONDAY);
-        // 시작일 00:00:00 ~ 오늘 23:59:59
         LocalDateTime startOfWeek = monday.atStartOfDay();
         LocalDateTime endOfToday = now.atTime(LocalTime.MAX);
 
@@ -155,8 +153,12 @@ public class BookShelfService {
                 .findByUserAndCreatedDateBetweenOrderByCreatedDateDesc(user, startOfWeek, endOfToday);
 
         return weeklyBooks.stream()
-                .map(ubs -> new BookShelfDTO.BookThumbnail(ubs.getBook()))
+                .map(ubs -> new BookShelfDTO.WeeklyBooksDTO(
+                        ubs.getCreatedDate().getDayOfWeek().getValue(),
+                        new BookShelfDTO.BookThumbnail(ubs.getBook())
+                ))
                 .collect(Collectors.toList());
     }
+
 
 }

@@ -125,7 +125,7 @@ public class ReadingRoomDTO {
     public static class ReadingBookPayload {
         private Long roomId;
         private Long userId;
-        private Long bookId;
+        private String title;
     }
 
     @Getter

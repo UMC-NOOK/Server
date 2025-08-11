@@ -18,7 +18,6 @@ public enum ErrorCode implements BaseCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "ACCOUNT-007", "인증이 필요합니다."),
     EMAIL_DUPLICATE(HttpStatus.BAD_REQUEST,"ACCOUNT-008" ,"중복된 이메일입니다." ),
     PERMISSION_DENIED(HttpStatus.FORBIDDEN, "ACCOUNT-009", "권한이 없습니다."),
-
     USER_INACTIVE(HttpStatus.FORBIDDEN,"ACCOUNT-010", "탈퇴한 사용자입니다."),
 
     // 서재 관련
@@ -84,6 +83,8 @@ public enum ErrorCode implements BaseCode {
     // OAUTH
     INVALID_OAUTH_TOKEN(HttpStatus.BAD_REQUEST, "OAUTH-001", "유효하지 않은 카카오 토큰입니다."),
     INVALID_KAKAO_REFRESH_TOKEN(HttpStatus.BAD_REQUEST, "OAUTH-002", "유효하지 않은 카카오 리프레시 토큰입니다."),
+    INVALID_USER_ID(HttpStatus.BAD_REQUEST,"OAUTH-003","유효하지 않은 카카오ID입니다."),
+    KAKAO_UNLINK_FAILED(HttpStatus.BAD_REQUEST,"OAUTH-004","카카오 계정 연결 해제에 실패하였습니다." ),
 
     // GPT
     GPT_RESPONSE_FORMAT_ERROR(HttpStatus.BAD_GATEWAY, "GPT-001", "GPT 응답 포맷이 올바르지 않습니다.");

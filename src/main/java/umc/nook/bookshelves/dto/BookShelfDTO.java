@@ -111,4 +111,15 @@ public class BookShelfDTO {
         private int bookCount;
     }
 
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class WeeklyBooksDTO {
+        int day;
+
+        BookThumbnail bookInfo;
+
+    }
+
+
 }
