@@ -22,6 +22,7 @@ import umc.nook.users.repository.UserRepository;
 import umc.nook.users.service.CustomUserDetails;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -489,7 +490,31 @@ public class ReadingRoomService {
     // 독서중인 책 설정
     @Transactional
     public void readingBooks(ReadingRoomDTO.ReadingBookPayload payload) {
-        publishWebSocketEvent(payload.getRoomId(), ReadingRoomDTO.ReadingRoomEventType.READING_BOOKS, payload);
+        // Redis에 JSON으로 독서중인 책 저장
+        String hashKey = "ReadingRoom:ReadingBooks:" + payload.getRoomId();
+        String userIdStr = String.valueOf(payload.getUserId());
+
+        try {
+            // {userId, title} 형태의 JSON 생성
+            Map<String, Object> bookInfo = new HashMap<>();
+            bookInfo.put("userId", payload.getUserId());
+            bookInfo.put("title", payload.getTitle());
+
+            String json = objectMapper.writeValueAsString(bookInfo);
+
+            // Redis Hash에 저장
+            redisTemplate.opsForHash().put(hashKey, userIdStr, json);
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Redis 저장 중 JSON 직렬화 오류", e);
+        }
+
+        // 2) 기존 WebSocket 발행 로직
+        publishWebSocketEvent(
+                payload.getRoomId(),
+                ReadingRoomDTO.ReadingRoomEventType.READING_BOOKS,
+                payload
+        );
     }
 
     //리딩룸에 가입한 사용자 조회
