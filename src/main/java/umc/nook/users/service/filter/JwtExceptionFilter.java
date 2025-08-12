@@ -34,23 +34,47 @@ public class JwtExceptionFilter extends OncePerRequestFilter {
     public void setErrorResponse(HttpServletRequest req, HttpServletResponse res, Throwable ex)
             throws IOException {
 
-        res.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        res.setStatus(HttpStatus.UNAUTHORIZED.value());
-        Map<String, Object> body = new HashMap<>();
+        if (res.isCommitted()) return; // 이미 응답 시작되면 종료
 
-        if (ex.getMessage().equals("TOKEN_EXPIRED")) {
-            body.put("detail", "토큰이 만료되었습니다.");
-            body.put("code", "TOKEN_EXPIRED");
+        res.setStatus(HttpStatus.UNAUTHORIZED.value());
+        res.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        res.setCharacterEncoding("UTF-8");
+
+        String code;
+        String detail;
+
+        // 예외 타입별 분기 (jjwt)
+        if (ex instanceof io.jsonwebtoken.ExpiredJwtException) {
+            code = "TOKEN_EXPIRED";
+            detail = "토큰이 만료되었습니다.";
+        } else if (ex instanceof io.jsonwebtoken.SignatureException) {
+            code = "TOKEN_SIGNATURE_INVALID";
+            detail = "토큰 서명이 유효하지 않습니다.";
+        } else if (ex instanceof io.jsonwebtoken.MalformedJwtException) {
+            code = "TOKEN_MALFORMED";
+            detail = "토큰 형식이 올바르지 않습니다.";
+        } else if (ex instanceof io.jsonwebtoken.UnsupportedJwtException) {
+            code = "TOKEN_UNSUPPORTED";
+            detail = "지원하지 않는 토큰입니다.";
+        } else if (ex instanceof IllegalArgumentException) {
+            code = "TOKEN_MISSING";
+            detail = "토큰이 비어있거나 잘못되었습니다.";
         } else {
-            body.put("detail", "토큰이 유효하지 않습니다.");
-            body.put("code", "TOKEN_INVALID");
+            code = "TOKEN_INVALID";
+            detail = "토큰이 유효하지 않습니다.";
         }
 
-        body.put("timestamp", LocalDateTime.now().toString());
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", java.time.OffsetDateTime.now().toString());
         body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
         body.put("error", "UNAUTHORIZED");
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.writeValue(res.getOutputStream(), body);
+        body.put("code", code);
+        body.put("detail", detail);
+        body.put("path", req.getRequestURI());
+
+        new com.fasterxml.jackson.databind.ObjectMapper()
+                .writeValue(res.getOutputStream(), body);
     }
+
 }
 

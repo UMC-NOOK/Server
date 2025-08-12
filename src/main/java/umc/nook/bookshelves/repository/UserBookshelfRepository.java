@@ -18,16 +18,13 @@ import org.springframework.data.repository.query.Param;
 import umc.nook.book.domain.CategoryCount;
 import umc.nook.book.domain.CategoryCountByName;
 
-public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Long> {
+public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Long> , BookShelfCustomRepository{
     boolean existsByUserAndBook(User user, Book book);
 
     UserBookShelf findByUserAndBook(User user, Book book);
 
-    void deleteByUserAndBook(User user, Book thisBook);
-
     List<UserBookShelf> findByUserAndReadingStatus(User user, ReadingStatus readingStatus);
 
-    UserBookShelf findByUser(User user);
 
     List<UserBookShelf> findAllByUser(User user);
 

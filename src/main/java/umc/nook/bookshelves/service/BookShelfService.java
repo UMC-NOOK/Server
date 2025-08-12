@@ -26,8 +26,6 @@ public class BookShelfService {
 
     private final BookRepository bookRepository;
     private final UserBookshelfRepository userBookshelfRepository;
-    private final BookShelfQueryService bookShelfQueryService;
-
     private final ChatRecordRepository chatRecordRepository;
     private final BookRecordRepository bookRecordRepository;
 
@@ -97,7 +95,7 @@ public class BookShelfService {
     // 서재 통계 조회
     @Transactional(readOnly = true)
     public BookShelfDTO.BooksInsightDTO viewBooksInsight(User user) {
-        return bookShelfQueryService.getBooksInsight(user);
+        return userBookshelfRepository.getBooksInsight(user);
     }
 
     @Transactional(readOnly = true)
@@ -115,7 +113,7 @@ public class BookShelfService {
     public BookShelfDTO.CursorPageDTO<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
             User user, ReadingStatus statusStr, Long cursorBookId, int size, String sort) {
 
-        List<BookShelfDTO.UserBookListResponseDTO> dtoList = bookShelfQueryService.getUserBooks(user, statusStr, cursorBookId, size, sort);
+        List<BookShelfDTO.UserBookListResponseDTO> dtoList = userBookshelfRepository.getUserBooks(user, statusStr, cursorBookId, size, sort);
 
         boolean hasNext = dtoList.size() > size;
         Long nextCursor = null;
@@ -129,7 +127,7 @@ public class BookShelfService {
     }
 
     public List<BookShelfDTO.DailyBooksResponseDTO> getMonthlyBooks(User user, YearMonth yearMonth) {
-        return bookShelfQueryService.getMonthlyBooks(user, yearMonth);
+        return userBookshelfRepository.getMonthlyBooks(user, yearMonth);
     }
 
 

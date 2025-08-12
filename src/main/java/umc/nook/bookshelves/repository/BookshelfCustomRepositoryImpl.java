@@ -1,23 +1,20 @@
-package umc.nook.bookshelves.service;
+package umc.nook.bookshelves.repository;
 
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import umc.nook.book.domain.Book;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import umc.nook.book.domain.QBook;
 import umc.nook.bookshelves.domain.QUserBookShelf;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.bookshelves.dto.BookShelfDTO;
-import umc.nook.records.domain.BookRecord;
-import umc.nook.records.domain.ChatRecord;
+import umc.nook.bookshelves.repository.BookShelfCustomRepository;
 import umc.nook.records.domain.QBookRecord;
-import umc.nook.records.domain.QChatRecord;
 import umc.nook.records.dto.RecordDTO;
 import umc.nook.review.domain.QReview;
 import umc.nook.users.domain.User;
@@ -32,9 +29,10 @@ import java.util.stream.Stream;
 import static umc.nook.records.domain.QBookRecord.bookRecord;
 import static umc.nook.records.domain.QChatRecord.chatRecord;
 
-@Service
+@Repository
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
-public class BookShelfQueryService {
+class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
 
     private final JPAQueryFactory queryFactory;
 
@@ -272,6 +270,8 @@ public class BookShelfQueryService {
 
         return new RecordDTO.MonthlyRecordRateResponseDTO(rates);
     }
+
+
 
 
 
