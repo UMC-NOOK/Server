@@ -22,10 +22,10 @@ import umc.nook.users.repository.UserRepository;
 import umc.nook.users.service.CustomUserDetails;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.querydsl.core.types.dsl.Wildcard.all;
 
 @Slf4j
 @Service
@@ -68,6 +68,8 @@ public class ReadingRoomService {
             case READING_BOOKS:
                 destination += "/reading-books";
                 break;
+            case ALL_READING_BOOKS:
+                destination += "/all-reading-books";
             default:
                 log.warn("Unhandled event type for WebSocket publishing: {}", eventType);
         }
@@ -509,7 +511,7 @@ public class ReadingRoomService {
             throw new RuntimeException("Redis 저장 중 JSON 직렬화 오류", e);
         }
 
-        // 2) 기존 WebSocket 발행 로직
+        // 기존 WebSocket 발행 로직
         publishWebSocketEvent(
                 payload.getRoomId(),
                 ReadingRoomDTO.ReadingRoomEventType.READING_BOOKS,
@@ -570,6 +572,42 @@ public class ReadingRoomService {
                 .imageUrl(room.getTheme().getImageUrl())
                 .bgmUrl(room.getTheme().getBgmUrl())
                 .build();
+    }
+
+    // 해당 리딩룸의 모든 사용자의 독서중인 책 broadcast
+    @Transactional
+    public void broadcastReadingBooksFromRedis(Long roomId) {
+        final String hashKey = "ReadingRoom:ReadingBooks:" + roomId;
+
+        // Redis Hash 전체 조회
+        Map<Object, Object> map = redisTemplate.opsForHash().entries(hashKey);
+
+        // JSON -> DTO(UserBook) 변환
+        List<ReadingRoomDTO.UserBook> entries = new ArrayList<>(map.size());
+        for (Map.Entry<Object, Object> entry : map.entrySet()) {
+            Object value = entry.getValue();
+            if (value == null) continue;
+            try {
+                ReadingRoomDTO.UserBook userBook = objectMapper.readValue(String.valueOf(value), ReadingRoomDTO.UserBook.class);
+                entries.add(userBook);
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                // TODO: 에러 핸들링 추후 리팩토링 예정
+                log.warn("ReadingBooks JSON 파싱 실패, key={}, value={}", entry.getKey(), value, e);
+            }
+        }
+
+        // 방송용 DTO 생성
+        ReadingRoomDTO.ReadingBooksBroadcast payload = ReadingRoomDTO.ReadingBooksBroadcast.builder()
+                .roomId(roomId)
+                .entries(entries) // 비어있어도 그대로 전송
+                .build();
+
+        // WebsocketBroadcast
+        publishWebSocketEvent(
+                roomId,
+                ReadingRoomDTO.ReadingRoomEventType.ALL_READING_BOOKS,
+                payload
+        );
     }
 }
 
