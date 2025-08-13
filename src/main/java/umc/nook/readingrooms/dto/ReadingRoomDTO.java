@@ -1,5 +1,7 @@
 package umc.nook.readingrooms.dto;
 
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.*;
 import umc.nook.readingrooms.domain.Role;
 import umc.nook.readingrooms.domain.ThemeName;
@@ -43,8 +45,7 @@ public class ReadingRoomDTO {
     @Builder
     public static class ReadingRoomThemeUpdateDTO {
         private Long roomId;
-        private String imageUrl;
-        private String bgmUrl;
+        private ThemeName themeName;
     }
 
     @Getter
