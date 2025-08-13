@@ -36,7 +36,7 @@ public class BookShelfService {
     public String registerBook(BookShelfDTO.RegisterBookDTO registerBookDTO, User user) {
         Book thisBook = bookRepository.findByBookId(registerBookDTO.getBookId());
         if (thisBook == null) {
-            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
+            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
         }
         boolean alreadyRegistered = userBookshelfRepository.existsByUserAndBook(user, thisBook);
         if (alreadyRegistered) {
@@ -58,7 +58,7 @@ public class BookShelfService {
     public String deleteBook(Long bookId, User user) {
         Book thisBook = bookRepository.findByBookId(bookId);
         if (thisBook == null) {
-            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
+            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
         }
         UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, thisBook);
         if (userBook == null) throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
