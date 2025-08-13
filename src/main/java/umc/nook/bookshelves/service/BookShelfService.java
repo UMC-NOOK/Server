@@ -38,7 +38,7 @@ public class BookShelfService {
     public String registerBook(BookShelfDTO.RegisterBookDTO registerBookDTO, User user) {
         Book thisBook = bookRepository.findByBookId(registerBookDTO.getBookId());
         if (thisBook == null) {
-            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
+            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
         }
         // 해당 날짜에 등록 가능한지 확인
         boolean alreadyRegisteredToday = userBookshelfRepository.existsByUserAndRecordedAt(
@@ -74,7 +74,7 @@ public class BookShelfService {
     public String deleteBook(Long bookId, User user) {
         Book thisBook = bookRepository.findByBookId(bookId);
         if (thisBook == null) {
-            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
+            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
         }
         UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, thisBook);
         if (userBook == null) throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
@@ -89,7 +89,7 @@ public class BookShelfService {
     @Transactional
     public String changeBookState(Long bookId, User user){
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_EXIST));
         UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, book);
         if (userBook == null)
             throw new CustomException(ErrorCode.BOOK_NOT_EXIST);

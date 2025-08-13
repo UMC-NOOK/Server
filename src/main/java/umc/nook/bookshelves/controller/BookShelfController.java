@@ -35,7 +35,7 @@ public class BookShelfController {
     public ApiResponse<String> registerBook (@RequestBody BookShelfDTO.RegisterBookDTO registerBookDTO,
                                              @AuthenticationPrincipal CustomUserDetails userDetails){
         String result = bookshelfService.registerBook(registerBookDTO, userDetails.getUser());
-        return ApiResponse.onSuccess(result, SuccessCode.OK);
+        return ApiResponse.onSuccess(result, SuccessCode.CREATED);
     }
 
     @DeleteMapping("/delete/{bookId}")
@@ -43,7 +43,7 @@ public class BookShelfController {
     public ApiResponse<String> deleteBook (@PathVariable Long bookId,
                                            @AuthenticationPrincipal CustomUserDetails userDetails) {
         String result = bookshelfService.deleteBook(bookId, userDetails.getUser());
-        return ApiResponse.onSuccess(result, SuccessCode.OK);
+        return ApiResponse.onSuccess(result, SuccessCode.ACCEPTED);
     }
 
     @PatchMapping("/start-reading/{bookId}")

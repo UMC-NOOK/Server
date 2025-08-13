@@ -14,8 +14,9 @@ public class ReadingRoomDTO {
         USER_ENTER,     // 사용자 입장
         USER_LEAVE,     // 사용자 퇴장
         ROOM_INFO_UPDATE, // 리딩룸 정보 수정
-        ROOM_REMOVED, //리딩룸 삭제
-        READING_BOOKS //독서중인 책
+        ROOM_REMOVED, // 리딩룸 삭제
+        READING_BOOKS, // 독서중인 책
+        ALL_READING_BOOKS // 해당 리딩룸 사용자의 모든 독서중인 책
     }
 
     @Getter
@@ -155,4 +156,25 @@ public class ReadingRoomDTO {
         private String imageUrl;
         private String bgmUrl;
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class UserBook {
+        private Long userId;
+        private String title;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ReadingBooksBroadcast {
+        private Long roomId;
+        private List<UserBook> entries;
+    }
+
 }
