@@ -30,8 +30,11 @@ public class ReviewService {
     private final BookRepository bookRepository;
 
     public ReviewResponseDTO.ReviewResultDTO getReviews(Long bookId, CustomUserDetails userDetails, int page) {
-        PageRequest pageable = PageRequest.of(page-1, 5, Sort.by("createdDate").descending());
+        PageRequest pageable = PageRequest.of(page, 5, Sort.by("createdDate").descending());
         Page<Review> reviews = reviewRepository.findByBookBookId(bookId, pageable);
+        if (page >= reviews.getTotalPages()) {
+            throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
+        }
         return ReviewConverter.toReviewResultDTO(reviews, userDetails.getUser());
     }
 

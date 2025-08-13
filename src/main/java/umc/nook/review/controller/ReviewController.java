@@ -41,15 +41,15 @@ public class ReviewController {
             ),
             @Parameter(
                     name = "page",
-                    description = "조회할 페이지 번호 (기본값: 1)",
+                    description = "조회할 페이지 번호 (기본값: 0)",
                     required = false,
-                    example = "1"
+                    example = "0"
             )
     })
     @GetMapping("/books/{bookId}/reviews")
     public ApiResponse<ReviewResponseDTO.ReviewResultDTO> getReviews(
             @PathVariable Long bookId,
-            @ValidatedPage @RequestParam(defaultValue = "1") int page,
+            @ValidatedPage @RequestParam(defaultValue = "0") int page,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         return ApiResponse.onSuccess(reviewService.getReviews(bookId, userDetails, page), SuccessCode.OK);
@@ -77,7 +77,7 @@ public class ReviewController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
 
-        return ApiResponse.onSuccess(reviewService.addReview(bookId, review, userDetails), SuccessCode.OK);
+        return ApiResponse.onSuccess(reviewService.addReview(bookId, review, userDetails), SuccessCode.CREATED);
     }
 
     @Operation(
@@ -124,7 +124,7 @@ public class ReviewController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         reviewService.deleteReview(reviewId, userDetails);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
+        return ApiResponse.onSuccess(null, SuccessCode.ACCEPTED);
     }
 
 

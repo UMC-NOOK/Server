@@ -39,7 +39,7 @@ public class ReviewConverter {
 
     public static ReviewResponseDTO.PaginationDTO toPaginationDTO(Page<Review> reviewPage) {
         return ReviewResponseDTO.PaginationDTO.builder()
-                .currentPage(reviewPage.getNumber() + 1)
+                .currentPage(reviewPage.getNumber())
                 .pageSize(reviewPage.getSize())
                 .totalItems(reviewPage.getTotalElements())
                 .totalPages(reviewPage.getTotalPages())

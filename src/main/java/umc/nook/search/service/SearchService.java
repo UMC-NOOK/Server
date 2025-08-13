@@ -9,6 +9,8 @@ import umc.nook.book.domain.Book;
 import umc.nook.book.service.BookService;
 import umc.nook.book.utils.BookFilterUtils;
 import umc.nook.bookshelves.repository.UserBookshelfRepository;
+import umc.nook.common.exception.CustomException;
+import umc.nook.common.response.ErrorCode;
 import umc.nook.search.converter.SearchConverter;
 import umc.nook.search.dto.SearchResponseDTO;
 import umc.nook.users.domain.User;
@@ -33,7 +35,7 @@ public class SearchService {
         User user = userDetails.getUser();
 
         int fetchSize = LIMIT * 2;
-        AladinResponseDTO.ResultDTO response = aladinService.searchBooks(query, page, fetchSize);
+        AladinResponseDTO.ResultDTO response = aladinService.searchBooks(query, page+1, fetchSize);
         List<SearchResponseDTO.BookDTO> books = new ArrayList<>();
         if (response != null && response.getItem() != null) {
             for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
@@ -50,7 +52,10 @@ public class SearchService {
             }
         }
         int totalItems = response != null ? response.getTotalResults() : 0;
-        int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / LIMIT) : 0;
+        int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / fetchSize): 0;
+        if (page >= totalPages) {
+            throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
+        }
         recentQueryService.saveRecentQuery(user, query);
         return SearchResponseDTO.SearchResultDTO.builder()
                 .books(books)
