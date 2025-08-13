@@ -42,6 +42,8 @@ public class RecordService {
 
     private final BookShelfQueryService bookShelfQueryService;
 
+
+
     @Transactional
     public ChatDTO.ChatResponseDTO saveChatMessage(User user, ChatDTO.ChatRequestDTO requestDTO) throws JsonProcessingException {
         Book book = bookRepository.findByBookId(requestDTO.getBookId());
