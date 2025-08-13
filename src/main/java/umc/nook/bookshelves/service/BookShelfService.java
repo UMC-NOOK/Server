@@ -147,7 +147,7 @@ public class BookShelfService {
         // hasNext 계산
         boolean hasNext = content.size() > safeSize;
         if (hasNext) {
-            content = content.subList(0, safeSize); // 초과분 제거
+            content = content.subList(0, safeSize);
         }
 
         return new BookShelfDTO.PageDTO<>(
@@ -158,13 +158,10 @@ public class BookShelfService {
         );
     }
 
-
-
     // 월별 책 조회
     public List<BookShelfDTO.DailyBooksResponseDTO> getMonthlyBooks(User user, YearMonth yearMonth) {
         return userBookshelfRepository.getMonthlyBooks(user, yearMonth);
     }
-
 
     // 지금 독서중인 책
     @Transactional(readOnly = true)

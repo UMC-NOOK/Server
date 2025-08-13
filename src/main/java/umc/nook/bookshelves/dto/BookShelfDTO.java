@@ -2,6 +2,9 @@ package umc.nook.bookshelves.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.querydsl.core.annotations.QueryProjection;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,10 +21,16 @@ public class BookShelfDTO {
     @Getter
     @NoArgsConstructor
     public static class RegisterBookDTO {
+
+        @NotNull(message = "bookId는 필수입니다.")
+        @Positive(message = "bookId는 양수여야 합니다.")
         private Long bookId;
         @JsonFormat(pattern = "yyyy-MM-dd")
+        @NotNull(message = "날짜는 필수입니다.")
+        @FutureOrPresent(message = "날짜는 오늘이거나 오늘 이후여야 합니다.")
         private LocalDate date;
 
+        @NotNull(message = "readingStatus는 필수입니다.")
         private ReadingStatus readingStatus;
     }
 
@@ -77,11 +86,11 @@ public class BookShelfDTO {
 
     @Getter
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class PageDTO<T> {
         private List<T> content;  // 데이터 목록
         private int page;         // 현재 페이지 번호 (0부터 시작)
         private int size;         // 페이지 크기
-        private long totalCount;  // 전체 데이터 개수
         private boolean hasNext;  // 다음 페이지 존재 여부
     }
 

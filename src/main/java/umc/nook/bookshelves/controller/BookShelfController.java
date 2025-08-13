@@ -3,11 +3,11 @@ package umc.nook.bookshelves.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.dto.BookShelfDTO;
@@ -32,7 +32,7 @@ public class BookShelfController {
 
     @PostMapping("/register")
     @Operation(summary = "서재 책 등록", description = "서재에 책을 등록합니다.")
-    public ApiResponse<String> registerBook (@RequestBody BookShelfDTO.RegisterBookDTO registerBookDTO,
+    public ApiResponse<String> registerBook (@RequestBody @Validated BookShelfDTO.RegisterBookDTO registerBookDTO,
                                              @AuthenticationPrincipal CustomUserDetails userDetails){
         String result = bookshelfService.registerBook(registerBookDTO, userDetails.getUser());
         return ApiResponse.onSuccess(result, SuccessCode.CREATED);
@@ -82,17 +82,17 @@ public class BookShelfController {
             @Parameter(name = "status", description = "서재 상태: BOOKMARK / READING / FINISHED", required = true, example = "READING"),
             @Parameter(name = "page", description = "0부터 시작하는 페이지 번호", example = "0"),
             @Parameter(name = "size", description = "페이지 크기 (기본 8)", example = "8"),
-            @Parameter(name = "sort", description = "정렬: RECENT / LATEST / TITLE / RATING", example = "RECENT")
+            @Parameter(name = "sort", description = "정렬: RECENT(최근 기록순) / LATEST(최근 등록순) / TITLE(제목순) / RATING(내가 준 별점순)", example = "RECENT")
     })
-    public ApiResponse<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
+    public ApiResponse<BookShelfDTO.PageDTO<BookShelfDTO.UserBookListResponseDTO>> getUserBooks(
             @RequestParam ReadingStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "8") int size,
-            @RequestParam(defaultValue = "RECENT") SortType sort,
+            @RequestParam(defaultValue = "LATEST") SortType sort,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         var response = bookshelfService.getUserBooks(userDetails.getUser(), status, page, size, sort);
-        return ApiResponse.onSuccess(SuccessCode.OK,response);
+        return ApiResponse.onSuccess(response,SuccessCode.OK);
     }
 
 
@@ -142,7 +142,6 @@ public class BookShelfController {
                 SuccessCode.OK
         );
     }
-
 
 
 }
