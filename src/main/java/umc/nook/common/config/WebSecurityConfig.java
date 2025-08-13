@@ -51,8 +51,8 @@ public class WebSecurityConfig {
                                 "/v3/api-docs/**",
                                 "/api/**",
                                 "/swagger-resources/**",
-                                "/readingroom-ws/**",
-                                "/ws/**" )
+                                "/ws/**" ,
+                                "/music/**")
                         .permitAll()
                         .anyRequest().authenticated());
 
