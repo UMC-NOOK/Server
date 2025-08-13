@@ -27,7 +27,6 @@ public class BookShelfDTO {
         private Long bookId;
         @JsonFormat(pattern = "yyyy-MM-dd")
         @NotNull(message = "날짜는 필수입니다.")
-        @FutureOrPresent(message = "날짜는 오늘이거나 오늘 이후여야 합니다.")
         private LocalDate date;
 
         @NotNull(message = "readingStatus는 필수입니다.")

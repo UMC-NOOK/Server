@@ -57,7 +57,7 @@ public class BookShelfController {
     @GetMapping("/my-books/monthly")
     @Operation(
             summary = "월별 서재 조회",
-            description = "입력한 연월(yyyy-MM)에 해당하는 독서 기록을 날짜별로 조회합니다."
+            description = "입력한 연월(yyyy-MM)에 해당하는 책을 날짜별로 조회합니다."
     )
     @Parameter(
             name = "yearMonth",
@@ -78,6 +78,10 @@ public class BookShelfController {
     }
 
     @GetMapping
+    @Operation(
+            summary = "서재 독서 상태/정렬 순서별 조회",
+            description = "독서 상태, 페이지 번호, 정렬 순서별로 서재 목록을 조회합니다."
+    )
     @Parameters({
             @Parameter(name = "status", description = "서재 상태: BOOKMARK / READING / FINISHED", required = true, example = "READING"),
             @Parameter(name = "page", description = "0부터 시작하는 페이지 번호", example = "0"),

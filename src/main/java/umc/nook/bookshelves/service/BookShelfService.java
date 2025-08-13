@@ -86,6 +86,7 @@ public class BookShelfService {
         return "책이 성공적으로 서재에서 삭제되었습니다.";
     }
 
+    // 독서중으로 상태 변경
     @Transactional
     public String changeBookState(Long bookId, User user){
         Book book = bookRepository.findById(bookId)
@@ -116,6 +117,7 @@ public class BookShelfService {
         return userBookshelfRepository.getBooksInsight(user);
     }
 
+    // 월별 책 등록된 날짜 조회
     @Transactional(readOnly = true)
     public BookShelfDTO.RegisteredBookListResponseDTO viewRegisteredDatesInMonth(User user, YearMonth yearMonth) {
         List<LocalDate> dates = userBookshelfRepository.findAllByUser(user).stream()

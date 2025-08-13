@@ -185,7 +185,7 @@ public class RecordService {
     // 독서 기록률 조회
     @Transactional
     public RecordDTO.MonthlyRecordRateResponseDTO viewRecordRate(User user, Year year) {
-        return userBookshelfRepository.viewRecordRate(user,year);
+        return bookRecordRepository.viewRecordRate(user,year);
     }
 
 

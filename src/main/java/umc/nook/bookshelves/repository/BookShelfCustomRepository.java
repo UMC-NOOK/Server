@@ -22,5 +22,4 @@ public interface BookShelfCustomRepository {
 
     BookShelfDTO.BooksInsightDTO getBooksInsight(User user);
 
-    RecordDTO.MonthlyRecordRateResponseDTO viewRecordRate(User user, Year year);
 }
