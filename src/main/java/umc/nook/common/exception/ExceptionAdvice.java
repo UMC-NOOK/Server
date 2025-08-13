@@ -66,7 +66,7 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     // 모든 미처리 예외 → 500
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleUnknownException(Exception e, WebRequest request) {
-        log.error("Unhandled exception", e);
+        log.error("Unhandled exception", e); // printStackTrace() 지양
         ApiResponse<Object> body = ApiResponse.onFailure(ErrorCode.INTERNAL_SERVER_ERROR, null); // 내부 메시지 노출 X
         return handleExceptionInternal(e, body, new HttpHeaders(),
                 ErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus(), request);
