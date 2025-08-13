@@ -8,6 +8,9 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum ErrorCode implements BaseCode {
 
+    // 서버 에러
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON-001", "서버 오류가 발생했습니다."),
+
     // 사용자
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT-001", "사용자를 찾을 수 없습니다."),
     DUPLICATE_NAME(HttpStatus.CONFLICT, "ACCOUNT-002", "중복된 닉네임입니다."),
