@@ -48,8 +48,7 @@ public enum ErrorCode implements BaseCode {
 
     // 페이지
     INVALID_PAGE(HttpStatus.BAD_REQUEST, "PAGE-001", "유효하지 않은 'page' 값입니다."),
-    INVALID_LIMIT(HttpStatus.BAD_REQUEST, "PAGE-002", "유효하지 않은 'limit' 값입니다."),
-
+    PAGE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "PAGE-003", "요청한 'page' 가 전체 페이지 수를 초과했습니다."),
     // 검색
     INVALID_QUERY(HttpStatus.BAD_REQUEST, "SEARCH-001", "필수 파라미터 'query' 가 누락되었습니다."),
     RECENT_QUERY_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH-002", "최근 검색어를 찾을 수 없습니다."),

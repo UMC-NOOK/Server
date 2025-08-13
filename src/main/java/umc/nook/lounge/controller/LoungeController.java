@@ -51,9 +51,9 @@ public class LoungeController {
             ),
             @Parameter(
                     name = "page",
-                    description = "조회할 페이지 번호 (기본값: 1)",
+                    description = "조회할 페이지 번호 (기본값: 0)",
                     required = false,
-                    example = "1"
+                    example = "0"
             )
     })
     @GetMapping("lounge/books")
@@ -61,7 +61,7 @@ public class LoungeController {
             @ValidatedMallType @RequestParam(defaultValue = "RECOMMENDATION") String mallType,
             @ValidatedSection @RequestParam(required = false) String sectionId,
             @ValidatedCategory @RequestParam(required = false) Integer categoryId,
-            @ValidatedPage @RequestParam(defaultValue = "1") int page,
+            @ValidatedPage @RequestParam(defaultValue = "0") int page,
             @AuthenticationPrincipal CustomUserDetails userDetails
             ) {
 

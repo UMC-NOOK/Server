@@ -43,15 +43,15 @@ public class SearchController {
             ),
             @Parameter(
                     name = "page",
-                    description = "조회할 페이지 번호 (기본값: 1)",
+                    description = "조회할 페이지 번호 (기본값: 0)",
                     required = false,
-                    example = "1"
+                    example = "0"
             )
     })
     @GetMapping("/books")
     public ApiResponse<SearchResponseDTO.SearchResultDTO> searchBooks(
             @RequestParam(required = false) String query,
-            @ValidatedPage @RequestParam(defaultValue = "1") int page,
+            @ValidatedPage @RequestParam(defaultValue = "0") int page,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         if (query == null || query.isBlank()) {
@@ -91,7 +91,7 @@ public class SearchController {
     public ApiResponse<Void> deleteRecentQuery(@PathVariable Long recentQueryId,
                                                  @AuthenticationPrincipal CustomUserDetails userDetails) {
         recentQueryService.deleteRecentQuery(userDetails, recentQueryId);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
+        return ApiResponse.onSuccess(null, SuccessCode.ACCEPTED);
     }
 
     @Operation(
@@ -103,6 +103,6 @@ public class SearchController {
     @DeleteMapping("/recentQueries")
     public ApiResponse<Void> deleteAllRecentQueries(@AuthenticationPrincipal CustomUserDetails userDetails) {
         recentQueryService.deleteAllRecentQueries(userDetails);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
+        return ApiResponse.onSuccess(null, SuccessCode.ACCEPTED);
     }
 }
