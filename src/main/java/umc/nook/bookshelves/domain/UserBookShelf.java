@@ -2,10 +2,7 @@ package umc.nook.bookshelves.domain;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import umc.nook.BaseTimeEntity;
 import umc.nook.book.domain.Book;
 import umc.nook.records.domain.BookRecord;
@@ -21,6 +18,7 @@ import java.util.List;
         @UniqueConstraint(columnNames = {"user_id", "book_id"})
 })
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserBookShelf extends BaseTimeEntity {
 
     @Id
@@ -45,11 +43,9 @@ public class UserBookShelf extends BaseTimeEntity {
     @Column(name="recorded_at", nullable=false)
     private LocalDate recordedAt;
 
-    @Builder.Default
     @OneToMany(mappedBy = "bookshelf", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BookRecord> bookRecords = new ArrayList<>();
 
-    @Builder.Default
     @OneToMany(mappedBy = "bookshelf", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ChatRecord> chatRecords = new ArrayList<>();
 

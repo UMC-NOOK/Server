@@ -211,11 +211,11 @@ public class RecordService {
     // 가장 최근 기록한 책 정보 조회
     @Transactional
     public BookShelfDTO.BookThumbnail viewRecentlyRecordedBook(User user) {
-        return bookRecordRepository.findMostRecentBookByUserId(user.getUserId())
+        return bookRecordRepository.viewRecentRecordedBook(user)
                 .map(b -> new BookShelfDTO.BookThumbnail(
                         b.getBookId(),
                         b.getTitle(),
-                        b.getCoverImageUrl()))
+                        b.getThumbnailUrl()))
                 .orElseThrow(()->new CustomException(ErrorCode.RECORD_NOT_EXIST));
     }
 

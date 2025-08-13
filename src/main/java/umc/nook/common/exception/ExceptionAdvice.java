@@ -1,5 +1,6 @@
 package umc.nook.common.exception;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import umc.nook.common.response.ApiResponse;
 import umc.nook.common.response.ErrorCode;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -79,4 +81,17 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         WebRequest webRequest = new ServletWebRequest(request);
         return handleExceptionInternal(e, body, new HttpHeaders(), e.getErrorCode().getHttpStatus(), webRequest);
     }
+
+    @ExceptionHandler({InvalidFormatException.class})
+    public ResponseEntity<ApiResponse<Object>> handleInvalidDateFormat(InvalidFormatException ex) {
+        if (ex.getTargetType() == LocalDate.class) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.onFailure(ErrorCode.INVALID_DATE, null)
+            );
+        }
+        return ResponseEntity.badRequest().body(
+                ApiResponse.onFailure(ErrorCode.INVALID_FORMAT, null)
+        );
+    }
+
 }
