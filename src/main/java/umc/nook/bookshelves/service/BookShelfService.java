@@ -122,7 +122,7 @@ public class BookShelfService {
     public BookShelfDTO.RegisteredBookListResponseDTO viewRegisteredDatesInMonth(User user, YearMonth yearMonth) {
         List<LocalDate> dates = userBookshelfRepository.findAllByUser(user).stream()
                 .filter(b -> b.getBook() != null)
-                .map(b -> b.getCreatedDate().toLocalDate())
+                .map(b -> b.getRecordedAt())
                 .filter(date -> YearMonth.from(date).equals(yearMonth))
                 .sorted()
                 .collect(Collectors.toList());

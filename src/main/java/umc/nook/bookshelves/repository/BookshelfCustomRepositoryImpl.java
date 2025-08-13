@@ -192,12 +192,17 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
         QUserBookShelf ub = QUserBookShelf.userBookShelf;
         QBookRecord record = bookRecord;
 
-        Long totalCount = Optional.ofNullable(queryFactory
-                .select(ub.count())
-                .from(ub)
-                .where(ub.user.eq(user))
-                .fetchOne()
+        Long totalCount = Optional.ofNullable(
+                queryFactory
+                        .select(ub.count())
+                        .from(ub)
+                        .where(
+                                ub.user.eq(user)
+                                        .and(ub.readingStatus.ne(ReadingStatus.BOOKMARK))
+                        )
+                        .fetchOne()
         ).orElse(0L);
+
 
         Long recordCount = Optional.ofNullable(queryFactory
                 .select(record.count())
