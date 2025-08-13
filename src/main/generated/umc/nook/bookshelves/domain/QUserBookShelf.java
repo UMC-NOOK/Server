@@ -26,6 +26,10 @@ public class QUserBookShelf extends EntityPathBase<UserBookShelf> {
 
     public final umc.nook.book.domain.QBook book;
 
+    public final ListPath<umc.nook.records.domain.BookRecord, umc.nook.records.domain.QBookRecord> bookRecords = this.<umc.nook.records.domain.BookRecord, umc.nook.records.domain.QBookRecord>createList("bookRecords", umc.nook.records.domain.BookRecord.class, umc.nook.records.domain.QBookRecord.class, PathInits.DIRECT2);
+
+    public final ListPath<umc.nook.records.domain.ChatRecord, umc.nook.records.domain.QChatRecord> chatRecords = this.<umc.nook.records.domain.ChatRecord, umc.nook.records.domain.QChatRecord>createList("chatRecords", umc.nook.records.domain.ChatRecord.class, umc.nook.records.domain.QChatRecord.class, PathInits.DIRECT2);
+
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdDate = _super.createdDate;
 
@@ -37,8 +41,6 @@ public class QUserBookShelf extends EntityPathBase<UserBookShelf> {
     public final EnumPath<ReadingStatus> readingStatus = createEnum("readingStatus", ReadingStatus.class);
 
     public final DatePath<java.time.LocalDate> recordedAt = createDate("recordedAt", java.time.LocalDate.class);
-
-    public final ListPath<umc.nook.records.domain.BookRecord, umc.nook.records.domain.QBookRecord> records = this.<umc.nook.records.domain.BookRecord, umc.nook.records.domain.QBookRecord>createList("records", umc.nook.records.domain.BookRecord.class, umc.nook.records.domain.QBookRecord.class, PathInits.DIRECT2);
 
     public final umc.nook.users.domain.QUser user;
 

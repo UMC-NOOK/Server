@@ -40,6 +40,11 @@ public class JwtAuthFilter extends GenericFilterBean {
 
         String token = jwtProvider.resolveToken(httpRequest);
 
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         if (token != null) {
             if (jwtProvider.validateToken(token)) {
                 String email = jwtProvider.parseClaims(token).getSubject();
@@ -49,6 +54,7 @@ public class JwtAuthFilter extends GenericFilterBean {
                 throw new CustomException(ErrorCode.INVALID_TOKEN);
             }
         }
+
 
         filterChain.doFilter(request, response);
     }
