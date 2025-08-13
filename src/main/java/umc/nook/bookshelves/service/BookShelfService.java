@@ -2,14 +2,17 @@ package umc.nook.bookshelves.service;
 
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import umc.nook.book.domain.Book;
 import umc.nook.book.repository.BookRepository;
+import umc.nook.bookshelves.controller.BookShelfController;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.bookshelves.dto.BookShelfDTO;
+import umc.nook.bookshelves.dto.SortType;
 import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
@@ -21,6 +24,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class BookShelfService {
 
@@ -111,19 +115,32 @@ public class BookShelfService {
 
     @Transactional(readOnly = true)
     public BookShelfDTO.CursorPageDTO<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
-            User user, ReadingStatus statusStr, Long cursorBookId, int size, String sort) {
+            User user,
+            ReadingStatus status,
+            int page,
+            Integer size,
+            SortType sort)
+    {
+        if (page < 0) {
+            throw new CustomException(ErrorCode.INVALID_PAGE);
+        }
+        final int MAX_PAGE_SIZE = 100;
+        final int safeSize = (size == null) ? 8 : size;
+        if (safeSize <= 0 || safeSize > MAX_PAGE_SIZE) {
+            throw new CustomException(ErrorCode.INVALID_LIMIT);
+        }
+        int safePage = Math.max(0, page);
+        SortType safeSort = (sort == null) ? SortType.RECENT : sort;
+        try {
+            // 3) 실제 조회
+            return userBookshelfRepository.getUserBooks(user, status, page, safeSize, safeSort);
 
-        List<BookShelfDTO.UserBookListResponseDTO> dtoList = userBookshelfRepository.getUserBooks(user, statusStr, cursorBookId, size, sort);
-
-        boolean hasNext = dtoList.size() > size;
-        Long nextCursor = null;
-
-        if (hasNext) {
-            BookShelfDTO.UserBookListResponseDTO last = dtoList.remove(size); // size+1 번째 요소 제거
-            nextCursor = last.getBookId();
+        } catch (IllegalArgumentException ex) {
+            log.warn("Invalid argument in getUserBooks: page={}, size={}, sort={}, msg={}",
+                    page, safeSize, safeSort, ex.getMessage());
+            throw new CustomException(ErrorCode.INVALID_LIMIT);
         }
 
-        return new BookShelfDTO.CursorPageDTO<>(dtoList, nextCursor, hasNext);
     }
 
     public List<BookShelfDTO.DailyBooksResponseDTO> getMonthlyBooks(User user, YearMonth yearMonth) {
@@ -148,7 +165,6 @@ public class BookShelfService {
         LocalDate monday = now.with(DayOfWeek.MONDAY);
         LocalDateTime startOfWeek = monday.atStartOfDay();
         LocalDateTime endOfToday = now.atTime(LocalTime.MAX);
-
         List<UserBookShelf> weeklyBooks = userBookshelfRepository
                 .findByUserAndCreatedDateBetweenOrderByRecordedAtAsc(user, startOfWeek, endOfToday);
 

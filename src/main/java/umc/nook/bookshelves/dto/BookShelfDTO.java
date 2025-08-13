@@ -52,10 +52,6 @@ public class BookShelfDTO {
         }
     }
 
-    public enum SortOption {
-        title, latest, recent, rating
-    }
-
 
     @Getter
     @AllArgsConstructor
