@@ -343,8 +343,7 @@ public class ReadingRoomService {
         if (themeChanged) {
             ReadingRoomDTO.ReadingRoomThemeUpdateDTO payload = ReadingRoomDTO.ReadingRoomThemeUpdateDTO.builder()
                     .roomId(room.getId())
-                    .imageUrl(updatedTheme.getImageUrl())
-                    .bgmUrl(updatedTheme.getBgmUrl())
+                    .themeName(updatedTheme.getName())
                     .build();
             publishWebSocketEvent(room.getId(), ReadingRoomDTO.ReadingRoomEventType.ROOM_INFO_UPDATE, payload);
         }
