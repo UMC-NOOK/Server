@@ -77,10 +77,12 @@ public class BookShelfDTO {
 
     @Getter
     @AllArgsConstructor
-    public static class CursorPageDTO<T> {
-        private List<T> content;
-        private Long nextCursor;
-        private boolean hasNext;
+    public static class PageDTO<T> {
+        private List<T> content;  // 데이터 목록
+        private int page;         // 현재 페이지 번호 (0부터 시작)
+        private int size;         // 페이지 크기
+        private long totalCount;  // 전체 데이터 개수
+        private boolean hasNext;  // 다음 페이지 존재 여부
     }
 
     @Getter

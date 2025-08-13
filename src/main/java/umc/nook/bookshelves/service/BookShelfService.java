@@ -40,10 +40,24 @@ public class BookShelfService {
         if (thisBook == null) {
             throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
         }
-        boolean alreadyRegistered = userBookshelfRepository.existsByUserAndBook(user, thisBook);
-        if (alreadyRegistered) {
+        // 해당 날짜에 등록 가능한지 확인
+        boolean alreadyRegisteredToday = userBookshelfRepository.existsByUserAndRecordedAt(
+                user,
+                registerBookDTO.getDate()
+        );
+        if (alreadyRegisteredToday) {
+            throw new CustomException(ErrorCode.ALREADY_REGISTERED_TODAY);
+        }
+        // 이미 등록된 책인지 확인
+        boolean alreadyRegisteredBook = userBookshelfRepository.existsByUserAndBook(
+                user,
+                thisBook
+        );
+        if (alreadyRegisteredBook) {
             throw new CustomException(ErrorCode.DUPLICATE_BOOK_IN_SHELF);
         }
+
+        // 책 등록
         UserBookShelf userBook = UserBookShelf.builder()
                 .book(thisBook)
                 .recordedAt(registerBookDTO.getDate())
@@ -113,36 +127,40 @@ public class BookShelfService {
         return new BookShelfDTO.RegisteredBookListResponseDTO(dates);
     }
 
+    // 서재 책 조회 - 정렬 조건, offset 기반 페이징
     @Transactional(readOnly = true)
-    public BookShelfDTO.CursorPageDTO<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
+    public BookShelfDTO.PageDTO<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
             User user,
             ReadingStatus status,
             int page,
             Integer size,
-            SortType sort)
-    {
-        if (page < 0) {
-            throw new CustomException(ErrorCode.INVALID_PAGE);
-        }
-        final int MAX_PAGE_SIZE = 100;
-        final int safeSize = (size == null) ? 8 : size;
-        if (safeSize <= 0 || safeSize > MAX_PAGE_SIZE) {
-            throw new CustomException(ErrorCode.INVALID_LIMIT);
-        }
+            SortType sort
+    ) {
         int safePage = Math.max(0, page);
+        int safeSize = (size == null || size <= 0) ? 8 : size;
         SortType safeSort = (sort == null) ? SortType.RECENT : sort;
-        try {
-            // 3) 실제 조회
-            return userBookshelfRepository.getUserBooks(user, status, page, safeSize, safeSort);
 
-        } catch (IllegalArgumentException ex) {
-            log.warn("Invalid argument in getUserBooks: page={}, size={}, sort={}, msg={}",
-                    page, safeSize, safeSort, ex.getMessage());
-            throw new CustomException(ErrorCode.INVALID_LIMIT);
+        // size + 1로 조회
+        List<BookShelfDTO.UserBookListResponseDTO> content =
+                userBookshelfRepository.getUserBooks(user, status, safePage, safeSize + 1, safeSort);
+
+        // hasNext 계산
+        boolean hasNext = content.size() > safeSize;
+        if (hasNext) {
+            content = content.subList(0, safeSize); // 초과분 제거
         }
 
+        return new BookShelfDTO.PageDTO<>(
+                content,
+                safePage,
+                safeSize,
+                hasNext
+        );
     }
 
+
+
+    // 월별 책 조회
     public List<BookShelfDTO.DailyBooksResponseDTO> getMonthlyBooks(User user, YearMonth yearMonth) {
         return userBookshelfRepository.getMonthlyBooks(user, yearMonth);
     }

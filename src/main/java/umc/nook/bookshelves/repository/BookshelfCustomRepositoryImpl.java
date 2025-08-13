@@ -13,8 +13,10 @@ import umc.nook.bookshelves.domain.QUserBookShelf;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.bookshelves.dto.BookShelfDTO;
+import umc.nook.bookshelves.dto.SortType;
 import umc.nook.bookshelves.repository.BookShelfCustomRepository;
 import umc.nook.records.domain.QBookRecord;
+import umc.nook.records.domain.QChatRecord;
 import umc.nook.records.dto.RecordDTO;
 import umc.nook.review.domain.QReview;
 import umc.nook.users.domain.User;
@@ -37,23 +39,21 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
     private final JPAQueryFactory queryFactory;
 
     @Transactional
-    public List<BookShelfDTO.UserBookListResponseDTO> getUserBooks(User user, ReadingStatus status, Long cursorBookId, int size, String sort) {
+    public List<BookShelfDTO.UserBookListResponseDTO> getUserBooks(User user, ReadingStatus status, int page, int size, SortType sort) {
         QUserBookShelf ub = QUserBookShelf.userBookShelf;
         QBook book = QBook.book;
         QReview review = QReview.review;
-        QBookRecord record = bookRecord;
+        QBookRecord bookRecord = QBookRecord.bookRecord;
+        QChatRecord chatRecord = QChatRecord.chatRecord;
 
         BooleanBuilder condition = new BooleanBuilder()
                 .and(ub.user.eq(user))
                 .and(ub.readingStatus.eq(status));
 
-        if (cursorBookId != null) {
-            condition.and(book.bookId.lt(cursorBookId));
-        }
-
         List<Tuple> tuples;
 
-        if ("rating".equalsIgnoreCase(sort)) {
+        // 내가 준 별점순
+        if (sort.equals(SortType.RATING)) {
             tuples = queryFactory
                     .select(
                             book.bookId,
@@ -74,7 +74,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                     .orderBy(review.rating.desc().nullsLast())
                     .limit(size + 1)
                     .fetch();
-        } else if ("recent".equalsIgnoreCase(sort)) {
+        } else if (sort.equals(SortType.RECENT)) {
             tuples = queryFactory
                     .select(
                             book.bookId,
@@ -125,9 +125,9 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                             review.user.eq(user)
                     )
                     .where(condition)
-                    .orderBy(switch (sort.toLowerCase()) {
-                        case "title" -> book.title.asc();
-                        case "latest" -> ub.createdDate.desc();
+                    .orderBy(switch (sort) {
+                        case TITLE -> book.title.asc();
+                        case LATEST -> ub.createdDate.desc();
                         default -> ub.recordedAt.desc();
                     })
                     .limit(size + 1)

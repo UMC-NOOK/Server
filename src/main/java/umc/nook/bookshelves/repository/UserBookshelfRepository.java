@@ -85,4 +85,7 @@ public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Lon
 
 
     List<UserBookShelf> findByUserAndCreatedDateBetweenOrderByRecordedAtAsc(User user, LocalDateTime startOfWeek, LocalDateTime endOfToday);
+
+
+    boolean existsByUserAndRecordedAt(User user, LocalDate date);
 }
