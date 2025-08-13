@@ -86,5 +86,6 @@ public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Lon
 
     List<UserBookShelf> findByUserAndReadingStatusOrderByCreatedDateDesc(User user, ReadingStatus reading);
 
-    List<UserBookShelf> findByUserAndCreatedDateBetweenOrderByCreatedDateDesc(User user, LocalDateTime startOfWeek, LocalDateTime endOfToday);
+
+    List<UserBookShelf> findByUserAndCreatedDateBetweenOrderByRecordedAtAsc(User user, LocalDateTime startOfWeek, LocalDateTime endOfToday);
 }

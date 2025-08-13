@@ -36,7 +36,7 @@ public class BookShelfService {
     public String registerBook(BookShelfDTO.RegisterBookDTO registerBookDTO, User user) {
         Book thisBook = bookRepository.findByBookId(registerBookDTO.getBookId());
         if (thisBook == null) {
-            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
+            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
         }
         boolean alreadyRegistered = userBookshelfRepository.existsByUserAndBook(user, thisBook);
         if (alreadyRegistered) {
@@ -58,7 +58,7 @@ public class BookShelfService {
     public String deleteBook(Long bookId, User user) {
         Book thisBook = bookRepository.findByBookId(bookId);
         if (thisBook == null) {
-            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
+            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
         }
         UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, thisBook);
         if (userBook == null) throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
@@ -73,7 +73,7 @@ public class BookShelfService {
     @Transactional
     public String changeBookState(Long bookId, User user){
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_EXIST));
         UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, book);
         if (userBook == null)
             throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
@@ -146,17 +146,17 @@ public class BookShelfService {
     // 이번주 서재에 등록한 책
     @Transactional(readOnly = true)
     public List<BookShelfDTO.WeeklyBooksDTO> viewWeeklyBookShelf(User user) {
-        LocalDate now = LocalDate.now();
+        LocalDate now = LocalDate.now(ZoneId.of("Asia/Seoul"));
         LocalDate monday = now.with(DayOfWeek.MONDAY);
         LocalDateTime startOfWeek = monday.atStartOfDay();
         LocalDateTime endOfToday = now.atTime(LocalTime.MAX);
 
         List<UserBookShelf> weeklyBooks = userBookshelfRepository
-                .findByUserAndCreatedDateBetweenOrderByCreatedDateDesc(user, startOfWeek, endOfToday);
+                .findByUserAndCreatedDateBetweenOrderByRecordedAtAsc(user, startOfWeek, endOfToday);
 
         return weeklyBooks.stream()
                 .map(ubs -> new BookShelfDTO.WeeklyBooksDTO(
-                        ubs.getCreatedDate().getDayOfWeek().getValue(),
+                        ubs.getRecordedAt().getDayOfMonth(),
                         new BookShelfDTO.BookThumbnail(ubs.getBook())
                 ))
                 .collect(Collectors.toList());
