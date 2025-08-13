@@ -9,7 +9,6 @@ import umc.nook.book.repository.BookRepository;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.bookshelves.dto.BookShelfDTO;
 import umc.nook.bookshelves.repository.UserBookshelfRepository;
-import umc.nook.bookshelves.service.BookShelfQueryService;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.records.domain.*;
@@ -19,12 +18,10 @@ import umc.nook.records.dto.RecordDTO;
 import umc.nook.records.gpt.GptService;
 import umc.nook.records.repository.BookRecordRepository;
 import umc.nook.records.repository.ChatRecordRepository;
-import umc.nook.records.repository.RecentRecordProjection;
 import umc.nook.users.domain.User;
 
 import java.time.Year;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,7 +37,6 @@ public class RecordService {
 
     private final BookRepository bookRepository;
 
-    private final BookShelfQueryService bookShelfQueryService;
 
 
 
@@ -189,7 +185,7 @@ public class RecordService {
     // 독서 기록률 조회
     @Transactional
     public RecordDTO.MonthlyRecordRateResponseDTO viewRecordRate(User user, Year year) {
-        return bookShelfQueryService.viewRecordRate(user,year);
+        return bookRecordRepository.viewRecordRate(user,year);
     }
 
 

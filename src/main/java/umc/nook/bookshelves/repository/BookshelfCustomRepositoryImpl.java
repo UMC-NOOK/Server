@@ -1,21 +1,20 @@
-package umc.nook.bookshelves.service;
+package umc.nook.bookshelves.repository;
 
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import umc.nook.book.domain.Book;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import umc.nook.book.domain.QBook;
 import umc.nook.bookshelves.domain.QUserBookShelf;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.bookshelves.dto.BookShelfDTO;
-import umc.nook.records.domain.BookRecord;
-import umc.nook.records.domain.ChatRecord;
+import umc.nook.bookshelves.dto.SortType;
+import umc.nook.bookshelves.repository.BookShelfCustomRepository;
 import umc.nook.records.domain.QBookRecord;
 import umc.nook.records.domain.QChatRecord;
 import umc.nook.records.dto.RecordDTO;
@@ -32,30 +31,29 @@ import java.util.stream.Stream;
 import static umc.nook.records.domain.QBookRecord.bookRecord;
 import static umc.nook.records.domain.QChatRecord.chatRecord;
 
-@Service
+@Repository
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
-public class BookShelfQueryService {
+class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
 
     private final JPAQueryFactory queryFactory;
 
     @Transactional
-    public List<BookShelfDTO.UserBookListResponseDTO> getUserBooks(User user, ReadingStatus status, Long cursorBookId, int size, String sort) {
+    public List<BookShelfDTO.UserBookListResponseDTO> getUserBooks(User user, ReadingStatus status, int page, int size, SortType sort) {
         QUserBookShelf ub = QUserBookShelf.userBookShelf;
         QBook book = QBook.book;
         QReview review = QReview.review;
-        QBookRecord record = bookRecord;
+        QBookRecord bookRecord = QBookRecord.bookRecord;
+        QChatRecord chatRecord = QChatRecord.chatRecord;
 
         BooleanBuilder condition = new BooleanBuilder()
                 .and(ub.user.eq(user))
                 .and(ub.readingStatus.eq(status));
 
-        if (cursorBookId != null) {
-            condition.and(book.bookId.lt(cursorBookId));
-        }
-
         List<Tuple> tuples;
 
-        if ("rating".equalsIgnoreCase(sort)) {
+        // 내가 준 별점순
+        if (sort.equals(SortType.RATING)) {
             tuples = queryFactory
                     .select(
                             book.bookId,
@@ -76,7 +74,7 @@ public class BookShelfQueryService {
                     .orderBy(review.rating.desc().nullsLast())
                     .limit(size + 1)
                     .fetch();
-        } else if ("recent".equalsIgnoreCase(sort)) {
+        } else if (sort.equals(SortType.RECENT)) {
             tuples = queryFactory
                     .select(
                             book.bookId,
@@ -127,9 +125,9 @@ public class BookShelfQueryService {
                             review.user.eq(user)
                     )
                     .where(condition)
-                    .orderBy(switch (sort.toLowerCase()) {
-                        case "title" -> book.title.asc();
-                        case "latest" -> ub.createdDate.desc();
+                    .orderBy(switch (sort) {
+                        case TITLE -> book.title.asc();
+                        case LATEST -> ub.createdDate.desc();
                         default -> ub.recordedAt.desc();
                     })
                     .limit(size + 1)
@@ -235,42 +233,6 @@ public class BookShelfQueryService {
                 ))
                 .toList();
         return new BookShelfDTO.BooksInsightDTO(totalCount, recordCount, typeDTOs);
-    }
-
-    @Transactional
-    public RecordDTO.MonthlyRecordRateResponseDTO viewRecordRate(User user, Year year) {
-        QUserBookShelf ub = QUserBookShelf.userBookShelf;
-
-        Map<Integer, List<UserBookShelf>> booksByMonth = queryFactory
-                .selectFrom(ub)
-                .where(
-                        ub.user.eq(user),
-                        ub.createdDate.year().eq(year.getValue())
-                )
-                .fetch()
-                .stream()
-                .collect(Collectors.groupingBy(b -> b.getCreatedDate().getMonthValue()));
-
-        List<RecordDTO.MonthlyRecordRateResponseDTO.MonthRate> rates = new ArrayList<>();
-
-        for (int month = 1; month <= 12; month++) {
-            List<UserBookShelf> booksInMonth = booksByMonth.getOrDefault(month, List.of());
-
-            if (booksInMonth.isEmpty()) {
-                rates.add(new RecordDTO.MonthlyRecordRateResponseDTO.MonthRate(month, 0.0));
-                continue;
-            }
-
-            long total = booksInMonth.size();
-            long recorded = booksInMonth.stream()
-                    .filter(b -> b.getRecordedAt() != null)
-                    .count();
-
-            double rate = (recorded * 100.0) / total;
-            rates.add(new RecordDTO.MonthlyRecordRateResponseDTO.MonthRate(month, rate));
-        }
-
-        return new RecordDTO.MonthlyRecordRateResponseDTO(rates);
     }
 
 
