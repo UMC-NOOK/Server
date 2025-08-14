@@ -99,7 +99,6 @@ public class BookShelfController {
         return ApiResponse.onSuccess(response,SuccessCode.OK);
     }
 
-
     @GetMapping("/registered-dates")
     @Operation(summary = "해당 월의 책 등록 날짜 목록 조회")
     @Parameter(

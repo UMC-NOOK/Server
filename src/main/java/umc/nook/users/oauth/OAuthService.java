@@ -13,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
+import umc.nook.profile.domain.Profile;
 import umc.nook.users.domain.KakaoRefreshToken;
 import umc.nook.users.domain.RoleType;
 import umc.nook.users.domain.Status;
@@ -136,7 +137,8 @@ public class OAuthService {
         String nickName = oAuth2Attribute.getNickname();
         String email = oAuth2Attribute.getEmail();
         Long kakaoUserId = oAuth2Attribute.getKakaoUserId();
-        return User.builder()
+
+        User user = User.builder()
                 .role(RoleType.USER)
                 .email(email)
                 .nickname(nickName)
@@ -144,6 +146,13 @@ public class OAuthService {
                 .status(Status.ACTIVE)
                 .isKakao(true)
                 .build();
+
+        Profile profile = Profile.builder()
+                .build();
+
+        user.setProfile(profile);
+
+        return user;
     }
 
     /**

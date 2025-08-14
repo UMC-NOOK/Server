@@ -2,6 +2,7 @@ package umc.nook.records.dto;
 
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -39,8 +40,16 @@ public class RecordDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RecordUpdateRequestDTO {
+        @NotNull(message = "recordId는 필수입니다.")
+        @Positive(message = "recordId는 양수여야 합니다.")
         private Long recordId;
+
+        @NotBlank(message = "page는 필수입니다.")
+        @Pattern(regexp = "^[0-9]+$", message = "page는 숫자만 입력 가능합니다.")
         private String page;
+
+        @NotBlank(message = "content는 필수입니다.")
+        @Size(max = 2000, message = "content는 최대 2000자까지 입력 가능합니다.")
         private String content;
 
     }
@@ -49,7 +58,13 @@ public class RecordDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CommentUpdateRequestDTO {
+
+        @NotNull(message = "commentId는 필수입니다.")
+        @Positive(message = "commentId는 양수여야 합니다.")
         private Long commentId;
+
+        @NotBlank(message = "content는 필수입니다.")
+        @Size(max = 2000, message = "content는 최대 2000자까지 입력 가능합니다.")
         private String content;
     }
 
