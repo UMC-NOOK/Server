@@ -1,12 +1,14 @@
 package umc.nook.users.redis;
 
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.keyvalue.repository.KeyValueRepository;
+import org.springframework.data.repository.NoRepositoryBean;
 import umc.nook.users.domain.RefreshToken;
 import umc.nook.users.domain.User;
 
 import java.util.Optional;
 
-public interface RefreshTokenRepository extends CrudRepository<RefreshToken,Long> {
+@NoRepositoryBean
+public interface RefreshTokenRedisRepository extends KeyValueRepository<RefreshToken,Long> {
     Optional<RefreshToken> findByRefreshToken(String refreshToken);
     
     Optional<RefreshToken> findByTokenId(String tokenId);

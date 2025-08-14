@@ -1,11 +1,13 @@
 package umc.nook.users.redis;
 
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.keyvalue.repository.KeyValueRepository;
+import org.springframework.data.repository.NoRepositoryBean;
 import umc.nook.users.domain.KakaoRefreshToken;
 
 import java.util.Optional;
 
-public interface KakaoRefreshTokenRepository extends CrudRepository<KakaoRefreshToken, String> {
+@NoRepositoryBean
+public interface KakaoRefreshTokenRedisRepository extends KeyValueRepository<KakaoRefreshToken, String> {
 
     Optional<KakaoRefreshToken> findByUserId(Long userId);
 

@@ -19,7 +19,7 @@ import umc.nook.users.domain.RoleType;
 import umc.nook.users.domain.Status;
 import umc.nook.users.domain.User;
 import umc.nook.users.dto.UserDTO;
-import umc.nook.users.redis.KakaoRefreshTokenRepository;
+import umc.nook.users.redis.KakaoRefreshTokenRedisRepository;
 import umc.nook.users.repository.UserRepository;
 import umc.nook.users.service.JwtProvider;
 
@@ -33,7 +33,7 @@ import java.util.Optional;
 public class OAuthService {
 
     private final UserRepository userRepository;
-    private final KakaoRefreshTokenRepository kakaoRefreshTokenRepository;
+    private final KakaoRefreshTokenRedisRepository kakaoRefreshTokenRedisRepository;
     private final JwtProvider jwtProvider;
     private final RestTemplate restTemplate;
 
@@ -180,7 +180,7 @@ public class OAuthService {
         String refreshToken = jwtProvider.createRefreshToken(user);
         UserDTO.KakaoTokenResponseDTO jwtTokenResponse = new UserDTO.KakaoTokenResponseDTO(accessToken,refreshToken);
 
-        KakaoRefreshToken token = kakaoRefreshTokenRepository.findByUserId(user.getUserId())
+        KakaoRefreshToken token = kakaoRefreshTokenRedisRepository.findByUserId(user.getUserId())
                 .map(existing -> {
                     existing.updateToken(newToken.getRefreshToken(), newToken.getAccessToken(), (long) newToken.getRefreshTokenExpiresIn()); // update 메서드 활용
                     return existing;
@@ -191,7 +191,7 @@ public class OAuthService {
                         .accessToken(newToken.getAccessToken())
                         .refreshTokenExpiresIn((long) newToken.getRefreshTokenExpiresIn())
                         .build());
-        kakaoRefreshTokenRepository.save(token);
+        kakaoRefreshTokenRedisRepository.save(token);
         return new UserDTO.KakaoLoginResponseDTO(user, jwtTokenResponse, newToken.getRefreshToken());
     }
 

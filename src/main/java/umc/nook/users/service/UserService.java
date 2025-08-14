@@ -17,8 +17,8 @@ import umc.nook.users.domain.*;
 import umc.nook.users.dto.UserDTO;
 import umc.nook.users.oauth.KakaoResponseParams;
 import umc.nook.users.oauth.OAuthService;
-import umc.nook.users.redis.KakaoRefreshTokenRepository;
-import umc.nook.users.redis.RefreshTokenRepository;
+import umc.nook.users.redis.KakaoRefreshTokenRedisRepository;
+import umc.nook.users.redis.RefreshTokenRedisRepository;
 import umc.nook.users.repository.UserRepository;
 
 import java.time.temporal.ChronoUnit;
@@ -35,9 +35,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenRedisRepository refreshTokenRepository;
 
-    private final KakaoRefreshTokenRepository kakaoRefreshTokenRepository;
+    private final KakaoRefreshTokenRedisRepository kakaoRefreshTokenRedisRepository;
     private final JwtProvider jwtProvider;
 
     private final OAuthService oAuthService;
@@ -227,7 +227,7 @@ public class UserService {
 
         KakaoResponseParams newToken = oAuthService.reissueKakaoToken(kakaoRefreshToken);
 
-        KakaoRefreshToken savedToken = kakaoRefreshTokenRepository.findByRefreshToken(kakaoRefreshToken)
+        KakaoRefreshToken savedToken = kakaoRefreshTokenRedisRepository.findByRefreshToken(kakaoRefreshToken)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_KAKAO_REFRESH_TOKEN));
 
         // 기존 refresh_token 유지 조건
@@ -268,12 +268,12 @@ public class UserService {
     // 카카오 로그아웃
     @Transactional
     public void kakaoLogout(User user) {
-        KakaoRefreshToken token = kakaoRefreshTokenRepository.findByUserId(user.getUserId())
+        KakaoRefreshToken token = kakaoRefreshTokenRedisRepository.findByUserId(user.getUserId())
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REFRESH_TOKEN));
         // 카카오 서버에 로그아웃 요청
         oAuthService.buildKakaoLogoutRedirectUrl();
         // 저장된 토큰 삭제
-        kakaoRefreshTokenRepository.deleteByUserId(user.getUserId());
+        kakaoRefreshTokenRedisRepository.deleteByUserId(user.getUserId());
     }
 
     // 쿠키 추출

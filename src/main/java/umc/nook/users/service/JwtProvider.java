@@ -15,7 +15,7 @@ import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
 import umc.nook.users.domain.RefreshToken;
 import umc.nook.users.domain.User;
-import umc.nook.users.redis.RefreshTokenRepository;
+import umc.nook.users.redis.RefreshTokenRedisRepository;
 
 import java.security.Key;
 import java.time.LocalDateTime;
@@ -40,7 +40,7 @@ public class JwtProvider {
     private final long ACCESS_EXP = 1000L * 60 * 60; // 1시간
     private final long REFRESH_EXP = 1000L * 60 * 60 * 24 * 3; // 3일
 
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenRedisRepository refreshTokenRepository;
     private final CustomUserDetailService customUserDetailService;
 
     @PostConstruct
