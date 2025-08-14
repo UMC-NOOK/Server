@@ -36,18 +36,7 @@ public class UserController {
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인 후 토큰을 발급합니다.")
     public ApiResponse<UserDTO.LoginResponseDTO> login(@RequestBody UserDTO.LoginDto request, HttpServletResponse response) {
-        UserDTO.LoginResponseDTO responseWithToken = userService.login(request);
-
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", responseWithToken.getToken().getRefreshToken())
-                .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(Duration.ofDays(14))
-                .build();
-
-        response.setHeader("Set-Cookie", refreshTokenCookie.toString());
-
+        UserDTO.LoginResponseDTO responseWithToken = userService.login(request, response);
         return ApiResponse.onSuccess(responseWithToken, SuccessCode.OK);
     }
 
@@ -55,23 +44,15 @@ public class UserController {
     @PostMapping("/reissue")
     @Operation(summary = "엑세스 토큰 재발급")
     public ApiResponse<UserDTO.TokenResponseDto> recreateAccessToken(HttpServletRequest request, HttpServletResponse response) {
-        UserDTO.TokenResponseDto responseDto = userService.reissue(request);
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", responseDto.getRefreshToken())
-                .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(Duration.ofDays(14))
-                .build();
-        response.setHeader("Set-Cookie", refreshTokenCookie.toString());
+        UserDTO.TokenResponseDto responseDto = userService.reissue(request,response);
         return ApiResponse.onSuccess(responseDto, SuccessCode.OK);
     }
 
     @PostMapping("/logout")
     @Operation(summary = "로그아웃", description = "로그아웃 처리합니다.")
-    public ApiResponse<String> logout(HttpServletRequest request) {
+    public ApiResponse<String> logout(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = request.getHeader("X-Refresh-Token");
-        userService.logout(refreshToken);
+        userService.logout(request, response);
         return ApiResponse.onSuccess("로그아웃 되었습니다.",SuccessCode.OK);
     }
 
@@ -86,28 +67,7 @@ public class UserController {
             description = "인가 코드 발급 url을 통해 받은 인가 코드를 입력하여 카카오 로그인을 진행합니다.")
     public ApiResponse<UserDTO.KakaoLoginResponseDTO> kakaoLogin(@RequestParam("code") String code, HttpServletResponse response) {
 
-        UserDTO.KakaoLoginResponseDTO kakaoResponse = userService.kakaoLogin(code);
-
-        // 1. JWT 리프레시 토큰 쿠키
-        ResponseCookie jwtRefreshTokenCookie = ResponseCookie.from("refreshToken", kakaoResponse.getToken().getRefreshToken())
-                .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(Duration.ofDays(14))
-                .build();
-
-        // 2. 카카오 리프레시 토큰 쿠키
-        ResponseCookie kakaoRefreshTokenCookie = ResponseCookie.from("kakaoRefreshToken", kakaoResponse.getKakaoRefreshToken())
-                .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(Duration.ofDays(60))
-                .build();
-
-        response.setHeader("Set-Cookie", jwtRefreshTokenCookie.toString());
-        response.addHeader("Set-Cookie", kakaoRefreshTokenCookie.toString());
+        UserDTO.KakaoLoginResponseDTO kakaoResponse = userService.kakaoLogin(code, response);
 
         return ApiResponse.onSuccess(kakaoResponse, SuccessCode.OK);
     }
@@ -118,18 +78,7 @@ public class UserController {
     public ApiResponse<UserDTO.TokenResponseDto> kakaoReissue(
             HttpServletRequest request,
             HttpServletResponse response) {
-
-        UserDTO.TokenResponseDto responseDto = userService.kakaoReissue(request);
-        // 쿠키 갱신
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("kakaoRefreshToken", responseDto.getRefreshToken())
-                .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(Duration.ofDays(14))
-                .build();
-        response.setHeader("Set-Cookie", refreshTokenCookie.toString());
-
+        UserDTO.TokenResponseDto responseDto = userService.kakaoReissue(request,response);
         return ApiResponse.onSuccess(responseDto, SuccessCode.OK);
     }
 

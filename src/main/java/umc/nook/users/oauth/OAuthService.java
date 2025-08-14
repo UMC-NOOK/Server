@@ -19,7 +19,7 @@ import umc.nook.users.domain.RoleType;
 import umc.nook.users.domain.Status;
 import umc.nook.users.domain.User;
 import umc.nook.users.dto.UserDTO;
-import umc.nook.users.repository.KakaoRefreshTokenRepository;
+import umc.nook.users.redis.KakaoRefreshTokenRepository;
 import umc.nook.users.repository.UserRepository;
 import umc.nook.users.service.JwtProvider;
 
@@ -178,7 +178,7 @@ public class OAuthService {
 
         String accessToken = jwtProvider.createAccessToken(user);
         String refreshToken = jwtProvider.createRefreshToken(user);
-        UserDTO.TokenResponseDto jwtTokenResponse = new UserDTO.TokenResponseDto(accessToken, refreshToken);
+        UserDTO.KakaoTokenResponseDTO jwtTokenResponse = new UserDTO.KakaoTokenResponseDTO(accessToken,refreshToken);
 
         KakaoRefreshToken token = kakaoRefreshTokenRepository.findByUserId(user.getUserId())
                 .map(existing -> {

@@ -1,10 +1,7 @@
 package umc.nook.users.dto;
 
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.*;
 import umc.nook.users.domain.User;
 
@@ -26,7 +23,7 @@ public class UserDTO {
                 message = "비밀번호는 영문과 숫자를 포함해야 합니다.")
         private String password;
 
-        @NotBlank(message = "닉네임은 필수입니다.")
+        @NotNull(message = "닉네임은 필수입니다.")
         @Size(min = 2, max = 30, message = "닉네임은 2자 이상 30자 이하로 입력해주세요.")
         private String nickname;
     }
@@ -60,7 +57,6 @@ public class UserDTO {
     @NoArgsConstructor
     public static class TokenResponseDto {
         private String accessToken;
-        private String refreshToken;
     }
 
     @Getter
@@ -94,16 +90,24 @@ public class UserDTO {
     }
 
     @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class KakaoTokenResponseDTO {
+        private String accessToken;
+        private String refreshToken;
+    }
+    @Getter
     public static class KakaoLoginResponseDTO {
 
         private Long userId;
         private String email;
         private String nickname;
-        private TokenResponseDto token;
+        private KakaoTokenResponseDTO token;
 
         private String kakaoRefreshToken;
 
-        public KakaoLoginResponseDTO(User user, TokenResponseDto token, String kakaoRefreshToken) {
+        public KakaoLoginResponseDTO(User user, KakaoTokenResponseDTO token, String kakaoRefreshToken) {
             this.userId = user.getUserId();
             this.email = user.getEmail();
             this.nickname = user.getNickname();
