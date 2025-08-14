@@ -30,9 +30,15 @@ public class ReviewService {
     private final BookRepository bookRepository;
 
     public ReviewResponseDTO.ReviewResultDTO getReviews(Long bookId, CustomUserDetails userDetails, int page) {
+        if (!bookRepository.existsByBookId(bookId)) {
+            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
+        }
+
         PageRequest pageable = PageRequest.of(page, 5, Sort.by("createdDate").descending());
         Page<Review> reviews = reviewRepository.findByBookBookId(bookId, pageable);
-        if (page >= reviews.getTotalPages()) {
+
+        int totalPages = reviews.getTotalPages();
+        if ((totalPages == 0 && page > 0) || (totalPages > 0 && page >= totalPages)) {
             throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
         }
         return ReviewConverter.toReviewResultDTO(reviews, userDetails.getUser());
@@ -49,9 +55,9 @@ public class ReviewService {
 
         Book book = bookRepository.findByBookId(bookId);
 
-            if (book == null) {
-                throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
-            }
+        if (book == null) {
+            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
+        }
 
         Review review = Review.builder()
                 .rating(reviewDTO.getRating())

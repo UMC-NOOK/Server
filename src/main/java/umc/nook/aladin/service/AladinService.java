@@ -46,7 +46,8 @@ public class AladinService {
         StringBuilder url = new StringBuilder(ALADIN_BASE_URL + "/ItemSearch.aspx?");
         url.append("ttbkey=").append(ttbKey)
                 .append("&Query=").append(query)
-                .append("&SearchTarget=").append("all")
+                .append("&SearchTarget=").append("book")
+                .append("&Sort=").append("SalesPoint")
                 .append("&MaxResults=").append(maxResults)
                 .append("&start=").append(start)
                 .append("&cover=Big")

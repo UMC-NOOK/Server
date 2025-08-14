@@ -1,7 +1,14 @@
 name: Spring Boot Application CICD with Docker
+
 on:
   push:
     branches: [ "develop" ]
+  workflow_dispatch:
+    inputs:
+      clear_cache:
+        description: "Gradle & Docker 캐시 삭제 여부"
+        required: false
+        default: "false"
 
 jobs:
   CI-CD:
@@ -19,6 +26,14 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
+    # Gradle 캐시 삭제
+    - name: Clear Gradle Cache
+      if: ${{ github.event.inputs.clear_cache == 'true' }}
+      run: |
+        echo "Clearing Gradle cache..."
+        rm -rf ~/.gradle/caches
+        rm -rf ~/.gradle/wrapper
+
     - name: make application.yml
       run: | 
         cd ./src/main/resources
@@ -28,6 +43,7 @@ jobs:
     - name: Grant Execute Permission For Gradlew
       run: chmod +x gradlew
 
+    # Docker Build & Push
     - name: docker build & push
       run: |
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
@@ -42,7 +58,13 @@ jobs:
         username: ${{ secrets.USERNAME }}
         port: 22
         script: |
+          # 서버 컨테이너 & 이미지 정리
           docker rm -f $(docker ps -qa) || true
+          if [ "${{ github.event.inputs.clear_cache }}" = "true" ]; then
+            echo "Clearing Docker build cache..."
+            docker builder prune -af
+            docker image prune -af
+          fi
           docker pull ${{ secrets.DOCKER_USERNAME }}/nook-server
           docker-compose -f docker-compose.yml up -d
           docker image prune -f

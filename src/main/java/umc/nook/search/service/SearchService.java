@@ -40,9 +40,15 @@ public class SearchService {
         if (response != null && response.getItem() != null) {
             for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
                 if (isValidBook(item)) {
+                    System.out.println("item title = " + item.getTitle());
+                    System.out.println("item category = " + item.getCategoryName());
                     Book book = bookService.findByIsbn13(item.getIsbn13());
                     if (book == null) {
                         book = bookService.addBook(item.getIsbn13());
+                    }
+                    // 책의 필수 정보가 비어있는 경우
+                    if (book == null) {
+                        continue;
                     }
                     books.add(SearchConverter.toBookDTO(item, book.getBookId()));
                 }
@@ -53,7 +59,7 @@ public class SearchService {
         }
         int totalItems = response != null ? response.getTotalResults() : 0;
         int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / fetchSize): 0;
-        if (page >= totalPages) {
+        if ((totalPages == 0 && page > 0) || (totalPages > 0 && page >= totalPages)) {
             throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
         }
         recentQueryService.saveRecentQuery(user, query);
