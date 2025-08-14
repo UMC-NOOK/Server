@@ -39,28 +39,28 @@ public class ReadingRoomController {
     @PostMapping("/{roomId}/join")
     public ApiResponse<Long> joinReadingRoom(@PathVariable Long roomId, @AuthenticationPrincipal CustomUserDetails user) {
         Long joinedRoomId = readingRoomService.joinRoom(roomId, user);
-        return ApiResponse.onSuccess(joinedRoomId, SuccessCode.OK);
+        return ApiResponse.onSuccess(joinedRoomId, SuccessCode.CREATED);
     }
 
     @Operation(summary = "리딩룸 생성", description = "생성한 리딩룸 ID를 반환합니다. 생성한 사용자가 호스트가 됩니다.")
     @PostMapping
     public ApiResponse<Long> createReadingRoom(@RequestParam ThemeName themeName, @RequestParam List<HashtagName> hashtags, @RequestBody ReadingRoomDTO.ReadingRoomRequestDTO readingRoomRequestDTO, @AuthenticationPrincipal CustomUserDetails user) {
         Long createdRoomId = readingRoomService.createRoom(readingRoomRequestDTO, themeName, hashtags, user);
-        return ApiResponse.onSuccess(createdRoomId, SuccessCode.OK);
+        return ApiResponse.onSuccess(createdRoomId, SuccessCode.CREATED);
     }
 
     @Operation(summary = "호스트가 리딩룸 삭제")
     @DeleteMapping("/{roomId}/host")
     public ApiResponse<Long> deleteReadingRoom(@PathVariable Long roomId, @AuthenticationPrincipal CustomUserDetails user) {
         readingRoomService.deleteRoom(roomId, user);
-        return ApiResponse.onSuccess(roomId, SuccessCode.OK);
+        return ApiResponse.onSuccess(roomId, SuccessCode.NO_CONTENT);
     }
 
     @Operation(summary = "게스트가 가입한 리딩룸 탈퇴")
     @DeleteMapping("/{roomId}/guest")
     public ApiResponse<Long> leaveReadingRoom(@PathVariable Long roomId, @AuthenticationPrincipal CustomUserDetails user) {
         readingRoomService.leaveRoom(roomId, user);
-        return ApiResponse.onSuccess(roomId, SuccessCode.OK);
+        return ApiResponse.onSuccess(roomId, SuccessCode.NO_CONTENT);
     }
 
     @Operation(summary = "호스트가 리딩룸 수정")
