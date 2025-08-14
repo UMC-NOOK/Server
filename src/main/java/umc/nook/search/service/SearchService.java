@@ -18,6 +18,9 @@ import umc.nook.users.service.CustomUserDetails;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,28 +36,37 @@ public class SearchService {
     @Transactional
     public SearchResponseDTO.SearchResultDTO searchBooks(String query, int page, CustomUserDetails userDetails) {
         User user = userDetails.getUser();
-
         int fetchSize = LIMIT * 2;
+
         AladinResponseDTO.ResultDTO response = aladinService.searchBooks(query, page+1, fetchSize);
         List<SearchResponseDTO.BookDTO> books = new ArrayList<>();
         if (response != null && response.getItem() != null) {
-            for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
-                if (isValidBook(item)) {
-                    Book book = bookService.findByIsbn13(item.getIsbn13());
-                    if (book == null) {
-                        book = bookService.addBook(item.getIsbn13());
-                    }
-                    // 책의 필수 정보가 비어있는 경우
-                    if (book == null) {
-                        continue;
-                    }
-                    books.add(SearchConverter.toBookDTO(item, book.getBookId()));
-                }
-                if (books.size() == LIMIT) {
-                    break;
-                }
+            List<AladinResponseDTO.BookDetailDTO> validItems = response.getItem().stream()
+                    .filter(this::isValidBook)
+                    .toList();
+            List<String> isbn13List = validItems.stream()
+                    .map(AladinResponseDTO.BookDetailDTO::getIsbn13)
+                    .distinct()
+                    .toList();
+            Map<String, Book> bookMap = bookService.findBookByIsbn13List(isbn13List);
+
+            List<String> missingIsbn13List = isbn13List.stream()
+                    .filter(isbn13 -> !bookMap.containsKey(isbn13))
+                    .toList();
+            if (!missingIsbn13List.isEmpty()) {
+                List<Book> newBooks = bookService.addBooksBatch(missingIsbn13List);
+                newBooks.forEach(book -> bookMap.put(book.getIsbn13(), book));
             }
+            books = validItems.stream()
+                    .map(item -> {
+                        Book book = bookMap.get(item.getIsbn13());
+                        return (book != null) ? SearchConverter.toBookDTO(item, book.getBookId()) : null;
+                    })
+                    .filter(Objects::nonNull)
+                    .limit(LIMIT)
+                    .toList();
         }
+
         int totalItems = response != null ? response.getTotalResults() : 0;
         int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / fetchSize): 0;
         if ((totalPages == 0 && page > 0) || (totalPages > 0 && page >= totalPages)) {
