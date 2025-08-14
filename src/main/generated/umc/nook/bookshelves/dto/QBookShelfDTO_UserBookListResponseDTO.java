@@ -13,8 +13,8 @@ public class QBookShelfDTO_UserBookListResponseDTO extends ConstructorExpression
 
     private static final long serialVersionUID = 74969800L;
 
-    public QBookShelfDTO_UserBookListResponseDTO(com.querydsl.core.types.Expression<Long> bookId, com.querydsl.core.types.Expression<String> title, com.querydsl.core.types.Expression<String> author, com.querydsl.core.types.Expression<String> publisher, com.querydsl.core.types.Expression<String> coverImageUrl, com.querydsl.core.types.Expression<String> readingStatus, com.querydsl.core.types.Expression<String> isbn13, com.querydsl.core.types.Expression<Integer> myRating) {
-        super(BookShelfDTO.UserBookListResponseDTO.class, new Class<?>[]{long.class, String.class, String.class, String.class, String.class, String.class, String.class, int.class}, bookId, title, author, publisher, coverImageUrl, readingStatus, isbn13, myRating);
+    public QBookShelfDTO_UserBookListResponseDTO(com.querydsl.core.types.Expression<Long> bookId, com.querydsl.core.types.Expression<String> title, com.querydsl.core.types.Expression<String> author, com.querydsl.core.types.Expression<String> publisher, com.querydsl.core.types.Expression<String> coverImageUrl, com.querydsl.core.types.Expression<String> readingStatus, com.querydsl.core.types.Expression<String> isbn13, com.querydsl.core.types.Expression<Integer> myRating, com.querydsl.core.types.Expression<String> publicationDate) {
+        super(BookShelfDTO.UserBookListResponseDTO.class, new Class<?>[]{long.class, String.class, String.class, String.class, String.class, String.class, String.class, int.class, String.class}, bookId, title, author, publisher, coverImageUrl, readingStatus, isbn13, myRating, publicationDate);
     }
 
 }
