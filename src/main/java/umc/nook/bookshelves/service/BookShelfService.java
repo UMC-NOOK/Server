@@ -33,13 +33,23 @@ public class BookShelfService {
     private final ChatRecordRepository chatRecordRepository;
     private final BookRecordRepository bookRecordRepository;
 
+    private Book getBookOrThrow(Long bookId) {
+        return bookRepository.findById(bookId)
+                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_FOUND));
+    }
+
+    private UserBookShelf getUserBookShelfOrThrow(User user, Book book) {
+        UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, book);
+        if (userBook == null) {
+            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
+        }
+        return userBook;
+    }
+
     // 서재에 책 등록
     @Transactional
     public String registerBook(BookShelfDTO.RegisterBookDTO registerBookDTO, User user) {
-        Book thisBook = bookRepository.findByBookId(registerBookDTO.getBookId());
-        if (thisBook == null) {
-            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
-        }
+        Book thisBook = getBookOrThrow(registerBookDTO.getBookId());
         // 해당 날짜에 등록 가능한지 확인
         boolean alreadyRegisteredToday = userBookshelfRepository.existsByUserAndRecordedAt(
                 user,
@@ -72,12 +82,8 @@ public class BookShelfService {
     // 책 삭제
     @Transactional
     public String deleteBook(Long bookId, User user) {
-        Book thisBook = bookRepository.findByBookId(bookId);
-        if (thisBook == null) {
-            throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
-        }
-        UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, thisBook);
-        if (userBook == null) throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
+        Book thisBook = getBookOrThrow(bookId);
+        UserBookShelf userBook = getUserBookShelfOrThrow(user,thisBook);
         // ChatRecord 삭제
         chatRecordRepository.deleteAllByBookshelf(userBook);
         // BookRecord 삭제
@@ -89,12 +95,8 @@ public class BookShelfService {
     // 독서중으로 상태 변경
     @Transactional
     public String changeBookState(Long bookId, User user){
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_EXIST));
-        UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, book);
-        if (userBook == null)
-            throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
-
+        Book book = getBookOrThrow(bookId);
+        UserBookShelf userBook = getUserBookShelfOrThrow(user,book);
         ReadingStatus currentStatus = userBook.getReadingStatus();
         if (currentStatus == ReadingStatus.READING) {
             throw new CustomException(ErrorCode.ALREADY_READING);
@@ -124,6 +126,7 @@ public class BookShelfService {
                 .filter(b -> b.getBook() != null)
                 .map(b -> b.getRecordedAt())
                 .filter(date -> YearMonth.from(date).equals(yearMonth))
+                .distinct()
                 .sorted()
                 .collect(Collectors.toList());
         return new BookShelfDTO.RegisteredBookListResponseDTO(dates);
