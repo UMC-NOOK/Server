@@ -223,4 +223,9 @@ public class RecordService {
                 .orElseThrow(()->new CustomException(ErrorCode.RECORD_NOT_EXIST));
     }
 
+
+    private void validateBookRecord(Long recordId) {
+        BookRecord bookRecord = bookRecordRepository.findById(recordId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RECORD_NOT_FOUND));
+    }
 }
