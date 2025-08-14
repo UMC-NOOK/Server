@@ -84,6 +84,14 @@ public class BookService {
         }
         AladinResponseDTO.BookDetailDTO item = items.get(0);
 
+        if (item.getIsbn13() == null || item.getIsbn13().isBlank() || item.getIsbn13().length() != 13) return null;
+        if (item.getCategoryName() == null || item.getCategoryName().isBlank()) return null;
+        if (!BookFilterUtils.isValidMallType(item.getMallType())) return null;
+
+        // depth(>) 최소 2개 이상 체크
+        String[] parts = item.getCategoryName().split(">");
+        if (parts.length < 2) return null;
+
         if (!BookFilterUtils.isBookIncluded(item.getCategoryName())) {
             throw new CustomException(ErrorCode.BOOK_NOT_ALLOWED);
         }
@@ -102,6 +110,7 @@ public class BookService {
     }
 
     public Category getCategoryByFullName(String categoryFullName) {
+        System.out.println("categoryFullName = " + categoryFullName);
         String[] parts = categoryFullName.split(">");
         String mallType = parts[0].trim();
         String categoryName = parts[1].trim();
