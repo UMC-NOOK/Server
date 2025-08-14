@@ -83,12 +83,6 @@ public class JwtProvider {
         return token;
     }
 
-
-    public void deleteRefreshToken(String refreshToken) {
-        refreshTokenRepository.findByRefreshToken(refreshToken)
-                .ifPresent(refreshTokenRepository::delete);
-    }
-
     public UsernamePasswordAuthenticationToken getAuthentication(String email) {
         UserDetails userDetails = customUserDetailService.loadUserByUsername(email);
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
