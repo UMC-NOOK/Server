@@ -40,8 +40,6 @@ public class SearchService {
         if (response != null && response.getItem() != null) {
             for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
                 if (isValidBook(item)) {
-                    System.out.println("item title = " + item.getTitle());
-                    System.out.println("item category = " + item.getCategoryName());
                     Book book = bookService.findByIsbn13(item.getIsbn13());
                     if (book == null) {
                         book = bookService.addBook(item.getIsbn13());
