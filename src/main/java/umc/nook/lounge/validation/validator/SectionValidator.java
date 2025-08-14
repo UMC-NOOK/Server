@@ -13,16 +13,14 @@ public class SectionValidator implements ConstraintValidator<ValidatedSection, S
     }
 
     @Override
-    public boolean isValid(String sectionId, ConstraintValidatorContext constraintValidatorContext) {
+    public boolean isValid(String sectionId, ConstraintValidatorContext context) {
         if (sectionId == null) {
             return true;
         }
 
-        if (!sectionId.equalsIgnoreCase("best")
-                && !sectionId.equalsIgnoreCase("new")
-                && !sectionId.equalsIgnoreCase("favorite_best")) {
-            throw new CustomException(ErrorCode.INVALID_SECTION);
-        }
-        return true;
+        return sectionId.equalsIgnoreCase("best")
+                || sectionId.equalsIgnoreCase("new")
+                || sectionId.equalsIgnoreCase("favorite_best");
     }
+
 }
