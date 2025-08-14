@@ -62,6 +62,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                             book.publisher,
                             book.coverImageUrl,
                             ub.readingStatus.stringValue(),
+                            book.isbn13,
                             review.rating
                     )
                     .from(ub)
@@ -83,6 +84,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                             book.publisher,
                             book.coverImageUrl,
                             ub.readingStatus.stringValue(),
+                            book.isbn13,
                             review.rating,
                             Expressions.stringTemplate(
                                     "COALESCE(GREATEST({0}, {1}), {2})",
@@ -116,6 +118,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                             book.publisher,
                             book.coverImageUrl,
                             ub.readingStatus.stringValue(),
+                            book.isbn13,
                             review.rating
                     )
                     .from(ub)
@@ -142,6 +145,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                         t.get(book.publisher),
                         t.get(book.coverImageUrl),
                         t.get(ub.readingStatus.stringValue()),
+                        t.get(book.isbn13),
                         t.get(review.rating) != null ? t.get(review.rating).intValue() : 0
                 ))
                 .toList();
