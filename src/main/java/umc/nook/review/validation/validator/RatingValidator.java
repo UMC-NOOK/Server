@@ -14,9 +14,6 @@ public class RatingValidator implements ConstraintValidator<ValidatedRating, Int
 
     @Override
     public boolean isValid(Integer rating, ConstraintValidatorContext constraintValidatorContext) {
-        if (rating < 0 || rating > 5) {
-            throw new CustomException(ErrorCode.INVALID_RATING);
-        }
-        return true;
+        return rating != null && rating >= 0 && rating <= 5;
     }
 }

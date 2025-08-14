@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -50,7 +51,7 @@ public class SearchController {
     })
     @GetMapping("/books")
     public ApiResponse<SearchResponseDTO.SearchResultDTO> searchBooks(
-            @RequestParam(required = false) String query,
+            @NotBlank(message = "검색어는 필수입니다.") String query,
             @ValidatedPage @RequestParam(defaultValue = "0") int page,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
