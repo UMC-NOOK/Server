@@ -41,4 +41,9 @@ public class ReadingRoomSocketController {
             @Payload ReadingRoomDTO.ReadingBookPayload payload) {
         readingRoomService.readingBooks(payload);
     }
+
+    @MessageMapping("/all-reading-books/{roomId}")
+    public void allReadingBooks( @DestinationVariable Long roomId) {
+        readingRoomService.broadcastReadingBooksFromRedis(roomId);
+    }
 }

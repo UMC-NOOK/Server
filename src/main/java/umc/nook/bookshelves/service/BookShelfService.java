@@ -2,14 +2,17 @@ package umc.nook.bookshelves.service;
 
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import umc.nook.book.domain.Book;
 import umc.nook.book.repository.BookRepository;
+import umc.nook.bookshelves.controller.BookShelfController;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.bookshelves.dto.BookShelfDTO;
+import umc.nook.bookshelves.dto.SortType;
 import umc.nook.bookshelves.repository.UserBookshelfRepository;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
@@ -21,13 +24,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class BookShelfService {
 
     private final BookRepository bookRepository;
     private final UserBookshelfRepository userBookshelfRepository;
-    private final BookShelfQueryService bookShelfQueryService;
-
     private final ChatRecordRepository chatRecordRepository;
     private final BookRecordRepository bookRecordRepository;
 
@@ -38,10 +40,24 @@ public class BookShelfService {
         if (thisBook == null) {
             throw new CustomException(ErrorCode.BOOK_NOT_FOUND);
         }
-        boolean alreadyRegistered = userBookshelfRepository.existsByUserAndBook(user, thisBook);
-        if (alreadyRegistered) {
+        // 해당 날짜에 등록 가능한지 확인
+        boolean alreadyRegisteredToday = userBookshelfRepository.existsByUserAndRecordedAt(
+                user,
+                registerBookDTO.getDate()
+        );
+        if (alreadyRegisteredToday) {
+            throw new CustomException(ErrorCode.ALREADY_REGISTERED_TODAY);
+        }
+        // 이미 등록된 책인지 확인
+        boolean alreadyRegisteredBook = userBookshelfRepository.existsByUserAndBook(
+                user,
+                thisBook
+        );
+        if (alreadyRegisteredBook) {
             throw new CustomException(ErrorCode.DUPLICATE_BOOK_IN_SHELF);
         }
+
+        // 책 등록
         UserBookShelf userBook = UserBookShelf.builder()
                 .book(thisBook)
                 .recordedAt(registerBookDTO.getDate())
@@ -70,10 +86,11 @@ public class BookShelfService {
         return "책이 성공적으로 서재에서 삭제되었습니다.";
     }
 
+    // 독서중으로 상태 변경
     @Transactional
     public String changeBookState(Long bookId, User user){
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_EXIST));
         UserBookShelf userBook = userBookshelfRepository.findByUserAndBook(user, book);
         if (userBook == null)
             throw new CustomException(ErrorCode.BOOK_NOT_EXIST);
@@ -97,41 +114,56 @@ public class BookShelfService {
     // 서재 통계 조회
     @Transactional(readOnly = true)
     public BookShelfDTO.BooksInsightDTO viewBooksInsight(User user) {
-        return bookShelfQueryService.getBooksInsight(user);
+        return userBookshelfRepository.getBooksInsight(user);
     }
 
+    // 월별 책 등록된 날짜 조회
     @Transactional(readOnly = true)
     public BookShelfDTO.RegisteredBookListResponseDTO viewRegisteredDatesInMonth(User user, YearMonth yearMonth) {
         List<LocalDate> dates = userBookshelfRepository.findAllByUser(user).stream()
                 .filter(b -> b.getBook() != null)
-                .map(b -> b.getCreatedDate().toLocalDate())
+                .map(b -> b.getRecordedAt())
                 .filter(date -> YearMonth.from(date).equals(yearMonth))
                 .sorted()
                 .collect(Collectors.toList());
         return new BookShelfDTO.RegisteredBookListResponseDTO(dates);
     }
 
+    // 서재 책 조회 - 정렬 조건, offset 기반 페이징
     @Transactional(readOnly = true)
-    public BookShelfDTO.CursorPageDTO<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
-            User user, ReadingStatus statusStr, Long cursorBookId, int size, String sort) {
+    public BookShelfDTO.PageDTO<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
+            User user,
+            ReadingStatus status,
+            int page,
+            Integer size,
+            SortType sort
+    ) {
+        int safePage = Math.max(0, page);
+        int safeSize = (size == null || size <= 0) ? 8 : size;
+        SortType safeSort = (sort == null) ? SortType.RECENT : sort;
 
-        List<BookShelfDTO.UserBookListResponseDTO> dtoList = bookShelfQueryService.getUserBooks(user, statusStr, cursorBookId, size, sort);
+        // size + 1로 조회
+        List<BookShelfDTO.UserBookListResponseDTO> content =
+                userBookshelfRepository.getUserBooks(user, status, safePage, safeSize + 1, safeSort);
 
-        boolean hasNext = dtoList.size() > size;
-        Long nextCursor = null;
-
+        // hasNext 계산
+        boolean hasNext = content.size() > safeSize;
         if (hasNext) {
-            BookShelfDTO.UserBookListResponseDTO last = dtoList.remove(size); // size+1 번째 요소 제거
-            nextCursor = last.getBookId();
+            content = content.subList(0, safeSize);
         }
 
-        return new BookShelfDTO.CursorPageDTO<>(dtoList, nextCursor, hasNext);
+        return new BookShelfDTO.PageDTO<>(
+                content,
+                safePage,
+                safeSize,
+                hasNext
+        );
     }
 
+    // 월별 책 조회
     public List<BookShelfDTO.DailyBooksResponseDTO> getMonthlyBooks(User user, YearMonth yearMonth) {
-        return bookShelfQueryService.getMonthlyBooks(user, yearMonth);
+        return userBookshelfRepository.getMonthlyBooks(user, yearMonth);
     }
-
 
     // 지금 독서중인 책
     @Transactional(readOnly = true)
@@ -146,17 +178,16 @@ public class BookShelfService {
     // 이번주 서재에 등록한 책
     @Transactional(readOnly = true)
     public List<BookShelfDTO.WeeklyBooksDTO> viewWeeklyBookShelf(User user) {
-        LocalDate now = LocalDate.now();
+        LocalDate now = LocalDate.now(ZoneId.of("Asia/Seoul"));
         LocalDate monday = now.with(DayOfWeek.MONDAY);
         LocalDateTime startOfWeek = monday.atStartOfDay();
         LocalDateTime endOfToday = now.atTime(LocalTime.MAX);
-
         List<UserBookShelf> weeklyBooks = userBookshelfRepository
-                .findByUserAndCreatedDateBetweenOrderByCreatedDateDesc(user, startOfWeek, endOfToday);
+                .findByUserAndCreatedDateBetweenOrderByRecordedAtAsc(user, startOfWeek, endOfToday);
 
         return weeklyBooks.stream()
                 .map(ubs -> new BookShelfDTO.WeeklyBooksDTO(
-                        ubs.getCreatedDate().getDayOfWeek().getValue(),
+                        ubs.getRecordedAt().getDayOfMonth(),
                         new BookShelfDTO.BookThumbnail(ubs.getBook())
                 ))
                 .collect(Collectors.toList());

@@ -47,15 +47,15 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/",
+                                "/api/users/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/api/**",
                                 "/swagger-resources/**",
-                                "/readingroom-ws/**",
-                                "/ws/**" )
+                                "/ws/**" ,
+                                "/music/**")
                         .permitAll()
+                        .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated());
-
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(jwtExceptionFilter, jwtAuthenticationFilter.getClass());
         return http.build();

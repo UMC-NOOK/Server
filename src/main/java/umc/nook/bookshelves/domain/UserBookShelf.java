@@ -1,13 +1,12 @@
 package umc.nook.bookshelves.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 import umc.nook.BaseTimeEntity;
 import umc.nook.book.domain.Book;
 import umc.nook.records.domain.BookRecord;
+import umc.nook.records.domain.ChatRecord;
 import umc.nook.users.domain.User;
 
 import java.time.LocalDate;
@@ -19,9 +18,7 @@ import java.util.List;
         @UniqueConstraint(columnNames = {"user_id", "book_id"})
 })
 @Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserBookShelf extends BaseTimeEntity {
 
     @Id
@@ -37,17 +34,31 @@ public class UserBookShelf extends BaseTimeEntity {
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
+    @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "reading_status")
+    @Column(name="reading_status", nullable=false)
     private ReadingStatus readingStatus;
 
-    @Column(name = "recorded_at")
+    @NotNull
+    @Column(name="recorded_at", nullable=false)
     private LocalDate recordedAt;
 
     @OneToMany(mappedBy = "bookshelf", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<BookRecord> records = new ArrayList<>();
+    private List<BookRecord> bookRecords = new ArrayList<>();
 
-    public void updateReadingStatus(ReadingStatus reading) {
-        this.readingStatus = reading;
+    @OneToMany(mappedBy = "bookshelf", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ChatRecord> chatRecords = new ArrayList<>();
+
+    public void updateReadingStatus(ReadingStatus readingStatus) {
+        this.readingStatus = readingStatus;
     }
+
+    @Builder
+    public UserBookShelf(User user, Book book, LocalDate recordedAt, ReadingStatus readingStatus ) {
+        this.user = user;
+        this.book = book;
+        this.recordedAt = recordedAt;
+        this.readingStatus = readingStatus;
+    }
+
 }

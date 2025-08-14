@@ -7,9 +7,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.dto.BookShelfDTO;
+import umc.nook.bookshelves.dto.SortType;
 import umc.nook.bookshelves.service.BookShelfService;
 import umc.nook.common.response.ApiResponse;
 import umc.nook.common.response.ErrorCode;
@@ -30,10 +32,10 @@ public class BookShelfController {
 
     @PostMapping("/register")
     @Operation(summary = "서재 책 등록", description = "서재에 책을 등록합니다.")
-    public ApiResponse<String> registerBook (@RequestBody BookShelfDTO.RegisterBookDTO registerBookDTO,
+    public ApiResponse<String> registerBook (@RequestBody @Validated BookShelfDTO.RegisterBookDTO registerBookDTO,
                                              @AuthenticationPrincipal CustomUserDetails userDetails){
         String result = bookshelfService.registerBook(registerBookDTO, userDetails.getUser());
-        return ApiResponse.onSuccess(result, SuccessCode.OK);
+        return ApiResponse.onSuccess(result, SuccessCode.CREATED);
     }
 
     @DeleteMapping("/delete/{bookId}")
@@ -41,7 +43,7 @@ public class BookShelfController {
     public ApiResponse<String> deleteBook (@PathVariable Long bookId,
                                            @AuthenticationPrincipal CustomUserDetails userDetails) {
         String result = bookshelfService.deleteBook(bookId, userDetails.getUser());
-        return ApiResponse.onSuccess(result, SuccessCode.OK);
+        return ApiResponse.onSuccess(result, SuccessCode.ACCEPTED);
     }
 
     @PatchMapping("/start-reading/{bookId}")
@@ -55,7 +57,7 @@ public class BookShelfController {
     @GetMapping("/my-books/monthly")
     @Operation(
             summary = "월별 서재 조회",
-            description = "입력한 연월(yyyy-MM)에 해당하는 독서 기록을 날짜별로 조회합니다."
+            description = "입력한 연월(yyyy-MM)에 해당하는 책을 날짜별로 조회합니다."
     )
     @Parameter(
             name = "yearMonth",
@@ -77,24 +79,26 @@ public class BookShelfController {
 
     @GetMapping
     @Operation(
-            summary = "서재 상태별 조회",
-            description = "찜(WISH), 독서중(READING), 완독(COMPLETED) 상태 중 하나를 선택하고, 정렬 기준도 선택하여 조회합니다."
+            summary = "서재 독서 상태/정렬 순서별 조회",
+            description = "독서 상태, 페이지 번호, 정렬 순서별로 서재 목록을 조회합니다."
     )
     @Parameters({
-            @Parameter(name = "status", description = "서재 상태 필터: BOOKMARK / READING / COMPLETED", required = true, example = "READING"),
-            @Parameter(name = "cursorBookId", description = "커서 기반 페이징을 위한 마지막 Book ID", required = false, example = "15"),
-            @Parameter(name = "size", description = "가져올 데이터 개수 (기본값: 10)", required = false, example = "10"),
-            @Parameter(name = "sort", description = "정렬 기준: recent(최근 기록순), latest(최근 등록순), title(제목순), rating(별점순)", required = false, example = "rating")
+            @Parameter(name = "status", description = "서재 상태: BOOKMARK / READING / FINISHED", required = true, example = "READING"),
+            @Parameter(name = "page", description = "0부터 시작하는 페이지 번호", example = "0"),
+            @Parameter(name = "size", description = "페이지 크기 (기본 8)", example = "8"),
+            @Parameter(name = "sort", description = "정렬: RECENT(최근 기록순) / LATEST(최근 등록순) / TITLE(제목순) / RATING(내가 준 별점순)", example = "RECENT")
     })
-    public ApiResponse<?> getUserBooks(
+    public ApiResponse<BookShelfDTO.PageDTO<BookShelfDTO.UserBookListResponseDTO>> getUserBooks(
             @RequestParam ReadingStatus status,
-            @RequestParam(required = false) Long cursorBookId,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "recent") String sort,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        var response = bookshelfService.getUserBooks(userDetails.getUser(), status, cursorBookId, size, sort);
-        return ApiResponse.onSuccess(response, SuccessCode.OK);
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size,
+            @RequestParam(defaultValue = "LATEST") SortType sort,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        var response = bookshelfService.getUserBooks(userDetails.getUser(), status, page, size, sort);
+        return ApiResponse.onSuccess(response,SuccessCode.OK);
     }
+
 
     @GetMapping("/registered-dates")
     @Operation(summary = "해당 월의 책 등록 날짜 목록 조회")

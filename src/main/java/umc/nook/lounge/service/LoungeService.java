@@ -64,7 +64,7 @@ public class LoungeService {
         String mallType, int page) {
 
         String categoryIdStr = (categoryId != null) ? String.valueOf(categoryId) : null;
-        int start = (page - 1) * LIMIT + 1;
+        int start = page * LIMIT + 1;
 
         AladinResponseDTO.ResultDTO response = aladinService.fetchBooks(queryType, mallType, start, LIMIT, categoryIdStr);
         List<LoungeResponseDTO.BookDTO> books = new ArrayList<>();
@@ -91,7 +91,7 @@ public class LoungeService {
 
         if (sectionId == null) {
             // 추천 페이지 전체 조회 (1페이지)
-            LoungeResponseDTO.SectionDTO bestSection = getBestSection(SECTION_BEST, categoryId, page);
+            LoungeResponseDTO.SectionDTO bestSection = getBestSection(SECTION_BEST, categoryId, 0);
             int favoriteCategory = getFavoriteCategory(user).get(0).getAladinCategoryId();
             LoungeResponseDTO.SectionDTO favoriteSection = getBestSection(
                     SECTION_FAVORITE_BEST, favoriteCategory, page);
@@ -99,10 +99,16 @@ public class LoungeService {
             return LoungeConverter.toResultDTO(List.of(bestSection, favoriteSection));
         } else if (sectionId.equalsIgnoreCase(SECTION_BEST)) {
             // 주간 베스트셀러의 특정 페이지 조회
+            if (page > 2) {
+                throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
+            }
             LoungeResponseDTO.SectionDTO section = getBestSection(SECTION_BEST, categoryId, page);
             return LoungeConverter.toResultDTO(List.of(section));
         } else {
             // 사용자 선호 카테고리 베스트셀러의 특정 페이지 조회
+            if (page > 2) {
+                throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
+            }
             int favoriteCategory = getFavoriteCategory(user).get(0).getAladinCategoryId();
             LoungeResponseDTO.SectionDTO section = getBestSection(
                     SECTION_FAVORITE_BEST, favoriteCategory, page);
@@ -115,11 +121,11 @@ public class LoungeService {
     ) {
         if (sectionId == null) {
             // 몰 타입 페이지 전체 조회 (1 페이지)
-            LoungeResponseDTO.SectionDTO newSection = getNewSection(categoryId, mallType, page);
+            LoungeResponseDTO.SectionDTO newSection = getNewSection(categoryId, mallType, 0);
             List<Integer> categoryIds = getCategoryIdsByMallType(mallType);
             List<LoungeResponseDTO.SectionDTO> bestSections = new ArrayList<>();
             for (Integer cid : categoryIds) {
-                bestSections.add(getBestSection(SECTION_BEST, cid, page));
+                bestSections.add(getBestSection(SECTION_BEST, cid, 0));
             }
             // newSection + 각 bestSection을 모아서 전달
             List<LoungeResponseDTO.SectionDTO> sections = new ArrayList<>();
@@ -128,10 +134,16 @@ public class LoungeService {
             return LoungeConverter.toResultDTO(sections);
         } else if (sectionId.equalsIgnoreCase(SECTION_NEW)) {
             // 신간의 특정 페이지 조회
+            if (page > 2) {
+                throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
+            }
             LoungeResponseDTO.SectionDTO section = getNewSection(categoryId, mallType, page);
             return LoungeConverter.toResultDTO(List.of(section));
         } else {
             // 몰 타입의 특정 카테고리 베스트셀러의 특정 페이지 조회
+            if (page > 1) {
+                throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
+            }
             LoungeResponseDTO.SectionDTO section = getBestSection(SECTION_BEST, categoryId, page);
             return LoungeConverter.toResultDTO(List.of(section));
         }
@@ -174,7 +186,7 @@ public class LoungeService {
         if ("BOOK".equalsIgnoreCase(mallType)) {// 국내도서
             return List.of(170, 1, 656, 336); // 경제경영, 소설/시/희곡, 인문학, 자기계발
         } else if ("FOREIGN".equalsIgnoreCase(mallType)) { // 외국도서
-            return List.of(90835, 90845, 90853, 90848); // 경제경영, 에세이, 인문/사회, 일본/문학 ? 예술/대중문화
+            return List.of(90835, 90845, 90853, 90842); // 경제경영, 에세이, 인문/사회, 소설/시/희곡
         } else if ("EBOOK".equalsIgnoreCase(mallType)) { // 전자책
             return List.of(38405,38416, 38396, 78871); // 과학, 만화, 소설/시/희곡, 판타지/무협
         }
