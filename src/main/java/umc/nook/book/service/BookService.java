@@ -22,6 +22,9 @@ import umc.nook.users.service.CustomUserDetails;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -84,6 +87,14 @@ public class BookService {
         }
         AladinResponseDTO.BookDetailDTO item = items.get(0);
 
+        if (item.getIsbn13() == null || item.getIsbn13().isBlank() || item.getIsbn13().length() != 13) return null;
+        if (item.getCategoryName() == null || item.getCategoryName().isBlank()) return null;
+        if (!BookFilterUtils.isValidMallType(item.getMallType())) return null;
+
+        // depth(>) 최소 2개 이상 체크
+        String[] parts = item.getCategoryName().split(">");
+        if (parts.length < 2) return null;
+
         if (!BookFilterUtils.isBookIncluded(item.getCategoryName())) {
             throw new CustomException(ErrorCode.BOOK_NOT_ALLOWED);
         }
@@ -107,5 +118,22 @@ public class BookService {
         String categoryName = parts[1].trim();
         return categoryRepository.findByCategoryNameAndMallType(categoryName, MallType.fromDisplayName(mallType))
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_CATEGORY));
+    }
+
+    public Map<String, Book> findBookByIsbn13List(List<String> isbn13List) {
+        return bookRepository.findByIsbn13In(isbn13List).stream()
+                .collect(Collectors.toMap(Book::getIsbn13, Function.identity()));
+    }
+
+    @Transactional
+    public List<Book> addBooksBatch(List<String> isbn13List) {
+        List<Book> savedBooks = new ArrayList<>();
+        for (String isbn13 : isbn13List) {
+            Book saved = addBook(isbn13);
+            if (saved != null) {
+                savedBooks.add(saved);
+            }
+        }
+        return savedBooks;
     }
 }

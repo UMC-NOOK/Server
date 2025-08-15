@@ -1,7 +1,9 @@
 package umc.nook.aladin.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -12,6 +14,7 @@ import umc.nook.aladin.dto.AladinResponseDTO;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -42,11 +45,23 @@ public class AladinService {
         return restTemplate.getForObject(url.toString(), AladinResponseDTO.ResultDTO.class);
     }
 
+    @Async("taskExecutor")
+    public CompletableFuture<AladinResponseDTO.ResultDTO> fetchBooksAsync(
+            String queryType, String mallType, int start, int limit, String categoryId) {
+        try {
+            AladinResponseDTO.ResultDTO result = fetchBooks(queryType, mallType, start, limit, categoryId);
+            return CompletableFuture.completedFuture(result);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
     public AladinResponseDTO.ResultDTO searchBooks(String query, int start, int maxResults) {
         StringBuilder url = new StringBuilder(ALADIN_BASE_URL + "/ItemSearch.aspx?");
         url.append("ttbkey=").append(ttbKey)
                 .append("&Query=").append(query)
-                .append("&SearchTarget=").append("all")
+                .append("&SearchTarget=").append("book")
+                .append("&Sort=").append("SalesPoint")
                 .append("&MaxResults=").append(maxResults)
                 .append("&start=").append(start)
                 .append("&cover=Big")

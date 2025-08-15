@@ -62,7 +62,9 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                             book.publisher,
                             book.coverImageUrl,
                             ub.readingStatus.stringValue(),
-                            review.rating
+                            book.isbn13,
+                            review.rating,
+                            book.publicationDate
                     )
                     .from(ub)
                     .join(ub.book, book)
@@ -83,7 +85,9 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                             book.publisher,
                             book.coverImageUrl,
                             ub.readingStatus.stringValue(),
+                            book.isbn13,
                             review.rating,
+                            book.publicationDate,
                             Expressions.stringTemplate(
                                     "COALESCE(GREATEST({0}, {1}), {2})",
                                     JPAExpressions
@@ -116,7 +120,9 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                             book.publisher,
                             book.coverImageUrl,
                             ub.readingStatus.stringValue(),
-                            review.rating
+                            book.isbn13,
+                            review.rating,
+                            book.publicationDate
                     )
                     .from(ub)
                     .join(ub.book, book)
@@ -142,7 +148,9 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                         t.get(book.publisher),
                         t.get(book.coverImageUrl),
                         t.get(ub.readingStatus.stringValue()),
-                        t.get(review.rating) != null ? t.get(review.rating).intValue() : 0
+                        t.get(book.isbn13),
+                        t.get(review.rating) != null ? t.get(review.rating).intValue() : 0,
+                        t.get(book.publicationDate)
                 ))
                 .toList();
     }

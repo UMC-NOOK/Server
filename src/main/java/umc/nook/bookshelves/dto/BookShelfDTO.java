@@ -44,19 +44,25 @@ public class BookShelfDTO {
         private String publisher;
         private String coverImageUrl;
         private String readingStatus;
+
+        private String isbn13;
         private int myRating;
+
+        private String publicationDate;
 
         @QueryProjection
         public UserBookListResponseDTO(Long bookId, String title, String author,
                                     String publisher, String coverImageUrl,
-                                    String readingStatus, int myRating) {
+                                    String readingStatus, String isbn13,int myRating,String publicationDate) {
             this.bookId = bookId;
             this.title = title;
             this.author = author;
             this.publisher = publisher;
             this.coverImageUrl = coverImageUrl;
             this.readingStatus = readingStatus;
+            this.isbn13 = isbn13;
             this.myRating = myRating;
+            this.publicationDate = publicationDate;
         }
     }
 
@@ -65,7 +71,6 @@ public class BookShelfDTO {
     @AllArgsConstructor
     public static class BookThumbnail {
         private Long bookId;
-
         private String title;
         private String thumbnailUrl;
 

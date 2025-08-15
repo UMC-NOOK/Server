@@ -15,12 +15,13 @@ public class MallTypeValidator implements ConstraintValidator<ValidatedMallType,
 
     @Override
     public boolean isValid(String mallType, ConstraintValidatorContext context) {
-        if (!mallType.equalsIgnoreCase("RECOMMENDATION")
-                && !mallType.equalsIgnoreCase("BOOK")
-                && !mallType.equalsIgnoreCase("FOREIGN")
-                && !mallType.equalsIgnoreCase("EBOOK")) {
-            throw new CustomException(ErrorCode.INVALID_MALLTYPE);
+        if (mallType == null) {
+            return false;
         }
-        return true;
+        return mallType.equalsIgnoreCase("RECOMMENDATION")
+                || mallType.equalsIgnoreCase("BOOK")
+                || mallType.equalsIgnoreCase("FOREIGN")
+                || mallType.equalsIgnoreCase("EBOOK");
     }
+
 }

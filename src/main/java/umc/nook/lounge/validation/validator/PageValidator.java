@@ -14,9 +14,7 @@ public class PageValidator implements ConstraintValidator<ValidatedPage, Integer
 
     @Override
     public boolean isValid(Integer page, ConstraintValidatorContext constraintValidatorContext) {
-        if (page < 0) {
-            throw new CustomException(ErrorCode.INVALID_PAGE);
-        }
-        return true;
+        if (page == null) return false; // 기본 null 방지
+        return page >= 0;
     }
 }
