@@ -166,7 +166,7 @@ public class LoungeService {
         int totalItems = LIMIT * totalPages;
 
         LoungeResponseDTO.PaginationDTO pagination = LoungeConverter.toPaginationDTO(
-                page, LIMIT, totalItems, totalPagesg
+                page, LIMIT, totalItems, totalPages
         );
 
         return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books, pagination);
