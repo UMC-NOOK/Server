@@ -92,9 +92,9 @@ src
      │           ├── book           # 책 정보 도메인
      │           ├── bookshelves    # 서재 관련 기능
      │           ├── common         # 공통 설정, 예외 처리
-     │           ├── lounge         # 라운지(커뮤니티)
+     │           ├── lounge         # 라운지
      │           ├── profile        # 사용자 프로필
-     │           ├── readingrooms   # 리딩룸(독서 모임)
+     │           ├── readingrooms   # 리딩룸
      │           ├── records        # 독서 기록
      │           ├── review         # 책 리뷰
      │           ├── search         # 검색 기능
