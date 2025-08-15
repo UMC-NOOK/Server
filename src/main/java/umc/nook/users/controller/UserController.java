@@ -59,7 +59,7 @@ public class UserController {
         UserDTO.TokenResponseDto responseDto = userService.reissue(request);
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", responseDto.getRefreshToken())
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(14))
