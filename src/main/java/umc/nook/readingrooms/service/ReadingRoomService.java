@@ -97,7 +97,7 @@ public class ReadingRoomService {
             int joinedCount = readingRoomUserRepository.countByReadingRoom(room);
 
             List<String> hashtagNames = room.getHashtags().stream()
-                    .map(hashtag -> hashtag.getHashtag().getName().name()) // enum이면 .name()
+                    .map(hashtag -> hashtag.getHashtag().getName().name())
                     .toList();
 
             return ReadingRoomDTO.ReadingRoomResponseDTO.builder()
@@ -380,7 +380,7 @@ public class ReadingRoomService {
                 String json = objectMapper.writeValueAsString(dtoToStore);
                 redisTemplate.opsForHash().put(hashKey, userIdStr, json);
             } catch (JsonProcessingException e) {
-                throw new RuntimeException("Redis 저장 중 JSON 직렬화 오류", e);
+                throw new CustomException(ErrorCode.JSON_PARSE_ERROR);
             }
         }
 
@@ -391,7 +391,7 @@ public class ReadingRoomService {
                     try {
                         return objectMapper.readValue((String) json, ReadingRoomDTO.UserDTO.class);
                     } catch (JsonProcessingException e) {
-                        throw new RuntimeException("JSON parsing error", e);
+                        throw new CustomException(ErrorCode.JSON_PARSE_ERROR, e.getMessage());
                     }
                 }).toList();
 
@@ -462,7 +462,7 @@ public class ReadingRoomService {
                     try {
                         return objectMapper.readValue((String) json, ReadingRoomDTO.UserDTO.class);
                     } catch (JsonProcessingException e) {
-                        throw new RuntimeException("JSON parsing error", e);
+                        throw new CustomException(ErrorCode.JSON_PARSE_ERROR, e.getMessage());
                     }
                 }).toList();
 
@@ -510,7 +510,7 @@ public class ReadingRoomService {
             redisTemplate.opsForHash().put(hashKey, userIdStr, json);
 
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Redis 저장 중 JSON 직렬화 오류", e);
+            throw new CustomException(ErrorCode.JSON_PARSE_ERROR, e.getMessage());
         }
 
         // 기존 WebSocket 발행 로직
@@ -596,8 +596,7 @@ public class ReadingRoomService {
                 ReadingRoomDTO.UserBook userBook = objectMapper.readValue(String.valueOf(value), ReadingRoomDTO.UserBook.class);
                 entries.add(userBook);
             } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-                // TODO: 에러 핸들링 추후 리팩토링 예정
-                log.warn("ReadingBooks JSON 파싱 실패, key={}, value={}", entry.getKey(), value, e);
+                throw new CustomException(ErrorCode.JSON_PARSE_ERROR, e.getMessage());
             }
         }
 
