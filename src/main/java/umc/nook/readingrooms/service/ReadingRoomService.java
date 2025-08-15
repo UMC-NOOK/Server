@@ -25,8 +25,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.querydsl.core.types.dsl.Wildcard.all;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -603,7 +601,7 @@ public class ReadingRoomService {
         // 방송용 DTO 생성
         ReadingRoomDTO.ReadingBooksBroadcast payload = ReadingRoomDTO.ReadingBooksBroadcast.builder()
                 .roomId(roomId)
-                .entries(entries) // 비어있어도 그대로 전송
+                .entries(entries)
                 .build();
 
         // WebsocketBroadcast
@@ -614,4 +612,3 @@ public class ReadingRoomService {
         );
     }
 }
-
