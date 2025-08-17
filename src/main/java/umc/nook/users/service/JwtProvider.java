@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -18,12 +19,10 @@ import umc.nook.users.domain.User;
 import umc.nook.users.redis.RefreshTokenRedisRepository;
 
 import java.security.Key;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Date;
-import java.util.Optional;
+import java.util.*;
 
 @Component
 @Slf4j
@@ -61,7 +60,7 @@ public class JwtProvider {
                 .compact();
     }
 
-    public String createRefreshToken(User user) {
+    public String createRefreshToken(User user, String accessToken) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + REFRESH_EXP);
 
@@ -73,14 +72,18 @@ public class JwtProvider {
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
 
+        String tokenId = UUID.randomUUID().toString();
+
         RefreshToken refreshToken = RefreshToken.builder()
+                .tokenId(tokenId)
                 .userId(user.getUserId())
+                .accessToken(accessToken)
                 .refreshToken(token)
                 .expiration(LocalDateTime.ofInstant(expiry.toInstant(), ZoneId.systemDefault()))
                 .build();
 
         refreshTokenRepository.save(refreshToken);
-        return token;
+        return tokenId;
     }
 
     public UsernamePasswordAuthenticationToken getAuthentication(String email) {

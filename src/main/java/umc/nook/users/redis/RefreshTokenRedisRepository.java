@@ -2,6 +2,7 @@ package umc.nook.users.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
@@ -15,6 +16,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Repository
+@Slf4j
 @RequiredArgsConstructor
 public class RefreshTokenRedisRepository {
 
@@ -29,6 +31,13 @@ public class RefreshTokenRedisRepository {
 
     /** 저장: 필수값 검증 + 만료 검증 + TTL(만료시각과 동기화) */
     public void save(RefreshToken refreshToken) {
+        log.info("[LOGIN] tokenId={}, userId={}, refreshToken={}, accessToken={}, exp={}",
+                refreshToken.getTokenId(),
+                refreshToken.getUserId(),
+                refreshToken.getRefreshToken(),
+                refreshToken.getAccessToken(),
+                LocalDateTime.now().plusDays(3));
+
         validateForSave(refreshToken);
 
         long ttl = ttlFromExpiration(refreshToken.getExpiration());
@@ -80,7 +89,6 @@ public class RefreshTokenRedisRepository {
     /** userId로 조회 (만료 시 예외) */
     public Optional<RefreshToken> findByUserId(Long userId) {
         if (userId == null) return Optional.empty();
-
         String tokenId = (String) redisTemplate.opsForValue().get(USER_ID_INDEX + userId);
         if (tokenId == null) return Optional.empty();
 
@@ -120,8 +128,14 @@ public class RefreshTokenRedisRepository {
             throw new CustomException(ErrorCode.REFRESH_TOKEN_INVALID);
         }
 
-        if (!token.getExpiration().isAfter(LocalDateTime.now())) {
-            throw new CustomException(ErrorCode.REFRESH_TOKEN_INVALID);
+        if (token.getExpiration().isBefore(LocalDateTime.now())) {
+            log.warn("[RefreshToken-Expired] tokenId={}, userId={}, expiration={}, now={}",
+                    token.getTokenId(),
+                    token.getUserId(),
+                    token.getExpiration(),
+                    LocalDateTime.now()
+            );
+            throw new CustomException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }
     }
     private RefreshToken convert(Object value) {
