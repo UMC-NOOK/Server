@@ -19,7 +19,7 @@ import umc.nook.users.domain.RoleType;
 import umc.nook.users.domain.Status;
 import umc.nook.users.domain.User;
 import umc.nook.users.dto.UserDTO;
-import umc.nook.users.repository.KakaoRefreshTokenRepository;
+import umc.nook.users.redis.KakaoRefreshTokenRedisRepository;
 import umc.nook.users.repository.UserRepository;
 import umc.nook.users.service.JwtProvider;
 
@@ -33,7 +33,7 @@ import java.util.Optional;
 public class OAuthService {
 
     private final UserRepository userRepository;
-    private final KakaoRefreshTokenRepository kakaoRefreshTokenRepository;
+    private final KakaoRefreshTokenRedisRepository kakaoRefreshTokenRedisRepository;
     private final JwtProvider jwtProvider;
     private final RestTemplate restTemplate;
 
@@ -108,7 +108,7 @@ public class OAuthService {
             HttpEntity<?> req = new HttpEntity<>(headers);
 
             ResponseEntity<Map> res = restTemplate.exchange(
-                    kakaoMemberInfoRequestUri, // ex) https://kapi.kakao.com/v2/user/me
+                    kakaoMemberInfoRequestUri,
                     HttpMethod.POST,
                     req,
                     Map.class
@@ -181,9 +181,9 @@ public class OAuthService {
 
         String accessToken = jwtProvider.createAccessToken(user);
         String refreshToken = jwtProvider.createRefreshToken(user);
-        UserDTO.TokenResponseDto jwtTokenResponse = new UserDTO.TokenResponseDto(accessToken, refreshToken);
+        UserDTO.KakaoTokenResponseDTO jwtTokenResponse = new UserDTO.KakaoTokenResponseDTO(accessToken,refreshToken);
 
-        KakaoRefreshToken token = kakaoRefreshTokenRepository.findByUserId(user.getUserId())
+        KakaoRefreshToken token = kakaoRefreshTokenRedisRepository.findByUserId(user.getUserId())
                 .map(existing -> {
                     existing.updateToken(newToken.getRefreshToken(), newToken.getAccessToken(), (long) newToken.getRefreshTokenExpiresIn()); // update 메서드 활용
                     return existing;
@@ -194,7 +194,7 @@ public class OAuthService {
                         .accessToken(newToken.getAccessToken())
                         .refreshTokenExpiresIn((long) newToken.getRefreshTokenExpiresIn())
                         .build());
-        kakaoRefreshTokenRepository.save(token);
+        kakaoRefreshTokenRedisRepository.save(token);
         return new UserDTO.KakaoLoginResponseDTO(user, jwtTokenResponse, newToken.getRefreshToken());
     }
 
@@ -236,10 +236,9 @@ public class OAuthService {
 
     // 카카오 로그아웃
     public String buildKakaoLogoutRedirectUrl() {
-        // kakaoLogoutUri 예: https://kauth.kakao.com/oauth/logout
         UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(kakaoLogoutUri)
                 .queryParam("client_id", kakaoClientId)
-                .queryParam("logout_redirect_uri", kakaoRedirectUri); // 로그아웃 후 돌아올 URL
+                .queryParam("logout_redirect_uri", kakaoRedirectUri);
         return b.toUriString();
     }
 

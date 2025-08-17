@@ -57,7 +57,6 @@ public class UserDTO {
     @NoArgsConstructor
     public static class TokenResponseDto {
         private String accessToken;
-        private String refreshToken;
     }
 
     @Getter
@@ -91,16 +90,24 @@ public class UserDTO {
     }
 
     @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class KakaoTokenResponseDTO {
+        private String accessToken;
+        private String refreshToken;
+    }
+    @Getter
     public static class KakaoLoginResponseDTO {
 
         private Long userId;
         private String email;
         private String nickname;
-        private TokenResponseDto token;
+        private KakaoTokenResponseDTO token;
 
         private String kakaoRefreshToken;
 
-        public KakaoLoginResponseDTO(User user, TokenResponseDto token, String kakaoRefreshToken) {
+        public KakaoLoginResponseDTO(User user, KakaoTokenResponseDTO token, String kakaoRefreshToken) {
             this.userId = user.getUserId();
             this.email = user.getEmail();
             this.nickname = user.getNickname();
