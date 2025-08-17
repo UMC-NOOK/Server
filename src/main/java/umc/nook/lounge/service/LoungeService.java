@@ -40,6 +40,7 @@ public class LoungeService {
     private static final String QUERY_TYPE_ITEMNEWALL = "ITEMNEWALL";
 
     private static final int LIMIT = 6;
+    private static final int MAX_RESULT = 30;
 
     private final UserBookshelfRepository userBookshelfRepository;
     private final CategoryRepository categoryRepository;
@@ -151,19 +152,21 @@ public class LoungeService {
             String mallType, int page) {
 
         String categoryIdStr = (categoryId != null) ? String.valueOf(categoryId) : null;
+        int totalPages = (categoryId != null && sectionId.equalsIgnoreCase(SECTION_BEST)) ? 2 : 3;
+        int totalItems = LIMIT * totalPages;
 
-        AladinResponseDTO.ResultDTO response = aladinService.fetchBooks(queryType, mallType, page+1, LIMIT, categoryIdStr);
+        AladinResponseDTO.ResultDTO response = aladinService.fetchBooks(queryType, mallType, page+1, MAX_RESULT, categoryIdStr);
         List<LoungeResponseDTO.BookDTO> books = new ArrayList<>();
         if (response != null && response.getItem() != null) {
             for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
-                if (BookFilterUtils.isBookIncluded(item.getCategoryName())) {
+                if (BookFilterUtils.isValidBook(item)) {
                     books.add(LoungeConverter.toBookDTO(item));
+                }
+                if (books.size() >= totalItems) {
+                    break;
                 }
             }
         }
-
-        int totalPages = (categoryId != null && sectionId.equalsIgnoreCase(SECTION_BEST)) ? 2 : 3;
-        int totalItems = LIMIT * totalPages;
 
         LoungeResponseDTO.PaginationDTO pagination = LoungeConverter.toPaginationDTO(
                 page, LIMIT, totalItems, totalPages
@@ -178,7 +181,9 @@ public class LoungeService {
             String mallType, int page
     ) {
         String categoryIdStr = (categoryId != null) ? String.valueOf(categoryId) : null;
-        return aladinService.fetchBooksAsync(queryType, mallType, page + 1, LIMIT, categoryIdStr)
+        int totalPages = (categoryId != null && sectionId.equalsIgnoreCase(SECTION_BEST)) ? 2 : 3;
+        int totalItems = LIMIT * totalPages;
+        return aladinService.fetchBooksAsync(queryType, mallType, page + 1, MAX_RESULT, categoryIdStr)
                 .handle((response, ex) -> {
                     List<LoungeResponseDTO.BookDTO> books = new ArrayList<>();
                     if (ex != null) {
@@ -187,13 +192,14 @@ public class LoungeService {
                     }
                     if (response != null && response.getItem() != null) {
                         for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
-                            if (BookFilterUtils.isBookIncluded(item.getCategoryName())) {
+                            if (BookFilterUtils.isValidBook(item)) {
                                 books.add(LoungeConverter.toBookDTO(item));
+                            }
+                            if (books.size() >= totalItems) {
+                                break;
                             }
                         }
                     }
-                    int totalPages = (categoryId != null && sectionId.equalsIgnoreCase(SECTION_BEST)) ? 2 : 3;
-                    int totalItems = LIMIT * totalPages;
                     LoungeResponseDTO.PaginationDTO pagination = LoungeConverter.toPaginationDTO(
                             page, LIMIT, totalItems, totalPages
                     );

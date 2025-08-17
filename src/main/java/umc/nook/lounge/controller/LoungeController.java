@@ -68,5 +68,4 @@ public class LoungeController {
         LoungeResponseDTO.LoungeBookResultDTO result = loungeService.getLoungeBooks(mallType, sectionId, categoryId, page, userDetails);
         return ApiResponse.onSuccess(result, SuccessCode.OK);
     }
-
 }
