@@ -1,6 +1,7 @@
 package umc.nook.records.dto;
 
 
+import com.querydsl.core.annotations.QueryProjection;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -177,17 +178,26 @@ public class RecordDTO {
     }
 
     @Getter
-    @AllArgsConstructor
     @NoArgsConstructor
     public static class MonthlyRecordRateResponseDTO {
         private List<MonthRate> rates;
 
         @Getter
-        @AllArgsConstructor
         public static class MonthRate {
             private int month; // 1 ~ 12
             private double rate;
+
+            @QueryProjection
+            public MonthRate(int month, long total, long recorded) {
+                this.month = month;
+                this.rate = (total == 0L || recorded == 0L) ? 0.0 : (recorded * 100.0) / total;
+            }
         }
+
+        public MonthlyRecordRateResponseDTO(List<MonthRate> rates) {
+            this.rates = rates;
+        }
+
     }
 
 
