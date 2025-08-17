@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import umc.nook.common.response.ApiResponse;
 import umc.nook.common.response.SuccessCode;
@@ -29,13 +30,13 @@ public class UserController {
 
     @PostMapping("/signup")
     @Operation(summary = "회원가입", description = "이메일, 비밀번호, 닉네임으로 회원가입을 진행합니다.")
-    public ApiResponse<UserDTO.UserResponseDTO> signup(@RequestBody UserDTO.SignUpDto request) {
+    public ApiResponse<UserDTO.UserResponseDTO> signup(@RequestBody @Validated UserDTO.SignUpDto request) {
         return ApiResponse.onSuccess(userService.signup(request), SuccessCode.OK);
     }
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인 후 토큰을 발급합니다.")
-    public ApiResponse<UserDTO.LoginResponseDTO> login(@RequestBody UserDTO.LoginDto request, HttpServletResponse response) {
+    public ApiResponse<UserDTO.LoginResponseDTO> login(@RequestBody @Validated UserDTO.LoginDto request, HttpServletResponse response) {
         UserDTO.LoginResponseDTO responseWithToken = userService.login(request);
 
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", responseWithToken.getToken().getRefreshToken())
@@ -58,7 +59,7 @@ public class UserController {
         UserDTO.TokenResponseDto responseDto = userService.reissue(request);
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", responseDto.getRefreshToken())
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(14))
