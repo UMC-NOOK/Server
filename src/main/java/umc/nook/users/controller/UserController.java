@@ -67,9 +67,7 @@ public class UserController {
     @Operation(summary = "카카오 로그인 (인가 코드 기반)",
             description = "인가 코드 발급 url을 통해 받은 인가 코드를 입력하여 카카오 로그인을 진행합니다.")
     public ApiResponse<UserDTO.KakaoLoginResponseDTO> kakaoLogin(@RequestParam("code") String code, HttpServletResponse response) {
-
         UserDTO.KakaoLoginResponseDTO kakaoResponse = userService.kakaoLogin(code, response);
-
         return ApiResponse.onSuccess(kakaoResponse, SuccessCode.OK);
     }
 
