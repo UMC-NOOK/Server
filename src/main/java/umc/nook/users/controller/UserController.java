@@ -37,17 +37,7 @@ public class UserController {
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인 후 토큰을 발급합니다.")
     public ApiResponse<UserDTO.LoginResponseDTO> login(@RequestBody @Validated UserDTO.LoginDto request, HttpServletResponse response) {
-        UserDTO.LoginResponseDTO responseWithToken = userService.login(request);
-
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", responseWithToken.getToken().getRefreshToken())
-                .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(Duration.ofDays(14))
-                .build();
-
-        response.setHeader("Set-Cookie", refreshTokenCookie.toString());
+        UserDTO.LoginResponseDTO responseWithToken = userService.login(request,response);
         return ApiResponse.onSuccess(responseWithToken, SuccessCode.OK);
     }
 
@@ -56,14 +46,6 @@ public class UserController {
     @Operation(summary = "엑세스 토큰 재발급")
     public ApiResponse<UserDTO.TokenResponseDto> recreateAccessToken(HttpServletRequest request, HttpServletResponse response) {
         UserDTO.TokenResponseDto responseDto = userService.reissue(request,response);
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", responseDto.getRefreshToken())
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(Duration.ofDays(14))
-                .build();
-        response.setHeader("Set-Cookie", refreshTokenCookie.toString());
         return ApiResponse.onSuccess(responseDto, SuccessCode.OK);
     }
 
