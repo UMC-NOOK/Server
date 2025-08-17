@@ -13,10 +13,11 @@ import java.util.Optional;
 
 public interface ReadingRoomUserRepository extends JpaRepository<ReadingRoomUser, Long> {
     boolean existsByReadingRoomAndUser(ReadingRoom room, User user);
-    Page<ReadingRoomUser> findByUser(User user, Pageable pageable);
+    List<ReadingRoomUser> findByUser(User user);
     int countByReadingRoom(ReadingRoom readingRoom);
     boolean existsByReadingRoomAndUserAndRole(ReadingRoom readingRoom, User user, Role role);
     Optional<ReadingRoomUser> findByReadingRoomAndUser(ReadingRoom readingRoom, User user);
     List<ReadingRoomUser> findAllByReadingRoom(ReadingRoom readingRoom);
     Optional<ReadingRoomUser> findTopByUserOrderByLastAccessedAtDesc(User user);
+    int countByUser(User user);
 }

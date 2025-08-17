@@ -31,8 +31,8 @@ public class ReadingRoomController {
 
     @Operation(summary = "사용자가 가입한 리딩룸 조회")
     @GetMapping("/join")
-    public ApiResponse<List<ReadingRoomDTO.ReadingRoomResponseDTO>> joinedReadingRoom(@RequestParam(defaultValue = "0") int page, @AuthenticationPrincipal CustomUserDetails user) {
-        return ApiResponse.onSuccess(readingRoomService.getJoinedReadingRooms(page, user),SuccessCode.OK);
+    public ApiResponse<List<ReadingRoomDTO.ReadingRoomResponseDTO>> joinedReadingRoom(@AuthenticationPrincipal CustomUserDetails user) {
+        return ApiResponse.onSuccess(readingRoomService.getJoinedReadingRooms(user),SuccessCode.OK);
     }
 
     @Operation(summary = "리딩룸 가입", description = "가입한 리딩룸 ID를 반환합니다.")

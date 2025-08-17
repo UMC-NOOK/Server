@@ -43,6 +43,7 @@ public enum ErrorCode implements BaseCode {
     ROOM_CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "ROOM-003", "리딩룸의 최대 인원 수를 초과했습니다."),
     HOST_ONLY(HttpStatus.FORBIDDEN, "ROOM-004" ,"리딩룸의 호스트만 수행할 수 있습니다." ),
     USER_NOT_JOINED_ROOM(HttpStatus.NOT_FOUND, "ROOM-005" ,"리딩룸에 가입하지 않은 사용자입니다." ),
+    TOO_MANY_JOINED_ROOM(HttpStatus.CONFLICT, "ROOM-006", "리딩룸은 최대 4개까지 가입 가능합니다." ),
 
     //테마 관련
     THEME_NOT_FOUND(HttpStatus.NOT_FOUND, "THEME-001", "테마를 찾을 수 없습니다."),
