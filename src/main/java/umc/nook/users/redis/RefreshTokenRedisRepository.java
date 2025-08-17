@@ -112,29 +112,16 @@ public class RefreshTokenRedisRepository {
         findByUserId(userId).ifPresent(token -> deleteByTokenId(token.getTokenId()));
     }
     private void validateForSave(RefreshToken token) {
-        // 객체 자체 검증
-        if (token == null) {
+        if (token == null
+                || !StringUtils.hasText(token.getTokenId())
+                || !StringUtils.hasText(token.getRefreshToken())
+                || token.getUserId() == null
+                || token.getExpiration() == null) {
             throw new CustomException(ErrorCode.REFRESH_TOKEN_INVALID);
         }
-        // tokenId
-        if (!StringUtils.hasText(token.getTokenId())) {
+
+        if (!token.getExpiration().isAfter(LocalDateTime.now())) {
             throw new CustomException(ErrorCode.REFRESH_TOKEN_INVALID);
-        }
-        // refreshToken(원문 토큰 문자열)
-        if (!StringUtils.hasText(token.getRefreshToken())) {
-            throw new CustomException(ErrorCode.REFRESH_TOKEN_INVALID);
-        }
-        // userId
-        if (token.getUserId() == null) {
-            throw new CustomException(ErrorCode.REFRESH_TOKEN_INVALID);
-        }
-        // 만료시각
-        if (token.getExpiration() == null) {
-            throw new CustomException(ErrorCode.REFRESH_TOKEN_INVALID);
-        }
-        // 만료 여부
-        if (token.getExpiration().isBefore(java.time.LocalDateTime.now())) {
-            throw new CustomException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }
     }
     private RefreshToken convert(Object value) {
