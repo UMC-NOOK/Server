@@ -108,7 +108,7 @@ public class OAuthService {
             HttpEntity<?> req = new HttpEntity<>(headers);
 
             ResponseEntity<Map> res = restTemplate.exchange(
-                    kakaoMemberInfoRequestUri, // ex) https://kapi.kakao.com/v2/user/me
+                    kakaoMemberInfoRequestUri,
                     HttpMethod.POST,
                     req,
                     Map.class
@@ -233,10 +233,9 @@ public class OAuthService {
 
     // 카카오 로그아웃
     public String buildKakaoLogoutRedirectUrl() {
-        // kakaoLogoutUri 예: https://kauth.kakao.com/oauth/logout
         UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(kakaoLogoutUri)
                 .queryParam("client_id", kakaoClientId)
-                .queryParam("logout_redirect_uri", kakaoRedirectUri); // 로그아웃 후 돌아올 URL
+                .queryParam("logout_redirect_uri", kakaoRedirectUri);
         return b.toUriString();
     }
 

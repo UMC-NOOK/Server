@@ -1,4 +1,6 @@
 package umc.nook.users.domain;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
@@ -24,6 +26,7 @@ public class RefreshToken extends BaseTimeEntity {
     @Indexed
     private String refreshToken;
 
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private LocalDateTime expiration;
 
     @Indexed

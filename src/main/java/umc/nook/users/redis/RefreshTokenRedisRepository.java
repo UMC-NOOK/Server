@@ -28,7 +28,6 @@ public class RefreshTokenRedisRepository {
         // 본문 저장
         redisTemplate.opsForValue().set(mainKey, refreshToken, TTL_SECONDS, TimeUnit.SECONDS);
 
-        // 인덱스 키 저장 → O(1) 조회 가능
         redisTemplate.opsForValue().set(REFRESH_TOKEN_INDEX + refreshToken.getRefreshToken(),
                 refreshToken.getTokenId(), TTL_SECONDS, TimeUnit.SECONDS);
 
