@@ -209,7 +209,6 @@ public class ReadingRoomService {
                 .readingRoom(readingRoom)
                 .user(user)
                 .role(Role.HOST)
-                .lastAccessedAt(LocalDateTime.now())
                 .build();
         readingRoomUserRepository.save(readingRoomUser);
 
