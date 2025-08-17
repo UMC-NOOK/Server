@@ -13,10 +13,9 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 @AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @RedisHash(value = "jwtToken", timeToLive = 60*60*24*3)
-public class RefreshToken extends BaseTimeEntity {
-
+public class RefreshToken {
 
     @Id
     private String tokenId;

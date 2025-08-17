@@ -180,7 +180,7 @@ public class OAuthService {
         }
 
         String accessToken = jwtProvider.createAccessToken(user);
-        String refreshToken = jwtProvider.createRefreshToken(user);
+        String refreshToken = jwtProvider.createRefreshToken(user,accessToken);
         UserDTO.KakaoTokenResponseDTO jwtTokenResponse = new UserDTO.KakaoTokenResponseDTO(accessToken,refreshToken);
 
         KakaoRefreshToken token = kakaoRefreshTokenRedisRepository.findByUserId(user.getUserId())

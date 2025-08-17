@@ -48,7 +48,6 @@ public class UserService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new CustomException(ErrorCode.EMAIL_DUPLICATE);
         }
-
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -68,40 +67,27 @@ public class UserService {
     public UserDTO.LoginResponseDTO login(UserDTO.LoginDto request, HttpServletResponse response) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-
+        log.info("이메일로찾기 : " + request.getEmail());
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new CustomException(ErrorCode.INVALID_PASSWORD);
         }
 
         String accessToken = jwtProvider.createAccessToken(user);
-        String refreshToken = jwtProvider.createRefreshToken(user);
+        String refreshToken = jwtProvider.createRefreshToken(user,accessToken);
 
-        // 토큰 매핑 키 생성
-        String tokenId = UUID.randomUUID().toString();
-
-        // Redis에 저장
-        RefreshToken tokenEntity = RefreshToken.builder()
-                .tokenId(tokenId)
-                .userId(user.getUserId())
-                .expiration(LocalDateTime.now().plusDays(3))
-                .refreshToken(refreshToken)
-                .build();
-        refreshTokenRepository.save(tokenEntity);
+        UserDTO.TokenResponseDto tokenResponseDto = new UserDTO.TokenResponseDto(accessToken);
 
         // 쿠키에는 tokenId만 저장
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshTokenId", tokenId)
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshTokenId", refreshToken)
                 .httpOnly(true)
-                .secure(false) // 운영에서는 true
+                .secure(false)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(3))
                 .build();
         response.setHeader("Set-Cookie", refreshTokenCookie.toString());
-
-        UserDTO.TokenResponseDto tokenResponseDto = new UserDTO.TokenResponseDto(accessToken);
         return new UserDTO.LoginResponseDTO(user, tokenResponseDto);
     }
-
 
     // 엑세스 토큰 재발급
     @Transactional
@@ -111,7 +97,6 @@ public class UserService {
         if (tokenId == null) {
             throw new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
-
         // Redis에서 Refresh Token 조회
         RefreshToken tokenEntity = refreshTokenRepository.findByTokenId(tokenId)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REFRESH_TOKEN));
@@ -132,7 +117,7 @@ public class UserService {
         // Refresh Token 교체 여부 판단, 남은 기간이 1일 이하일 경우 Rolling
         String finalTokenId = tokenId;
         if (remainingDays <= 1) {
-            String newRefreshToken = jwtProvider.createRefreshToken(user);
+            String newRefreshToken = jwtProvider.createRefreshToken(user,tokenId);
             String newTokenId = UUID.randomUUID().toString();
 
             // Redis 갱신
