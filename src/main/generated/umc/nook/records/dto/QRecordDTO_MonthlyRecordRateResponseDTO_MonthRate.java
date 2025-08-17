@@ -13,8 +13,8 @@ public class QRecordDTO_MonthlyRecordRateResponseDTO_MonthRate extends Construct
 
     private static final long serialVersionUID = 988269691L;
 
-    public QRecordDTO_MonthlyRecordRateResponseDTO_MonthRate(com.querydsl.core.types.Expression<Integer> month, com.querydsl.core.types.Expression<Double> rate) {
-        super(RecordDTO.MonthlyRecordRateResponseDTO.MonthRate.class, new Class<?>[]{int.class, double.class}, month, rate);
+    public QRecordDTO_MonthlyRecordRateResponseDTO_MonthRate(com.querydsl.core.types.Expression<Integer> month, com.querydsl.core.types.Expression<Long> total, com.querydsl.core.types.Expression<Long> recorded) {
+        super(RecordDTO.MonthlyRecordRateResponseDTO.MonthRate.class, new Class<?>[]{int.class, long.class, long.class}, month, total, recorded);
     }
 
 }
