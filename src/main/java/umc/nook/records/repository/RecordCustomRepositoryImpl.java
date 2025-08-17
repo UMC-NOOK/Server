@@ -46,7 +46,7 @@ public class RecordCustomRepositoryImpl implements RecordCustomRepository{
                         t -> t.get(1, Long.class)
                 ));
 
-        // 월별 기록 수 (bookRecord만)
+        // 월별 기록 수
         Map<Integer, Long> recordedBooksByMonth = queryFactory
                 .select(record.createdDate.month(), record.countDistinct())
                 .from(record)

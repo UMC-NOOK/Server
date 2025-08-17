@@ -42,7 +42,7 @@ public class RecordController {
             ChatDTO.ChatRequestDTO requestDTO
     ) throws JsonProcessingException {
         ChatDTO.ChatResponseDTO response = recordService.saveChatMessage(userDetails.getUser(), requestDTO);
-        return ApiResponse.onSuccess(response, SuccessCode.OK);
+        return ApiResponse.onSuccess(response, SuccessCode.CREATED);
     }
 
     @Operation(
@@ -57,7 +57,7 @@ public class RecordController {
             RecordDTO.RecordRequestDTO requestDTO
     ) {
         recordService.saveSentence(userDetails.getUser(), requestDTO);
-        return ApiResponse.onSuccess("문장 기록이 저장되었습니다.", SuccessCode.OK);
+        return ApiResponse.onSuccess("문장 기록이 저장되었습니다.", SuccessCode.CREATED);
     }
 
     @Operation(
@@ -71,7 +71,7 @@ public class RecordController {
             @RequestBody @Validated RecordDTO.RecordUpdateRequestDTO updateRequestDTO
     ) {
         RecordDTO.SentenceResponseDTO response = recordService.updateSentence(userDetails.getUser(), updateRequestDTO);
-        return ApiResponse.onSuccess(response, SuccessCode.OK);
+        return ApiResponse.onSuccess(response, SuccessCode.ACCEPTED);
     }
 
     @Operation(
@@ -85,7 +85,7 @@ public class RecordController {
             @PathVariable Long recordId
     ) {
         recordService.deleteRecord(userDetails.getUser(), recordId);
-        return ApiResponse.onSuccess("문장이 삭제되었습니다.", SuccessCode.OK);
+        return ApiResponse.onSuccess("문장이 삭제되었습니다.", SuccessCode.ACCEPTED);
     }
 
     @Operation(
@@ -99,7 +99,7 @@ public class RecordController {
             @RequestBody @Validated RecordDTO.CommentRequestDTO requestDTO
     ) {
         RecordDTO.CommentResponseDTO response = recordService.saveCommentary(userDetails.getUser(), requestDTO);
-        return ApiResponse.onSuccess(response, SuccessCode.OK);
+        return ApiResponse.onSuccess(response, SuccessCode.CREATED);
     }
 
     @Operation(
@@ -114,7 +114,7 @@ public class RecordController {
             @RequestBody @Validated RecordDTO.CommentUpdateRequestDTO updateRequestDTO
     ) {
         RecordDTO.CommentResponseDTO response = recordService.updateComment(userDetails.getUser(), commentId, updateRequestDTO);
-        return ApiResponse.onSuccess(response, SuccessCode.OK);
+        return ApiResponse.onSuccess(response, SuccessCode.ACCEPTED);
     }
 
     @Operation(
@@ -128,7 +128,7 @@ public class RecordController {
             @PathVariable Long commentId
     ) {
         recordService.deleteComment(userDetails.getUser(), commentId);
-        return ApiResponse.onSuccess("감상이 삭제되었습니다.", SuccessCode.OK);
+        return ApiResponse.onSuccess("감상이 삭제되었습니다.", SuccessCode.ACCEPTED);
     }
 
     @Operation(
@@ -143,6 +143,8 @@ public class RecordController {
             @RequestParam Long bookId
     ) {
         List<ChatDTO.ChatResponseDTO> response = recordService.viewChatMessages(userDetails.getUser(), bookId);
+        if (response.isEmpty())
+            return ApiResponse.onSuccess(response,SuccessCode.NO_CONTENT);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
@@ -158,6 +160,8 @@ public class RecordController {
     ) {
         List<RecordDTO.RecordResponseDTO> response =
                 recordService.viewRecordsByBookId(userDetails.getUser(), bookId);
+        if (response.isEmpty())
+            return ApiResponse.onSuccess(response,SuccessCode.NO_CONTENT);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
@@ -189,8 +193,11 @@ public class RecordController {
     public ApiResponse<BookShelfDTO.BookThumbnail> viewRecentlyRecordedBook(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
+        BookShelfDTO.BookThumbnail response = recordService.viewRecentlyRecordedBook(userDetails.getUser());
+        if (response == null)
+            return ApiResponse.onSuccess(response,SuccessCode.NO_CONTENT);
         return ApiResponse.onSuccess(
-                recordService.viewRecentlyRecordedBook(userDetails.getUser())
+                response
                 ,SuccessCode.OK
         );
     }
