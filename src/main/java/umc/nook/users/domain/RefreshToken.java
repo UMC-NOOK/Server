@@ -1,29 +1,34 @@
 package umc.nook.users.domain;
-import jakarta.persistence.*;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.index.Indexed;
 import umc.nook.BaseTimeEntity;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "refresh_token")
+
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@RedisHash(value = "jwtToken", timeToLive = 60*60*24*3)
 public class RefreshToken extends BaseTimeEntity {
 
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String tokenId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private Long userId;
 
-    @Column(nullable = false, length = 512)
+    @Indexed
     private String refreshToken;
 
-    @Column(nullable = false)
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private LocalDateTime expiration;
+
+    @Indexed
+    private String accessToken;
 }

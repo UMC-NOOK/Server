@@ -36,8 +36,8 @@ public class LoungeService {
     private static final String SECTION_NEW = "new";
     private static final String SECTION_FAVORITE_BEST = "favorite_best";
 
-    private static final String QUERY_TYPE_BESTSELLER = "BESTSELLER";
-    private static final String QUERY_TYPE_ITEMNEWALL = "ITEMNEWALL";
+    private static final String QUERY_TYPE_BESTSELLER = "Bestseller";
+    private static final String QUERY_TYPE_ITEMNEWALL = "ItemNewSpecial";
 
     private static final int LIMIT = 6;
     private static final int MAX_RESULT = 30;
@@ -50,11 +50,9 @@ public class LoungeService {
     public LoungeResponseDTO.LoungeBookResultDTO getLoungeBooks(
             String mallType, String sectionId, Integer categoryId, int page, CustomUserDetails userDetails) {
 
-        User user = userDetails.getUser();
-
         // 추천 페이지
         if ("RECOMMENDATION".equalsIgnoreCase(mallType)) {
-            return handleRecommendation(sectionId, categoryId, page, user);
+            return handleRecommendation(sectionId, categoryId, page, userDetails.getUser());
         }
         // 몰 타입 페이지
         else {

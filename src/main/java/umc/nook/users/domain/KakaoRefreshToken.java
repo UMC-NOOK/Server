@@ -1,33 +1,26 @@
 package umc.nook.users.domain;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
 
-@Entity
-@Table(name = "kakao_refresh_token")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@RedisHash(value = "kakaoRefreshToken", timeToLive = 60 * 60 * 24 * 30) // 30일 TTL 예시
 public class KakaoRefreshToken {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String tokenId; // 쿠키에 저장할 ID
 
-    @Column(nullable = false)
-    private Long userId;
+    private Long userId; // 사용자 식별자
 
-    @Column(nullable = false, length = 512)
-    private String refreshToken;
+    private String refreshToken; // 실제 Kakao refresh token
 
-    @Column(nullable = false, length = 512)
-    private String accessToken;
+    private String accessToken; // Kakao access token
 
-    private Long refreshTokenExpiresIn;
+    private Long refreshTokenExpiresIn; // 만료 시간(초 단위)
 
     public void updateToken(String refreshToken, String accessToken, Long refreshTokenExpiresIn) {
         this.refreshToken = refreshToken;
