@@ -155,6 +155,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                 .toList();
     }
 
+    // 월별 책 조회
     @Transactional
     public List<BookShelfDTO.DailyBooksResponseDTO> getMonthlyBooks(User user, YearMonth yearMonth) {
         QUserBookShelf ub = QUserBookShelf.userBookShelf;
@@ -164,7 +165,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
         LocalDate endDate = yearMonth.atEndOfMonth();
 
         List<Tuple> result = queryFactory
-                .select(ub.recordedAt, book.bookId, book.coverImageUrl)
+                .select(ub.recordedAt, book.bookId, book.title, book.coverImageUrl, book.author)
                 .from(ub)
                 .join(ub.book, book)
                 .where(
@@ -172,28 +173,28 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                         ub.recordedAt.isNotNull(),
                         ub.recordedAt.between(startDate, endDate)
                 )
-                .orderBy(ub.recordedAt.asc())
+                .orderBy(ub.recordedAt.asc(), ub.createdDate.desc())
                 .fetch();
 
-        Map<LocalDate, List<BookShelfDTO.BookThumbnail>> grouped = result.stream()
+        Map<LocalDate, BookShelfDTO.MonthlyBookThumbnail> byDate = result.stream()
                 .filter(t -> t.get(ub.recordedAt) != null)
-                .collect(Collectors.groupingBy(
+                .collect(Collectors.toMap(
                         t -> t.get(ub.recordedAt),
-                        LinkedHashMap::new,
-                        Collectors.mapping(
-                                t -> new BookShelfDTO.BookThumbnail(
-                                        t.get(book.bookId),
-                                        t.get(book.title),
-                                        t.get(book.coverImageUrl)
-                                ),
-                                Collectors.toList()
-                        )
+                        t -> new BookShelfDTO.MonthlyBookThumbnail(
+                                t.get(book.bookId),
+                                t.get(book.title),
+                                t.get(book.coverImageUrl),
+                                t.get(book.author)
+                        ),
+                        (existing, ignored) -> existing,
+                        LinkedHashMap::new
                 ));
 
-        return grouped.entrySet().stream()
-                .map(entry -> new BookShelfDTO.DailyBooksResponseDTO(entry.getKey(), entry.getValue()))
+        return byDate.entrySet().stream()
+                .map(e -> new BookShelfDTO.DailyBooksResponseDTO(e.getKey(), e.getValue()))
                 .toList();
     }
+
 
     @Transactional
     public BookShelfDTO.BooksInsightDTO getBooksInsight(User user) {

@@ -83,9 +83,25 @@ public class BookShelfDTO {
 
     @Getter
     @AllArgsConstructor
+    public static class MonthlyBookThumbnail {
+        private Long bookId;
+        private String title;
+        private String thumbnailUrl;
+        private String author;
+
+        public MonthlyBookThumbnail(Book book) {
+            this.bookId = book.getBookId();
+            this.title = book.getTitle();
+            this.thumbnailUrl = book.getCoverImageUrl();
+            this.author = book.getAuthor();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor
     public static class DailyBooksResponseDTO {
         private LocalDate date;
-        private List<BookThumbnail> books;
+        private MonthlyBookThumbnail bookInfo;
     }
 
     @Getter
