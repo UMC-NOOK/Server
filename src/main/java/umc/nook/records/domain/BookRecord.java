@@ -45,7 +45,7 @@ public class BookRecord extends BaseTimeEntity {
         this.content = content;
     }
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT", length = 300)
     private String content;
 
     public void updateCommentary(String content) {
