@@ -113,13 +113,11 @@ public class ReadingRoomService {
 
     //사용자가 가입한 리딩룸 조회
     @Transactional(readOnly = true)
-    public List<ReadingRoomDTO.ReadingRoomResponseDTO> getJoinedReadingRooms(int page, CustomUserDetails userDetails) {
+    public List<ReadingRoomDTO.ReadingRoomResponseDTO> getJoinedReadingRooms(CustomUserDetails userDetails) {
 
         User user = userDetails.getUser();
 
-        int pageSize = 12;
-        PageRequest pageRequest = PageRequest.of(page, pageSize);
-        Page<ReadingRoomUser> joinedReadingRooms = readingRoomUserRepository.findByUser(user, pageRequest);
+        List<ReadingRoomUser> joinedReadingRooms = readingRoomUserRepository.findByUser(user);
 
         return joinedReadingRooms.stream()
                 .map(join -> {
@@ -162,6 +160,12 @@ public class ReadingRoomService {
         int memberCount = readingRoomUserRepository.countByReadingRoom(room);
         if (memberCount >= MAX_NUMBER) {
             throw new CustomException(ErrorCode.ROOM_CAPACITY_EXCEEDED);
+        }
+
+        // 리딩룸 최대 4개까지만 가입 가능하도록
+        int userJoinedCount = readingRoomUserRepository.countByUser(user);
+        if (userJoinedCount >= MAX_NUMBER) {
+            throw new CustomException(ErrorCode.TOO_MANY_JOINED_ROOM);
         }
 
         // 중복 가입 방지
