@@ -16,9 +16,6 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     Optional<User> findByUserId(Long userId);
 
-    @Query(value = "SELECT * FROM user WHERE email = :email LIMIT 1", nativeQuery = true)
-    Optional<User> findAnyByEmail(@Param("email") String email);
-
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from User u " +
             "where u.deletedAt is not null " +

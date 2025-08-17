@@ -22,6 +22,9 @@ import umc.nook.users.service.CustomUserDetails;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -110,11 +113,27 @@ public class BookService {
     }
 
     public Category getCategoryByFullName(String categoryFullName) {
-        System.out.println("categoryFullName = " + categoryFullName);
         String[] parts = categoryFullName.split(">");
         String mallType = parts[0].trim();
         String categoryName = parts[1].trim();
         return categoryRepository.findByCategoryNameAndMallType(categoryName, MallType.fromDisplayName(mallType))
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_CATEGORY));
+    }
+
+    public Map<String, Book> findBookByIsbn13List(List<String> isbn13List) {
+        return bookRepository.findByIsbn13In(isbn13List).stream()
+                .collect(Collectors.toMap(Book::getIsbn13, Function.identity()));
+    }
+
+    @Transactional
+    public List<Book> addBooksBatch(List<String> isbn13List) {
+        List<Book> savedBooks = new ArrayList<>();
+        for (String isbn13 : isbn13List) {
+            Book saved = addBook(isbn13);
+            if (saved != null) {
+                savedBooks.add(saved);
+            }
+        }
+        return savedBooks;
     }
 }

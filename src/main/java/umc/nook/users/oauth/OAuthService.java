@@ -164,13 +164,16 @@ public class OAuthService {
         Map<String, Object> userAttribute = getKakaoUserAttributes(newToken.getAccessToken());
         OAuth2Attribute attributes = OAuth2Attribute.of("kakao", userAttribute);
 
-        Optional<User> findUser = userRepository.findAnyByEmail(attributes.getEmail());
+        Optional<User> findUser = userRepository.findByEmail(attributes.getEmail());
         Optional<User> findKakaoUser = userRepository.findByKakaoUserId(attributes.getKakaoUserId());
         User user;
         if (findKakaoUser.isPresent()) {
             user = findKakaoUser.get();
             log.info("기존 사용자 로그인: {}", user.getEmail());
-        } else {
+        } else if (findUser.isPresent()){
+            user = findUser.get();
+            log.info("기존 사용자 로그인: {}", user.getKakaoUserId());
+        }else {
             log.info("새로운 사용자 생성: {}", attributes.getEmail());
             user = saveUser(attributes);
             userRepository.save(user);

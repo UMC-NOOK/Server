@@ -19,14 +19,12 @@ public class CategoryValidator implements ConstraintValidator<ValidatedCategory,
     }
 
     @Override
-    public boolean isValid(Integer categoryId, ConstraintValidatorContext constraintValidatorContext) {
+    public boolean isValid(Integer categoryId, ConstraintValidatorContext context) {
         if (categoryId == null) {
             return true;
         }
 
-        if (!categoryService.isCategoryValid(categoryId)) {
-            throw new CustomException(ErrorCode.INVALID_CATEGORY);
-        }
-        return true;
+        return categoryService.isCategoryValid(categoryId);
     }
+
 }

@@ -13,10 +13,9 @@ public class IsbnValidator implements ConstraintValidator<ValidatedIsbn, String>
     }
 
     @Override
-    public boolean isValid(String isbn, ConstraintValidatorContext constraintValidatorContext) {
-        if (!isbn.chars().allMatch(Character::isDigit) || isbn.length() != 13) {
-            throw new CustomException(ErrorCode.INVALID_ISBN13);
-        }
-        return true;
+    public boolean isValid(String isbn, ConstraintValidatorContext context) {
+        if (isbn == null) return false;
+        return isbn.chars().allMatch(Character::isDigit) && isbn.length() == 13;
     }
+
 }
