@@ -79,11 +79,14 @@ public class ReadingRoomService {
 
     // 전체 리딩룸 조회
     @Transactional(readOnly = true)
-    public List<ReadingRoomDTO.ReadingRoomResponseDTO> getAllReadingRooms(int page) {
+    public List<ReadingRoomDTO.ReadingRoomResponseDTO> getAllReadingRooms(int page, CustomUserDetails userDetails) {
 
         int pageSize = 12;
         PageRequest pageRequest = PageRequest.of(page, pageSize);
-        Page<ReadingRoom> readingRooms = readingRoomRepository.findAll(pageRequest);
+
+        User user = userDetails.getUser();
+
+        Page<ReadingRoom> readingRooms = readingRoomUserRepository.findAllExcludingUserJoinedRooms(user, pageRequest);
 
         return readingRooms.stream().map(room -> {
 

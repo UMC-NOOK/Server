@@ -25,8 +25,8 @@ public class ReadingRoomController {
 
     @Operation(summary = "전체 리딩룸 조회", description = "쿼리 스트링으로 원하는 페이지를 넘겨주시면 됩니다. 페이지 번호는 0부터 시작합니다.")
     @GetMapping
-    public ApiResponse<List<ReadingRoomDTO.ReadingRoomResponseDTO>> getAllReadingRooms(@RequestParam(defaultValue = "0") int page) {
-        return ApiResponse.onSuccess(readingRoomService.getAllReadingRooms(page), SuccessCode.OK);
+    public ApiResponse<List<ReadingRoomDTO.ReadingRoomResponseDTO>> getAllReadingRooms(@RequestParam(defaultValue = "0") int page, @AuthenticationPrincipal CustomUserDetails user) {
+        return ApiResponse.onSuccess(readingRoomService.getAllReadingRooms(page, user), SuccessCode.OK);
     }
 
     @Operation(summary = "사용자가 가입한 리딩룸 조회")

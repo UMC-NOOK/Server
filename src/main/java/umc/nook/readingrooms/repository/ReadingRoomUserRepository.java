@@ -3,6 +3,8 @@ package umc.nook.readingrooms.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import umc.nook.readingrooms.domain.ReadingRoom;
 import umc.nook.readingrooms.domain.ReadingRoomUser;
 import umc.nook.readingrooms.domain.Role;
@@ -20,4 +22,7 @@ public interface ReadingRoomUserRepository extends JpaRepository<ReadingRoomUser
     List<ReadingRoomUser> findAllByReadingRoom(ReadingRoom readingRoom);
     Optional<ReadingRoomUser> findTopByUserOrderByLastAccessedAtDesc(User user);
     int countByUser(User user);
+    @Query("SELECT r FROM ReadingRoom r WHERE r.id NOT IN " +
+            "(SELECT rru.readingRoom.id FROM ReadingRoomUser rru WHERE rru.user = :user)")
+    Page<ReadingRoom> findAllExcludingUserJoinedRooms(@Param("user") User user, Pageable pageable);
 }
