@@ -80,7 +80,7 @@ public class UserService {
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshTokenId", refreshToken)
                 .httpOnly(true)
                 .secure(false)
-                .sameSite("Lax")
+                .sameSite("None")
                 .path("/")
                 .maxAge(Duration.ofDays(3))
                 .build();
