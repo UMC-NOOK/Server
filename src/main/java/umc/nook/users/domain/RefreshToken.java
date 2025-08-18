@@ -22,12 +22,10 @@ public class RefreshToken {
 
     private Long userId;
 
-    @Indexed
     private String refreshToken;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private LocalDateTime expiration;
 
-    @Indexed
     private String accessToken;
 }

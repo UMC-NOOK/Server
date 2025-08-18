@@ -81,12 +81,12 @@ public class UserService {
         // 쿠키에는 tokenId만 저장
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshTokenId", newTokenId)
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .sameSite("None")
                 .path("/")
                 .maxAge(Duration.ofDays(3))
                 .build();
-        response.setHeader("Set-Cookie", refreshTokenCookie.toString());
+        response.addHeader("Set-Cookie", refreshTokenCookie.toString());
         return new UserDTO.LoginResponseDTO(user, tokenResponseDto);
     }
 
@@ -146,7 +146,7 @@ public class UserService {
                     .path("/")
                     .maxAge(Duration.ofDays(3))
                     .build();
-            response.setHeader("Set-Cookie", refreshTokenCookie.toString());
+            response.addHeader("Set-Cookie", refreshTokenCookie.toString());
 
             finalTokenId = generatedNewTokenId;
         }
@@ -229,7 +229,7 @@ public class UserService {
                 .maxAge(Duration.ofDays(60))
                 .build();
 
-        response.setHeader("Set-Cookie", jwtRefreshTokenCookie.toString());
+        response.addHeader("Set-Cookie", jwtRefreshTokenCookie.toString());
         response.addHeader("Set-Cookie", kakaoRefreshTokenCookie.toString());
 
         return kakaoResponse;
@@ -286,7 +286,7 @@ public class UserService {
                     .path("/")
                     .maxAge(Duration.ofDays(60))
                     .build();
-            response.setHeader("Set-Cookie", kakaoRefreshTokenCookie.toString());
+            response.addHeader("Set-Cookie", kakaoRefreshTokenCookie.toString());
         }
 
         return UserDTO.TokenResponseDto.builder()
