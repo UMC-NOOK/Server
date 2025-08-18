@@ -29,7 +29,6 @@ public enum ErrorCode implements BaseCode {
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT-011","리프레시 토큰을 찾을 수 없습니다."),
     REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "ACCOUNT-012","리프레시 토큰이 만료되었습니다."),
     REFRESH_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "ACCOUNT-013","리프레시 토큰이 유효하지 않습니다."),
-
     // 서재 관련
     DUPLICATE_BOOK_IN_SHELF(HttpStatus.CONFLICT, "BOOKSHELF-001", "이미 서재에 등록된 책입니다."),
     ALREADY_READING(HttpStatus.CONFLICT, "BOOKSHELF-002", "이미 독서중 상태입니다."),

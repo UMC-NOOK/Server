@@ -20,6 +20,8 @@ import umc.nook.users.service.errorHandler.CustomAuthenticationEntryPoint;
 import umc.nook.users.service.filter.JwtAuthFilter;
 import umc.nook.users.service.filter.JwtExceptionFilter;
 
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -69,7 +71,7 @@ public class WebSecurityConfig {
         configuration.addAllowedMethod("*");
         configuration.setAllowCredentials(true);
         configuration.addAllowedHeader("Authorization");
-
+        configuration.setAllowedOrigins(List.of("https://readingnook.netlify.app"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

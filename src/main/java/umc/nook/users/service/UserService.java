@@ -67,7 +67,6 @@ public class UserService {
     public UserDTO.LoginResponseDTO login(UserDTO.LoginDto request, HttpServletResponse response) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-        log.info("이메일로찾기 : " + request.getEmail());
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new CustomException(ErrorCode.INVALID_PASSWORD);
         }
@@ -94,15 +93,22 @@ public class UserService {
     public UserDTO.TokenResponseDto reissue(HttpServletRequest request, HttpServletResponse response) {
         // 쿠키에서 tokenId 추출
         String tokenId = extractCookie(request, "refreshTokenId");
+        log.info("[reissue] 요청 쿠키 refreshTokenId = {}", tokenId);
         if (tokenId == null) {
+            log.warn("[reissue] refreshTokenId 쿠키 없음 → INVALID_REFRESH_TOKEN");
             throw new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
         // Redis에서 Refresh Token 조회
         RefreshToken tokenEntity = refreshTokenRepository.findByTokenId(tokenId)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REFRESH_TOKEN));
+                .orElseThrow(() -> {
+                    log.warn("[reissue] Redis에서 해당 tokenId({}) 없음", tokenId);
+                    return new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
+                });
 
         // Refresh Token 유효성 검증 & 사용자 조회
         Long userId = jwtProvider.parseRefreshToken(tokenEntity.getRefreshToken());
+        log.info("[reissue] RefreshToken 파싱 성공 → userId={}", userId);
+
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
@@ -134,8 +140,8 @@ public class UserService {
             // 쿠키 갱신
             ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshTokenId", newTokenId)
                     .httpOnly(true)
-                    .secure(false) // 운영 시 true
-                    .sameSite("Lax")
+                    .secure(true)
+                    .sameSite("None")
                     .path("/")
                     .maxAge(Duration.ofDays(3))
                     .build();
@@ -161,8 +167,8 @@ public class UserService {
         // 쿠키 제거
         ResponseCookie deleteCookie = ResponseCookie.from("refreshTokenId", "")
                 .httpOnly(true)
-                .secure(false) // 운영 시 true
-                .sameSite("Lax")
+                .secure(true)
+                .sameSite("None")
                 .path("/")
                 .maxAge(0)
                 .build();
@@ -208,16 +214,16 @@ public class UserService {
         // 3. 쿠키에는 tokenId만 저장
         ResponseCookie jwtRefreshTokenCookie = ResponseCookie.from("refreshTokenId", tokenId)
                 .httpOnly(true)
-                .secure(false) // 운영 시 true
-                .sameSite("Lax")
+                .secure(true)
+                .sameSite("None")
                 .path("/")
                 .maxAge(Duration.ofDays(3))
                 .build();
 
         ResponseCookie kakaoRefreshTokenCookie = ResponseCookie.from("kakaoRefreshTokenId", kakaoTokenId)
                 .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
+                .secure(true)
+                .sameSite("None")
                 .path("/")
                 .maxAge(Duration.ofDays(60))
                 .build();
@@ -274,8 +280,8 @@ public class UserService {
 
             ResponseCookie kakaoRefreshTokenCookie = ResponseCookie.from("kakaoRefreshTokenId", newKakaoTokenId)
                     .httpOnly(true)
-                    .secure(false)
-                    .sameSite("Lax")
+                    .secure(true)
+                    .sameSite("None")
                     .path("/")
                     .maxAge(Duration.ofDays(60))
                     .build();
