@@ -71,13 +71,15 @@ public class UserService {
             throw new CustomException(ErrorCode.INVALID_PASSWORD);
         }
 
+        String newTokenId = UUID.randomUUID().toString();
+
         String accessToken = jwtProvider.createAccessToken(user);
-        String refreshToken = jwtProvider.createRefreshToken(user,accessToken);
+        String refreshToken = jwtProvider.createRefreshToken(user,accessToken,newTokenId);
 
         UserDTO.TokenResponseDto tokenResponseDto = new UserDTO.TokenResponseDto(accessToken);
 
         // 쿠키에는 tokenId만 저장
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshTokenId", refreshToken)
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshTokenId", newTokenId)
                 .httpOnly(true)
                 .secure(false)
                 .sameSite("None")
@@ -123,14 +125,13 @@ public class UserService {
         // Refresh Token 교체 여부 판단, 남은 기간이 1일 이하일 경우 Rolling
         String finalTokenId = tokenId;
         if (remainingDays <= 1) {
-            String newRefreshToken = jwtProvider.createRefreshToken(user,tokenId);
-            String newTokenId = UUID.randomUUID().toString();
-
+            String generatedNewTokenId = UUID.randomUUID().toString();
+            String newRefreshToken = jwtProvider.createRefreshToken(user, newAccessToken, generatedNewTokenId);
             // Redis 갱신
             refreshTokenRepository.deleteByTokenId(tokenId);
             refreshTokenRepository.save(
                     RefreshToken.builder()
-                            .tokenId(newTokenId)
+                            .tokenId(generatedNewTokenId)
                             .userId(user.getUserId())
                             .refreshToken(newRefreshToken)
                             .expiration(LocalDateTime.now().plusDays(3))
@@ -138,7 +139,7 @@ public class UserService {
             );
 
             // 쿠키 갱신
-            ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshTokenId", newTokenId)
+            ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshTokenId", generatedNewTokenId)
                     .httpOnly(true)
                     .secure(true)
                     .sameSite("None")
@@ -147,7 +148,7 @@ public class UserService {
                     .build();
             response.setHeader("Set-Cookie", refreshTokenCookie.toString());
 
-            finalTokenId = newTokenId;
+            finalTokenId = generatedNewTokenId;
         }
 
         // Access Token 반환 (Refresh Token은 쿠키로만 관리)
@@ -184,12 +185,12 @@ public class UserService {
     // 카카오 로그인
     @Transactional
     public UserDTO.KakaoLoginResponseDTO kakaoLogin(String code, HttpServletResponse response) {
+        String tokenId = UUID.randomUUID().toString();
 
-        UserDTO.KakaoLoginResponseDTO kakaoResponse = oAuthService.loginWithKakaoCode(code);
+        UserDTO.KakaoLoginResponseDTO kakaoResponse = oAuthService.loginWithKakaoCode(code,tokenId);
         Long userId = kakaoResponse.getUserId();
 
         // 1. JWT RefreshToken 저장 (tokenId 생성)
-        String tokenId = UUID.randomUUID().toString();
         refreshTokenRepository.save(
                 RefreshToken.builder()
                         .tokenId(tokenId)
