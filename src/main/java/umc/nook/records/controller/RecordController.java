@@ -50,14 +50,14 @@ public class RecordController {
             description = "독서 중 인상 깊은 문장을 기록합니다."
     )
     @PostMapping("/sentence/save")
-    public ApiResponse<String> saveSentence(
+    public ApiResponse<?> saveSentence(
             @Parameter(hidden = true)
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody @Validated
             RecordDTO.RecordRequestDTO requestDTO
     ) {
-        recordService.saveSentence(userDetails.getUser(), requestDTO);
-        return ApiResponse.onSuccess("문장 기록이 저장되었습니다.", SuccessCode.CREATED);
+        var response = recordService.saveSentence(userDetails.getUser(), requestDTO);
+        return ApiResponse.onSuccess(response, SuccessCode.CREATED);
     }
 
     @Operation(
