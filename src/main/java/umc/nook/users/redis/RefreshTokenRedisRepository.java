@@ -139,12 +139,16 @@ public class RefreshTokenRedisRepository {
         }
     }
     private RefreshToken convert(Object value) {
+        if (value instanceof RefreshToken) {
+            return (RefreshToken) value;
+        }
         try {
             return objectMapper.convertValue(value, RefreshToken.class);
         } catch (IllegalArgumentException e) {
             throw new RefreshTokenInvalidException("토큰 역직렬화에 실패했습니다.");
         }
     }
+
 
     private boolean isExpired(RefreshToken token) {
         return token == null || token.getExpiration() == null

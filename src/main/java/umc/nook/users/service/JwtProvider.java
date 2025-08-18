@@ -113,15 +113,26 @@ public class JwtProvider {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token);
+            Date expiration = getExpiration(token);
+            log.info("AccessToken 유효. 만료 예정 시간 = {}", expiration);
             return true;
-        } catch (SecurityException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
-            throw new CustomException(ErrorCode.INVALID_TOKEN);
         } catch (ExpiredJwtException e) {
+            log.warn("AccessToken 만료됨. exp = {}", e.getClaims().getExpiration());
             throw new CustomException(ErrorCode.TOKEN_EXPIRED);
+
+        } catch (MalformedJwtException | SignatureException | IllegalArgumentException e) {
+            log.error("잘못된 토큰: {}", e.getMessage());
+            throw new JwtException("TOKEN_INVALID");
+
+        } catch (JwtException e) {
+            log.error("JWT 파싱 에러: {}", e.getMessage());
+            throw new JwtException("TOKEN_INVALID");
         }
     }
-
     public Optional<String> extractRefreshToken(HttpServletRequest request) {
         if (request.getCookies() == null) {
             return Optional.empty();
@@ -139,8 +150,13 @@ public class JwtProvider {
         }
         throw new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
     }
-    public Date extractExpiration(String token) {
-        return parseClaims(token).getExpiration();
+    public Date getExpiration(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getExpiration();
     }
 
     public String extractEmail(String token) {

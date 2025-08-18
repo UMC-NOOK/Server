@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
 import umc.nook.common.exception.CustomException;
 import umc.nook.common.response.ErrorCode;
+import umc.nook.users.service.CustomUserDetailService;
 import umc.nook.users.service.JwtProvider;
 
 import java.io.IOException;
@@ -32,29 +33,22 @@ public class JwtAuthFilter extends GenericFilterBean {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        String requestURI = httpRequest.getRequestURI();
-        if (requestURI.startsWith("/metrics") || requestURI.startsWith("/actuator")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
+        // 토큰 추출
         String token = jwtProvider.resolveToken(httpRequest);
 
+        // 인증된 경우 통과
         if (SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        // 토큰 검증
         if (token != null) {
-            if (jwtProvider.validateToken(token)) {
+                jwtProvider.validateToken(token);
                 String email = jwtProvider.parseClaims(token).getSubject();
                 Authentication authentication = jwtProvider.getAuthentication(email);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            } else {
-                throw new CustomException(ErrorCode.INVALID_TOKEN);
-            }
         }
-
 
         filterChain.doFilter(request, response);
     }

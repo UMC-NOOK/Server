@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import umc.nook.common.exception.CustomException;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -25,8 +26,7 @@ public class JwtExceptionFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             chain.doFilter(request, response); // JwtAuthenticationFilter로 이동
-        } catch (JwtException ex) {
-            // JwtAuthenticationFilter에서 예외 발생하면 바로 setErrorResponse 호출
+        }catch (JwtException | CustomException ex) {
             setErrorResponse(request, response, ex);
         }
     }
@@ -34,7 +34,7 @@ public class JwtExceptionFilter extends OncePerRequestFilter {
     public void setErrorResponse(HttpServletRequest req, HttpServletResponse res, Throwable ex)
             throws IOException {
 
-        if (res.isCommitted()) return; // 이미 응답 시작되면 종료
+        if (res.isCommitted()) return;
 
         res.setStatus(HttpStatus.UNAUTHORIZED.value());
         res.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -43,7 +43,7 @@ public class JwtExceptionFilter extends OncePerRequestFilter {
         String code;
         String detail;
 
-        // 예외 타입별 분기 (jjwt)
+        // 예외 타입별 분기
         if (ex instanceof io.jsonwebtoken.ExpiredJwtException) {
             code = "TOKEN_EXPIRED";
             detail = "토큰이 만료되었습니다.";
