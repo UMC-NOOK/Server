@@ -159,7 +159,7 @@ public class OAuthService {
      * 로그인 및 회원가입 통합 처리 (인가코드 기반)
      */
     @Transactional
-    public UserDTO.KakaoLoginResponseDTO loginWithKakaoCode(String code) {
+    public UserDTO.KakaoLoginResponseDTO loginWithKakaoCode(String code, String tokenId) {
         KakaoResponseParams newToken = getKakaoAccessToken(code);
         Map<String, Object> userAttribute = getKakaoUserAttributes(newToken.getAccessToken());
         OAuth2Attribute attributes = OAuth2Attribute.of("kakao", userAttribute);
@@ -180,7 +180,7 @@ public class OAuthService {
         }
 
         String accessToken = jwtProvider.createAccessToken(user);
-        String refreshToken = jwtProvider.createRefreshToken(user,accessToken);
+        String refreshToken = jwtProvider.createRefreshToken(user,accessToken, tokenId);
         UserDTO.KakaoTokenResponseDTO jwtTokenResponse = new UserDTO.KakaoTokenResponseDTO(accessToken,refreshToken);
 
         KakaoRefreshToken token = kakaoRefreshTokenRedisRepository.findByUserId(user.getUserId())

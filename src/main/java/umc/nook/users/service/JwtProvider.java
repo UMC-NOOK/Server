@@ -60,7 +60,7 @@ public class JwtProvider {
                 .compact();
     }
 
-    public String createRefreshToken(User user, String accessToken) {
+    public String createRefreshToken(User user, String accessToken, String tokenId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + REFRESH_EXP);
 
@@ -72,7 +72,6 @@ public class JwtProvider {
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
 
-        String tokenId = UUID.randomUUID().toString();
 
         RefreshToken refreshToken = RefreshToken.builder()
                 .tokenId(tokenId)
