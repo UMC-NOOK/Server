@@ -71,7 +71,10 @@ public class WebSecurityConfig {
         configuration.addAllowedMethod("*");
         configuration.setAllowCredentials(true);
         configuration.addAllowedHeader("Authorization");
-        configuration.setAllowedOrigins(List.of("https://readingnook.netlify.app"));
+        configuration.addExposedHeader("Set-Cookie");
+        configuration.setAllowedOrigins(
+                List.of("http://localhost:3000", "https://readingnook.netlify.app")
+        );
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
