@@ -171,7 +171,8 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                 .where(
                         ub.user.eq(user),
                         ub.recordedAt.isNotNull(),
-                        ub.recordedAt.between(startDate, endDate)
+                        ub.recordedAt.between(startDate, endDate),
+                        ub.readingStatus.ne(ReadingStatus.BOOKMARK)
                 )
                 .orderBy(ub.recordedAt.asc(), ub.createdDate.desc())
                 .fetch();

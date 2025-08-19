@@ -186,7 +186,13 @@ public class BookShelfService {
         LocalDateTime startOfWeek = monday.atStartOfDay();
         LocalDateTime endOfToday = now.atTime(LocalTime.MAX);
         List<UserBookShelf> weeklyBooks = userBookshelfRepository
-                .findByUserAndCreatedDateBetweenOrderByRecordedAtAsc(user, startOfWeek, endOfToday);
+                .findByUserAndCreatedDateBetweenAndReadingStatusNotOrderByRecordedAtAsc(
+                        user,
+                        startOfWeek,
+                        endOfToday,
+                        ReadingStatus.BOOKMARK
+                );
+
 
         return weeklyBooks.stream()
                 .map(ubs -> new BookShelfDTO.WeeklyBooksDTO(
