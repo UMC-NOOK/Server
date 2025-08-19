@@ -66,15 +66,15 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.addAllowedOriginPattern("*");
-        configuration.addAllowedHeader("*");
-        configuration.addAllowedMethod("*");
         configuration.setAllowCredentials(true);
-        configuration.addAllowedHeader("Authorization");
-        configuration.addExposedHeader("Set-Cookie");
         configuration.setAllowedOrigins(
                 List.of("http://localhost:3000", "https://readingnook.netlify.app")
         );
+        configuration.addAllowedHeader("*");
+        configuration.addAllowedMethod("*");
+        configuration.addAllowedHeader("Authorization");
+        configuration.addExposedHeader("Set-Cookie");
+        configuration.setMaxAge(3600L); // preflight 캐싱
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
