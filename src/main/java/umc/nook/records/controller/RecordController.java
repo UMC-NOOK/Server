@@ -50,14 +50,14 @@ public class RecordController {
             description = "독서 중 인상 깊은 문장을 기록합니다."
     )
     @PostMapping("/sentence/save")
-    public ApiResponse<String> saveSentence(
+    public ApiResponse<?> saveSentence(
             @Parameter(hidden = true)
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody @Validated
             RecordDTO.RecordRequestDTO requestDTO
     ) {
-        recordService.saveSentence(userDetails.getUser(), requestDTO);
-        return ApiResponse.onSuccess("문장 기록이 저장되었습니다.", SuccessCode.CREATED);
+        var response = recordService.saveSentence(userDetails.getUser(), requestDTO);
+        return ApiResponse.onSuccess(response, SuccessCode.CREATED);
     }
 
     @Operation(
@@ -177,10 +177,12 @@ public class RecordController {
     }
 
     @PostMapping("/chat/{chatRecordId}/save")
-    @Operation(summary = "눅톡 감상을 내 감상으로 저장", description = "눅톡으로 생성된 감상을 독서 기록 감상으로 저장합니다.")
+    @Operation(
+            summary = "눅톡 감상을 내 감상으로 저장",
+            description = "눅톡으로 생성된 감상을 독서 기록 감상으로 저장합니다. 채팅 기록의 타입이 감상(COMMENT)일 경우에만 저장 가능합니다.")
     public ApiResponse<RecordDTO.CommentResponseDTO> saveCommentFromChatRecord(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Parameter(description = "채팅 기록 ID") @PathVariable Long chatRecordId
+            @Parameter(description = "눅톡 채팅 기록 ID") @PathVariable Long chatRecordId
     ) {
         return ApiResponse.onSuccess(
                 recordService.saveCommentFromChatRecord(userDetails.getUser(), chatRecordId),

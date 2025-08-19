@@ -82,6 +82,7 @@ public enum ErrorCode implements BaseCode {
     RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "RECORD-001","기록이 존재하지 않습니다." ),
     INVALID_RECORD_TYPE(HttpStatus.BAD_REQUEST, "RECORD-002", "유효하지 않은 기록 유형입니다."),
     RECORD_NOT_EXIST(HttpStatus.NOT_FOUND, "RECORD-003","기록이 없습니다." ),
+    CHAT_RECORD_MUST_BE_COMMENT(HttpStatus.BAD_REQUEST,"RECORD-004","감상의 경우에만 저장 가능합니다." ),
 
     CHAT_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND,"RECORD-003","채팅 기록이 존재하지 않습니다." ),
 
