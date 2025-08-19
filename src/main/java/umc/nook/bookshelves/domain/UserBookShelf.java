@@ -39,8 +39,7 @@ public class UserBookShelf extends BaseTimeEntity {
     @Column(name="reading_status", nullable=false)
     private ReadingStatus readingStatus;
 
-    @NotNull
-    @Column(name="recorded_at", nullable=false)
+    @Column(name="recorded_at")
     private LocalDate recordedAt;
 
     @OneToMany(mappedBy = "bookshelf", cascade = CascadeType.ALL, orphanRemoval = true)
