@@ -26,7 +26,7 @@ public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Lon
     List<UserBookShelf> findByUserAndReadingStatus(User user, ReadingStatus readingStatus);
 
 
-    List<UserBookShelf> findAllByUser(User user);
+    List<UserBookShelf> findAllByUserAndReadingStatusNot(User user, ReadingStatus excludedStatus);
 
     @Query("""
     SELECT c.categoryId AS categoryId,
