@@ -122,13 +122,14 @@ public class BookShelfService {
     // 월별 책 등록된 날짜 조회
     @Transactional(readOnly = true)
     public BookShelfDTO.RegisteredBookListResponseDTO viewRegisteredDatesInMonth(User user, YearMonth yearMonth) {
-        List<LocalDate> dates = userBookshelfRepository.findAllByUser(user).stream()
-                .filter(b -> b.getBook() != null)
-                .map(b -> b.getRecordedAt())
+        List<LocalDate> dates = userBookshelfRepository.findAllByUserAndReadingStatusNot(user, ReadingStatus.BOOKMARK)
+                .stream()
+                .map(UserBookShelf::getRecordedAt)
+                .filter(Objects::nonNull)
                 .filter(date -> YearMonth.from(date).equals(yearMonth))
                 .distinct()
                 .sorted()
-                .collect(Collectors.toList());
+                .toList();
         return new BookShelfDTO.RegisteredBookListResponseDTO(dates);
     }
 
@@ -186,7 +187,13 @@ public class BookShelfService {
         LocalDateTime startOfWeek = monday.atStartOfDay();
         LocalDateTime endOfToday = now.atTime(LocalTime.MAX);
         List<UserBookShelf> weeklyBooks = userBookshelfRepository
-                .findByUserAndCreatedDateBetweenOrderByRecordedAtAsc(user, startOfWeek, endOfToday);
+                .findByUserAndCreatedDateBetweenAndReadingStatusNotOrderByRecordedAtAsc(
+                        user,
+                        startOfWeek,
+                        endOfToday,
+                        ReadingStatus.BOOKMARK
+                );
+
 
         return weeklyBooks.stream()
                 .map(ubs -> new BookShelfDTO.WeeklyBooksDTO(
@@ -195,6 +202,5 @@ public class BookShelfService {
                 ))
                 .collect(Collectors.toList());
     }
-
 
 }

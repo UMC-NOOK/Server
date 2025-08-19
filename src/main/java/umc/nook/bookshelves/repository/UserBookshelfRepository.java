@@ -26,7 +26,7 @@ public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Lon
     List<UserBookShelf> findByUserAndReadingStatus(User user, ReadingStatus readingStatus);
 
 
-    List<UserBookShelf> findAllByUser(User user);
+    List<UserBookShelf> findAllByUserAndReadingStatusNot(User user, ReadingStatus excludedStatus);
 
     @Query("""
     SELECT c.categoryId AS categoryId,
@@ -84,7 +84,13 @@ public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Lon
     List<UserBookShelf> findByUserAndReadingStatusOrderByCreatedDateDesc(User user, ReadingStatus reading);
 
 
-    List<UserBookShelf> findByUserAndCreatedDateBetweenOrderByRecordedAtAsc(User user, LocalDateTime startOfWeek, LocalDateTime endOfToday);
+    // BOOKMARK 제외
+    List<UserBookShelf> findByUserAndCreatedDateBetweenAndReadingStatusNotOrderByRecordedAtAsc(
+            User user,
+            LocalDateTime startOfWeek,
+            LocalDateTime endOfToday,
+            ReadingStatus excludedStatus
+    );
 
 
     boolean existsByUserAndRecordedAt(User user, LocalDate date);

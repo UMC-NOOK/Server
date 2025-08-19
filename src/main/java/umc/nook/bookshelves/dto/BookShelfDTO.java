@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import umc.nook.book.domain.Book;
 import umc.nook.bookshelves.domain.ReadingStatus;
+import umc.nook.bookshelves.validation.DateRequiredIfReadingOrFinished;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -20,18 +21,20 @@ public class BookShelfDTO {
 
     @Getter
     @NoArgsConstructor
+    @DateRequiredIfReadingOrFinished
     public static class RegisterBookDTO {
 
         @NotNull(message = "bookId는 필수입니다.")
         @Positive(message = "bookId는 양수여야 합니다.")
         private Long bookId;
+
         @JsonFormat(pattern = "yyyy-MM-dd")
-        @NotNull(message = "날짜는 필수입니다.")
         private LocalDate date;
 
         @NotNull(message = "readingStatus는 필수입니다.")
         private ReadingStatus readingStatus;
     }
+
 
 
     @Getter
