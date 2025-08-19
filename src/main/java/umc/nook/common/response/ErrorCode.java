@@ -26,7 +26,9 @@ public enum ErrorCode implements BaseCode {
     EMAIL_DUPLICATE(HttpStatus.CONFLICT, "ACCOUNT-008", "중복된 이메일입니다."),
     PERMISSION_DENIED(HttpStatus.FORBIDDEN, "ACCOUNT-009", "권한이 없습니다."),
     USER_INACTIVE(HttpStatus.FORBIDDEN,"ACCOUNT-010", "탈퇴한 사용자입니다."),
-
+    REFRESH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT-011","리프레시 토큰을 찾을 수 없습니다."),
+    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "ACCOUNT-012","리프레시 토큰이 만료되었습니다."),
+    REFRESH_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "ACCOUNT-013","리프레시 토큰이 유효하지 않습니다."),
     // 서재 관련
     DUPLICATE_BOOK_IN_SHELF(HttpStatus.CONFLICT, "BOOKSHELF-001", "이미 서재에 등록된 책입니다."),
     ALREADY_READING(HttpStatus.CONFLICT, "BOOKSHELF-002", "이미 독서중 상태입니다."),
@@ -80,6 +82,7 @@ public enum ErrorCode implements BaseCode {
     RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "RECORD-001","기록이 존재하지 않습니다." ),
     INVALID_RECORD_TYPE(HttpStatus.BAD_REQUEST, "RECORD-002", "유효하지 않은 기록 유형입니다."),
     RECORD_NOT_EXIST(HttpStatus.NOT_FOUND, "RECORD-003","기록이 없습니다." ),
+    CHAT_RECORD_MUST_BE_COMMENT(HttpStatus.BAD_REQUEST,"RECORD-004","감상의 경우에만 저장 가능합니다." ),
 
     CHAT_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND,"RECORD-003","채팅 기록이 존재하지 않습니다." ),
 

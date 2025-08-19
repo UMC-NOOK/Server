@@ -1,9 +1,9 @@
 package umc.nook.records.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import umc.nook.book.domain.Book;
 import umc.nook.book.repository.BookRepository;
 import umc.nook.bookshelves.domain.UserBookShelf;
@@ -40,6 +40,7 @@ public class RecordService {
 
 
 
+    // 눅톡 메세지 전송
     @Transactional
     public ChatDTO.ChatResponseDTO saveChatMessage(User user, ChatDTO.ChatRequestDTO requestDTO) throws JsonProcessingException {
         Book book = bookRepository.findByBookId(requestDTO.getBookId());
@@ -74,7 +75,7 @@ public class RecordService {
 
 
     // 선택한 책 눅톡 기록 조회
-    @Transactional
+    @Transactional(readOnly=true)
     public List<ChatDTO.ChatResponseDTO> viewChatMessages(User user, Long bookId) {
         Book book = bookRepository.findByBookId(bookId);
         if (book == null)
@@ -121,7 +122,7 @@ public class RecordService {
     }
 
     // 선택한 책 독서 기록 조회
-    @Transactional
+    @Transactional(readOnly = true)
     public List<RecordDTO.RecordResponseDTO> viewRecordsByBookId(User user, Long bookId) {
         Book book = bookRepository.findByBookId(bookId);
         UserBookShelf userBookShelf = userBookshelfRepository.findByUserAndBook(user, book);
@@ -183,7 +184,7 @@ public class RecordService {
     }
 
     // 독서 기록률 조회
-    @Transactional
+    @Transactional(readOnly = true)
     public RecordDTO.MonthlyRecordRateResponseDTO viewRecordRate(User user, Year year) {
         return bookRecordRepository.viewRecordRate(user,year);
     }
@@ -195,6 +196,8 @@ public class RecordService {
         // 채팅 기록 조회
         ChatRecord record = chatRecordRepository.findById(chatRecordId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHAT_RECORD_NOT_FOUND));
+        if (record.getRole() != ChatType.COMMENT)
+            throw new CustomException(ErrorCode.CHAT_RECORD_MUST_BE_COMMENT);
         // 내용 추출
         String content = record.getContent();
         // BookRecord 생성 및 저장
@@ -209,7 +212,7 @@ public class RecordService {
     }
 
     // 가장 최근 기록한 책 정보 조회
-    @Transactional
+    @Transactional(readOnly = true)
     public BookShelfDTO.BookThumbnail viewRecentlyRecordedBook(User user) {
         return bookRecordRepository.viewRecentRecordedBook(user)
                 .map(b -> new BookShelfDTO.BookThumbnail(
