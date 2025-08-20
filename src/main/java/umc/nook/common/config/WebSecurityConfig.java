@@ -68,7 +68,8 @@ public class WebSecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
         configuration.setAllowedOrigins(
-                List.of("http://localhost:3000", "https://readingnook.netlify.app",  "https://nook-app.shop")
+                List.of("http://localhost:8080", "https://readingnook.netlify.app",  "https://nook-app.shop",
+                        "http://localhost:5174")
         );
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
