@@ -42,7 +42,6 @@ public class LoungeResponseDTO {
         private Integer categoryId;
         private String categoryName;
         private List<BookDTO> books;
-        private PaginationDTO pagination;
     }
 
     @Getter

@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 public class SearchService {
 
     private static final int LIMIT = 10;
+    private static final int MAX_ITEMS = 200;
+    private static final int MAX_PAGES = 10;
 
     private final AladinService aladinService;
     private final BookService bookService;
@@ -68,10 +70,21 @@ public class SearchService {
         }
 
         int totalItems = response != null ? response.getTotalResults() : 0;
+
+        if (totalItems > MAX_ITEMS) {
+            totalItems = MAX_ITEMS;
+        }
+
         int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / fetchSize): 0;
+
+        if (totalPages > MAX_PAGES) {
+            totalPages = MAX_PAGES;
+        }
+
         if ((totalPages == 0 && page > 0) || (totalPages > 0 && page >= totalPages)) {
             throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
         }
+        
         recentQueryService.saveRecentQuery(user, query);
         return SearchResponseDTO.SearchResultDTO.builder()
                 .books(books)

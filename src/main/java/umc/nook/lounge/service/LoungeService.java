@@ -9,6 +9,7 @@ import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.aladin.service.AladinService;
 import umc.nook.book.domain.CategoryCount;
 import umc.nook.book.domain.CategoryCountByName;
+import umc.nook.book.domain.MallType;
 import umc.nook.book.repository.CategoryRepository;
 import umc.nook.book.utils.BookFilterUtils;
 import umc.nook.bookshelves.domain.ReadingStatus;
@@ -32,6 +33,11 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class LoungeService {
 
+    private static final String MALLTYPE_RECOMMENDATION= "RECOMMENDATION";
+    private static final String MALLTYPE_BOOK = String.valueOf(MallType.BOOK);
+    private static final String MALLTYPE_FOREIGN = String.valueOf(MallType.FOREIGN);
+    private static final String MALLTYPE_EBOOK = String.valueOf(MallType.EBOOK);
+
     private static final String SECTION_BEST = "best";
     private static final String SECTION_NEW = "new";
     private static final String SECTION_FAVORITE_BEST = "favorite_best";
@@ -48,31 +54,29 @@ public class LoungeService {
     private final AladinService aladinService;
 
     public LoungeResponseDTO.LoungeBookResultDTO getLoungeBooks(
-            String mallType, String sectionId, Integer categoryId, int page, CustomUserDetails userDetails) {
+            String mallType,CustomUserDetails userDetails) {
 
         // 추천 페이지
-        if ("RECOMMENDATION".equalsIgnoreCase(mallType)) {
-            return handleRecommendation(sectionId, categoryId, page, userDetails.getUser());
+        if (mallType.equalsIgnoreCase(MALLTYPE_RECOMMENDATION)) {
+            return handleRecommendation(userDetails.getUser());
         }
         // 몰 타입 페이지
         else {
-            return handleMallType(sectionId, categoryId, mallType, page);
+            return handleMallType(mallType);
         }
     }
 
-    private LoungeResponseDTO.LoungeBookResultDTO handleRecommendation(
-            String sectionId, Integer categoryId, int page, User user) {
+    private LoungeResponseDTO.LoungeBookResultDTO handleRecommendation(User user) {
 
-        if (sectionId == null) {
-            // 추천 페이지 전체 조회 (1페이지)
+            // 추천 페이지 전체 조회)
             CompletableFuture<LoungeResponseDTO.SectionDTO> bestFuture =
-                    fetchSectionAsync(SECTION_BEST, categoryId, getCategoryNameById(categoryId),
-                            QUERY_TYPE_BESTSELLER, "BOOK", 0);
+                    fetchSectionAsync(SECTION_BEST, null, null,
+                            QUERY_TYPE_BESTSELLER, MALLTYPE_BOOK);
             int favoriteCategory = getFavoriteCategory(user).get(0).getAladinCategoryId();
             CompletableFuture<LoungeResponseDTO.SectionDTO> favoriteFuture =
                     fetchSectionAsync(SECTION_FAVORITE_BEST, favoriteCategory,
                             getCategoryNameById(favoriteCategory), QUERY_TYPE_BESTSELLER,
-                            "BOOK", page);
+                            MALLTYPE_BOOK);
             CompletableFuture.allOf(bestFuture, favoriteFuture).join();
             List<LoungeResponseDTO.SectionDTO> sections = List.of(
                     bestFuture.join(),
@@ -80,36 +84,15 @@ public class LoungeService {
             );
 
             return LoungeConverter.toResultDTO(sections);
-
-        } else if (sectionId.equalsIgnoreCase(SECTION_BEST)) {
-            // 주간 베스트셀러의 특정 페이지 조회
-            if (page > 2) {
-                throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
-            }
-            LoungeResponseDTO.SectionDTO section = getBestSection(SECTION_BEST, categoryId, page);
-            return LoungeConverter.toResultDTO(List.of(section));
-        } else {
-            // 사용자 선호 카테고리 베스트셀러의 특정 페이지 조회
-            if (page > 2) {
-                throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
-            }
-            int favoriteCategory = getFavoriteCategory(user).get(0).getAladinCategoryId();
-            LoungeResponseDTO.SectionDTO section = getBestSection(
-                    SECTION_FAVORITE_BEST, favoriteCategory, page);
-            return LoungeConverter.toResultDTO(List.of(section));
-        }
     }
 
-    private LoungeResponseDTO.LoungeBookResultDTO handleMallType(
-            String sectionId, Integer categoryId, String mallType, int page
-    ) {
-        if (sectionId == null) {
-            // 몰 타입 페이지 전체 조회 (1 페이지)
-            LoungeResponseDTO.SectionDTO newSection = getNewSection(categoryId, mallType, 0);
+    private LoungeResponseDTO.LoungeBookResultDTO handleMallType(String mallType) {
+            // 몰 타입 페이지 전체 조회
+            LoungeResponseDTO.SectionDTO newSection = getNewSection(mallType);
             List<Integer> categoryIds = getCategoryIdsByMallType(mallType);
             List<CompletableFuture<LoungeResponseDTO.SectionDTO>> futures = categoryIds.stream()
                     .map(cid -> fetchSectionAsync(SECTION_BEST, cid, getCategoryNameById(cid),
-                                    QUERY_TYPE_BESTSELLER, "BOOK", 0))
+                                    QUERY_TYPE_BESTSELLER, mallType))
                     .toList();
             List<LoungeResponseDTO.SectionDTO> bestSections = futures.stream()
                     .map(CompletableFuture::join)
@@ -119,41 +102,25 @@ public class LoungeService {
             sections.add(newSection);
             sections.addAll(bestSections);
             return LoungeConverter.toResultDTO(sections);
-        } else if (sectionId.equalsIgnoreCase(SECTION_NEW)) {
-            // 신간의 특정 페이지 조회
-            if (page > 2) {
-                throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
-            }
-            LoungeResponseDTO.SectionDTO section = getNewSection(categoryId, mallType, page);
-            return LoungeConverter.toResultDTO(List.of(section));
-        } else {
-            // 몰 타입의 특정 카테고리 베스트셀러의 특정 페이지 조회
-            if (page > 1) {
-                throw new CustomException(ErrorCode.PAGE_OUT_OF_RANGE);
-            }
-            LoungeResponseDTO.SectionDTO section = getBestSection(SECTION_BEST, categoryId, page);
-            return LoungeConverter.toResultDTO(List.of(section));
-        }
     }
-    private LoungeResponseDTO.SectionDTO getBestSection(String sectionId, Integer categoryId, int page) {
+    private LoungeResponseDTO.SectionDTO getBestSection(String sectionId, Integer categoryId) {
         String categoryName = getCategoryNameById(categoryId);
-        return fetchSection(sectionId, categoryId, categoryName, QUERY_TYPE_BESTSELLER, "BOOK", page);
+        return fetchSection(sectionId, categoryId, categoryName, QUERY_TYPE_BESTSELLER, "BOOK");
     }
 
-    private LoungeResponseDTO.SectionDTO getNewSection(Integer categoryId, String mallType, int page) {
-        String categoryName = getCategoryNameById(categoryId);
-        return fetchSection(SECTION_NEW, categoryId, categoryName, QUERY_TYPE_ITEMNEWALL, mallType, page);
+    private LoungeResponseDTO.SectionDTO getNewSection(String mallType) {
+        return fetchSection(SECTION_NEW, null, null, QUERY_TYPE_ITEMNEWALL, mallType);
     }
 
     private LoungeResponseDTO.SectionDTO fetchSection(
             String sectionId, Integer categoryId, String categoryName,String queryType,
-            String mallType, int page) {
+            String mallType) {
 
         String categoryIdStr = (categoryId != null) ? String.valueOf(categoryId) : null;
         int totalPages = (categoryId != null && sectionId.equalsIgnoreCase(SECTION_BEST)) ? 2 : 3;
         int totalItems = LIMIT * totalPages;
 
-        AladinResponseDTO.ResultDTO response = aladinService.fetchBooks(queryType, mallType, page+1, MAX_RESULT, categoryIdStr);
+        AladinResponseDTO.ResultDTO response = aladinService.fetchBooks(queryType, mallType, 1, MAX_RESULT, categoryIdStr);
         List<LoungeResponseDTO.BookDTO> books = new ArrayList<>();
         if (response != null && response.getItem() != null) {
             for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
@@ -165,28 +132,22 @@ public class LoungeService {
                 }
             }
         }
-
-        LoungeResponseDTO.PaginationDTO pagination = LoungeConverter.toPaginationDTO(
-                page, LIMIT, totalItems, totalPages
-        );
-
-        return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books, pagination);
+        return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books);
     }
 
     @Async("taskExecutor")
     public CompletableFuture<LoungeResponseDTO.SectionDTO> fetchSectionAsync(
             String sectionId, Integer categoryId, String categoryName, String queryType,
-            String mallType, int page
+            String mallType
     ) {
         String categoryIdStr = (categoryId != null) ? String.valueOf(categoryId) : null;
         int totalPages = (categoryId != null && sectionId.equalsIgnoreCase(SECTION_BEST)) ? 2 : 3;
         int totalItems = LIMIT * totalPages;
-        return aladinService.fetchBooksAsync(queryType, mallType, page + 1, MAX_RESULT, categoryIdStr)
+        return aladinService.fetchBooksAsync(queryType, mallType, 1, MAX_RESULT, categoryIdStr)
                 .handle((response, ex) -> {
                     List<LoungeResponseDTO.BookDTO> books = new ArrayList<>();
                     if (ex != null) {
-                        return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books,
-                                LoungeConverter.toPaginationDTO(page, LIMIT, 0, 0));
+                        return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books);
                     }
                     if (response != null && response.getItem() != null) {
                         for (AladinResponseDTO.BookDetailDTO item : response.getItem()) {
@@ -198,10 +159,7 @@ public class LoungeService {
                             }
                         }
                     }
-                    LoungeResponseDTO.PaginationDTO pagination = LoungeConverter.toPaginationDTO(
-                            page, LIMIT, totalItems, totalPages
-                    );
-                    return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books, pagination);
+                    return LoungeConverter.toSectionDTO(sectionId, categoryId, categoryName, books);
                 });
     }
 

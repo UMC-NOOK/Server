@@ -28,14 +28,12 @@ public class LoungeConverter {
     }
 
     public static LoungeResponseDTO.SectionDTO toSectionDTO(String sectionId, Integer categoryId, String categoryName,
-                                                            List<LoungeResponseDTO.BookDTO> books,
-                                                            LoungeResponseDTO.PaginationDTO pagination) {
+                                                            List<LoungeResponseDTO.BookDTO> books) {
         return LoungeResponseDTO.SectionDTO.builder()
                 .sectionId(sectionId)
                 .categoryId(categoryId)
                 .categoryName(categoryName)
                 .books(books)
-                .pagination(pagination)
                 .build();
     }
 
