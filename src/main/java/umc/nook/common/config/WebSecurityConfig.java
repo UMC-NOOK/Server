@@ -69,7 +69,7 @@ public class WebSecurityConfig {
         configuration.setAllowCredentials(true);
         configuration.setAllowedOrigins(
                 List.of("http://localhost:8080", "https://readingnook.netlify.app",  "https://nook-app.shop",
-                        "http://localhost:5174")
+                        "http://localhost:5173")
         );
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
