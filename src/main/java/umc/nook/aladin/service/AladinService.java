@@ -61,7 +61,6 @@ public class AladinService {
         url.append("ttbkey=").append(ttbKey)
                 .append("&Query=").append(query)
                 .append("&SearchTarget=").append("book")
-                .append("&Sort=").append("SalesPoint")
                 .append("&MaxResults=").append(maxResults)
                 .append("&start=").append(start)
                 .append("&cover=Big")

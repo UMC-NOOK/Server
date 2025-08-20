@@ -44,7 +44,7 @@ public class SearchService {
         List<SearchResponseDTO.BookDTO> books = new ArrayList<>();
         if (response != null && response.getItem() != null) {
             List<AladinResponseDTO.BookDetailDTO> validItems = response.getItem().stream()
-                    .filter(this::isValidBook)
+                    .filter(BookFilterUtils::isValidBook)
                     .toList();
             List<String> isbn13List = validItems.stream()
                     .map(AladinResponseDTO.BookDetailDTO::getIsbn13)
@@ -92,17 +92,4 @@ public class SearchService {
                 .build();
 
     }
-
-    private boolean isValidBook(AladinResponseDTO.BookDetailDTO item) {
-        if (item.getIsbn13() == null || item.getIsbn13().isBlank() || item.getIsbn13().length() != 13) return false;
-        if (item.getCategoryName() == null || item.getCategoryName().isBlank()) return false;
-        if (!BookFilterUtils.isValidMallType(item.getMallType())) return false;
-
-        // depth(>) 최소 2개 이상 체크
-        String[] parts = item.getCategoryName().split(">");
-        if (parts.length < 2) return false;
-
-        return BookFilterUtils.isBookIncluded(item.getCategoryName());
-    }
-
 }

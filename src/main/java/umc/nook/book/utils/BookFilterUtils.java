@@ -1,6 +1,7 @@
 package umc.nook.book.utils;
 
 import org.springframework.stereotype.Component;
+import umc.nook.aladin.dto.AladinResponseDTO;
 import umc.nook.book.domain.Category;
 import umc.nook.book.domain.MallType;
 import umc.nook.book.init.CategoryInitializer;
@@ -70,5 +71,16 @@ public class BookFilterUtils {
     public static boolean isValidMallType(String mallType) {
         Set<String> VALID_MALL_TYPES = Set.of("BOOK", "FOREIGN", "EBOOK");
         return mallType != null && VALID_MALL_TYPES.contains(mallType.toUpperCase());
+    }
+    public static boolean isValidBook(AladinResponseDTO.BookDetailDTO item) {
+        if (item.getIsbn13() == null || item.getIsbn13().isBlank() || item.getIsbn13().length() != 13) return false;
+        if (item.getCategoryName() == null || item.getCategoryName().isBlank()) return false;
+        if (!isValidMallType(item.getMallType())) return false;
+
+        // depth(>) 최소 2개 이상 체크
+        String[] parts = item.getCategoryName().split(">");
+        if (parts.length < 2) return false;
+
+        return isBookIncluded(item.getCategoryName());
     }
 }

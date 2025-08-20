@@ -38,35 +38,15 @@ public class LoungeController {
                     description = "조회할 도서의 몰 타입 (RECOMMENDATION, BOOK, FOREIGN, EBOOK / 기본값: RECOMMENDATION)",
                     required = false,
                     example = "RECOMMENDATION"
-            ),
-            @Parameter(
-                    name = "sectionId",
-                    description = "각 섹션의 ID (best, new, favorite_best)",
-                    required = false
-            ),
-            @Parameter(
-                    name = "categoryId",
-                    description = "페이지네이션을 적용할 카테고리의 알라딘 ID. 응답 본문에서 categoryID 값 참고",
-                    required = false
-            ),
-            @Parameter(
-                    name = "page",
-                    description = "조회할 페이지 번호 (기본값: 0)",
-                    required = false,
-                    example = "0"
             )
     })
     @GetMapping("lounge/books")
     public ApiResponse<LoungeResponseDTO.LoungeBookResultDTO> getLoungeBooks(
             @ValidatedMallType @RequestParam(defaultValue = "RECOMMENDATION") String mallType,
-            @ValidatedSection @RequestParam(required = false) String sectionId,
-            @ValidatedCategory @RequestParam(required = false) Integer categoryId,
-            @ValidatedPage @RequestParam(defaultValue = "0") int page,
             @AuthenticationPrincipal CustomUserDetails userDetails
             ) {
 
-        LoungeResponseDTO.LoungeBookResultDTO result = loungeService.getLoungeBooks(mallType, sectionId, categoryId, page, userDetails);
+        LoungeResponseDTO.LoungeBookResultDTO result = loungeService.getLoungeBooks(mallType, userDetails);
         return ApiResponse.onSuccess(result, SuccessCode.OK);
     }
-
 }
