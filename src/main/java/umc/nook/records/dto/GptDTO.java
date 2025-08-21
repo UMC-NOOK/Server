@@ -19,7 +19,7 @@ public class GptDTO {
     @AllArgsConstructor
     @Getter
     public static class ChatRecordDTO {
-        private boolean isEssay;
+        private String isEssay;
         private String content;
     }
 

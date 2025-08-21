@@ -2,6 +2,7 @@ package umc.nook.records.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import umc.nook.book.domain.Book;
@@ -24,7 +25,10 @@ import java.time.Year;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.commons.lang3.StringUtils.abbreviate;
+
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class RecordService {
 
@@ -53,26 +57,40 @@ public class RecordService {
         // 사용자 메시지 저장
         ChatRecord userMessage = requestDTO.toEntity(ChatType.USER, userBook);
         chatRecordRepository.save(userMessage);
+        log.info("[CHAT] 사용자 메시지 저장됨: userId={}, bookId={}, content={}",
+                user.getUserId(), book.getBookId(), abbreviate(userMessage.getContent(), 200));
 
         // GPT 메시지 저장
         GptDTO.ChatRecordDTO gptResponse = gptService.getAssistantMsg(
-                requestDTO.getBookId(),
+                userBook.getId(),
                 user.getNickname(),
                 book.getAuthor(),
                 book.getTitle(),
                 requestDTO.getMessage()
         );
 
-        ChatType gptChatType = gptResponse.isEssay() ? ChatType.COMMENT : ChatType.SYSTEM;
+        log.info("[CHAT] GPT 응답 수신: isEssay={}, contentHead={}",
+                gptResponse.getIsEssay(), abbreviate(gptResponse.getContent(), 200));
+
+        ChatType gptChatType = null;
+        if (gptResponse.getIsEssay()== "true")
+            gptChatType = ChatType.COMMENT;
+        else if (gptResponse.getIsEssay() == "false")
+            gptChatType = ChatType.SYSTEM;
+        log.info("[CHAT] GPT 메시지 role 결정됨: {}", gptChatType);
+
         ChatRecord gptMessage = ChatRecord.builder()
                 .bookshelf(userBook)
                 .role(gptChatType)
                 .content(gptResponse.getContent())
                 .build();
         chatRecordRepository.save(gptMessage);
+
+        log.info("[CHAT] GPT 메시지 저장 완료: bookshelfId={}, role={}, contentHead={}",
+                userBook.getId(), gptMessage.getRole(), abbreviate(gptMessage.getContent(), 200));
+
         return new ChatDTO.ChatResponseDTO(gptMessage);
     }
-
 
     // 선택한 책 눅톡 기록 조회
     @Transactional(readOnly=true)
