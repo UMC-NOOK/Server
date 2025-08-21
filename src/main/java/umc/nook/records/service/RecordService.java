@@ -42,8 +42,6 @@ public class RecordService {
     private final BookRepository bookRepository;
 
 
-
-
     // 눅톡 메세지 전송
     @Transactional
     public ChatDTO.ChatResponseDTO saveChatMessage(User user, ChatDTO.ChatRequestDTO requestDTO) throws JsonProcessingException {
