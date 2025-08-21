@@ -209,7 +209,6 @@ public class UserService {
                         .userId(userId)
                         .refreshToken(kakaoResponse.getKakaoRefreshToken())
                         .accessToken(kakaoResponse.getToken().getAccessToken())
-                        .refreshTokenExpiresIn((long) kakaoResponse.getRefreshTokenExpiresIn())
                         .build()
         );
 
@@ -249,51 +248,24 @@ public class UserService {
 
         KakaoResponseParams newToken = oAuthService.reissueKakaoToken(savedToken.getRefreshToken());
 
-        // RefreshToken 업데이트 (변경 있을 경우만)
         String updatedRefreshToken = newToken.getRefreshToken() != null
                 ? newToken.getRefreshToken()
                 : savedToken.getRefreshToken();
 
-        savedToken.updateToken(
-                updatedRefreshToken,
-                newToken.getAccessToken(),
-                (long) newToken.getRefreshTokenExpiresIn()
-        );
+        savedToken.updateToken(updatedRefreshToken, newToken.getAccessToken());
 
-        Long userId = savedToken.getUserId();
-        User user = userRepository.findById(userId)
+        kakaoRefreshTokenRedisRepository.save(savedToken);
+
+        User user = userRepository.findById(savedToken.getUserId())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         String newAccessToken = jwtProvider.createAccessToken(user);
-
-        // TTL이 얼마 안 남았으면 kakaoTokenId 롤링
-        if (savedToken.getRefreshTokenExpiresIn() <= (24 * 60 * 60)) { // 하루 이하
-            String newKakaoTokenId = UUID.randomUUID().toString();
-            kakaoRefreshTokenRedisRepository.deleteByTokenId(kakaoTokenId);
-            kakaoRefreshTokenRedisRepository.save(
-                    KakaoRefreshToken.builder()
-                            .tokenId(newKakaoTokenId)
-                            .userId(userId)
-                            .refreshToken(updatedRefreshToken)
-                            .accessToken(newToken.getAccessToken())
-                            .refreshTokenExpiresIn((long) newToken.getRefreshTokenExpiresIn())
-                            .build()
-            );
-
-            ResponseCookie kakaoRefreshTokenCookie = ResponseCookie.from("kakaoRefreshTokenId", newKakaoTokenId)
-                    .httpOnly(true)
-                    .secure(true)
-                    .sameSite("None")
-                    .path("/")
-                    .maxAge(Duration.ofDays(60))
-                    .build();
-            response.addHeader("Set-Cookie", kakaoRefreshTokenCookie.toString());
-        }
 
         return UserDTO.TokenResponseDto.builder()
                 .accessToken(newAccessToken)
                 .build();
     }
+
 
 
     // 카카오 로그아웃
