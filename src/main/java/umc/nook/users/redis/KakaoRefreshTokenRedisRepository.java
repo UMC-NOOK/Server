@@ -17,7 +17,7 @@ public class KakaoRefreshTokenRedisRepository {
     private static final String PREFIX = "kakaoRefreshToken:"; // 본문 저장 키
     private static final String USER_ID_INDEX = "kakaoRefreshToken:userId:";
     private static final String REFRESH_TOKEN_INDEX = "kakaoRefreshToken:refreshToken:";
-    private static final long TTL_SECONDS = 60 * 60 * 24 * 30; // 30일
+    private static final long TTL_SECONDS = 60 * 60 * 24 * 60; // 60일
 
     public void save(KakaoRefreshToken kakaoRefreshToken) {
         String mainKey = PREFIX + kakaoRefreshToken.getTokenId();
