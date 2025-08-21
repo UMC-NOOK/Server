@@ -189,8 +189,7 @@ public class OAuthService {
                 .map(existing -> {
                     existing.updateToken(
                             newToken.getRefreshToken(),
-                            newToken.getAccessToken(),
-                            (long) newToken.getRefreshTokenExpiresIn()
+                            newToken.getAccessToken()
                     );
                     return existing;
                 })
@@ -199,7 +198,6 @@ public class OAuthService {
                         .userId(user.getUserId())
                         .refreshToken(newToken.getRefreshToken())
                         .accessToken(newToken.getAccessToken())
-                        .refreshTokenExpiresIn((long) newToken.getRefreshTokenExpiresIn())
                         .build());
         kakaoRefreshTokenRedisRepository.save(token);
 

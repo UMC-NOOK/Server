@@ -20,11 +20,9 @@ public class KakaoRefreshToken {
 
     private String accessToken; // Kakao access token
 
-    private Long refreshTokenExpiresIn; // 만료 시간(초 단위)
 
-    public void updateToken(String refreshToken, String accessToken, Long refreshTokenExpiresIn) {
+    public void updateToken(String refreshToken, String accessToken) {
         this.refreshToken = refreshToken;
         this.accessToken = accessToken;
-        this.refreshTokenExpiresIn = refreshTokenExpiresIn;
     }
 }
