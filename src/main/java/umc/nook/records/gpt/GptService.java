@@ -32,7 +32,7 @@ public class GptService {
     private final ChatRecordRepository chatRecordRepository;
     private final ObjectMapper objectMapper;
 
-    // JSON 블록 추출용 정규식: 최상위 {} 또는 [] 한 덩어리
+    // JSON 블록 추출용 정규식
     private static final Pattern JSON_PATTERN = Pattern.compile(
             "(?s)(\\{(?:[^{}]|\\{[^{}]*\\})*\\}|\\[(?:[^\\[\\]]|\\[[^\\[\\]]*\\])*\\])"
     );
@@ -81,49 +81,37 @@ public class GptService {
         headers.setContentType(new MediaType("application", "json", StandardCharsets.UTF_8));
         headers.setBearerAuth(apikey);
 
-        // system 프롬프트
+        // system 프롬프트 (수정 반영)
         String systemContent = String.format("""
-                당신은 독서 기록 서비스의 AI 챗봇입니다. 당신은 %s의 %s에 대한 독서 기록 페이지에 있으며, 이 책을 읽은 [%s]님의 감상문 작성을 돕기 위해 대화를 시작합니다. 
-                당신의 역할은 [%s]님이 책을 읽고 느낀 감정과 생각을 자연스럽게 풀어낼 수 있도록 도와주는 것입니다. 사용자가 긴 글을 쓰기 어렵거나 감정을 정리하는 데 어려움을 겪을 때, 대화를 통해 감상문을 대신 작성해줍니다.
-                        
-                작동 규칙:
-                - [%s]님의 말이 짧거나 혼란스러워도, 열린 질문으로 부드럽게 반응합니다.
-                - 감정, 장면, 기억, 경험, 통찰 등 감상문에 필요한 정보를 단계적으로 수집합니다.
-                - 질문은 일상적이고 친근한 말투로 구성하며, 이모지는 사용하지 않습니다.
-                - 질문의 분량은 최대 80자입니다.
-                - 감정, 이유, 여운, 경험, 통찰이 감지되면, 가장 자연스럽게 확장할 수 있는 지점을 골라 질문합니다.
-                - 호칭은 항상 [%s]님을 사용합니다.
-                - 이전 대화가 있다면 반드시 그 내용을 반영하여 일관되게 진행합니다.
-                - 첫 질문은 반드시 이 문장으로 시작합니다: “독서 후 기억에 남는 장면이 있나요?”
-                        
-                감상문 출력 조건:
-                - 사용자 응답에 기억에 남는 장면, 감상의 이유, 개인적인 배경, 연상되는 경험, 통찰 중 3개 이상이 포함되면 감상문을 출력합니다.
-                - 단, 판단을 유보하거나 질문하거나 복합적 감정을 표현한 경우는 바로 출력하지 않고 한 번 더 확장 질문을 합니다.
-                        
-                감상문 작성 규칙:
-                - 별도의 안내 문구 없이 감상문 본문만 출력합니다.
-                - 1인칭 시점으로, 차분한 서술체로 작성합니다.
-                - 감정의 발생 → 이유 → 통찰 흐름을 담아 작성합니다.
-                - 최대 300자 이내로 작성합니다.
-                        
+                당신은 독서 기록 서비스의 AI 챗봇입니다. 지금은 %s의 %s 독서 기록 페이지이며, [%s]님의 감상문 작성을 돕습니다. 당신은 사용자가 책을 읽고 느낀 감정과 생각을 풀어낼 수 있도록 80자 이내의 질문을 합니다. 대화는 최소 3턴에서 최대 5턴까지 이어지며, 감정 · 이유 · 경험 · 여운 · 통찰이 드러나면 그 지점을 확장해 다시 묻습니다. 사용자가 답변하면, 그 답변 속에서 ‘기억에 남는 장면’, ‘그때의 감정’, ‘개인적 경험과의 연관’, ‘얻은 통찰’, ‘책을 다 읽고 난 뒤의 여운’ 중 최소 3개 이상이 확인될 때 마지막에 감상문을 작성합니다. 감상문은 사용자의 답변을 바탕으로 직접 쓴 듯한 1인칭 시점으로 만들어지며, 차분한 서술체를 사용하고 과장된 표현은 피합니다. 최종 감상문은 300자 이내로 제한하며, 별도의 안내 문구 없이 본문만 출력합니다.
                 출력 형식:
-                - 당신의 응답은 항상 아래 JSON 형식으로만 출력합니다(설명/코드펜스/여분 텍스트 금지):
-                {
-                  "isEssay": true or false,
-                  "content": "실제 응답 내용"
-                }
-                """, author, title, userName, userName, userName, userName);
+                        - 당신의 질문 또는 감상은 항상 아래 JSON 형식으로만 출력합니다(설명/코드펜스/여분 텍스트 금지) :
+                        {
+                        "isEssay": true or false,
+                        "content": "실제 응답 내용"
+                        }
+                """, author, title, userName);
 
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(Map.of("role", "system", "content", systemContent));
 
-        // 이전 대화 로드
+        // 이전 대화 로드 후 줄글로 합치기
         List<ChatRecord> history = chatRecordRepository.findByBookshelfIdOrderByCreatedDate(bookshelfId);
-        for (ChatRecord record : history) {
-            messages.add(Map.of(
-                    "role", record.getRole().toString().toLowerCase(), // user/assistant
-                    "content", record.getContent()
-            ));
+
+        log.info("[GPT] bookshelfId={} 이전 대화 {}건 로드됨", bookshelfId, history.size());
+
+        StringBuilder historyText = new StringBuilder();
+        for (int i = 0; i < history.size(); i++) {
+            ChatRecord record = history.get(i);
+            log.debug("[GPT][History {}] role={}, content={}", i, record.getRole(), abbreviate(record.getContent(), 200));
+            historyText.append(record.getRole())
+                    .append(": ")
+                    .append(record.getContent())
+                    .append("\n");
+        }
+
+        if (historyText.length() > 0) {
+            messages.add(Map.of("role", "user", "content", "이전 대화 기록:\n" + historyText.toString()));
         }
 
         // 사용자 입력
@@ -131,14 +119,11 @@ public class GptService {
 
         // 요청 바디
         Map<String, Object> bodyMap = new HashMap<>();
-        // 가능하면 최신 모델(예: gpt-4o-mini) 추천. 기존 0613도 동작하되 JSON강제력이 약함.
-        bodyMap.put("model", "gpt-4o-mini"); // ← 어려우면 기존 "gpt-4-0613" 유지해도 됨
+        bodyMap.put("model", "gpt-4o-mini");
         bodyMap.put("messages", messages);
         bodyMap.put("temperature", 0.2);
         bodyMap.put("max_tokens", 512);
 
-        // ★ JSON만 출력하도록 강제 (신규 모델에서 잘 동작)
-        // 구형 모델은 이 필드를 무시할 수 있으므로 아래 extractJsonSafely로 2차 방어.
         Map<String, String> responseFormat = new HashMap<>();
         responseFormat.put("type", "json_object");
         bodyMap.put("response_format", responseFormat);
@@ -146,6 +131,11 @@ public class GptService {
         HttpEntity<String> request = new HttpEntity<>(objectMapper.writeValueAsString(bodyMap), headers);
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+
+        // GPT 실제 응답 로그 추가
+        log.info("[GPT][RawResponse] status={}, bodyHead={}",
+                response.getStatusCode(),
+                abbreviate(response.getBody(), 1000));
 
         return objectMapper.readTree(response.getBody());
     }
