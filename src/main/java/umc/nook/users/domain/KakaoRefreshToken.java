@@ -8,7 +8,7 @@ import org.springframework.data.redis.core.RedisHash;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@RedisHash(value = "kakaoRefreshToken", timeToLive = 60 * 60 * 24 * 30) // 30일 TTL 예시
+@RedisHash(value = "kakaoRefreshToken", timeToLive = 60 * 60 * 24 * 3)
 public class KakaoRefreshToken {
 
     @Id
