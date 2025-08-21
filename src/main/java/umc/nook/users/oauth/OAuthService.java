@@ -26,6 +26,7 @@ import umc.nook.users.service.JwtProvider;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -159,7 +160,7 @@ public class OAuthService {
      * 로그인 및 회원가입 통합 처리 (인가코드 기반)
      */
     @Transactional
-    public UserDTO.KakaoLoginResponseDTO loginWithKakaoCode(String code, String tokenId) {
+    public UserDTO.KakaoLoginResponseDTO loginWithKakaoCode(String code, String tokenId, String kakaoTokenId) {
         KakaoResponseParams newToken = getKakaoAccessToken(code);
         Map<String, Object> userAttribute = getKakaoUserAttributes(newToken.getAccessToken());
         OAuth2Attribute attributes = OAuth2Attribute.of("kakao", userAttribute);
@@ -173,30 +174,44 @@ public class OAuthService {
         } else if (findUser.isPresent()){
             user = findUser.get();
             log.info("기존 사용자 로그인: {}", user.getKakaoUserId());
-        }else {
+        } else {
             log.info("새로운 사용자 생성: {}", attributes.getEmail());
             user = saveUser(attributes);
             userRepository.save(user);
         }
 
+        // JWT 토큰 발급
         String accessToken = jwtProvider.createAccessToken(user);
-        String refreshToken = jwtProvider.createRefreshToken(user,accessToken, tokenId);
-        UserDTO.KakaoTokenResponseDTO jwtTokenResponse = new UserDTO.KakaoTokenResponseDTO(accessToken,refreshToken);
+        String refreshToken = jwtProvider.createRefreshToken(user, accessToken, tokenId);
+        UserDTO.KakaoTokenResponseDTO jwtTokenResponse = new UserDTO.KakaoTokenResponseDTO(accessToken, refreshToken);
 
         KakaoRefreshToken token = kakaoRefreshTokenRedisRepository.findByUserId(user.getUserId())
                 .map(existing -> {
-                    existing.updateToken(newToken.getRefreshToken(), newToken.getAccessToken(), (long) newToken.getRefreshTokenExpiresIn()); // update 메서드 활용
+                    existing.updateToken(
+                            newToken.getRefreshToken(),
+                            newToken.getAccessToken(),
+                            (long) newToken.getRefreshTokenExpiresIn()
+                    );
                     return existing;
                 })
                 .orElseGet(() -> KakaoRefreshToken.builder()
+                        .tokenId(kakaoTokenId)
                         .userId(user.getUserId())
                         .refreshToken(newToken.getRefreshToken())
                         .accessToken(newToken.getAccessToken())
                         .refreshTokenExpiresIn((long) newToken.getRefreshTokenExpiresIn())
                         .build());
         kakaoRefreshTokenRedisRepository.save(token);
-        return new UserDTO.KakaoLoginResponseDTO(user, jwtTokenResponse, newToken.getRefreshToken());
+
+        return new UserDTO.KakaoLoginResponseDTO(
+                user,
+                jwtTokenResponse,
+                newToken.getRefreshToken(),
+                tokenId,
+                kakaoTokenId
+        );
     }
+
 
 
     /**

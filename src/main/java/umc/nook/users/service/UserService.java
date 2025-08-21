@@ -185,35 +185,36 @@ public class UserService {
     // 카카오 로그인
     @Transactional
     public UserDTO.KakaoLoginResponseDTO kakaoLogin(String code, HttpServletResponse response) {
-        String tokenId = UUID.randomUUID().toString();
+        // tokenId 발급
+        String jwtTokenId = UUID.randomUUID().toString();
+        String kakaoTokenId = UUID.randomUUID().toString();
 
-        UserDTO.KakaoLoginResponseDTO kakaoResponse = oAuthService.loginWithKakaoCode(code,tokenId);
+        UserDTO.KakaoLoginResponseDTO kakaoResponse = oAuthService.loginWithKakaoCode(code, jwtTokenId,kakaoTokenId);
         Long userId = kakaoResponse.getUserId();
 
-        // 1. JWT RefreshToken 저장 (tokenId 생성)
+        // 2. JWT RefreshToken 저장
         refreshTokenRepository.save(
                 RefreshToken.builder()
-                        .tokenId(tokenId)
+                        .tokenId(jwtTokenId)
                         .userId(userId)
                         .refreshToken(kakaoResponse.getToken().getRefreshToken())
                         .expiration(LocalDateTime.now().plusDays(3))
                         .build()
         );
 
-        // 2. Kakao RefreshToken 저장 (tokenId 생성)
-        String kakaoTokenId = UUID.randomUUID().toString();
+        // 3. Kakao RefreshToken 저장
         kakaoRefreshTokenRedisRepository.save(
                 KakaoRefreshToken.builder()
                         .tokenId(kakaoTokenId)
                         .userId(userId)
                         .refreshToken(kakaoResponse.getKakaoRefreshToken())
                         .accessToken(kakaoResponse.getToken().getAccessToken())
-                        .refreshTokenExpiresIn(60L * 24 * 60 * 60) // 60일
+                        .refreshTokenExpiresIn((long) kakaoResponse.getRefreshTokenExpiresIn())
                         .build()
         );
 
-        // 3. 쿠키에는 tokenId만 저장
-        ResponseCookie jwtRefreshTokenCookie = ResponseCookie.from("refreshTokenId", tokenId)
+        // 4. 쿠키 내려주기 (JWT RefreshTokenId, Kakao RefreshTokenId)
+        ResponseCookie jwtRefreshTokenCookie = ResponseCookie.from("refreshTokenId", jwtTokenId)
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("None")

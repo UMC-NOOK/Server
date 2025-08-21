@@ -103,22 +103,31 @@ public class UserDTO {
         private Long userId;
         private String email;
         private String nickname;
+
+        private Long refreshTokenExpiresIn;
         private KakaoTokenResponseDTO token;
 
         private String kakaoRefreshToken;
+        private String refreshTokenId;
+        private String kakaoRefreshTokenId;
 
-        public KakaoLoginResponseDTO(User user, KakaoTokenResponseDTO token, String kakaoRefreshToken) {
+        public KakaoLoginResponseDTO(
+                User user,
+                KakaoTokenResponseDTO token,
+                String kakaoRefreshToken,
+                String refreshTokenId,
+                String kakaoRefreshTokenId
+        ) {
             this.userId = user.getUserId();
             this.email = user.getEmail();
             this.nickname = user.getNickname();
             this.token = token;
             this.kakaoRefreshToken = kakaoRefreshToken;
-        }
-
-        public UserDTO.LoginResponseDTO toLoginDTO(User user, TokenResponseDto token) {
-            return new UserDTO.LoginResponseDTO(user,token);
+            this.refreshTokenId = refreshTokenId;
+            this.kakaoRefreshTokenId = kakaoRefreshTokenId;
         }
     }
+
 
 }
 
