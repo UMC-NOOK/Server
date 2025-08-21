@@ -2,6 +2,7 @@ package umc.nook.bookshelves.repository;
 
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -11,25 +12,20 @@ import org.springframework.transaction.annotation.Transactional;
 import umc.nook.book.domain.QBook;
 import umc.nook.bookshelves.domain.QUserBookShelf;
 import umc.nook.bookshelves.domain.ReadingStatus;
-import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.bookshelves.dto.BookShelfDTO;
 import umc.nook.bookshelves.dto.SortType;
-import umc.nook.bookshelves.repository.BookShelfCustomRepository;
 import umc.nook.records.domain.QBookRecord;
 import umc.nook.records.domain.QChatRecord;
-import umc.nook.records.dto.RecordDTO;
 import umc.nook.review.domain.QReview;
 import umc.nook.users.domain.User;
 
 import java.time.LocalDate;
-import java.time.Year;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static umc.nook.records.domain.QBookRecord.bookRecord;
-import static umc.nook.records.domain.QChatRecord.chatRecord;
 
 @Repository
 @Transactional(readOnly = true)
@@ -38,107 +34,67 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    @Transactional
-    public List<BookShelfDTO.UserBookListResponseDTO> getUserBooks(User user, ReadingStatus status, int page, int size, SortType sort) {
+    @Transactional(readOnly = true)
+    public List<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
+            User user,
+            ReadingStatus status,
+            int page,
+            int size,
+            SortType sort
+    ) {
         QUserBookShelf ub = QUserBookShelf.userBookShelf;
         QBook book = QBook.book;
         QReview review = QReview.review;
         QBookRecord bookRecord = QBookRecord.bookRecord;
-        QChatRecord chatRecord = QChatRecord.chatRecord;
 
         BooleanBuilder condition = new BooleanBuilder()
                 .and(ub.user.eq(user))
                 .and(ub.readingStatus.eq(status));
 
-        List<Tuple> tuples;
+        OrderSpecifier<?> primaryOrder;
+        OrderSpecifier<?> secondaryOrder = book.bookId.desc();
 
-        // 내가 준 별점순
-        if (sort.equals(SortType.RATING)) {
-            tuples = queryFactory
-                    .select(
-                            book.bookId,
-                            book.title,
-                            book.author,
-                            book.publisher,
-                            book.coverImageUrl,
-                            ub.readingStatus.stringValue(),
-                            book.isbn13,
-                            review.rating,
-                            book.publicationDate
-                    )
-                    .from(ub)
-                    .join(ub.book, book)
-                    .leftJoin(review).on(
-                            review.book.eq(book),
-                            review.user.eq(user)
-                    )
-                    .where(condition)
-                    .orderBy(review.rating.desc().nullsLast())
-                    .limit(size + 1)
-                    .fetch();
-        } else if (sort.equals(SortType.RECENT)) {
-            tuples = queryFactory
-                    .select(
-                            book.bookId,
-                            book.title,
-                            book.author,
-                            book.publisher,
-                            book.coverImageUrl,
-                            ub.readingStatus.stringValue(),
-                            book.isbn13,
-                            review.rating,
-                            book.publicationDate,
-                            Expressions.stringTemplate(
-                                    "COALESCE(GREATEST({0}, {1}), {2})",
-                                    JPAExpressions
-                                            .select(chatRecord.createdDate.max())
-                                            .from(chatRecord)
-                                            .where(chatRecord.bookshelf.eq(ub)),
-                                    JPAExpressions
-                                            .select(bookRecord.createdDate.max())
-                                            .from(bookRecord)
-                                            .where(bookRecord.bookshelf.eq(ub)),
-                                    ub.recordedAt  // fallback
-                            ).as("latestRecordDate")
-                    )
-                    .from(ub)
-                    .join(ub.book, book)
-                    .leftJoin(review).on(
-                            review.book.eq(book),
-                            review.user.eq(user)
-                    )
-                    .where(condition)
-                    .orderBy(Expressions.stringPath("latestRecordDate").desc().nullsLast())
-                    .limit(size + 1)
-                    .fetch();
-        } else {
-            tuples = queryFactory
-                    .select(
-                            book.bookId,
-                            book.title,
-                            book.author,
-                            book.publisher,
-                            book.coverImageUrl,
-                            ub.readingStatus.stringValue(),
-                            book.isbn13,
-                            review.rating,
-                            book.publicationDate
-                    )
-                    .from(ub)
-                    .join(ub.book, book)
-                    .leftJoin(review).on(
-                            review.book.eq(book),
-                            review.user.eq(user)
-                    )
-                    .where(condition)
-                    .orderBy(switch (sort) {
-                        case TITLE -> book.title.asc();
-                        case LATEST -> ub.createdDate.desc();
-                        default -> ub.recordedAt.desc();
-                    })
-                    .limit(size + 1)
-                    .fetch();
+        switch (sort) {
+            case RATING -> primaryOrder = review.rating.desc().nullsLast();
+            case RECENT -> primaryOrder = Expressions.stringPath("latestRecordDate").desc().nullsLast();
+            case TITLE -> {
+                primaryOrder = book.title.asc();
+                secondaryOrder = book.bookId.asc();
+            }
+            case LATEST -> primaryOrder = ub.createdDate.desc();
+            default -> primaryOrder = ub.recordedAt.desc();
         }
+
+        List<Tuple> tuples = queryFactory
+                .select(
+                        book.bookId,
+                        book.title,
+                        book.author,
+                        book.publisher,
+                        book.coverImageUrl,
+                        ub.readingStatus.stringValue(),
+                        book.isbn13,
+                        review.rating,
+                        book.publicationDate,
+                        Expressions.stringTemplate(
+                                "COALESCE({0}, {1})",
+                                JPAExpressions.select(bookRecord.createdDate.max())
+                                        .from(bookRecord)
+                                        .where(bookRecord.bookshelf.eq(ub)),
+                                ub.recordedAt
+                        ).as("latestRecordDate")
+                )
+                .from(ub)
+                .join(ub.book, book)
+                .leftJoin(review).on(
+                        review.book.eq(book),
+                        review.user.eq(user)
+                )
+                .where(condition)
+                .orderBy(primaryOrder, secondaryOrder)
+                .offset(page * size)
+                .limit(size + 1)
+                .fetch();
 
         return tuples.stream()
                 .map(t -> new BookShelfDTO.UserBookListResponseDTO(
@@ -154,7 +110,6 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                 ))
                 .toList();
     }
-
     // 월별 책 조회
     @Transactional
     public List<BookShelfDTO.DailyBooksResponseDTO> getMonthlyBooks(User user, YearMonth yearMonth) {

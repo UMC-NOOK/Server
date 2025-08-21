@@ -1,7 +1,11 @@
 package umc.nook.bookshelves.repository;
 
 import com.querydsl.core.Tuple;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import umc.nook.book.domain.Book;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.domain.UserBookShelf;
@@ -18,7 +22,7 @@ import org.springframework.data.repository.query.Param;
 import umc.nook.book.domain.CategoryCount;
 import umc.nook.book.domain.CategoryCountByName;
 
-public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Long> , BookShelfCustomRepository{
+public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Long> , BookShelfCustomRepository, QuerydslPredicateExecutor<UserBookShelf> {
     boolean existsByUserAndBook(User user, Book book);
 
     UserBookShelf findByUserAndBook(User user, Book book);
@@ -94,4 +98,12 @@ public interface UserBookshelfRepository extends JpaRepository<UserBookShelf,Lon
 
 
     boolean existsByUserAndRecordedAt(User user, LocalDate date);
+
+    @EntityGraph(attributePaths = {
+            "book",          // 책 정보
+            "book.reviews",  // 리뷰
+            "records",       // 독서 기록
+            "chatRecords"    // 대화 기록
+    })
+    Page<UserBookShelf> findAll(Specification<UserBookShelf> spec, Pageable pageable);
 }

@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import umc.nook.book.domain.Book;
 import umc.nook.book.repository.BookRepository;
-import umc.nook.bookshelves.controller.BookShelfController;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.domain.UserBookShelf;
 import umc.nook.bookshelves.dto.BookShelfDTO;
