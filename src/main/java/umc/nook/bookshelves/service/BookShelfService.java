@@ -145,22 +145,7 @@ public class BookShelfService {
         int safeSize = (size == null || size <= 0) ? 8 : size;
         SortType safeSort = (sort == null) ? SortType.RECENT : sort;
 
-        // size + 1로 조회
-        List<BookShelfDTO.UserBookListResponseDTO> content =
-                userBookshelfRepository.getUserBooks(user, status, safePage, safeSize + 1, safeSort);
-
-        // hasNext 계산
-        boolean hasNext = content.size() > safeSize;
-        if (hasNext) {
-            content = content.subList(0, safeSize);
-        }
-
-        return new BookShelfDTO.PageDTO<>(
-                content,
-                safePage,
-                safeSize,
-                hasNext
-        );
+        return userBookshelfRepository.getUserBooks(user, status, safePage, safeSize, sort);
     }
 
     // 월별 책 조회

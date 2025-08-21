@@ -115,6 +115,7 @@ public class BookShelfDTO {
         private int page;         // 현재 페이지 번호 (0부터 시작)
         private int size;         // 페이지 크기
         private boolean hasNext;  // 다음 페이지 존재 여부
+        private Long totalPage;  // 전체 페이지
     }
 
     @Getter
