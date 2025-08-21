@@ -103,8 +103,6 @@ public class UserDTO {
         private Long userId;
         private String email;
         private String nickname;
-
-        private Long refreshTokenExpiresIn;
         private KakaoTokenResponseDTO token;
 
         private String kakaoRefreshToken;
