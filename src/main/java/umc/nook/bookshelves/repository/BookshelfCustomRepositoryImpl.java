@@ -15,7 +15,6 @@ import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.dto.BookShelfDTO;
 import umc.nook.bookshelves.dto.SortType;
 import umc.nook.records.domain.QBookRecord;
-import umc.nook.records.domain.QChatRecord;
 import umc.nook.review.domain.QReview;
 import umc.nook.users.domain.User;
 
@@ -35,7 +34,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
     private final JPAQueryFactory queryFactory;
 
     @Transactional(readOnly = true)
-    public List<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
+    public BookShelfDTO.PageDTO<BookShelfDTO.UserBookListResponseDTO> getUserBooks(
             User user,
             ReadingStatus status,
             int page,
@@ -51,6 +50,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                 .and(ub.user.eq(user))
                 .and(ub.readingStatus.eq(status));
 
+        // 정렬 조건
         OrderSpecifier<?> primaryOrder;
         OrderSpecifier<?> secondaryOrder = book.bookId.desc();
 
@@ -65,6 +65,16 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
             default -> primaryOrder = ub.recordedAt.desc();
         }
 
+        // ✅ 전체 개수 (totalPage 계산용)
+        long totalCount = queryFactory
+                .select(ub.count())
+                .from(ub)
+                .where(condition)
+                .fetchOne();
+
+        long totalPage = (long) Math.ceil((double) totalCount / size);
+
+        // ✅ 데이터 조회 (size+1로 hasNext 확인)
         List<Tuple> tuples = queryFactory
                 .select(
                         book.bookId,
@@ -96,7 +106,12 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                 .limit(size + 1)
                 .fetch();
 
-        return tuples.stream()
+        boolean hasNext = tuples.size() > size;
+        if (hasNext) {
+            tuples = tuples.subList(0, size);
+        }
+
+        List<BookShelfDTO.UserBookListResponseDTO> content = tuples.stream()
                 .map(t -> new BookShelfDTO.UserBookListResponseDTO(
                         t.get(book.bookId),
                         t.get(book.title),
@@ -109,6 +124,14 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                         t.get(book.publicationDate)
                 ))
                 .toList();
+
+        return new BookShelfDTO.PageDTO<>(
+                content,
+                page,
+                size,
+                hasNext,
+                totalPage
+        );
     }
     // 월별 책 조회
     @Transactional
