@@ -32,25 +32,21 @@ public class RecordCustomRepositoryImpl implements RecordCustomRepository{
         QUserBookShelf ub = QUserBookShelf.userBookShelf;
         QBookRecord record = QBookRecord.bookRecord;
 
-        // 기간 범위 (인덱스 활용)
         LocalDateTime start = LocalDate.of(year.getValue(), 1, 1).atStartOfDay();
         LocalDateTime end   = LocalDate.of(year.getValue() + 1, 1, 1).atStartOfDay();
 
-        // 같은 "월/연도"의 기록만 카운팅하도록 JOIN 조건에 월/연 일치 추가
         BooleanExpression sameMonthJoin =
                 Expressions.booleanTemplate(
                         "MONTH({0}) = MONTH({1}) AND YEAR({0}) = YEAR({1})",
                         record.createdDate, ub.createdDate
                 );
 
-        // 한 방 집계 + QueryProjection 매핑
+
         List<RecordDTO.MonthlyRecordRateResponseDTO.MonthRate> rows = queryFactory
                 .select(new QRecordDTO_MonthlyRecordRateResponseDTO_MonthRate(
                         ub.createdDate.month(),
-                        // total: 그 달 등록한 "책" 수(또는 bookshelf 수) → 상황에 맞게 선택
-                        ub.book.bookId.countDistinct(),            // 또는 ub.userBookId.countDistinct()
-                        // recorded: 그 달 "기록" 발생 건수를 distinct 로 집계
-                        record.id.countDistinct()        // 책 단위로 보려면 record.bookshelf.book.bookId.countDistinct()
+                        ub.book.bookId.countDistinct(),
+                        record.bookshelf.book.bookId.countDistinct()
                 ))
                 .from(ub)
                 .leftJoin(record).on(record.bookshelf.eq(ub).and(sameMonthJoin))
