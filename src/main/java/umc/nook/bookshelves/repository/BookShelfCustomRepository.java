@@ -18,4 +18,6 @@ public interface BookShelfCustomRepository {
 
     BookShelfDTO.BooksInsightDTO getBooksInsight(User user);
 
+    List<BookShelfDTO.WeeklyBooksDTO> viewWeeklyBookShelf(User user);
+
 }

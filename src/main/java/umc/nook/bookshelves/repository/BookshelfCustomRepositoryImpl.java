@@ -18,8 +18,10 @@ import umc.nook.records.domain.QBookRecord;
 import umc.nook.review.domain.QReview;
 import umc.nook.users.domain.User;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -65,7 +67,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
             default -> primaryOrder = ub.recordedAt.desc();
         }
 
-        // ✅ 전체 개수 (totalPage 계산용)
+        // 전체 개수 (totalPage 계산용)
         long totalCount = queryFactory
                 .select(ub.count())
                 .from(ub)
@@ -74,7 +76,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
 
         long totalPage = (long) Math.ceil((double) totalCount / size);
 
-        // ✅ 데이터 조회 (size+1로 hasNext 확인)
+        //  데이터 조회 (size+1로 hasNext 확인)
         List<Tuple> tuples = queryFactory
                 .select(
                         book.bookId,
@@ -223,7 +225,34 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
         return new BookShelfDTO.BooksInsightDTO(totalCount, recordCount, typeDTOs);
     }
 
+    @Transactional(readOnly = true)
+    public List<BookShelfDTO.WeeklyBooksDTO> viewWeeklyBookShelf(User user) {
+        QUserBookShelf ub = QUserBookShelf.userBookShelf;
+        QBook book = QBook.book;
 
+        LocalDate now = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        LocalDate monday = now.with(DayOfWeek.MONDAY); // 이번 주 월요일
+        LocalDate today = now;                         // 오늘
+
+        List<Tuple> result = queryFactory
+                .select(ub.recordedAt, book)
+                .from(ub)
+                .join(ub.book, book)
+                .where(
+                        ub.user.eq(user),
+                        ub.recordedAt.between(monday, today),  // recordedAt 범위
+                        ub.readingStatus.ne(ReadingStatus.BOOKMARK) // 찜 제외
+                )
+                .orderBy(ub.recordedAt.asc())
+                .fetch();
+
+        return result.stream()
+                .map(t -> new BookShelfDTO.WeeklyBooksDTO(
+                        t.get(ub.recordedAt).getDayOfMonth(),
+                        new BookShelfDTO.BookThumbnail(t.get(book))
+                ))
+                .toList();
+    }
 
 
 }

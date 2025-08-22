@@ -119,8 +119,6 @@ public class BookShelfService {
     }
 
 
-
-
     // 서재 통계 조회
     @Transactional(readOnly = true)
     public BookShelfDTO.BooksInsightDTO viewBooksInsight(User user) {

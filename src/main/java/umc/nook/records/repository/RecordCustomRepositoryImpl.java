@@ -100,7 +100,8 @@ public class RecordCustomRepositoryImpl implements RecordCustomRepository{
         ).map(tuple -> new BookShelfDTO.RecentBookDTO(
                 tuple.get(book.bookId),
                 tuple.get(book.title),
-                tuple.get(book.author)
+                tuple.get(book.author),
+                tuple.get(book.coverImageUrl)
         ));
     }
 
