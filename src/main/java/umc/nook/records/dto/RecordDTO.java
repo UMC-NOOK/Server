@@ -31,7 +31,6 @@ public class RecordDTO {
         private Long bookId;
 
         @Schema(description = "페이지 번호(양수 정수)", example = "123", required = true, minimum = "1")
-        @NotNull(message = "page는 필수입니다.")
         @Positive(message = "page는 양수여야 합니다.")
         private String page;
 
@@ -57,7 +56,6 @@ public class RecordDTO {
         @Positive(message = "recordId는 양수여야 합니다.")
         private Long recordId;
 
-        @NotBlank(message = "page는 필수입니다.")
         @Positive(message = "페이지는 양수여야 합니다.")
         @Pattern(regexp = "^[0-9]+$", message = "page는 숫자만 입력 가능합니다.")
         @Schema(description = "수정할 페이지 번호(양수 정수)", example = "234", required = true, minimum = "1")
