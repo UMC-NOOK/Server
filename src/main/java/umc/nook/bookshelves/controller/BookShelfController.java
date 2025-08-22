@@ -48,12 +48,19 @@ public class BookShelfController {
 
     @PatchMapping("/start-reading/{bookId}")
     @Operation(summary = "독서 시작", description = "독서 상태를 시작으로 변경합니다.")
-    public ApiResponse<String> changeBookState(@PathVariable Long bookId,
+    public ApiResponse<String> changeBookStateToStart(@PathVariable Long bookId,
                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
         String result = bookshelfService.changeBookState(bookId, userDetails.getUser());
         return ApiResponse.onSuccess(result, SuccessCode.OK);
     }
 
+    @PatchMapping("/finish-reading/{bookId}")
+    @Operation(summary = "독서 종료", description = "독서중인 책 상태를 완독으로 변경합니다.")
+    public ApiResponse<String> changeBookStateToEnd(@PathVariable Long bookId,
+                                               @AuthenticationPrincipal CustomUserDetails userDetails) {
+        String result = bookshelfService.changeBookStateToEnd(bookId, userDetails.getUser());
+        return ApiResponse.onSuccess(result, SuccessCode.OK);
+    }
     @GetMapping("/my-books/monthly")
     @Operation(
             summary = "월별 서재 조회",
@@ -145,6 +152,5 @@ public class BookShelfController {
                 SuccessCode.OK
         );
     }
-
 
 }
