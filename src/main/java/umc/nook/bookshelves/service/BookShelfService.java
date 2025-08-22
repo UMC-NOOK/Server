@@ -3,6 +3,7 @@ package umc.nook.bookshelves.service;
 
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.parameters.P;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -111,6 +112,25 @@ public class BookShelfService {
         return "해당 책이 '독서중' 상태로 변경되었습니다.";
     }
 
+    // 완독으로 상태 변경
+    @Transactional
+    public String changeBookStateToEnd(Long bookId, User user) {
+        Book book = getBookOrThrow(bookId);
+        UserBookShelf userBook = getUserBookShelfOrThrow(user,book);
+        ReadingStatus currentStatus = userBook.getReadingStatus();
+        // 완독 상태가 아니면
+        if (currentStatus == ReadingStatus.BOOKMARK) {
+            throw new CustomException(ErrorCode.INVALID_STATE);
+        } else if (currentStatus == ReadingStatus.FINISHED) {
+            throw new CustomException(ErrorCode.ALREADY_FINISHED);
+        }
+        else {
+            userBook.updateReadingStatus(ReadingStatus.FINISHED);
+            userBookshelfRepository.save(userBook);
+        }
+        return "해당 책이 '완독' 상태로 변경되었습니다.";
+    }
+
 
     // 서재 통계 조회
     @Transactional(readOnly = true)
@@ -186,5 +206,6 @@ public class BookShelfService {
                 ))
                 .collect(Collectors.toList());
     }
+
 
 }

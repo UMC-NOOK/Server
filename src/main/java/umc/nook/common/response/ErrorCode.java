@@ -36,8 +36,9 @@ public enum ErrorCode implements BaseCode {
     BOOK_NOT_EXIST(HttpStatus.NOT_FOUND,"BOOKSHELF-004" ,"서재에 등록되지 않은 책입니다." ),
     INVALID_MONTH(HttpStatus.BAD_REQUEST,"BOOKSHELF-005", "형식이 잘못되었습니다. yyyy-MM 형식으로 입력해주세요." ),
     BOOKSHELF_IS_EMPTY(HttpStatus.NOT_FOUND, "BOOKSHELF-006", "현재 읽고 있는 책이 없습니다."),
-    ALREADY_REGISTERED_TODAY(HttpStatus.BAD_REQUEST, "BOOK-003", "해당 날짜에는 이미 책이 등록되었습니다."),
+    ALREADY_REGISTERED_TODAY(HttpStatus.BAD_REQUEST, "BOOK-007", "해당 날짜에는 이미 책이 등록되었습니다."),
 
+    INVALID_STATE(HttpStatus.BAD_REQUEST,"BOOKSHELF-008" , "독서 상태를 변경할 수 없습니다."),
 
     //리딩룸 관련
     READING_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM-001", "리딩룸을 찾을 수 없습니다."),
