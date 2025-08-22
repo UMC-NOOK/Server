@@ -155,12 +155,12 @@ public class BookShelfService {
 
     // 지금 독서중인 책
     @Transactional(readOnly = true)
-    public BookShelfDTO.BookThumbnail viewReadingBooks(User user) {
+    public BookShelfDTO.RecentBookDTO viewReadingBooks(User user) {
         List<UserBookShelf> userBookShelfList = userBookshelfRepository.findByUserAndReadingStatusOrderByCreatedDateDesc(user,ReadingStatus.READING);
         if (userBookShelfList.isEmpty()) {
             throw new CustomException(ErrorCode.BOOKSHELF_IS_EMPTY);
         }
-        return new BookShelfDTO.BookThumbnail(userBookShelfList.get(0).getBook());
+        return new BookShelfDTO.RecentBookDTO(userBookShelfList.get(0).getBook());
     }
 
     // 이번주 서재에 등록한 책

@@ -126,7 +126,7 @@ public class BookShelfController {
     // 홈 화면 독서중인 책 조회
     @GetMapping("/reading")
     @Operation(summary = "홈 화면 독서중인 책 조회", description = "사용자가 현재 읽고 있는 책을 조회합니다.")
-    public ApiResponse<BookShelfDTO.BookThumbnail> viewReadingBook(
+    public ApiResponse<BookShelfDTO.RecentBookDTO> viewReadingBook(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         return ApiResponse.onSuccess(
