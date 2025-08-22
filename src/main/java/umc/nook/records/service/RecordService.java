@@ -234,7 +234,8 @@ public class RecordService {
                 .map(b -> new BookShelfDTO.RecentBookDTO(
                         b.getBookId(),
                         b.getTitle(),
-                        b.getAuthor()))
+                        b.getAuthor(),
+                        b.getCoverImgUrl()))
                 .orElseThrow(()->new CustomException(ErrorCode.RECORD_NOT_EXIST));
     }
 

@@ -109,10 +109,13 @@ public class BookShelfDTO {
         private String title;
         private String author;
 
+        private String coverImgUrl;
+
         public RecentBookDTO(Book book) {
             this.bookId = book.getBookId();
             this.title = book.getTitle();
             this.author = book.getAuthor();
+            this.coverImgUrl = book.getCoverImageUrl();
         }
     }
 
