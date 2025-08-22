@@ -192,10 +192,10 @@ public class RecordController {
 
     @GetMapping("/recent")
     @Operation(summary = "홈 화면 가장 최근에 기록한 책 정보 조회", description = "홈 화면에서 가장 최근에 독서 기록을 남긴 책 정보를 조회합니다.")
-    public ApiResponse<BookShelfDTO.BookThumbnail> viewRecentlyRecordedBook(
+    public ApiResponse<BookShelfDTO.RecentRecordDTO> viewRecentlyRecordedBook(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        BookShelfDTO.BookThumbnail response = recordService.viewRecentlyRecordedBook(userDetails.getUser());
+        BookShelfDTO.RecentRecordDTO response = recordService.viewRecentlyRecordedBook(userDetails.getUser());
         if (response == null)
             return ApiResponse.onSuccess(response,SuccessCode.NO_CONTENT);
         return ApiResponse.onSuccess(

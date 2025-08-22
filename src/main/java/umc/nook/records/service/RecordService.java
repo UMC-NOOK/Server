@@ -229,15 +229,14 @@ public class RecordService {
 
     // 가장 최근 기록한 책 정보 조회
     @Transactional(readOnly = true)
-    public BookShelfDTO.BookThumbnail viewRecentlyRecordedBook(User user) {
+    public BookShelfDTO.RecentRecordDTO viewRecentlyRecordedBook(User user) {
         return bookRecordRepository.viewRecentRecordedBook(user)
-                .map(b -> new BookShelfDTO.BookThumbnail(
+                .map(b -> new BookShelfDTO.RecentRecordDTO(
                         b.getBookId(),
                         b.getTitle(),
-                        b.getThumbnailUrl()))
+                        b.getAuthor()))
                 .orElseThrow(()->new CustomException(ErrorCode.RECORD_NOT_EXIST));
     }
-
 
     private void validateBookRecord(Long recordId) {
         BookRecord bookRecord = bookRecordRepository.findById(recordId)
