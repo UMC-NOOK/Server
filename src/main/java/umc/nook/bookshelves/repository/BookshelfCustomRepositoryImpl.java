@@ -134,7 +134,7 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
         );
     }
     // 월별 책 조회
-    @Transactional
+    @Transactional(readOnly = true)
     public List<BookShelfDTO.DailyBooksResponseDTO> getMonthlyBooks(User user, YearMonth yearMonth) {
         QUserBookShelf ub = QUserBookShelf.userBookShelf;
         QBook book = QBook.book;
@@ -152,25 +152,20 @@ class BookShelfCustomRepositoryImpl implements BookShelfCustomRepository {
                         ub.recordedAt.between(startDate, endDate),
                         ub.readingStatus.ne(ReadingStatus.BOOKMARK)
                 )
-                .orderBy(ub.recordedAt.asc(), ub.createdDate.desc())
+                .orderBy(ub.recordedAt.asc())
                 .fetch();
 
-        Map<LocalDate, BookShelfDTO.MonthlyBookThumbnail> byDate = result.stream()
+        return result.stream()
                 .filter(t -> t.get(ub.recordedAt) != null)
-                .collect(Collectors.toMap(
-                        t -> t.get(ub.recordedAt),
-                        t -> new BookShelfDTO.MonthlyBookThumbnail(
+                .map(t -> new BookShelfDTO.DailyBooksResponseDTO(
+                        t.get(ub.recordedAt),
+                        new BookShelfDTO.MonthlyBookThumbnail(
                                 t.get(book.bookId),
                                 t.get(book.title),
                                 t.get(book.coverImageUrl),
                                 t.get(book.author)
-                        ),
-                        (existing, ignored) -> existing,
-                        LinkedHashMap::new
-                ));
-
-        return byDate.entrySet().stream()
-                .map(e -> new BookShelfDTO.DailyBooksResponseDTO(e.getKey(), e.getValue()))
+                        )
+                ))
                 .toList();
     }
 

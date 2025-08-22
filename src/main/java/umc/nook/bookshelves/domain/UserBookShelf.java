@@ -48,8 +48,9 @@ public class UserBookShelf extends BaseTimeEntity {
     @OneToMany(mappedBy = "bookshelf", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ChatRecord> chatRecords = new ArrayList<>();
 
-    public void updateReadingStatus(ReadingStatus readingStatus) {
+    public void updateReadingStatus(ReadingStatus readingStatus, LocalDate recordedAt) {
         this.readingStatus = readingStatus;
+        this.recordedAt = recordedAt;
     }
 
     @Builder
