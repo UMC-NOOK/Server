@@ -81,7 +81,7 @@ public class RecordCustomRepositoryImpl implements RecordCustomRepository{
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<BookShelfDTO.RecentRecordDTO> viewRecentRecordedBook(User user) {
+    public Optional<BookShelfDTO.RecentBookDTO> viewRecentRecordedBook(User user) {
         QBookRecord record = QBookRecord.bookRecord;
         QBook book = QBook.book;
 
@@ -97,7 +97,7 @@ public class RecordCustomRepositoryImpl implements RecordCustomRepository{
                         .where(record.bookshelf.user.eq(user))
                         .orderBy(record.createdDate.desc())
                         .fetchFirst()
-        ).map(tuple -> new BookShelfDTO.RecentRecordDTO(
+        ).map(tuple -> new BookShelfDTO.RecentBookDTO(
                 tuple.get(book.bookId),
                 tuple.get(book.title),
                 tuple.get(book.author)

@@ -10,6 +10,6 @@ import java.util.Optional;
 public interface RecordCustomRepository {
     RecordDTO.MonthlyRecordRateResponseDTO viewRecordRate(User user, Year year);
 
-    Optional<BookShelfDTO.RecentRecordDTO> viewRecentRecordedBook(User user);
+    Optional<BookShelfDTO.RecentBookDTO> viewRecentRecordedBook(User user);
 
 }

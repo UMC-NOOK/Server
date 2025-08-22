@@ -86,12 +86,12 @@ public class BookShelfDTO {
 
     @Getter
     @AllArgsConstructor
-    public static class RecentRecordDTO {
+    public static class RecentBookDTO {
         private Long bookId;
         private String title;
         private String author;
 
-        public RecentRecordDTO(Book book) {
+        public RecentBookDTO(Book book) {
             this.bookId = book.getBookId();
             this.title = book.getTitle();
             this.author = book.getAuthor();

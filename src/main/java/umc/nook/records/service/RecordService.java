@@ -229,9 +229,9 @@ public class RecordService {
 
     // 가장 최근 기록한 책 정보 조회
     @Transactional(readOnly = true)
-    public BookShelfDTO.RecentRecordDTO viewRecentlyRecordedBook(User user) {
+    public BookShelfDTO.RecentBookDTO viewRecentlyRecordedBook(User user) {
         return bookRecordRepository.viewRecentRecordedBook(user)
-                .map(b -> new BookShelfDTO.RecentRecordDTO(
+                .map(b -> new BookShelfDTO.RecentBookDTO(
                         b.getBookId(),
                         b.getTitle(),
                         b.getAuthor()))
