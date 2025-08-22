@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 import umc.nook.book.domain.Book;
 import umc.nook.bookshelves.domain.ReadingStatus;
 import umc.nook.bookshelves.validation.DateRequiredIfReadingOrFinished;
+import umc.nook.common.exception.CustomException;
+import umc.nook.common.response.ErrorCode;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -35,6 +37,22 @@ public class BookShelfDTO {
         private ReadingStatus readingStatus;
     }
 
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChangeStatusRequestDTO {
+        @NotNull(message = "bookId는 필수입니다.")
+        @Positive(message = "bookId는 양수여야 합니다.")
+        private Long bookId;
+
+
+        @NotNull(message = "독서 상태는 필수입니다.")
+        private ReadingStatus status;
+
+        private LocalDate recordedAt;
+
+    }
 
 
     @Getter

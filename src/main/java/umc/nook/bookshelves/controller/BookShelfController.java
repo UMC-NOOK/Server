@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -46,21 +47,19 @@ public class BookShelfController {
         return ApiResponse.onSuccess(result, SuccessCode.ACCEPTED);
     }
 
-    @PatchMapping("/start-reading/{bookId}")
-    @Operation(summary = "독서 시작", description = "독서 상태를 시작으로 변경합니다.")
-    public ApiResponse<String> changeBookStateToStart(@PathVariable Long bookId,
-                                               @AuthenticationPrincipal CustomUserDetails userDetails) {
-        String result = bookshelfService.changeBookState(bookId, userDetails.getUser());
-        return ApiResponse.onSuccess(result, SuccessCode.OK);
+    @PatchMapping("/change-status")
+    @Operation(summary = "독서 상태 변경", description = "BOOKMARK(찜한 책), READING(독서 중), FINISHED(완독) 상태로 변경합니다.")
+    public ApiResponse<String> changeBookState(
+            @RequestBody @Valid BookShelfDTO.ChangeStatusRequestDTO request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        String result = bookshelfService.changeBookState(
+                request,
+                userDetails.getUser()
+        );
+        return ApiResponse.onSuccess(result, SuccessCode.ACCEPTED);
     }
 
-    @PatchMapping("/finish-reading/{bookId}")
-    @Operation(summary = "독서 종료", description = "독서중인 책 상태를 완독으로 변경합니다.")
-    public ApiResponse<String> changeBookStateToEnd(@PathVariable Long bookId,
-                                               @AuthenticationPrincipal CustomUserDetails userDetails) {
-        String result = bookshelfService.changeBookStateToEnd(bookId, userDetails.getUser());
-        return ApiResponse.onSuccess(result, SuccessCode.OK);
-    }
     @GetMapping("/my-books/monthly")
     @Operation(
             summary = "월별 서재 조회",

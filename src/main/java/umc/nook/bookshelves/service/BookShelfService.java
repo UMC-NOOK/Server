@@ -92,44 +92,33 @@ public class BookShelfService {
         return "책이 성공적으로 서재에서 삭제되었습니다.";
     }
 
-    // 독서중으로 상태 변경
+    // 독서 상태 변경 (BOOKMARK, READING, FINISHED)
     @Transactional
-    public String changeBookState(Long bookId, User user){
-        Book book = getBookOrThrow(bookId);
-        UserBookShelf userBook = getUserBookShelfOrThrow(user,book);
-        ReadingStatus currentStatus = userBook.getReadingStatus();
-        if (currentStatus == ReadingStatus.READING) {
-            throw new CustomException(ErrorCode.ALREADY_READING);
+    public String changeBookState(BookShelfDTO.ChangeStatusRequestDTO request, User user) {
+        Book book = getBookOrThrow(request.getBookId());
+        UserBookShelf userBook = getUserBookShelfOrThrow(user, book);
+
+        ReadingStatus newStatus = request.getStatus();
+        LocalDate recordedAt = request.getRecordedAt();
+
+        // 상태별 recordedAt 처리
+        if ((newStatus == ReadingStatus.READING || newStatus == ReadingStatus.FINISHED)
+                && recordedAt == null) {
+            throw new CustomException(ErrorCode.RECORDED_AT_REQUIRED);
         }
 
-        if (currentStatus == ReadingStatus.FINISHED) {
-            throw new CustomException(ErrorCode.ALREADY_FINISHED);
+        // BOOKMARK는 recordedAt 강제로 null
+        if (newStatus == ReadingStatus.BOOKMARK) {
+            recordedAt = null;
         }
 
-        userBook.updateReadingStatus(ReadingStatus.READING);
+        userBook.updateReadingStatus(newStatus, recordedAt);
         userBookshelfRepository.save(userBook);
 
-        return "해당 책이 '독서중' 상태로 변경되었습니다.";
+        return "해당 책의 상태가 '" + newStatus + "' 으로 변경되었습니다.";
     }
 
-    // 완독으로 상태 변경
-    @Transactional
-    public String changeBookStateToEnd(Long bookId, User user) {
-        Book book = getBookOrThrow(bookId);
-        UserBookShelf userBook = getUserBookShelfOrThrow(user,book);
-        ReadingStatus currentStatus = userBook.getReadingStatus();
-        // 완독 상태가 아니면
-        if (currentStatus == ReadingStatus.BOOKMARK) {
-            throw new CustomException(ErrorCode.INVALID_STATE);
-        } else if (currentStatus == ReadingStatus.FINISHED) {
-            throw new CustomException(ErrorCode.ALREADY_FINISHED);
-        }
-        else {
-            userBook.updateReadingStatus(ReadingStatus.FINISHED);
-            userBookshelfRepository.save(userBook);
-        }
-        return "해당 책이 '완독' 상태로 변경되었습니다.";
-    }
+
 
 
     // 서재 통계 조회
