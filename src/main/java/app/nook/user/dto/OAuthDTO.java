@@ -63,7 +63,6 @@ public class OAuthDTO {
     @Getter
     @AllArgsConstructor
     public static class OAuthLoginRequest{
-
         private String provider;
         private String code;
     }
