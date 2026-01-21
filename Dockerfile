@@ -1,9 +1,9 @@
 # 빌드 단계
-FROM openjdk:17-jdk-slim as build
+FROM eclipse-temurin:17-jdk-jammy as build
 WORKDIR /app
 COPY . .
 RUN ./gradlew clean build
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
 
 # 타임존 설정

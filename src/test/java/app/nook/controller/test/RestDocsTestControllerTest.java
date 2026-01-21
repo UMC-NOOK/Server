@@ -1,11 +1,8 @@
-package app.nook.controller;
+package app.nook.controller.test;
 
 import app.nook.global.docs.ApiResponseSnippet;
-import app.nook.global.test.RestDocsTestController;
 import app.nook.global.common.AbstractRestDocsTests;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;

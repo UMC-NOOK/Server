@@ -5,8 +5,9 @@ build/
 # REST Docs
 build/generated-snippets/
 
-# querydsl
-src/main/generated
+/src/main/resources/application-secret.properties
+
+db/postgres
 
 # IDE
 .idea/
