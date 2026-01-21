@@ -1,0 +1,8 @@
+
+== RestDocs 테스트 API
+
+
+=== ApiResponse 응답
+
+include::{snippets}/rest-docs-test-controller-test/api-response-test_docs/http-response.adoc[]
+include::{snippets}/rest-docs-test-controller-test/api-response-test_docs/response-fields.adoc[]

@@ -1,0 +1,17 @@
+# Gradle
+.gradle/
+build/
+
+# REST Docs
+build/generated-snippets/
+
+# querydsl
+src/main/generated
+
+# IDE
+.idea/
+*.iml
+out/
+
+# OS
+.DS_Store

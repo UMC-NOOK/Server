@@ -1,0 +1,66 @@
+package app.nook.user.domain;
+
+import app.nook.global.common.BaseEntity;
+import app.nook.user.domain.enums.UserRole;
+import app.nook.user.domain.enums.UserStatus;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "users")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class User extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Enumerated(EnumType.STRING)
+    private UserStatus status = UserStatus.ACTIVE;
+
+    private Short goal = 0;
+
+    @Enumerated(EnumType.STRING)
+    private UserRole role;
+
+    private String provider;
+
+    private String providerId;
+
+    private String email;
+
+    private Short chatUsage = 0;
+
+    private LocalDateTime deletedAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String profileUrl;
+
+    private String nickName;
+
+    @Builder
+    public User(
+            String provider,
+            String providerId,
+            String email,
+            String nickName,
+            UserRole role
+
+    ) {
+        this.provider = provider;
+        this.providerId = providerId;
+        this.email = email;
+        this.nickName = nickName;
+        this.role = role;
+    }
+
+    public void increaseChatUsage() {
+        this.chatUsage++;
+    }
+}

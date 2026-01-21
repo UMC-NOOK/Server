@@ -1,0 +1,203 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.10-SNAPSHOT'
+	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.asciidoctor.jvm.convert' version '4.0.5'
+	id 'jacoco'
+}
+
+group = 'app'
+version = '0.0.1-SNAPSHOT'
+description = 'nook 백엔드 레포지토리입니다.'
+
+// 스니펫 파일 경로지정
+ext {
+	set('snippetsDir', file("build/generated-snippets"))
+}
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+configurations {
+	asciidoctorExt
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+	maven { url = 'https://repo.spring.io/snapshot' }
+}
+
+jacoco {
+	toolVersion = "0.8.11"
+}
+
+
+dependencies {
+
+	// spring batch
+	// implementation 'org.springframework.boot:spring-boot-starter-batch'
+	// testImplementation 'org.springframework.batch:spring-batch-test'
+
+	// spring web & jpa
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+
+	// security
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+
+	// testImplementation 'org.springframework.security:spring-security-test'
+
+	// validation
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	// redis
+	implementation 'org.springframework.session:spring-session-data-redis'
+
+	// lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	// db
+	runtimeOnly 'org.postgresql:postgresql'
+
+	// test db
+	testImplementation 'com.h2database:h2'
+
+	// restdocs
+	asciidoctorExt 'org.springframework.restdocs:spring-restdocs-asciidoctor'
+	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+
+	// test
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// QueryDSL
+	implementation "com.querydsl:querydsl-jpa:5.0.0:jakarta"
+	annotationProcessor(
+			"com.querydsl:querydsl-apt:5.0.0:jakarta",
+			"jakarta.annotation:jakarta.annotation-api",
+			"jakarta.persistence:jakarta.persistence-api"
+	)
+
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+	// WebSocket
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+	// WebClient
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+	// jwt
+	implementation group: 'io.jsonwebtoken', name: 'jjwt-api', version: '0.11.2'
+	runtimeOnly group: 'io.jsonwebtoken', name: 'jjwt-impl', version: '0.11.2'
+	runtimeOnly group: 'io.jsonwebtoken', name: 'jjwt-jackson', version: '0.11.2'
+
+	// gpt
+	implementation 'io.github.flashvayne:chatgpt-spring-boot-starter:1.0.4'
+}
+
+asciidoctor {
+	configurations 'asciidoctorExt'
+	baseDirFollowsSourceFile()
+	inputs.dir snippetsDir
+	dependsOn test
+}
+
+asciidoctor.doFirst {
+	delete file('src/main/resources/static/docs') // 이전 문서 삭제하도록 설정
+}
+
+
+task copyDocument(type: Copy) {
+	dependsOn asciidoctor
+	from file("build/docs/asciidoc")
+	into file("src/main/resources/static/docs")
+}
+
+build {
+	dependsOn copyDocument
+}
+
+jacocoTestReport {
+	dependsOn test
+
+	reports {
+		html.required = true
+		xml.required = true
+	}
+
+	// 테스트하지 않아도 되는 코드 제외
+	afterEvaluate {
+		classDirectories.setFrom(
+				files(classDirectories.files.collect {
+					fileTree(dir: it, exclude: [
+							'**/config/**',
+							'**/dto/**',
+							'**/exception/**',
+							'**/*Application*',
+							'**/Q*',
+							'**/*RestDocs*',
+							'**/global/docs/**',
+							'**/*Test*',
+							'**/*Base*',
+							'**/*Abstract*'
+					])
+				})
+		)
+	}
+}
+
+
+
+test {
+	useJUnitPlatform()
+	outputs.dir snippetsDir // 출력 디렉토리 설정
+	finalizedBy jacocoTestReport
+}
+
+jacocoTestCoverageVerification {
+	violationRules {
+		rule {
+			limit {
+				counter = 'LINE'
+				value = 'COVEREDRATIO'
+				minimum = 0.60
+			}
+		}
+	}
+}
+
+jacocoTestCoverageVerification {
+	enabled = false // 임시
+}
+
+
+sourceSets {
+	main {
+		java {
+			srcDirs = ["$projectDir/src/main/java", "$projectDir/build/generated"]
+		}
+	}
+}
+
+// QueryDSL 설정
+def querydslSrcDir = 'src/main/generated'
+
+tasks.withType(JavaCompile) {
+	options.generatedSourceOutputDirectory = file(querydslSrcDir)
+}
+
+
+// check 시 커버리지 검증
+check.dependsOn jacocoTestCoverageVerification
+
+clean {
+	delete file(querydslSrcDir)
+}
