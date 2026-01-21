@@ -59,15 +59,13 @@ public class WebSecurityConfig {
                                 "/api/auth/**",
                                 "/ws/**"
                         ).permitAll()
-
-                        // ===== 나머지는 인증 =====
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()
                 );
 
         // JWT Filter Chain
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-        http.addFilterBefore(jwtExceptionFilter, JwtExceptionFilter.class);
+        http.addFilterBefore(jwtExceptionFilter, JwtFilter.class);
 
         return http.build();
     }
