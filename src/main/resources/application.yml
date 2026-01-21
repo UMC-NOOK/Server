@@ -44,7 +44,7 @@ auth:
     client-secret: ${KAKAO_CLIENT_SECRET}
     redirect-uri: ${KAKAO_REDIRECT_URI}
     token-request-uri: https://kauth.kakao.com/oauth/token
-    member-info-request-uri: https://kapi.kakao.com/v2/user/me
+    user-info-uri: https://kapi.kakao.com/v2/user/me
     logout-uri: https://kapi.kakao.com/v1/user/logout
     unlink-uri: https://kapi.kakao.com/v1/user/unlink
     admin-key: ${KAKAO_ADMIN_KEY}
@@ -54,4 +54,6 @@ auth:
     client-id: ${GOOGLE_CLIENT_ID}
     client-secret: ${GOOGLE_CLIENT_SECRET}
     token-request-uri: ${TOKEN_REQUEST_URI}
-    member-info-request-uri: ${MEMBER_INFO_REQUEST_URI}
+    user-info-uri: ${MEMBER_INFO_REQUEST_URI}
+
+

@@ -6,6 +6,7 @@ import app.nook.user.oauth.OAuthService;
 import app.nook.user.service.CustomUserDetails;
 import app.nook.user.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -22,16 +23,15 @@ public class AuthController {
      * OAuth 로그인 (Google / Kakao)
      * 프론트에서 code 전달
      *
-     * POST /auth/oauth/{provider}
+     * POST /auth/oauth
      */
-    @PostMapping("/oauth/{provider}")
+    @PostMapping("/oauth")
     public UserDTO.LoginResponse oauthLogin(
-            @PathVariable String provider,
-            @RequestBody OAuthDTO.OAuthLoginRequest request,
+            @Valid @RequestBody OAuthDTO.OAuthLoginRequest request,
             HttpServletResponse response
     ) {
         return oAuthService.login(
-                provider,
+                request.getProvider(),
                 request.getCode(),
                 response
         );
@@ -41,8 +41,8 @@ public class AuthController {
      * DEV 로그인
      * - 회원가입 x
      * - 기존 유저만 허용
-     * - local / dev 환경 전용
-     *
+     *             email:    "dev@test.com",
+     *             nickname:     "DEV_USER"
      * POST /auth/dev/login
      */
     @PostMapping("/dev/login")
