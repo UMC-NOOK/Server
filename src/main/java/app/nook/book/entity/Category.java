@@ -33,7 +33,7 @@ public class Category {
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Book> books = new ArrayList<>();
 
-    public static Category of(MallType mallType, int aladinCategoryId, String categoryName) {
+    public static Category of(MallType mallType, String categoryName, int aladinCategoryId) {
         return Category.builder()
                 .mallType(mallType)
                 .aladinCategoryId(aladinCategoryId)

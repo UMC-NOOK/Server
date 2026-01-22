@@ -19,13 +19,27 @@ public class BookResponseDto {
         private String author;
         private String publisher;
         private String publicationDate;
-        private MallType mallType;
+        private String mallType;
+        private MallType mallTypeCode;
         private String category;
-        private int pages;
+        private Integer pages;
         private String description;
         private String coverImageUrl;
         private String aladinLink;
         private SourceType sourceType;
         private Long bookShelfId;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class BookPreviewDto { // 검색 베스트셀러 프리뷰 DTO
+        private String isbn13;
+        private String title;
+        private String author;
+        private String coverImageUrl;
+        private String publisher;
+        private Integer rank;
     }
 }

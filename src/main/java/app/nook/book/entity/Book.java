@@ -1,5 +1,7 @@
 package app.nook.book.entity;
 
+import app.nook.book.dto.BookResponseDto;
+import app.nook.global.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 
-public class Book {
+public class Book extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,7 +36,7 @@ public class Book {
     @Column(name = "publication_date")
     private String publicationDate;
 
-    private String pages;
+    private Integer pages;
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -51,4 +53,16 @@ public class Book {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
+
+    public void updateInfo(BookResponseDto.BookDetailDto info, Category category) {
+        this.title = info.getTitle();
+        this.author = info.getAuthor();
+        this.publisher = info.getPublisher();
+        this.publicationDate = info.getPublicationDate();
+        this.pages = info.getPages();
+        this.category = category;
+        this.description = info.getDescription();
+        this.coverImageUrl = info.getCoverImageUrl();
+        this.aladinLink = info.getAladinLink();
+    }
 }

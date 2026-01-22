@@ -22,6 +22,8 @@ public class QBook extends EntityPathBase<Book> {
 
     public static final QBook book = new QBook("book");
 
+    public final app.nook.global.common.QBaseEntity _super = new app.nook.global.common.QBaseEntity(this);
+
     public final StringPath aladinLink = createString("aladinLink");
 
     public final StringPath author = createString("author");
@@ -30,13 +32,19 @@ public class QBook extends EntityPathBase<Book> {
 
     public final StringPath coverImageUrl = createString("coverImageUrl");
 
+    //inherited
+    public final DateTimePath<java.time.LocalDateTime> createdDate = _super.createdDate;
+
     public final StringPath description = createString("description");
 
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
     public final StringPath isbn13 = createString("isbn13");
 
-    public final StringPath pages = createString("pages");
+    //inherited
+    public final DateTimePath<java.time.LocalDateTime> modifiedDate = _super.modifiedDate;
+
+    public final NumberPath<Integer> pages = createNumber("pages", Integer.class);
 
     public final StringPath publicationDate = createString("publicationDate");
 
