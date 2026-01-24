@@ -67,6 +67,11 @@ public enum ErrorCode implements BaseCode {
     BOOK_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "BOOK-003", "서비스 정책에 의해 조회할 수 없는 도서입니다."),
     BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "BOOK-003", "존재하지 않는 책입니다."),
 
+    // 알라딘
+    ALADIN_API_ERROR(HttpStatus.BAD_GATEWAY, "ALADIN-001", "알라딘 API 호출 중 오류가 발생했습니다."),
+    ALADIN_PARSING_ERROR(HttpStatus.BAD_GATEWAY, "ALADIN-002", "알라딘 API 응답 형식이 올바르지 않습니다."),
+    ALADIN_UNAUTHORIZED(HttpStatus.INTERNAL_SERVER_ERROR, "ALADIN-003", "알라딘 API 인증에 실패했습니다."),
+
     // 라운지
     INVALID_MALLTYPE(HttpStatus.BAD_REQUEST, "LOUNGE-001", "유효하지 않은 'mallType' 값입니다."),
     INVALID_SECTION(HttpStatus.BAD_REQUEST, "LOUNGE-002", "유효하지 않은 'sectionId' 값입니다."),

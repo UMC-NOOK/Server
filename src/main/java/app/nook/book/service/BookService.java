@@ -10,6 +10,8 @@ import app.nook.book.entity.MallType;
 import app.nook.book.entity.SourceType;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
+import app.nook.global.exception.CustomException;
+import app.nook.global.response.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -86,12 +88,9 @@ public class BookService {
 
         return categoryRepository.findByMallTypeAndCategoryName(mallType, categoryName)
                 .orElseGet(() -> {
-                    // ⚠예외 처리: 알라딘이 보낸 1 Depth 이름이 우리 DB 초기화 리스트에 없는 경우
-                    // 예: "독특한장르" 라는게 새로 생김 -> "기타" 카테고리로 매핑
-                    log.warn("매핑된 카테고리가 없습니다. 기타로 분류합니다. [{} - {}]", mallType, categoryName);
-
-                    return categoryRepository.findByMallTypeAndCategoryName(MallType.ETC, "기타")
-                            .orElseThrow(() -> new IllegalStateException("기본 카테고리 데이터가 손상되었습니다."));
+                    // 예외 처리: 알라딘이 보낸 1 Depth 이름이 우리 DB 초기화 리스트에 없는 경우
+                    log.warn("매핑된 카테고리가 없습니다. [{} - {}]", mallType, categoryName);
+                    throw new CustomException(ErrorCode.BOOK_NOT_ALLOWED);
                 });
     }
 
