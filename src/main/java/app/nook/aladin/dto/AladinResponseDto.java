@@ -32,6 +32,7 @@ public class AladinResponseDto {
         private String description;
         private String cover;
         private String link;
+        private boolean adult;
         private Integer bestRank;
         private SubInfo subInfo;
 
