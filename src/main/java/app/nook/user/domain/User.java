@@ -1,5 +1,6 @@
 package app.nook.user.domain;
 
+import app.nook.book.domain.SearchHistory;
 import app.nook.global.common.BaseEntity;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.domain.enums.UserStatus;
@@ -9,6 +10,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -43,6 +46,9 @@ public class User extends BaseEntity {
     private String profileUrl;
 
     private String nickName;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SearchHistory> searchHistories = new ArrayList<>();
 
     @Builder
     public User(

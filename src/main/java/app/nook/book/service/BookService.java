@@ -1,13 +1,12 @@
 package app.nook.book.service;
 
-import app.nook.aladin.dto.AladinResponseDto;
 import app.nook.aladin.service.AladinService;
 import app.nook.book.converter.BookConverter;
 import app.nook.book.dto.BookResponseDto;
-import app.nook.book.entity.Book;
-import app.nook.book.entity.Category;
-import app.nook.book.entity.MallType;
-import app.nook.book.entity.SourceType;
+import app.nook.book.domain.Book;
+import app.nook.book.domain.Category;
+import app.nook.book.domain.enums.MallType;
+import app.nook.book.domain.enums.SourceType;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.global.exception.CustomException;
@@ -32,53 +31,51 @@ public class BookService {
 
     // 도서 상세 조회
     // TODO: 서재 관련 기능 추후 개발 예정
-    // TODO: 인증 로직 구현 시 실제 사용자 ID로 대체
     // TODO: 사용자가 추가한 서재인 경우 필터링 로직 추가 예정
     @Transactional
-    public BookResponseDto.BookDetailDto getBookDetailByIsbn(String isbn13) {
-        Long userId = 1L; // 추후 인증 로직 구현 시 실제 사용자 ID로 대체
+    public BookResponseDto.BookDetailDto getBookDetailByIsbn(Long userId, String isbn13) {
 
         Optional<Book> existingBook = bookRepository.findByIsbn13(isbn13);
         if (existingBook.isPresent()) {
             Book book = existingBook.get();
 
             if (isOutdated(book.getModifiedDate()) && book.getSourceType()== SourceType.ALADIN) {
-                log.info("[BookService] 도서 정보가 오래되어 업데이트 진행 for isbn13={}", isbn13);
+                log.info("[BOOK_UPDATE] isbn={}, title={}", isbn13, book.getTitle());
                 updateBookInfo(book, isbn13);
             }
-            log.info("[BookService] 도서 상세 조회 완료(DB) for isbn13={}, title={}", isbn13, book.getTitle());
+            log.info("[DB_HIT] isbn={}, title='{}'", isbn13, book.getTitle());
             return BookConverter.toBookDetailDto(book, null); // TODO: 서재 ID 추가 예정
         }
 
-        log.info("[BookService] 도서 정보가 없어 알라딘 API 조회 for isbn13={}", isbn13);
+        log.info("[API_FETCH] isbn={}, status='Not found in DB'", isbn13);
         BookResponseDto.BookDetailDto bookDetailDto = aladinService.lookupItem(isbn13);
         Category category = findCategory(bookDetailDto);
         Book newBook = bookRepository.save(BookConverter.toBook(bookDetailDto, category, SourceType.ALADIN));
-        log.info("[BookService] 도서 상세 조회 완료 for isbn13={}, title={}", isbn13, bookDetailDto.getTitle());
+        log.info("[BOOK_SAVE] isbn={}, title='{}'", isbn13, bookDetailDto.getTitle());
         return BookConverter.toBookDetailDto(newBook, null); // TODO: 서재 ID 추가 예정
     }
 
     // 주간 베스트셀러
     // TODO: redis 도입 예정
     public List<BookResponseDto.BookPreviewDto> getWeeklyBestsellers() {
-        log.info("[BookService] 주간 베스트셀러 조회 요청");
+        log.info("[FETCH_WEEKLY_BEST]");
         List<BookResponseDto.BookPreviewDto> bookPreviewDtos = aladinService.fetchItemList(
                 "Bestseller", "BOOK", 10, null);
 
-        log.info("[BookService] 주간 베스트셀러 조회 완료: {}권", bookPreviewDtos.size());
+        log.info("[FETCH_WEEKLY_BEST_SUCCESS] count={}", bookPreviewDtos.size());
         return bookPreviewDtos;
     }
 
     // 사용자 맞춤 추천 베스트셀러
-    // TODO: 유저 + 카테고리 추출 및 redis는 이후 구현 예정
-    public List<BookResponseDto.BookPreviewDto> getPersonalizedBestsellers() {
+    // TODO: 카테고리 추출 및 redis는 이후 구현 예정
+    public List<BookResponseDto.BookPreviewDto> getPersonalizedBestsellers(Long userId) {
         String categoryId = "1"; // 예시 카테고리 ID
 
-        log.info("[BookService] 맞춤 추천 베스트셀러 조회 요청 for categoryId={}", categoryId);
+        log.info("[FETCH_PERSONAL_BEST] categoryId={}", categoryId);
         List<BookResponseDto.BookPreviewDto> bookPreviewDtos = aladinService.fetchItemList(
                 "Bestseller", "BOOK", 5, categoryId);
 
-        log.info("[BookService] 맞춤 추천 베스트셀러 조회 완료: {}권", bookPreviewDtos.size());
+        log.info("[FETCH_PERSONAL_BEST_SUCCESS] count={}", bookPreviewDtos.size());
         return bookPreviewDtos;
     }
 
@@ -89,7 +86,7 @@ public class BookService {
         return categoryRepository.findByMallTypeAndCategoryName(mallType, categoryName)
                 .orElseGet(() -> {
                     // 예외 처리: 알라딘이 보낸 1 Depth 이름이 우리 DB 초기화 리스트에 없는 경우
-                    log.warn("매핑된 카테고리가 없습니다. [{} - {}]", mallType, categoryName);
+                    log.warn("[CATEGORY_MAPPING_FAIL] mallType={}, category='{}'", mallType, categoryName);
                     throw new CustomException(ErrorCode.BOOK_NOT_ALLOWED);
                 });
     }
@@ -102,6 +99,6 @@ public class BookService {
         BookResponseDto.BookDetailDto latestInfo = aladinService.lookupItem(isbn13);
         Category latestCategory = findCategory(latestInfo);
         book.updateInfo(latestInfo, latestCategory);
-        log.info("[BookService] 도서 정보 업데이트 완료 for isbn13={}", isbn13);
+        log.info("[BookService] Book info updated - ISBN: {}, title: {}", isbn13, book.getTitle());
     }
 }

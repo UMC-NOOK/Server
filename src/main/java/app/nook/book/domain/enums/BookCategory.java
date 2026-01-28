@@ -1,4 +1,4 @@
-package app.nook.book.entity;
+package app.nook.book.domain.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +14,7 @@ public enum BookCategory {
     // 형식: (DB 저장명, BOOK_ID, EBOOK_ID, [매핑_Alias_리스트])
 
     // 1. 단순 1:1 매핑
+    // TODO: 필터링 기능 리팩토링 예정
     HOME_COOKING("가정/요리/뷰티", 1230, 38409, List.of("가정/요리/뷰티")),
     HEALTH("건강/취미/레저", 55890, 56388, List.of("건강/취미/레저")),
     ECONOMY("경제경영", 170, 38398, List.of("경제경영")),

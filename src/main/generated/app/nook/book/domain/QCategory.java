@@ -1,4 +1,4 @@
-package app.nook.book.entity;
+package app.nook.book.domain;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -16,7 +16,7 @@ import com.querydsl.core.types.dsl.PathInits;
 @Generated("com.querydsl.codegen.DefaultEntitySerializer")
 public class QCategory extends EntityPathBase<Category> {
 
-    private static final long serialVersionUID = -831344088L;
+    private static final long serialVersionUID = -1370018201L;
 
     public static final QCategory category = new QCategory("category");
 
@@ -28,7 +28,7 @@ public class QCategory extends EntityPathBase<Category> {
 
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
-    public final EnumPath<MallType> mallType = createEnum("mallType", MallType.class);
+    public final EnumPath<app.nook.book.domain.enums.MallType> mallType = createEnum("mallType", app.nook.book.domain.enums.MallType.class);
 
     public QCategory(String variable) {
         super(Category.class, forVariable(variable));

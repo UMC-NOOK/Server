@@ -1,4 +1,4 @@
-package app.nook.book.entity;
+package app.nook.book.domain;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -16,7 +16,7 @@ import com.querydsl.core.types.dsl.PathInits;
 @Generated("com.querydsl.codegen.DefaultEntitySerializer")
 public class QBook extends EntityPathBase<Book> {
 
-    private static final long serialVersionUID = 1097553171L;
+    private static final long serialVersionUID = -79836974L;
 
     private static final PathInits INITS = PathInits.DIRECT2;
 
@@ -50,7 +50,7 @@ public class QBook extends EntityPathBase<Book> {
 
     public final StringPath publisher = createString("publisher");
 
-    public final EnumPath<SourceType> sourceType = createEnum("sourceType", SourceType.class);
+    public final EnumPath<app.nook.book.domain.enums.SourceType> sourceType = createEnum("sourceType", app.nook.book.domain.enums.SourceType.class);
 
     public final StringPath title = createString("title");
 

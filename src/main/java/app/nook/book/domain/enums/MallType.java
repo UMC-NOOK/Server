@@ -1,4 +1,4 @@
-package app.nook.book.entity;
+package app.nook.book.domain.enums;
 
 import java.util.Arrays;
 import java.util.Optional;
