@@ -1,5 +1,6 @@
-package app.nook.book.entity;
+package app.nook.book.domain;
 
+import app.nook.book.domain.enums.SourceType;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.global.common.BaseEntity;
 import jakarta.persistence.*;

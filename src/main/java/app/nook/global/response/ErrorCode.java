@@ -58,8 +58,9 @@ public enum ErrorCode implements BaseCode {
     PAGE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "PAGE-003", "요청한 'page' 가 전체 페이지 수를 초과했습니다."),
 
     // 검색
-    INVALID_QUERY(HttpStatus.BAD_REQUEST, "SEARCH-001", "필수 파라미터 'query' 가 누락되었습니다."),
-    RECENT_QUERY_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH-002", "최근 검색어를 찾을 수 없습니다."),
+    INVALID_KEYWORD(HttpStatus.BAD_REQUEST, "SEARCH-001", "필수 파라미터 'keyword' 가 누락되었습니다."),
+    SEARCH_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH-002", "최근 검색어를 찾을 수 없습니다."),
+    INVALID_SEARCH_TYPE(HttpStatus.BAD_REQUEST, "SEARCH-003", "유효하지 않은 검색 유형입니다."),
 
     // 책
     ISBN13_NOT_FOUND(HttpStatus.NOT_FOUND, "BOOK-001", "요청한 ISBN-13에 해당하는 도서를 찾을 수 없습니다."),

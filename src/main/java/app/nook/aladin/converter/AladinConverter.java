@@ -1,9 +1,9 @@
 package app.nook.aladin.converter;
 
 import app.nook.aladin.dto.AladinResponseDto;
-import app.nook.aladin.util.AladinUtils;
+import app.nook.aladin.utils.AladinUtils;
 import app.nook.book.dto.BookResponseDto;
-import app.nook.book.entity.MallType;
+import app.nook.book.domain.enums.MallType;
 
 
 public class AladinConverter {
@@ -32,6 +32,18 @@ public class AladinConverter {
                 .description(aladinItem.getDescription())
                 .coverImageUrl(aladinItem.getCover())
                 .aladinLink(aladinItem.getLink())
+                .build();
+    }
+
+    public static BookResponseDto.BookSearchDTO toBookSearchDto(AladinResponseDto.AladinItem item) {
+        return BookResponseDto.BookSearchDTO.builder()
+                .isbn13(item.getIsbn13())
+                .title(item.getTitle())
+                .mallType(AladinUtils.extractMallType(item.getCategoryName()).getDisplayName())
+                .author(item.getAuthor())
+                .coverImageUrl(item.getCover())
+                .publisher(item.getPublisher())
+                .publicationDate(item.getPubDate())
                 .build();
     }
 }

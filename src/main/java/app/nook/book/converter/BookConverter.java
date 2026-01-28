@@ -1,10 +1,9 @@
 package app.nook.book.converter;
 
-import app.nook.aladin.dto.AladinResponseDto;
 import app.nook.book.dto.BookResponseDto;
-import app.nook.book.entity.Book;
-import app.nook.book.entity.Category;
-import app.nook.book.entity.SourceType;
+import app.nook.book.domain.Book;
+import app.nook.book.domain.Category;
+import app.nook.book.domain.enums.SourceType;
 
 public class BookConverter {
     public static BookResponseDto.BookDetailDto toBookDetailDto(Book book, Long bookShelfId) {

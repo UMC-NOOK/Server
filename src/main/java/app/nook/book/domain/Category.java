@@ -1,5 +1,6 @@
-package app.nook.book.entity;
+package app.nook.book.domain;
 
+import app.nook.book.domain.enums.MallType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,7 +31,7 @@ public class Category {
     private int aladinCategoryId;
 
     @Builder.Default
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "category")
     private List<Book> books = new ArrayList<>();
 
     public static Category of(MallType mallType, String categoryName, int aladinCategoryId) {
