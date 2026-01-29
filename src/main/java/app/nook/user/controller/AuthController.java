@@ -1,5 +1,7 @@
 package app.nook.user.controller;
 
+import app.nook.global.response.ApiResponse;
+import app.nook.global.response.SuccessCode;
 import app.nook.user.dto.OAuthDTO;
 import app.nook.user.dto.UserDTO;
 import app.nook.user.oauth.OAuthService;
@@ -26,15 +28,15 @@ public class AuthController {
      * POST /auth/oauth
      */
     @PostMapping("/oauth")
-    public UserDTO.LoginResponse oauthLogin(
+    public ApiResponse<UserDTO.LoginResponse> oauthLogin(
             @Valid @RequestBody OAuthDTO.OAuthLoginRequest request,
             HttpServletResponse response
     ) {
-        return oAuthService.login(
+        return ApiResponse.onSuccess(oAuthService.login(
                 request.getProvider(),
                 request.getCode(),
                 response
-        );
+        ), SuccessCode.OK);
     }
 
     /**
@@ -46,17 +48,20 @@ public class AuthController {
      * POST /auth/dev/login
      */
     @PostMapping("/dev/login")
-    public UserDTO.LoginResponse devLogin(
+    public ApiResponse<UserDTO.LoginResponse> devLogin(
             @RequestBody UserDTO.DevLoginRequest request
     ) {
-        return userService.devLogin(request.getEmail());
+        return ApiResponse.onSuccess(
+                userService.devLogin(request.getEmail()),
+                SuccessCode.OK
+        );
     }
 
     // 현재 로그인한 유저 확인
     @GetMapping("/me")
-    public UserDTO.LoginResponse user(
+    public ApiResponse<UserDTO.LoginResponse> user(
             @AuthenticationPrincipal CustomUserDetails userDetails
             ){
-        return userService.getThisUser(userDetails.getUser());
+        return ApiResponse.onSuccess(userService.getThisUser(userDetails.getUser()),SuccessCode.OK);
     }
 }
