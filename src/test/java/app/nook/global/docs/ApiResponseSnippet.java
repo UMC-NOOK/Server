@@ -24,10 +24,10 @@ public class ApiResponseSnippet {
         };
     }
 
-    public static FieldDescriptor[] withResult(FieldDescriptor resultField) {
+    public static FieldDescriptor[] withResult(FieldDescriptor... resultFields) {
         return Stream.concat(
                 Arrays.stream(commonResponseFields()),
-                Stream.of(resultField)
+                Arrays.stream(resultFields)
         ).toArray(FieldDescriptor[]::new);
     }
 }
