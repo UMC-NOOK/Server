@@ -1,0 +1,15 @@
+== 인증
+
+=== 소셜 로그인
+
+include::{snippets}/auth-controller-test/소셜로그인_성공/http-request.adoc[]
+include::{snippets}/auth-controller-test/소셜로그인_성공/request-fields.adoc[]
+include::{snippets}/auth-controller-test/소셜로그인_성공/http-response.adoc[]
+include::{snippets}/auth-controller-test/소셜로그인_성공/response-fields.adoc[]
+
+=== DEV 로그인
+
+include::{snippets}/auth-controller-test/dev로그인_성공/http-request.adoc[]
+include::{snippets}/auth-controller-test/dev로그인_성공/request-fields.adoc[]
+include::{snippets}/auth-controller-test/dev로그인_성공/http-response.adoc[]
+include::{snippets}/auth-controller-test/dev로그인_성공/response-fields.adoc[]
