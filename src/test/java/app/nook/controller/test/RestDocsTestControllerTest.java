@@ -3,6 +3,7 @@ package app.nook.controller.test;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.global.common.AbstractRestDocsTests;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
@@ -17,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RestDocsTestControllerTest extends AbstractRestDocsTests {
 
     @Test
+    @WithMockUser
     void RestDocsTest() throws Exception {
         mockMvc.perform(get("/restDocsTest"))
                 .andExpect(status().isOk())
@@ -24,6 +26,7 @@ class RestDocsTestControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @WithMockUser
     void apiResponseTest_docs() throws Exception {
         mockMvc.perform(get("/apiResponseTest"))
                 .andExpect(status().isOk())

@@ -11,6 +11,7 @@ import org.springframework.restdocs.RestDocumentationExtension;
 import org.springframework.restdocs.mockmvc.RestDocumentationResultHandler;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultHandler;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
@@ -23,12 +24,19 @@ import java.util.stream.Stream;
 
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
 @Import(RestDocsConfiguration.class)
 @ExtendWith(RestDocumentationExtension.class)
 @AutoConfigureRestDocs
-@SpringBootTest
+@SpringBootTest(properties = {
+        "spring.profiles.active=test"
+})
 @ActiveProfiles("test")
+@TestPropertySource(properties = {
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
+})
 public abstract class AbstractRestDocsTests {
 
     @Autowired
@@ -45,6 +53,7 @@ public abstract class AbstractRestDocsTests {
             final RestDocumentationContextProvider restDocumentation) {
 
         this.mockMvc = MockMvcBuilders.webAppContextSetup(context)
+                .apply(springSecurity())
                 .apply(documentationConfiguration(restDocumentation))
                 .alwaysDo(MockMvcResultHandlers.print())
                 .alwaysDo(restDocs)
@@ -58,7 +67,7 @@ public abstract class AbstractRestDocsTests {
     */
     protected ResultHandler documentWithAuth(String identifier, Snippet... snippets) {
 
-        // 공통 Authorization 헤더 + API별 스니펫 합치기
+        // 공통 Authorization 헤더, API별 스니펫 합치기
         Snippet[] mergedSnippets = Stream.concat(
                 Stream.of(authorizationHeaderSnippet),
                 Arrays.stream(snippets)
