@@ -1,0 +1,20 @@
+== 도서 조회
+
+=== 도서 상세 조회
+
+include::{snippets}/book-controller-test/도서_상세조회_성공/http-request.adoc[]
+include::{snippets}/book-controller-test/도서_상세조회_성공/path-parameters.adoc[]
+include::{snippets}/book-controller-test/도서_상세조회_성공/http-response.adoc[]
+include::{snippets}/book-controller-test/도서_상세조회_성공/response-fields.adoc[]
+
+=== 주간 베스트셀러 조회
+
+include::{snippets}/book-controller-test/주간베스트셀러_조회_성공/http-request.adoc[]
+include::{snippets}/book-controller-test/주간베스트셀러_조회_성공/http-response.adoc[]
+include::{snippets}/book-controller-test/주간베스트셀러_조회_성공/response-fields.adoc[]
+
+=== 맞춤 추천 베스트셀러 조회
+
+include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/http-request.adoc[]
+include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/http-response.adoc[]
+include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/response-fields.adoc[]
