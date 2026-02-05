@@ -6,7 +6,7 @@ import app.nook.timeline.domain.enums.BookTimeLineType;
 
 
 public class TimeLineConverter {
-    
+
     public static BookTimeLine toBookTimeLine(
             Library library,
             BookTimeLineType bookTimeLineType,
