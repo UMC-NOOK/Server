@@ -6,8 +6,7 @@ import app.nook.timeline.domain.enums.BookTimeLineType;
 
 
 public class TimeLineConverter {
-
-
+    
     public static BookTimeLine toBookTimeLine(
             Library library,
             BookTimeLineType bookTimeLineType,
@@ -16,9 +15,9 @@ public class TimeLineConverter {
     ) {
         return BookTimeLine.builder()
                 .library(library)
-                .type(BookTimeLineType.REGISTER)
+                .type(bookTimeLineType)
                 .snapshotValue(snapshotValue)
-                .targetId(library.getId())
+                .targetId(targetId)
                 .build();
     }
 }
