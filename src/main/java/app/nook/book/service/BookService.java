@@ -7,6 +7,7 @@ import app.nook.book.domain.Book;
 import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
+import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.global.exception.CustomException;
@@ -87,7 +88,7 @@ public class BookService {
                 .orElseGet(() -> {
                     // 예외 처리: 알라딘이 보낸 1 Depth 이름이 우리 DB 초기화 리스트에 없는 경우
                     log.warn("[CATEGORY_MAPPING_FAIL] mallType={}, category='{}'", mallType, categoryName);
-                    throw new CustomException(ErrorCode.BOOK_NOT_ALLOWED);
+                    throw new CustomException(BookErrorCode.BOOK_NOT_ALLOWED);
                 });
     }
 

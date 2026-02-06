@@ -2,6 +2,7 @@ package app.nook.library.service;
 
 import app.nook.book.domain.Book;
 import app.nook.book.dto.BookResponseDto;
+import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.ErrorCode;
@@ -35,7 +36,7 @@ public class LibraryService {
     @Transactional
     public void save(User user,Long bookId) {
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
         // 이미 서재에 등록된 책인지 확인
         if (libraryRepository.findByUserAndBook(user,book) != null)
             throw new CustomException(LibraryErrorCode.BOOK_ALREADY_EXIST);
@@ -61,7 +62,7 @@ public class LibraryService {
     @Transactional
     public void deleteById(User user, Long bookId){
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
         Library library = libraryRepository.findByUserAndBook(user,book);
         // 책 존재 확인
         if (library == null)
@@ -73,7 +74,7 @@ public class LibraryService {
     @Transactional
     public void changeStatus(User user, ReadingStatusRequestDto requestDto) {
         Book book = bookRepository.findById(requestDto.bookId())
-                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
         Library library = libraryRepository.findByUserAndBook(user,book);
         // 책 존재 확인
         if (library == null)
