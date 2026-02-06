@@ -12,6 +12,7 @@ import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.service.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -56,6 +57,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @DisplayName("ISBN으로 도서 상세 조회 성공")
     void 도서_상세조회_성공() throws Exception {
         // given
         String isbn13 = "9788936434267";
@@ -117,6 +119,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @DisplayName("잘못된 ISBN 형식으로 조회 시 400 Bad Request")
     void 도서_상세조회_실패_잘못된_ISBN_형식() throws Exception {
         // given
         String invalidIsbn = "123"; // 13자리가 아님
@@ -131,6 +134,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @DisplayName("존재하지 않는 도서 조회 시 404 Not Found")
     void 도서_상세조회_실패_존재하지않는_도서() throws Exception {
         // given
         String isbn13 = "9999999999999";
@@ -148,6 +152,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @DisplayName("주간 베스트셀러 목록 조회 성공")
     void 주간베스트셀러_조회_성공() throws Exception {
         // given
         List<BookResponseDto.BookPreviewDto> response = Arrays.asList(
@@ -196,6 +201,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @DisplayName("사용자 맞춤 추천 베스트셀러 조회 성공")
     void 추천베스트셀러_조회_성공() throws Exception {
         // given
         List<BookResponseDto.BookPreviewDto> response = Collections.singletonList(
