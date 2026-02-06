@@ -2,10 +2,7 @@ package app.nook.book.dto;
 
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
@@ -58,12 +55,10 @@ public class BookResponseDto {
         private String publisher;
         private String publicationDate;
 
+        @Setter
         @Builder.Default
         private boolean isInLibrary = false; // 내 서재 등록 여부
 
-        public void setInLibrary(boolean inLibrary) {
-            isInLibrary = inLibrary;
-        }
     }
 
     @Getter
