@@ -2,9 +2,11 @@ package app.nook.aladin.service;
 
 import app.nook.aladin.converter.AladinConverter;
 import app.nook.aladin.dto.AladinResponseDto;
+import app.nook.aladin.exception.AladinErrorCode;
 import app.nook.aladin.utils.AladinUtils;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.domain.enums.BookCategory;
+import app.nook.book.exception.BookErrorCode;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -201,18 +203,18 @@ public class AladinService {
 
         // ISBN13에 해당하는 도서가 없는 경우
         if (items.isEmpty()) {
-            throw new CustomException(ErrorCode.ISBN13_NOT_FOUND);
+            throw new CustomException(BookErrorCode.ISBN13_NOT_FOUND);
         }
 
         AladinResponseDto.AladinItem item = items.get(0);
         if (!AladinUtils.isValid(item)) {
             log.info("[LOOKUP_INVALID] isbn={}, title='{}'", isbn13, item.getTitle());
-            throw new CustomException(ErrorCode.BOOK_NOT_ALLOWED);
+            throw new CustomException(BookErrorCode.BOOK_NOT_ALLOWED);
         }
 
         String rawCategoryName = AladinUtils.extractCategoryName(item.getCategoryName());
         BookCategory bookCategory = BookCategory.match(rawCategoryName)
-                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_ALLOWED));
+                .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_ALLOWED));
         String dbCategoryName = bookCategory.getDbName();
 
         return AladinConverter.toBookDetailDto(item, dbCategoryName);
@@ -236,7 +238,7 @@ public class AladinService {
 
         } catch (Exception e) {
             log.error("[API_ERROR] url={}, message='{}'", uri, e.getMessage());
-            throw new CustomException(ErrorCode.ALADIN_API_ERROR);
+            throw new CustomException(AladinErrorCode.ALADIN_API_ERROR);
         }
     }
 

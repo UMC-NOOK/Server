@@ -1,8 +1,10 @@
 package app.nook.book.facade;
 
+import app.nook.aladin.exception.AladinErrorCode;
 import app.nook.aladin.service.AladinService;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.dto.BookResponseDto;
+import app.nook.book.exception.SearchErrorCode;
 import app.nook.book.service.SearchHistoryService;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.ErrorCode;
@@ -47,10 +49,10 @@ public class BookSearchFacade {
             // TODO: 서재 내 도서 검색 기능 추후 구현 예정
             // return searchBooksInBookcase(userId, keyword, cursor, size);
             // 임시 에러 처리
-            throw new CustomException(ErrorCode.ALADIN_API_ERROR);
+            throw new CustomException(AladinErrorCode.ALADIN_API_ERROR);
         }
         log.error("[SEARCH_FAIL] error='Invalid SearchType', type={}", searchType);
-        throw new CustomException(ErrorCode.INVALID_SEARCH_TYPE);
+        throw new CustomException(SearchErrorCode.INVALID_SEARCH_TYPE);
     }
 
     // 알라딘 API를 통한 전체 도서 검색

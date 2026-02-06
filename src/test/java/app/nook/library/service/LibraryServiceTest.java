@@ -1,6 +1,7 @@
 package app.nook.library.service;
 
 import app.nook.book.domain.Book;
+import app.nook.book.exception.BookErrorCode;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.ErrorCode;
 import app.nook.library.domain.Library;
@@ -91,7 +92,7 @@ class LibraryServiceTest {
                 () -> libraryService.save(user, 1L)
         );
 
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.BOOK_NOT_FOUND);
+        assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_NOT_FOUND);
     }
 
     @Test

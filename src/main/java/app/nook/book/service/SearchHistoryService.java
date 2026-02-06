@@ -2,6 +2,7 @@ package app.nook.book.service;
 
 import app.nook.book.domain.SearchHistory;
 import app.nook.book.domain.enums.SearchType;
+import app.nook.book.exception.SearchErrorCode;
 import app.nook.book.repository.SearchHistoryRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.ErrorCode;
@@ -34,7 +35,7 @@ public class SearchHistoryService {
     @Transactional
     public void saveKeyword(Long userId, String keyword, SearchType searchType) {
         if (keyword == null || keyword.isBlank()) {
-            throw new CustomException(ErrorCode.INVALID_KEYWORD);
+            throw new CustomException(SearchErrorCode.INVALID_KEYWORD);
         }
 
         User user = findUser(userId);
