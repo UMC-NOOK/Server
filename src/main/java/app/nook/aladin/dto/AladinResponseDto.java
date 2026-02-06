@@ -22,6 +22,8 @@ public class AladinResponseDto {
 
     @Getter
     @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     @JsonIgnoreProperties(ignoreUnknown = true)
     // 알라딘 API 아이템 DTO
     public static class AladinItem {

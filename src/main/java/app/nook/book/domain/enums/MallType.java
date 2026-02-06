@@ -1,8 +1,11 @@
 package app.nook.book.domain.enums;
 
+import lombok.Getter;
+
 import java.util.Arrays;
 import java.util.Optional;
 
+@Getter
 public enum MallType {
     BOOK("국내도서"),
     EBOOK("전자책"),
@@ -12,10 +15,6 @@ public enum MallType {
 
     MallType(String displayName) {
         this.displayName = displayName;
-    }
-
-    public String getDisplayName() {
-        return displayName;
     }
 
     public static Optional<MallType> fromDisplayName(String name) {
