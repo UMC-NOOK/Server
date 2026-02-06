@@ -2,9 +2,11 @@ package app.nook.user.repository;
 
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
+import app.nook.global.config.QueryDslConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Optional;
@@ -15,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @ActiveProfiles("test")
+@Import(QueryDslConfig.class)
 class UserRepositoryTest {
 
     @Autowired
