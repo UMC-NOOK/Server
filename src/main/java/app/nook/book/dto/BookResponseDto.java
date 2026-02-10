@@ -7,6 +7,7 @@ import lombok.*;
 import java.util.List;
 
 public class BookResponseDto {
+
     @Getter
     @Builder
     @AllArgsConstructor
@@ -29,24 +30,20 @@ public class BookResponseDto {
         private Long bookShelfId;
     }
 
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class BookPreviewDto { // 검색 베스트셀러 프리뷰 DTO
-        private String isbn13;
-        private String title;
-        private String author;
-        private String coverImageUrl;
-        private String publisher;
-        private Integer rank;
-    }
+    public record BookPreviewDto( // 검색 베스트셀러 프리뷰 DTO
+            String isbn13,
+            String title,
+            String author,
+            String coverImageUrl,
+            String publisher,
+            Integer rank
+    ) {}
 
     @Getter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class BookSearchDTO { // 검색 결과 DTO
+    public static class BookSearchDto { // 검색 결과 DTO
         private String isbn13;
         private String title;
         private String mallType;
@@ -61,14 +58,10 @@ public class BookResponseDto {
 
     }
 
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class SearchResultDto {
-        private Long totalResults;
-        private boolean hasNext;
-        private Integer nextCursor;
-        private List<BookSearchDTO> books;
-    }
+    public record SearchResultDto(
+            Long totalResults,
+            boolean hasNext,
+            Integer nextCursor,
+            List<BookSearchDto> books
+    ) {}
 }

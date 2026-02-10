@@ -8,7 +8,6 @@ import app.nook.book.dto.BookResponseDto;
 import app.nook.book.domain.enums.BookCategory;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -95,7 +94,7 @@ public class AladinService {
      */
     // TODO: redis 도입 예정
     public BookResponseDto.SearchResultDto searchItems(String keyword, Integer cursor, int size) {
-        List<BookResponseDto.BookSearchDTO> results = new ArrayList<>();
+        List<BookResponseDto.BookSearchDto> results = new ArrayList<>();
         Long totalResults = 0L;
         // 1. 현재 탐색중인 전역 인덱스 (null이면 0부터 시작)
         int currentGlobalIndex = (cursor == null) ? 0 : cursor;
@@ -182,12 +181,12 @@ public class AladinService {
             log.warn("[MAX_LIMIT_REACHED] keyword='{}', limit={}, fetched={}",
                     keyword, maxPageSearchLimit, results.size());
         }
-        return BookResponseDto.SearchResultDto.builder()
-                .books(results)
-                .nextCursor(nextCursor)
-                .hasNext(nextCursor != null)
-                .totalResults(totalResults)
-                .build();
+        return new BookResponseDto.SearchResultDto(
+                totalResults,
+                nextCursor != null,
+                nextCursor,
+                results
+        );
     }
 
     // 도서 상세 정보 조회

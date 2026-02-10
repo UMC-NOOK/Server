@@ -12,9 +12,7 @@ import java.util.List;
 
 @Entity
 @Getter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
 public class Category {
 
     @Id
@@ -30,9 +28,15 @@ public class Category {
 
     private int aladinCategoryId;
 
-    @Builder.Default
     @OneToMany(mappedBy = "category")
     private List<Book> books = new ArrayList<>();
+
+    @Builder
+    public Category(String categoryName, MallType mallType, int aladinCategoryId) {
+        this.categoryName = categoryName;
+        this.mallType = mallType;
+        this.aladinCategoryId = aladinCategoryId;
+    }
 
     public static Category of(MallType mallType, String categoryName, int aladinCategoryId) {
         return Category.builder()

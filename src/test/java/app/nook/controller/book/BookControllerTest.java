@@ -156,22 +156,22 @@ public class BookControllerTest extends AbstractRestDocsTests {
     void 주간베스트셀러_조회_성공() throws Exception {
         // given
         List<BookResponseDto.BookPreviewDto> response = Arrays.asList(
-                BookResponseDto.BookPreviewDto.builder()
-                        .isbn13("9788936434267")
-                        .title("채식주의자")
-                        .author("한강")
-                        .coverImageUrl("http://example.com/cover1.jpg")
-                        .publisher("창비")
-                        .rank(1)
-                        .build(),
-                BookResponseDto.BookPreviewDto.builder()
-                        .isbn13("9788936433598")
-                        .title("소년이 온다")
-                        .author("한강")
-                        .coverImageUrl("http://example.com/cover2.jpg")
-                        .publisher("창비")
-                        .rank(2)
-                        .build()
+                new BookResponseDto.BookPreviewDto(
+                        "9788936434267",
+                        "채식주의자",
+                        "한강",
+                        "http://example.com/cover1.jpg",
+                        "창비",
+                        1
+                ),
+                new BookResponseDto.BookPreviewDto(
+                        "9788936433598",
+                        "소년이 온다",
+                        "한강",
+                        "http://example.com/cover2.jpg",
+                        "창비",
+                        2
+                )
         );
 
         given(bookService.getWeeklyBestsellers())
@@ -205,14 +205,15 @@ public class BookControllerTest extends AbstractRestDocsTests {
     void 추천베스트셀러_조회_성공() throws Exception {
         // given
         List<BookResponseDto.BookPreviewDto> response = Collections.singletonList(
-                BookResponseDto.BookPreviewDto.builder()
-                        .isbn13("9788936434267")
-                        .title("채식주의자")
-                        .author("한강")
-                        .coverImageUrl("http://example.com/cover1.jpg")
-                        .publisher("창비")
-                        .rank(1)
-                        .build()
+                new BookResponseDto.BookPreviewDto(
+                    "9788936434267",
+                        "채식주의자",
+                        "한강",
+                        "http://example.com/cover1.jpg",
+                        "창비",
+                        1
+
+                )
         );
 
         given(bookService.getPersonalizedBestsellers(any(Long.class)))

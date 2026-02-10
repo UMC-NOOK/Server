@@ -182,9 +182,9 @@ class BookServiceTest {
 
         // then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).getTitle()).isEqualTo("채식주의자");
-        assertThat(result.get(0).getRank()).isEqualTo(1);
-        assertThat(result.get(1).getTitle()).isEqualTo("소년이 온다");
+        assertThat(result.get(0).title()).isEqualTo("채식주의자");
+        assertThat(result.get(0).rank()).isEqualTo(1);
+        assertThat(result.get(1).title()).isEqualTo("소년이 온다");
 
         verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 10, null);
     }
@@ -205,7 +205,7 @@ class BookServiceTest {
 
         // then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getTitle()).isEqualTo("채식주의자");
+        assertThat(result.get(0).title()).isEqualTo("채식주의자");
 
         verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 5, "1");
     }
@@ -247,13 +247,13 @@ class BookServiceTest {
     }
 
     private BookResponseDto.BookPreviewDto createBookPreviewDto(String isbn13, String title, Integer rank) {
-        return BookResponseDto.BookPreviewDto.builder()
-                .isbn13(isbn13)
-                .title(title)
-                .author(TEST_AUTHOR)
-                .coverImageUrl("http://example.com/cover.jpg")
-                .publisher(TEST_PUBLISHER)
-                .rank(rank)
-                .build();
+        return new BookResponseDto.BookPreviewDto(
+                isbn13,
+                title,
+                TEST_AUTHOR,
+                "http://example.com/cover.jpg",
+                TEST_PUBLISHER,
+                rank
+        );
     }
 }

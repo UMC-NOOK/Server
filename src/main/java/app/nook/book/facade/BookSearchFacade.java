@@ -7,7 +7,6 @@ import app.nook.book.dto.BookResponseDto;
 import app.nook.book.exception.SearchErrorCode;
 import app.nook.book.service.SearchHistoryService;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -57,11 +56,11 @@ public class BookSearchFacade {
     // 알라딘 API를 통한 전체 도서 검색
     private BookResponseDto.SearchResultDto searchGlobalBooks(Long userId, String keyword, Integer cursor) {
         BookResponseDto.SearchResultDto searchResult = aladinService.searchItems(keyword, cursor, DEFAULT_PAGE_SIZE);
-        List<BookResponseDto.BookSearchDTO> books = searchResult.getBooks();
+        List<BookResponseDto.BookSearchDto> books = searchResult.books();
 
-        int resultCount = searchResult.getBooks().size();
+        int resultCount = searchResult.books().size();
         log.info("[SEARCH_RESULT] keyword='{}', foundCount={}, hasNext={}",
-                keyword, resultCount, searchResult.isHasNext());
+                keyword, resultCount, searchResult.hasNext());
 
         if (books.isEmpty()) {
             return searchResult;
