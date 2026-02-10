@@ -49,6 +49,7 @@ class BookSearchFacadeTest {
         // given
         Integer cursor = null; // 첫 검색 (0번째 책부터)
         BookResponseDto.SearchResultDto mockResult = createSearchResult(
+                100L,
                 10,    // 0~9번째 책 10권 반환
                 true,  // 다음 페이지 있음
                 10     // nextCursor = 10 (다음엔 10번째 책부터)
@@ -80,6 +81,7 @@ class BookSearchFacadeTest {
         // given
         Integer cursor = 10; // 10번째 책부터 (두 번째 페이지)
         BookResponseDto.SearchResultDto mockResult = createSearchResult(
+                100L,
                 10,    // 10~19번째 책 10권 반환
                 true,  // 다음 페이지 있음
                 20     // nextCursor = 20 (다음엔 20번째 책부터)
@@ -108,6 +110,7 @@ class BookSearchFacadeTest {
         // given
         Integer cursor = null;
         BookResponseDto.SearchResultDto emptyResult = createSearchResult(
+                0L,
                 0,     // 책 0권
                 false, // 다음 페이지 없음
                 null   // nextCursor = null
@@ -121,6 +124,7 @@ class BookSearchFacadeTest {
                 TEST_USER_ID, TEST_KEYWORD, cursor, SearchType.GLOBAL);
 
         // then
+        assertThat(result.getTotalResults()).isEqualTo(0L);
         assertThat(result.getBooks()).isEmpty();
         assertThat(result.isHasNext()).isFalse();
         assertThat(result.getNextCursor()).isNull();
@@ -195,14 +199,14 @@ class BookSearchFacadeTest {
      * @param nextCursor 다음 검색 시작 책 번호
      */
     private BookResponseDto.SearchResultDto createSearchResult(
-            int bookCount, boolean hasNext, Integer nextCursor) {
+            long totalResults, int bookCount, boolean hasNext, Integer nextCursor) {
 
         List<BookResponseDto.BookSearchDTO> books = bookCount > 0
                 ? createMockBooks(bookCount)
                 : Collections.emptyList();
 
         return BookResponseDto.SearchResultDto.builder()
-                .totalResults(100L)
+                .totalResults(totalResults)
                 .books(books)
                 .hasNext(hasNext)
                 .nextCursor(nextCursor)

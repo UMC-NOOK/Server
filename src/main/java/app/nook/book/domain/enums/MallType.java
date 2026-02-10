@@ -22,4 +22,15 @@ public enum MallType {
                 .filter(type -> type.displayName.equals(name.trim()))
                 .findFirst();
     }
+
+    public static MallType fromCode(String code) {
+        if (code == null || code.isBlank()) {
+            throw new IllegalArgumentException("MallType 코드가 비어있습니다: " + code);
+        }
+        try {
+            return MallType.valueOf(code.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("알 수 없는 MallType: " + code);
+        }
+    }
 }

@@ -1,8 +1,10 @@
 package app.nook.aladin.utils;
 
 import app.nook.aladin.dto.AladinResponseDto;
+import app.nook.aladin.exception.AladinErrorCode;
 import app.nook.book.domain.enums.BookCategory;
 import app.nook.book.domain.enums.MallType;
+import app.nook.global.exception.CustomException;
 
 import java.util.List;
 
@@ -15,6 +17,15 @@ public final class AladinUtils {
     // 문자열 정규화 (null 체크 및 앞뒤 공백 제거)
     public static String normalize(String value) {
         return value == null ? null : value.trim();
+    }
+
+    // BOOK, EBOOK을 몰타입 형으로
+    public static MallType extractMallType(String code) {
+        try {
+            return MallType.fromCode(code);
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(AladinErrorCode.ALADIN_INVALID_MALLTYPE);
+        }
     }
 
     // "국내도서>소설..." -> "소설" (카테고리명 추출)

@@ -109,7 +109,7 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
     @DisplayName("도서 검색 성공 - 페이지네이션 (cursor 사용)")
     void 도서검색_페이지네이션_성공() throws Exception {
         // given
-        Integer cursor = 2; // 10번째 책부터
+        Integer cursor = 2; // 2번째 책부터
         BookResponseDto.SearchResultDto response = createSearchResult(2, true, 4);
 
         given(bookSearchFacade.searchBooks(TEST_USER_ID, TEST_KEYWORD, cursor, SearchType.GLOBAL))

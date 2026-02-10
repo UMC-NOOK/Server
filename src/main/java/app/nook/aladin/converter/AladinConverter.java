@@ -1,6 +1,7 @@
 package app.nook.aladin.converter;
 
 import app.nook.aladin.dto.AladinResponseDto;
+import app.nook.aladin.utils.AladinUtils;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.domain.enums.MallType;
 
@@ -17,7 +18,7 @@ public class AladinConverter {
                 .build();
     }
     public static BookResponseDto.BookDetailDto toBookDetailDto(AladinResponseDto.AladinItem aladinItem, String categoryName) {
-        MallType mallType = MallType.valueOf(aladinItem.getMallType());
+        MallType mallType = AladinUtils.extractMallType(aladinItem.getMallType());
         return BookResponseDto.BookDetailDto.builder()
                 .isbn13(aladinItem.getIsbn13())
                 .title(aladinItem.getTitle())
@@ -38,7 +39,7 @@ public class AladinConverter {
         return BookResponseDto.BookSearchDTO.builder()
                 .isbn13(item.getIsbn13())
                 .title(item.getTitle())
-                .mallType(MallType.valueOf(item.getMallType()).getDisplayName())
+                .mallType(AladinUtils.extractMallType(item.getMallType()).getDisplayName())
                 .author(item.getAuthor())
                 .coverImageUrl(item.getCover())
                 .publisher(item.getPublisher())
