@@ -18,7 +18,7 @@ public class AladinConverter {
                 .build();
     }
     public static BookResponseDto.BookDetailDto toBookDetailDto(AladinResponseDto.AladinItem aladinItem, String categoryName) {
-        MallType mallType = AladinUtils.extractMallType(aladinItem.getCategoryName());
+        MallType mallType = AladinUtils.extractMallType(aladinItem.getMallType());
         return BookResponseDto.BookDetailDto.builder()
                 .isbn13(aladinItem.getIsbn13())
                 .title(aladinItem.getTitle())
@@ -39,7 +39,7 @@ public class AladinConverter {
         return BookResponseDto.BookSearchDTO.builder()
                 .isbn13(item.getIsbn13())
                 .title(item.getTitle())
-                .mallType(AladinUtils.extractMallType(item.getCategoryName()).getDisplayName())
+                .mallType(AladinUtils.extractMallType(item.getMallType()).getDisplayName())
                 .author(item.getAuthor())
                 .coverImageUrl(item.getCover())
                 .publisher(item.getPublisher())

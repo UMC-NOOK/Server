@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -45,7 +44,7 @@ public class BookSearchFacade {
 
         if (searchType == SearchType.GLOBAL) {
             return searchGlobalBooks(userId, keyword, cursor);
-        } else if (searchType == SearchType.BOOKCASE) {
+        } else if (searchType == SearchType.LIBRARY) {
             // TODO: 서재 내 도서 검색 기능 추후 구현 예정
             // return searchBooksInBookcase(userId, keyword, cursor, size);
             // 임시 에러 처리

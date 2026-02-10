@@ -6,10 +6,10 @@ import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
 import app.nook.book.dto.BookResponseDto;
+import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -159,7 +159,7 @@ class BookServiceTest {
                 () -> bookService.getBookDetailByIsbn(TEST_USER_ID, TEST_ISBN_1)
         );
 
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.BOOK_NOT_ALLOWED);
+        assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_NOT_ALLOWED);
 
         // 예외 발생 시 저장이 수행되면 안 됨 (데이터 오염 방지)
         verify(bookRepository, never()).save(any());

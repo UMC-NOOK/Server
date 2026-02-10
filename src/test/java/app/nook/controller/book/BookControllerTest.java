@@ -3,6 +3,7 @@ package app.nook.controller.book;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
 import app.nook.book.dto.BookResponseDto;
+import app.nook.book.exception.BookErrorCode;
 import app.nook.book.service.BookService;
 import app.nook.global.common.AbstractRestDocsTests;
 import app.nook.global.docs.ApiResponseSnippet;
@@ -34,7 +35,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
 public class BookControllerTest extends AbstractRestDocsTests {
 
     @MockitoBean
@@ -140,7 +140,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
         String isbn13 = "9999999999999";
 
         given(bookService.getBookDetailByIsbn(any(Long.class), eq(isbn13)))
-                .willThrow(new CustomException(ErrorCode.BOOK_NOT_FOUND));
+                .willThrow(new CustomException(BookErrorCode.BOOK_NOT_FOUND));
 
         // when & then
         mockMvc.perform(
