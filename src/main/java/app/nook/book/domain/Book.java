@@ -11,10 +11,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
-
 public class Book extends BaseEntity {
 
     @Id
@@ -54,6 +51,33 @@ public class Book extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
+
+    @Builder
+    public Book(
+            String isbn13,
+            String title,
+            String author,
+            String publisher,
+            String publicationDate,
+            Integer pages,
+            String description,
+            String coverImageUrl,
+            String aladinLink,
+            SourceType sourceType,
+            Category category
+    ) {
+        this.isbn13 = isbn13;
+        this.title = title;
+        this.author = author;
+        this.publisher = publisher;
+        this.publicationDate = publicationDate;
+        this.pages = pages;
+        this.description = description;
+        this.coverImageUrl = coverImageUrl;
+        this.aladinLink = aladinLink;
+        this.sourceType = sourceType;
+        this.category = category;
+    }
 
     public void updateInfo(BookResponseDto.BookDetailDto info, Category category) {
         this.title = info.getTitle();

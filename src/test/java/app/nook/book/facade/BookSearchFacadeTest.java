@@ -4,9 +4,6 @@ import app.nook.aladin.service.AladinService;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.service.SearchHistoryService;
-import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,10 +60,10 @@ class BookSearchFacadeTest {
                 TEST_USER_ID, TEST_KEYWORD, cursor, SearchType.GLOBAL);
 
         // then
-        assertThat(result.getTotalResults()).isEqualTo(100L);
-        assertThat(result.getBooks()).hasSize(10);
-        assertThat(result.isHasNext()).isTrue();
-        assertThat(result.getNextCursor()).isEqualTo(10);
+        assertThat(result.totalResults()).isEqualTo(100L);
+        assertThat(result.books()).hasSize(10);
+        assertThat(result.hasNext()).isTrue();
+        assertThat(result.nextCursor()).isEqualTo(10);
 
         // 첫 검색이므로 검색 이력 저장됨
         verify(searchHistoryService, times(1))
@@ -95,8 +92,8 @@ class BookSearchFacadeTest {
                 TEST_USER_ID, TEST_KEYWORD, cursor, SearchType.GLOBAL);
 
         // then
-        assertThat(result.getBooks()).hasSize(10);
-        assertThat(result.getNextCursor()).isEqualTo(20);
+        assertThat(result.books()).hasSize(10);
+        assertThat(result.nextCursor()).isEqualTo(20);
 
         // 페이지네이션이므로 검색 이력 저장 안 됨
         verify(searchHistoryService, never()).saveKeyword(eq(TEST_USER_ID), eq(TEST_KEYWORD), any());
@@ -124,10 +121,10 @@ class BookSearchFacadeTest {
                 TEST_USER_ID, TEST_KEYWORD, cursor, SearchType.GLOBAL);
 
         // then
-        assertThat(result.getTotalResults()).isEqualTo(0L);
-        assertThat(result.getBooks()).isEmpty();
-        assertThat(result.isHasNext()).isFalse();
-        assertThat(result.getNextCursor()).isNull();
+        assertThat(result.totalResults()).isEqualTo(0L);
+        assertThat(result.books()).isEmpty();
+        assertThat(result.hasNext()).isFalse();
+        assertThat(result.nextCursor()).isNull();
 
         // 결과가 없어도 첫 검색이므로 검색 이력은 저장됨
         verify(searchHistoryService, times(1))
@@ -201,22 +198,22 @@ class BookSearchFacadeTest {
     private BookResponseDto.SearchResultDto createSearchResult(
             long totalResults, int bookCount, boolean hasNext, Integer nextCursor) {
 
-        List<BookResponseDto.BookSearchDTO> books = bookCount > 0
+        List<BookResponseDto.BookSearchDto> books = bookCount > 0
                 ? createMockBooks(bookCount)
                 : Collections.emptyList();
 
-        return BookResponseDto.SearchResultDto.builder()
-                .totalResults(totalResults)
-                .books(books)
-                .hasNext(hasNext)
-                .nextCursor(nextCursor)
-                .build();
+        return new BookResponseDto.SearchResultDto(
+                totalResults,
+                hasNext,
+                nextCursor,
+                books
+        );
     }
 
-    private List<BookResponseDto.BookSearchDTO> createMockBooks(int count) {
-        List<BookResponseDto.BookSearchDTO> books = new ArrayList<>();
+    private List<BookResponseDto.BookSearchDto> createMockBooks(int count) {
+        List<BookResponseDto.BookSearchDto> books = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            books.add(BookResponseDto.BookSearchDTO.builder()
+            books.add(BookResponseDto.BookSearchDto.builder()
                     .isbn13(i == 0 ? TEST_ISBN_1 : TEST_ISBN_2)
                     .title("테스트 도서 " + (i + 1))
                     .author("한강")

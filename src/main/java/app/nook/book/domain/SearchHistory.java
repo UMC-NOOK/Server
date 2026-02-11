@@ -11,9 +11,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
 public class SearchHistory extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,4 +27,11 @@ public class SearchHistory extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @Builder
+    public SearchHistory(String keyword, SearchType searchType, User user) {
+        this.keyword = keyword;
+        this.searchType = searchType;
+        this.user = user;
+    }
 }

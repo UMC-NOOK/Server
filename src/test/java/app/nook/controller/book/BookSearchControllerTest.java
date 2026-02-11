@@ -287,22 +287,22 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
     private BookResponseDto.SearchResultDto createSearchResult(
             int bookCount, boolean hasNext, Integer nextCursor) {
 
-        List<BookResponseDto.BookSearchDTO> books = bookCount > 0
+        List<BookResponseDto.BookSearchDto> books = bookCount > 0
                 ? createMockBooks(bookCount)
                 : Collections.emptyList();
 
-        return BookResponseDto.SearchResultDto.builder()
-                .totalResults(100L)
-                .books(books)
-                .hasNext(hasNext)
-                .nextCursor(nextCursor)
-                .build();
+        return new BookResponseDto.SearchResultDto(
+                100L,
+                hasNext,
+                nextCursor,
+                books
+        );
     }
 
-    private List<BookResponseDto.BookSearchDTO> createMockBooks(int count) {
-        List<BookResponseDto.BookSearchDTO> books = new ArrayList<>();
+    private List<BookResponseDto.BookSearchDto> createMockBooks(int count) {
+        List<BookResponseDto.BookSearchDto> books = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            books.add(BookResponseDto.BookSearchDTO.builder()
+            books.add(BookResponseDto.BookSearchDto.builder()
                     .isbn13(i == 0 ? TEST_ISBN_1 : TEST_ISBN_2)
                     .title("테스트 도서 " + (i + 1))
                     .mallType("도서")

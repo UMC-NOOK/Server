@@ -8,14 +8,14 @@ import app.nook.book.domain.enums.MallType;
 
 public class AladinConverter {
     public static BookResponseDto.BookPreviewDto toBookPreviewDto(AladinResponseDto.AladinItem aladinItem, int rank) {
-        return BookResponseDto.BookPreviewDto.builder()
-                .isbn13(aladinItem.getIsbn13())
-                .title(aladinItem.getTitle())
-                .author(aladinItem.getAuthor())
-                .coverImageUrl(aladinItem.getCover())
-                .publisher(aladinItem.getPublisher())
-                .rank(rank)
-                .build();
+        return new BookResponseDto.BookPreviewDto(
+                aladinItem.getIsbn13(),
+                aladinItem.getTitle(),
+                aladinItem.getAuthor(),
+                aladinItem.getCover(),
+                aladinItem.getPublisher(),
+                rank
+        );
     }
     public static BookResponseDto.BookDetailDto toBookDetailDto(AladinResponseDto.AladinItem aladinItem, String categoryName) {
         MallType mallType = AladinUtils.extractMallType(aladinItem.getMallType());
@@ -35,8 +35,8 @@ public class AladinConverter {
                 .build();
     }
 
-    public static BookResponseDto.BookSearchDTO toBookSearchDto(AladinResponseDto.AladinItem item) {
-        return BookResponseDto.BookSearchDTO.builder()
+    public static BookResponseDto.BookSearchDto toBookSearchDto(AladinResponseDto.AladinItem item) {
+        return BookResponseDto.BookSearchDto.builder()
                 .isbn13(item.getIsbn13())
                 .title(item.getTitle())
                 .mallType(AladinUtils.extractMallType(item.getMallType()).getDisplayName())
