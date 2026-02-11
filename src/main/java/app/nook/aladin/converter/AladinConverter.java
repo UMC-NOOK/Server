@@ -14,7 +14,7 @@ public class AladinConverter {
                 aladinItem.getAuthor(),
                 aladinItem.getCover(),
                 aladinItem.getPublisher(),
-                aladinItem.getBestRank()
+                rank
         );
     }
     public static BookResponseDto.BookDetailDto toBookDetailDto(AladinResponseDto.AladinItem aladinItem, String categoryName) {
