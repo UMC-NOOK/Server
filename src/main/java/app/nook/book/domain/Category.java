@@ -20,10 +20,11 @@ public class Category {
     @Column(name="category_id")
     private Long id;
 
-    @Column(length = 50)
+    @Column(name = "category_name", length = 50)
     private String categoryName;
 
     @Enumerated(EnumType.STRING)
+    @Column(name="mall_type")
     private MallType mallType;
 
     private int aladinCategoryId;
