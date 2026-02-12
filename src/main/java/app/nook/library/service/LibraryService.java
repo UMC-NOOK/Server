@@ -108,7 +108,11 @@ public class LibraryService {
 
     // 서재 내 도서 검색
     public Page<Library> searchBooksInLibrary(Long userId, String keyword, int page, int size) {
+        String escapedKeyword = keyword
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
         Pageable pageable = PageRequest.of(page, size);
-        return libraryRepository.searchByUserIdAndKeyword(userId, keyword, pageable);
+        return libraryRepository.searchByUserIdAndKeyword(userId, escapedKeyword, pageable);
     }
 }

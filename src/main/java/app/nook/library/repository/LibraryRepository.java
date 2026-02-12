@@ -25,16 +25,16 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
     Set<String> findIsbnsByUserIdAndIsbnIn(@Param("userId") Long userId, @Param("isbns") List<String> isbns);
 
     // [서재 내 검색] 사용자의 서재에서 제목/저자/ISBN 키워드 검색
-    @Query(value = "SELECT l FROM Library l JOIN FETCH l.book b " +
+    @Query(value = "SELECT l FROM Library l JOIN FETCH l.book b JOIN FETCH b.category " +
             "WHERE l.user.id = :userId " +
-            "AND (LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "  OR LOWER(b.author) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "  OR b.isbn13 LIKE CONCAT('%', :keyword, '%'))",
+            "AND (LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%')) ESCAPE '\\' " +
+            "  OR LOWER(b.author) LIKE LOWER(CONCAT('%', :keyword, '%')) ESCAPE '\\' " +
+            "  OR b.isbn13 LIKE CONCAT('%', :keyword, '%') ESCAPE '\\')",
             countQuery = "SELECT COUNT(l) FROM Library l JOIN l.book b " +
                     "WHERE l.user.id = :userId " +
-                    "AND (LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-                    "  OR LOWER(b.author) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-                    "  OR b.isbn13 LIKE CONCAT('%', :keyword, '%'))")
+                    "AND (LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%')) ESCAPE '\\' " +
+                    "  OR LOWER(b.author) LIKE LOWER(CONCAT('%', :keyword, '%')) ESCAPE '\\' " +
+                    "  OR b.isbn13 LIKE CONCAT('%', :keyword, '%') ESCAPE '\\')")
     Page<Library> searchByUserIdAndKeyword(
             @Param("userId") Long userId,
             @Param("keyword") String keyword,

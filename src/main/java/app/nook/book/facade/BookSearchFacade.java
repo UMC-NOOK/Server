@@ -85,7 +85,8 @@ public class BookSearchFacade {
     }
 
     private BookResponseDto.SearchResultDto searchLibraryBooks(Long userId, String keyword, Integer cursor) {
-        int page = (cursor == null || cursor == 0) ? 0 : cursor / DEFAULT_PAGE_SIZE;
+        int offset = (cursor == null || cursor == 0) ? 0 : cursor;
+        int page = offset / DEFAULT_PAGE_SIZE;
 
         Page<Library> result = libraryService.searchBooksInLibrary(userId, keyword, page, DEFAULT_PAGE_SIZE);
         List<BookResponseDto.BookSearchDto> books = result.getContent().stream()
@@ -93,7 +94,7 @@ public class BookSearchFacade {
                 .toList();
 
         boolean hasNext = result.hasNext();
-        Integer nextCursor = result.hasNext() ? (page + 1) * DEFAULT_PAGE_SIZE : null;
+        Integer nextCursor = hasNext ? offset + books.size() : null;
 
         log.info("[LIBRARY_SEARCH] keyword='{}', foundCount={}, hasNext={}", keyword, books.size(), hasNext);
 
