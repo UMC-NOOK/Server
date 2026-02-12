@@ -11,7 +11,8 @@ import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
+import app.nook.library.domain.Library;
+import app.nook.library.repository.LibraryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,10 +29,10 @@ import java.util.Optional;
 public class BookService {
     private final BookRepository bookRepository;
     private final CategoryRepository categoryRepository;
+    private final LibraryRepository libraryRepository;
     private final AladinService aladinService;
 
     // 도서 상세 조회
-    // TODO: 서재 관련 기능 추후 개발 예정
     // TODO: 사용자가 추가한 서재인 경우 필터링 로직 추가 예정
     @Transactional
     public BookResponseDto.BookDetailDto getBookDetailByIsbn(Long userId, String isbn13) {
@@ -45,7 +46,7 @@ public class BookService {
                 updateBookInfo(book, isbn13);
             }
             log.info("[DB_HIT] isbn={}, title='{}'", isbn13, book.getTitle());
-            return BookConverter.toBookDetailDto(book, null); // TODO: 서재 ID 추가 예정
+            return BookConverter.toBookDetailDto(book, findLibraryId(userId, book.getId()));
         }
 
         log.info("[API_FETCH] isbn={}, status='Not found in DB'", isbn13);
@@ -53,7 +54,7 @@ public class BookService {
         Category category = findCategory(bookDetailDto);
         Book newBook = bookRepository.save(BookConverter.toBook(bookDetailDto, category, SourceType.ALADIN));
         log.info("[BOOK_SAVE] isbn={}, title='{}'", isbn13, bookDetailDto.getTitle());
-        return BookConverter.toBookDetailDto(newBook, null); // TODO: 서재 ID 추가 예정
+        return BookConverter.toBookDetailDto(newBook, null);
     }
 
     // 주간 베스트셀러
@@ -101,5 +102,11 @@ public class BookService {
         Category latestCategory = findCategory(latestInfo);
         book.updateInfo(latestInfo, latestCategory);
         log.info("[BookService] Book info updated - ISBN: {}, title: {}", isbn13, book.getTitle());
+    }
+
+    private Long findLibraryId(Long userId, Long bookId) {
+        return libraryRepository.findByUserIdAndBookId(userId, bookId)
+                .map(Library::getId)
+                .orElse(null);
     }
 }

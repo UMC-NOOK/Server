@@ -16,10 +16,14 @@ import app.nook.timeline.domain.enums.BookTimeLineType;
 import app.nook.timeline.repository.BookTimeLineRepository;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -96,4 +100,15 @@ public class LibraryService {
     // 서재 월별 책 조회
     // 서재 상태별 책 조회
     // 서재 포커스 시간별 책 조회
+
+    // 전체 검색 - 서재 보유 ISBN 목록 반환
+    public Set<String> findOwnedIsbns(Long userId, List<String> isbns) {
+        return libraryRepository.findIsbnsByUserIdAndIsbnIn(userId, isbns);
+    }
+
+    // 서재 내 도서 검색
+    public Page<Library> searchBooksInLibrary(Long userId, String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return libraryRepository.searchByUserIdAndKeyword(userId, keyword, pageable);
+    }
 }
