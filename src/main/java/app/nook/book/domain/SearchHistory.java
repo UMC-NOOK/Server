@@ -12,6 +12,14 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor
+@Table(
+        indexes = {
+                @Index(name = "idx_search_history_user_type",
+                        columnList = "user_id, search_type"),
+                @Index(name = "idx_search_history_user_keyword_type",
+                        columnList = "user_id, keyword, search_type")
+        }
+)
 public class SearchHistory extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

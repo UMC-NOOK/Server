@@ -13,6 +13,12 @@ import java.util.List;
 @Entity
 @Getter
 @NoArgsConstructor
+@Table(
+        indexes = {
+                @Index(name = "idx_category_malltype_name",
+                        columnList = "mall_type, category_name")
+        }
+)
 public class Category {
 
     @Id
