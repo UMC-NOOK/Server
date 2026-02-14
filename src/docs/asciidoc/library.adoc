@@ -23,3 +23,10 @@ include::{snippets}/library-controller-test/서재_책_상태변경_성공/reque
 include::{snippets}/library-controller-test/서재_책_상태변경_성공/request-fields.adoc[]
 include::{snippets}/library-controller-test/서재_책_상태변경_성공/http-response.adoc[]
 include::{snippets}/library-controller-test/서재_책_상태변경_성공/response-fields.adoc[]
+
+=== 서재 책 상태별 조회
+
+include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/http-request.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/request-headers.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/http-response.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/response-fields.adoc[]
