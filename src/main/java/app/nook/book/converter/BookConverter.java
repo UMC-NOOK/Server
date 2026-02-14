@@ -59,7 +59,7 @@ public class BookConverter {
                 .coverImageUrl(book.getCoverImageUrl())
                 .publisher(book.getPublisher())
                 .publicationDate(book.getPublicationDate())
-                .isInLibrary(true)
+                .inLibrary(true)
                 .readingStatus(library.getReadingStatus())
                 .build();
     }

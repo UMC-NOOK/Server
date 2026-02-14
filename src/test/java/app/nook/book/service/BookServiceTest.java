@@ -10,6 +10,9 @@ import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.global.exception.CustomException;
+import app.nook.library.repository.LibraryRepository;
+import app.nook.user.domain.User;
+import app.nook.user.domain.enums.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,6 +57,9 @@ class BookServiceTest {
     @Mock
     private AladinService aladinService;
 
+    @Mock
+    private LibraryRepository libraryRepository;
+
     @InjectMocks
     private BookService bookService;
 
@@ -62,10 +68,21 @@ class BookServiceTest {
 
     private Category category;
 
+    private User testUser;
+
     @BeforeEach
     void setUp() {
         category = Category.of(MallType.BOOK, TEST_CATEGORY_NAME, 1);
         ReflectionTestUtils.setField(category, "id", 1L);
+
+        testUser = User.builder()
+                .email("test@example.com")
+                .nickName("테스터")
+                .provider("google")
+                .providerId("provider-id")
+                .role(UserRole.USER)
+                .build();
+        ReflectionTestUtils.setField(testUser, "id", TEST_USER_ID);
     }
 
     @Test
@@ -78,9 +95,13 @@ class BookServiceTest {
 
         given(bookRepository.findByIsbn13(TEST_ISBN_1))
                 .willReturn(Optional.of(book));
+        given(bookRepository.findById(1L))
+                .willReturn(Optional.of(book));
+        given(libraryRepository.findByUserAndBook(testUser, book))
+                .willReturn(null); // 서재에 없는 경우
 
         // when
-        BookResponseDto.BookDetailDto result = bookService.getBookDetailByIsbn(TEST_USER_ID, TEST_ISBN_1);
+        BookResponseDto.BookDetailDto result = bookService.getBookDetailByIsbn(testUser, TEST_ISBN_1);
 
         // then
         assertThat(result.getIsbn13()).isEqualTo(TEST_ISBN_1);
@@ -112,7 +133,7 @@ class BookServiceTest {
         given(bookRepository.save(any(Book.class))).willReturn(savedBookWithId); // 저장
 
         // when
-        BookResponseDto.BookDetailDto result = bookService.getBookDetailByIsbn(TEST_USER_ID, TEST_ISBN_1);
+        BookResponseDto.BookDetailDto result = bookService.getBookDetailByIsbn(testUser, TEST_ISBN_1);
 
         // then 1. 반환값 검증 (Controller로 나가는 데이터)
         assertThat(result.getIsbn13()).isEqualTo(TEST_ISBN_1);
@@ -156,7 +177,7 @@ class BookServiceTest {
         // when & then
         CustomException ex = assertThrows(
                 CustomException.class,
-                () -> bookService.getBookDetailByIsbn(TEST_USER_ID, TEST_ISBN_1)
+                () -> bookService.getBookDetailByIsbn(testUser, TEST_ISBN_1)
         );
 
         assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_NOT_ALLOWED);

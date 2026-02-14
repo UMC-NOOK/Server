@@ -83,7 +83,7 @@ public class AladinService {
 
         } catch (CustomException e) {
             log.error("[FETCH_ERROR] message='{}'", e.getMessage());
-            return Collections.emptyList();
+            throw new CustomException(AladinErrorCode.ALADIN_API_ERROR);
         }
     }
 
@@ -128,7 +128,7 @@ public class AladinService {
                 rawItems = apiResult.getItem() != null ? apiResult.getItem() : Collections.emptyList();
             } catch (Exception e) {
                 log.error("[SEARCH_ERROR] message='{}'", e.getMessage());
-                break;
+                throw new CustomException(AladinErrorCode.ALADIN_API_ERROR);
             }
             if (apiResult.getTotalResults() != null) {
                 totalResults = apiResult.getTotalResults();

@@ -72,7 +72,7 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
                                 .with(user(userDetails))
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.totalResults").value(100))
+                .andExpect(jsonPath("$.result.totalResults").value(2))
                 .andExpect(jsonPath("$.result.books").isArray())
                 .andExpect(jsonPath("$.result.books.length()").value(2))
                 .andExpect(jsonPath("$.result.hasNext").value(true))
@@ -292,7 +292,7 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
                 : Collections.emptyList();
 
         return new BookResponseDto.SearchResultDto(
-                100L,
+                (long) bookCount,
                 hasNext,
                 nextCursor,
                 books

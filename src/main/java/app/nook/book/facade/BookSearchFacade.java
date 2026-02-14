@@ -77,8 +77,8 @@ public class BookSearchFacade {
         Set<String> mybookIsbns = libraryService.findOwnedIsbns(userId, isbns);
 
         books.forEach(book -> {
-            boolean isInLibrary = mybookIsbns.contains(book.getIsbn13());
-            book.setInLibrary(isInLibrary);
+            boolean inLibrary = mybookIsbns.contains(book.getIsbn13());
+            book.setInLibrary(inLibrary);
         });
 
         return searchResult;

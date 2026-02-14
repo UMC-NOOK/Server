@@ -13,6 +13,7 @@ import app.nook.book.repository.CategoryRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class BookService {
     // 도서 상세 조회
     // TODO: 사용자가 추가한 서재인 경우 필터링 로직 추가 예정
     @Transactional
-    public BookResponseDto.BookDetailDto getBookDetailByIsbn(Long userId, String isbn13) {
+    public BookResponseDto.BookDetailDto getBookDetailByIsbn(User user, String isbn13) {
 
         Optional<Book> existingBook = bookRepository.findByIsbn13(isbn13);
         if (existingBook.isPresent()) {
@@ -46,7 +47,7 @@ public class BookService {
                 updateBookInfo(book, isbn13);
             }
             log.info("[DB_HIT] isbn={}, title='{}'", isbn13, book.getTitle());
-            return BookConverter.toBookDetailDto(book, findLibraryId(userId, book.getId()));
+            return BookConverter.toBookDetailDto(book, findLibraryId(user, book));
         }
 
         log.info("[API_FETCH] isbn={}, status='Not found in DB'", isbn13);
@@ -104,9 +105,11 @@ public class BookService {
         log.info("[BookService] Book info updated - ISBN: {}, title: {}", isbn13, book.getTitle());
     }
 
-    private Long findLibraryId(Long userId, Long bookId) {
-        return libraryRepository.findByUserIdAndBookId(userId, bookId)
-                .map(Library::getId)
-                .orElse(null);
+    private Long findLibraryId(User user, Book book) {
+        if (user == null) {
+            return null;
+        }
+        Library library = libraryRepository.findByUserAndBook(user, book);
+        return (library != null) ? library.getId() : null;
     }
 }

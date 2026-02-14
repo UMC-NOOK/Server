@@ -30,7 +30,7 @@ public class BookController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable @Pattern(regexp = "\\d{13}", message = "ISBN13은 13자리 숫자여야 합니다.") String isbn13) {
         return ApiResponse.onSuccess(
-                bookService.getBookDetailByIsbn(userDetails.getUser().getId(),isbn13), SuccessCode.OK);
+                bookService.getBookDetailByIsbn(userDetails.getUser(),isbn13), SuccessCode.OK);
     }
 
     // 주간 베스트셀러 조회

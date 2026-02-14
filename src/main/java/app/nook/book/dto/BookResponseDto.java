@@ -55,7 +55,7 @@ public class BookResponseDto {
 
         @Setter
         @Builder.Default
-        private boolean isInLibrary = false; // 내 서재 등록 여부
+        private boolean inLibrary = false; // 내 서재 등록 여부
 
         private ReadingStatus readingStatus; // 전체 검색시 null
     }

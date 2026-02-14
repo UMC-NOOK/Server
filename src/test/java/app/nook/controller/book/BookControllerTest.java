@@ -80,7 +80,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
                 .bookShelfId(null)
                 .build();
 
-        given(bookService.getBookDetailByIsbn(any(Long.class), eq(isbn13)))
+        given(bookService.getBookDetailByIsbn(any(User.class), eq(isbn13)))
                 .willReturn(response);
 
         // when & then
@@ -139,7 +139,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
         // given
         String isbn13 = "9999999999999";
 
-        given(bookService.getBookDetailByIsbn(any(Long.class), eq(isbn13)))
+        given(bookService.getBookDetailByIsbn(any(User.class), eq(isbn13)))
                 .willThrow(new CustomException(BookErrorCode.BOOK_NOT_FOUND));
 
         // when & then
