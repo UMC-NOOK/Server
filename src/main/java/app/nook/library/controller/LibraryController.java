@@ -7,6 +7,7 @@ import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.service.LibraryService;
 import app.nook.user.service.CustomUserDetails;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +59,7 @@ public class LibraryController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam @NotNull ReadingStatus status,
             @RequestParam(required = false) @Min(0) Long cursor,
-            @RequestParam(defaultValue = "20") @Min(1) int size
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         LibraryViewDto.StatusBookResponseDto response =
                 libraryService.viewBooksByStatus(userDetails.getUser(), status, cursor, size);
