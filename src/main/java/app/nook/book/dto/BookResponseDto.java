@@ -2,6 +2,7 @@ package app.nook.book.dto;
 
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
+import app.nook.library.domain.enums.ReadingStatus;
 import lombok.*;
 
 import java.util.List;
@@ -54,8 +55,9 @@ public class BookResponseDto {
 
         @Setter
         @Builder.Default
-        private boolean isInLibrary = false; // 내 서재 등록 여부
+        private boolean inLibrary = false; // 내 서재 등록 여부
 
+        private ReadingStatus readingStatus; // 전체 검색시 null
     }
 
     public record SearchResultDto(

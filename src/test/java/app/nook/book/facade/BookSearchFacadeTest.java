@@ -4,6 +4,7 @@ import app.nook.aladin.service.AladinService;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.service.SearchHistoryService;
+import app.nook.library.service.LibraryService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +38,9 @@ class BookSearchFacadeTest {
     @Mock
     private SearchHistoryService searchHistoryService;
 
+    @Mock
+    private LibraryService libraryService;
+
     @InjectMocks
     private BookSearchFacade bookSearchFacade;
 
@@ -54,6 +58,8 @@ class BookSearchFacadeTest {
 
         given(aladinService.searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE))
                 .willReturn(mockResult);
+        given(libraryService.findOwnedIsbns(eq(TEST_USER_ID), anyList()))
+                .willReturn(Collections.emptySet()); // 서재에 없는 경우
 
         // when
         BookResponseDto.SearchResultDto result = bookSearchFacade.searchBooks(
@@ -86,6 +92,8 @@ class BookSearchFacadeTest {
 
         given(aladinService.searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE))
                 .willReturn(mockResult);
+        given(libraryService.findOwnedIsbns(eq(TEST_USER_ID), anyList()))
+                .willReturn(Collections.emptySet()); // 서재에 없는 경우
 
         // when
         BookResponseDto.SearchResultDto result = bookSearchFacade.searchBooks(

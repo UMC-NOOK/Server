@@ -23,11 +23,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -137,5 +139,20 @@ public class LibraryService {
                 totalCount,
                 cursorResponse
         );
+    }
+
+    // 전체 검색 - 서재 보유 ISBN 목록 반환
+    public Set<String> findOwnedIsbns(Long userId, List<String> isbns) {
+        return libraryRepository.findIsbnsByUserIdAndIsbnIn(userId, isbns);
+    }
+
+    // 서재 내 도서 검색
+    public Page<Library> searchBooksInLibrary(Long userId, String keyword, int page, int size) {
+        String escapedKeyword = keyword
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        Pageable pageable = PageRequest.of(page, size);
+        return libraryRepository.searchByUserIdAndKeyword(userId, escapedKeyword, pageable);
     }
 }

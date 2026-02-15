@@ -2,17 +2,22 @@ package app.nook.book.facade;
 
 import app.nook.aladin.exception.AladinErrorCode;
 import app.nook.aladin.service.AladinService;
+import app.nook.book.converter.BookConverter;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.exception.SearchErrorCode;
 import app.nook.book.service.SearchHistoryService;
 import app.nook.global.exception.CustomException;
+import app.nook.library.domain.Library;
+import app.nook.library.service.LibraryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -22,7 +27,7 @@ public class BookSearchFacade {
 
     private final AladinService aladinService;
     private final SearchHistoryService searchHistoryService;
-    // private final BookcaseService bookcaseService;
+    private final LibraryService libraryService;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     /**
@@ -44,10 +49,7 @@ public class BookSearchFacade {
         if (searchType == SearchType.GLOBAL) {
             return searchGlobalBooks(userId, keyword, cursor);
         } else if (searchType == SearchType.LIBRARY) {
-            // TODO: 서재 내 도서 검색 기능 추후 구현 예정
-            // return searchBooksInBookcase(userId, keyword, cursor, size);
-            // 임시 에러 처리
-            throw new CustomException(AladinErrorCode.ALADIN_API_ERROR);
+            return searchLibraryBooks(userId, keyword, cursor);
         }
         log.error("[SEARCH_FAIL] error='Invalid SearchType', type={}", searchType);
         throw new CustomException(SearchErrorCode.INVALID_SEARCH_TYPE);
@@ -65,20 +67,43 @@ public class BookSearchFacade {
         if (books.isEmpty()) {
             return searchResult;
         }
-//
-//        // 도서 ISBN 리스트 추출
-//        List<String> isbns = books.stream()
-//                .map(BookResponseDto.BookSearchDTO::getIsbn13)
-//                .toList();
-//
-//        Set<String> mybookIsbns = bookCaseRepository.findIsbnsByUserIdAndIsbnIn(userId, isbns);
-//
-//        books.forEach(book -> {
-//            boolean isInLibrary = mybookIsbns.contains(book.getIsbn13());
-//            book.setInLibrary(isInLibrary);
-//        });
+
+        // 도서 ISBN 리스트 추출
+        List<String> isbns = books.stream()
+                .map(BookResponseDto.BookSearchDto::getIsbn13)
+                .toList();
+
+        // 서재 보유 여부 조회
+        Set<String> mybookIsbns = libraryService.findOwnedIsbns(userId, isbns);
+
+        books.forEach(book -> {
+            boolean inLibrary = mybookIsbns.contains(book.getIsbn13());
+            book.setInLibrary(inLibrary);
+        });
 
         return searchResult;
+    }
+
+    private BookResponseDto.SearchResultDto searchLibraryBooks(Long userId, String keyword, Integer cursor) {
+        int offset = (cursor == null || cursor == 0) ? 0 : cursor;
+        int page = offset / DEFAULT_PAGE_SIZE;
+
+        Page<Library> result = libraryService.searchBooksInLibrary(userId, keyword, page, DEFAULT_PAGE_SIZE);
+        List<BookResponseDto.BookSearchDto> books = result.getContent().stream()
+                .map(BookConverter::toBookSearchDto)
+                .toList();
+
+        boolean hasNext = result.hasNext();
+        Integer nextCursor = hasNext ? offset + books.size() : null;
+
+        log.info("[LIBRARY_SEARCH] keyword='{}', foundCount={}, hasNext={}", keyword, books.size(), hasNext);
+
+        return new BookResponseDto.SearchResultDto(
+                result.getTotalElements(),
+                hasNext,
+                nextCursor,
+                books
+        );
     }
 
     /**

@@ -4,11 +4,13 @@ import app.nook.book.domain.Book;
 import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
+import app.nook.global.config.QueryDslConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 
 import java.util.Optional;
 
@@ -17,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest(properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
+@Import(QueryDslConfig.class)
 public class BookRepositoryTest {
     @Autowired
     private BookRepository bookRepository;
