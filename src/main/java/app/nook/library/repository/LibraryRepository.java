@@ -38,9 +38,6 @@ public interface LibraryRepository extends JpaRepository<Library,Long>, LibraryR
     long countByUserAndReadingStatus(User user, ReadingStatus status);
 
 
-    // [도서 상세 조회용] 사용자 ID + Book ID로 Library 조회
-    Optional<Library> findByUserIdAndBookId(Long userId, Long bookId);
-
     // [전체 검색 - 서재 보유 여부 매핑용] ISBN 목록 중 서재에 있는 ISBN들 반환
     @Query("SELECT l.book.isbn13 FROM Library l WHERE l.user.id = :userId AND l.book.isbn13 IN :isbns")
     Set<String> findIsbnsByUserIdAndIsbnIn(@Param("userId") Long userId, @Param("isbns") List<String> isbns);

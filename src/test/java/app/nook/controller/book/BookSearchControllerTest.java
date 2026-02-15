@@ -99,7 +99,8 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
                                         fieldWithPath("result.books[].coverImageUrl").description("표지 이미지 URL"),
                                         fieldWithPath("result.books[].publisher").description("출판사"),
                                         fieldWithPath("result.books[].publicationDate").description("출판일"),
-                                        fieldWithPath("result.books[].inLibrary").description("내 서재 등록 여부")
+                                        fieldWithPath("result.books[].inLibrary").description("내 서재 등록 여부"),
+                                        fieldWithPath("result.books[].readingStatus").description("내 서재 독서 상태").optional()
                                 )
                         )
                 ));
@@ -310,7 +311,7 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
                     .publisher("창비")
                     .publicationDate("2024-01-01")
                     .coverImageUrl("http://example.com/cover" + i + ".jpg")
-                    .isInLibrary(false)
+                    .inLibrary(false)
                     .build());
         }
         return books;
