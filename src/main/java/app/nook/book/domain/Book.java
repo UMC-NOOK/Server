@@ -1,10 +1,11 @@
 package app.nook.book.domain;
 
 import app.nook.book.domain.enums.SourceType;
+import app.nook.book.dto.BookRequestDto;
 import app.nook.book.dto.BookResponseDto;
+import app.nook.book.utils.BookUtils;
 import app.nook.global.common.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,7 +20,7 @@ public class Book extends BaseEntity {
     @Column(name = "book_id")
     private Long id;
 
-    @Column(length = 13, nullable = false, unique = true)
+    @Column(length = 13)
     private String isbn13;
 
     @Column(length = 1000)
@@ -48,6 +49,10 @@ public class Book extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private SourceType sourceType;
 
+    // USER 도서 소유자 추적(ALADIN은 null)
+    @Column(name = "created_by_user_id")
+    private Long createdByUserId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
@@ -64,6 +69,7 @@ public class Book extends BaseEntity {
             String coverImageUrl,
             String aladinLink,
             SourceType sourceType,
+            Long createdByUserId,
             Category category
     ) {
         this.isbn13 = isbn13;
@@ -76,6 +82,7 @@ public class Book extends BaseEntity {
         this.coverImageUrl = coverImageUrl;
         this.aladinLink = aladinLink;
         this.sourceType = sourceType;
+        this.createdByUserId = createdByUserId;
         this.category = category;
     }
 
@@ -89,5 +96,18 @@ public class Book extends BaseEntity {
         this.description = info.getDescription();
         this.coverImageUrl = info.getCoverImageUrl();
         this.aladinLink = info.getAladinLink();
+    }
+
+    public void updateUserBookInfo(
+            BookRequestDto.UpdateUserBookRequest request, String coverImageUrl, Category category) {
+        this.isbn13 = BookUtils.normalizeIsbn(request.isbn13());
+        this.title = request.title();
+        this.author = request.author();
+        this.publisher = request.publisher();
+        this.publicationDate = request.publicationDate();
+        this.pages = request.pages();
+        this.description = request.description();
+        this.coverImageUrl = coverImageUrl;
+        this.category = category;
     }
 }
