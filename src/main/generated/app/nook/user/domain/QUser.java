@@ -7,6 +7,7 @@ import com.querydsl.core.types.dsl.*;
 import com.querydsl.core.types.PathMetadata;
 import javax.annotation.processing.Generated;
 import com.querydsl.core.types.Path;
+import com.querydsl.core.types.dsl.PathInits;
 
 
 /**
@@ -46,6 +47,8 @@ public class QUser extends EntityPathBase<User> {
     public final StringPath providerId = createString("providerId");
 
     public final EnumPath<app.nook.user.domain.enums.UserRole> role = createEnum("role", app.nook.user.domain.enums.UserRole.class);
+
+    public final ListPath<app.nook.book.domain.SearchHistory, app.nook.book.domain.QSearchHistory> searchHistories = this.<app.nook.book.domain.SearchHistory, app.nook.book.domain.QSearchHistory>createList("searchHistories", app.nook.book.domain.SearchHistory.class, app.nook.book.domain.QSearchHistory.class, PathInits.DIRECT2);
 
     public final EnumPath<app.nook.user.domain.enums.UserStatus> status = createEnum("status", app.nook.user.domain.enums.UserStatus.class);
 

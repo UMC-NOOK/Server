@@ -14,11 +14,16 @@ public class AladinResponseDto {
     @NoArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class AladinApiResult {
+        private Long totalResults;
+        private Integer startIndex;
+        private Integer itemsPerPage;
         private List<AladinItem> item;
     }
 
     @Getter
     @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     @JsonIgnoreProperties(ignoreUnknown = true)
     // 알라딘 API 아이템 DTO
     public static class AladinItem {
@@ -27,6 +32,7 @@ public class AladinResponseDto {
         private String author;
         private String categoryName;
         private Integer categoryId;
+        private String mallType;
         private String publisher;
         private String pubDate;
         private String description;

@@ -1,7 +1,7 @@
 package app.nook.book.repository;
 
-import app.nook.book.entity.Category;
-import app.nook.book.entity.MallType;
+import app.nook.book.domain.Category;
+import app.nook.book.domain.enums.MallType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

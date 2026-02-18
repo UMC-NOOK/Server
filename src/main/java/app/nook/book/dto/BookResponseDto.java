@@ -1,13 +1,14 @@
 package app.nook.book.dto;
 
-import app.nook.book.entity.MallType;
-import app.nook.book.entity.SourceType;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import app.nook.book.domain.enums.MallType;
+import app.nook.book.domain.enums.SourceType;
+import app.nook.library.domain.enums.ReadingStatus;
+import lombok.*;
+
+import java.util.List;
 
 public class BookResponseDto {
+
     @Getter
     @Builder
     @AllArgsConstructor
@@ -30,16 +31,39 @@ public class BookResponseDto {
         private Long bookShelfId;
     }
 
+    public record BookPreviewDto( // 검색 베스트셀러 프리뷰 DTO
+            String isbn13,
+            String title,
+            String author,
+            String coverImageUrl,
+            String publisher,
+            Integer rank
+    ) {}
+
     @Getter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class BookPreviewDto { // 검색 베스트셀러 프리뷰 DTO
+    public static class BookSearchDto { // 검색 결과 DTO
         private String isbn13;
         private String title;
+        private String mallType;
         private String author;
         private String coverImageUrl;
         private String publisher;
-        private Integer rank;
+        private String publicationDate;
+
+        @Setter
+        @Builder.Default
+        private boolean inLibrary = false; // 내 서재 등록 여부
+
+        private ReadingStatus readingStatus; // 전체 검색시 null
     }
+
+    public record SearchResultDto(
+            Long totalResults,
+            boolean hasNext,
+            Integer nextCursor,
+            List<BookSearchDto> books
+    ) {}
 }

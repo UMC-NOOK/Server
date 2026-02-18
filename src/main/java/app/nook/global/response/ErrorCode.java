@@ -53,30 +53,6 @@ public enum ErrorCode implements BaseCode {
     TOO_MANY_JOINED_ROOM(HttpStatus.CONFLICT, "ROOM-006", "리딩룸은 최대 4개까지 가입 가능합니다." ),
 
 
-    // 페이지
-    INVALID_PAGE(HttpStatus.BAD_REQUEST, "PAGE-001", "유효하지 않은 'page' 값입니다."),
-    PAGE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "PAGE-003", "요청한 'page' 가 전체 페이지 수를 초과했습니다."),
-
-    // 검색
-    INVALID_QUERY(HttpStatus.BAD_REQUEST, "SEARCH-001", "필수 파라미터 'query' 가 누락되었습니다."),
-    RECENT_QUERY_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH-002", "최근 검색어를 찾을 수 없습니다."),
-
-    // 책
-    ISBN13_NOT_FOUND(HttpStatus.NOT_FOUND, "BOOK-001", "요청한 ISBN-13에 해당하는 도서를 찾을 수 없습니다."),
-    INVALID_ISBN13(HttpStatus.BAD_REQUEST, "BOOK-002", "유효하지 않은 ISBN-13 형식입니다."),
-    BOOK_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "BOOK-003", "서비스 정책에 의해 조회할 수 없는 도서입니다."),
-    BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "BOOK-003", "존재하지 않는 책입니다."),
-
-    // 알라딘
-    ALADIN_API_ERROR(HttpStatus.BAD_GATEWAY, "ALADIN-001", "알라딘 API 호출 중 오류가 발생했습니다."),
-    ALADIN_PARSING_ERROR(HttpStatus.BAD_GATEWAY, "ALADIN-002", "알라딘 API 응답 형식이 올바르지 않습니다."),
-    ALADIN_UNAUTHORIZED(HttpStatus.INTERNAL_SERVER_ERROR, "ALADIN-003", "알라딘 API 인증에 실패했습니다."),
-
-    // 라운지
-    INVALID_MALLTYPE(HttpStatus.BAD_REQUEST, "LOUNGE-001", "유효하지 않은 'mallType' 값입니다."),
-    INVALID_SECTION(HttpStatus.BAD_REQUEST, "LOUNGE-002", "유효하지 않은 'sectionId' 값입니다."),
-    INVALID_CATEGORY(HttpStatus.NOT_FOUND, "LOUNGE-003", "요청한 카테고리가 존재하지 않습니다."),
-
     // 기록
     RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "RECORD-001","기록이 존재하지 않습니다." ),
     INVALID_RECORD_TYPE(HttpStatus.BAD_REQUEST, "RECORD-002", "유효하지 않은 기록 유형입니다."),
@@ -85,8 +61,6 @@ public enum ErrorCode implements BaseCode {
 
     CHAT_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND,"RECORD-003","채팅 기록이 존재하지 않습니다." ),
 
-    // 목표
-    INVALID_GOAL_VALUE(HttpStatus.BAD_REQUEST, "GOAL-001", "유효하지 않은 목표 값입니다."),
 
     // OAUTH
     INVALID_OAUTH_TOKEN(HttpStatus.BAD_REQUEST, "OAUTH-001", "유효하지 않은 카카오 토큰입니다."),

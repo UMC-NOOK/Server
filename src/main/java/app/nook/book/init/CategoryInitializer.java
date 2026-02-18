@@ -1,8 +1,8 @@
 package app.nook.book.init;
 
-import app.nook.book.entity.BookCategory;
-import app.nook.book.entity.Category;
-import app.nook.book.entity.MallType;
+import app.nook.book.domain.enums.BookCategory;
+import app.nook.book.domain.Category;
+import app.nook.book.domain.enums.MallType;
 import app.nook.book.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ public class CategoryInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        log.info("[CATEGORY INIT] 카테고리 동기화 작업을 시작합니다...");
+        log.info("[CATEGORY INIT] category initialization started.");
 
         // 1. 중복 방지용 키 (Type_Name)
         Set<String> existingKeys = categoryRepository.findAll().stream()
@@ -43,7 +43,9 @@ public class CategoryInitializer implements ApplicationRunner {
 
         if (!toSave.isEmpty()) {
             categoryRepository.saveAll(toSave);
-            log.info("[CATEGORY INIT] 총 {}개의 카테고리가 추가되었습니다.", toSave.size());
+            log.info("[CATEGORY INIT] {} categories saved", toSave.size());
+        } else {
+            log.info("[CATEGORY INIT] all categories already exist. No new categories added.");
         }
     }
 

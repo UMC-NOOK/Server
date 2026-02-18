@@ -1,10 +1,10 @@
 package app.nook.book.converter;
 
-import app.nook.aladin.dto.AladinResponseDto;
 import app.nook.book.dto.BookResponseDto;
-import app.nook.book.entity.Book;
-import app.nook.book.entity.Category;
-import app.nook.book.entity.SourceType;
+import app.nook.book.domain.Book;
+import app.nook.book.domain.Category;
+import app.nook.book.domain.enums.SourceType;
+import app.nook.library.domain.Library;
 
 public class BookConverter {
     public static BookResponseDto.BookDetailDto toBookDetailDto(Book book, Long bookShelfId) {
@@ -42,6 +42,25 @@ public class BookConverter {
                 .aladinLink(bookDetailDto.getAladinLink())
                 .sourceType(sourceType)
                 .category(category)
+                .build();
+    }
+
+
+    // Library 엔티티 → BookSearchDto 변환 (서재 내 검색용)
+    public static BookResponseDto.BookSearchDto toBookSearchDto(Library library) {
+        Book book = library.getBook();
+        Category category = book.getCategory();
+
+        return BookResponseDto.BookSearchDto.builder()
+                .isbn13(book.getIsbn13())
+                .title(book.getTitle())
+                .mallType(category.getMallType().getDisplayName())
+                .author(book.getAuthor())
+                .coverImageUrl(book.getCoverImageUrl())
+                .publisher(book.getPublisher())
+                .publicationDate(book.getPublicationDate())
+                .inLibrary(true)
+                .readingStatus(library.getReadingStatus())
                 .build();
     }
 }

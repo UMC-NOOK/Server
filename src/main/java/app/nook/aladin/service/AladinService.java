@@ -2,11 +2,12 @@ package app.nook.aladin.service;
 
 import app.nook.aladin.converter.AladinConverter;
 import app.nook.aladin.dto.AladinResponseDto;
-import app.nook.aladin.util.AladinUtils;
+import app.nook.aladin.exception.AladinErrorCode;
+import app.nook.aladin.utils.AladinUtils;
 import app.nook.book.dto.BookResponseDto;
-import app.nook.book.entity.BookCategory;
+import app.nook.book.domain.enums.BookCategory;
+import app.nook.book.exception.BookErrorCode;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,13 +19,12 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Stream;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AladinService {
+
     private final RestClient restClient;
 
     @Value("${aladin.ttbkey}")
@@ -55,50 +55,139 @@ public class AladinService {
             uriBuilder.queryParam("CategoryId", categoryId);
         }
         try {
-            List<AladinResponseDto.AladinItem> rawItems = execute(uriBuilder.build().toUri());
-
-            List<AladinResponseDto.AladinItem> validItems = rawItems.stream()
-                    .filter(item -> !item.isAdult()) // 19금 필터링
-                    .filter(item -> {
-                        // 카테고리 매핑 확인
-                        String rawCategoryName = AladinUtils.extractCategoryName(item.getCategoryName());
-                        return BookCategory.match(rawCategoryName).isPresent();
-                    })
-                    .limit(targetCount)
-                    .toList();
+            AladinResponseDto.AladinApiResult apiResult = execute(uriBuilder.build().toUri());
+            List<AladinResponseDto.AladinItem> rawItems = apiResult.getItem() != null
+                    ? apiResult.getItem() : Collections.emptyList();
 
             List<BookResponseDto.BookPreviewDto> result = new ArrayList<>();
+            int currentRank = 1;
 
-            for (int i = 0; i < validItems.size(); i++) {
-                AladinResponseDto.AladinItem item = validItems.get(i);
-                result.add(AladinConverter.toBookPreviewDto(item, i + 1));
+            for (AladinResponseDto.AladinItem item: rawItems) {
+                if (!AladinUtils.isValid(item)) {
+                    continue;
+                }
+                result.add(AladinConverter.toBookPreviewDto(item, currentRank++));
+
+                if (result.size() >= targetCount) {
+                    break;
+                }
             }
 
             // 데이터가 부족한 경우 경고
             if (result.size() < targetCount) {
-                log.warn("[AladinService] 목표 개수 부족! 요청: {}, 확보: {} (필터링 비율이 예상보다 높음)",
+                log.warn("[FETCH_WARNING] reason='Insufficient count', target={}, fetched={}",
                         targetCount, result.size());
             }
 
             return result;
 
         } catch (CustomException e) {
-            log.error("[AladinService] 도서 목록 조회 실패: {} -> 빈 리스트 반환", e.getMessage());
-            return Collections.emptyList();
+            log.error("[FETCH_ERROR] message='{}'", e.getMessage());
+            throw new CustomException(AladinErrorCode.ALADIN_API_ERROR);
         }
     }
 
-    // 도서 검색
-//    public List<BookResponseDto.BookPreviewDto> searchItems(String query, int start, int maxResults) {
-//        URI uri = getBaseUriBuilder(ALADIN_SEARCH_PATH)
-//                .queryParam("Query", query)
-//                .queryParam("Start", start)
-//                .queryParam("MaxResults", maxResults)
-//                .build()
-//                .toUri();
-//
-//        return execute(uri);
-//    }
+    /**
+     * 커서 기반 무한스크롤 검색
+     * Global Index 기반 (0~49: 1페이지, 50~99: 2페이지 ...)
+     * size만큼 채워질 때까지 다음 페이지를 계속 조회함
+     */
+    // TODO: redis 도입 예정
+    public BookResponseDto.SearchResultDto searchItems(String keyword, Integer cursor, int size) {
+        List<BookResponseDto.BookSearchDto> results = new ArrayList<>();
+        Long totalResults = 0L;
+        // 1. 현재 탐색중인 전역 인덱스 (null이면 0부터 시작)
+        int currentGlobalIndex = (cursor == null) ? 0 : cursor;
+
+        // 알라딘 최대 조회 개수
+        final int ALADIN_MAX_RESULTS = 50;
+
+        // 무한 루프 방지 (최대 5페이지까지만 조회)
+        int maxPageSearchLimit = 5;
+        int pageSearchCount = 0;
+
+        // 2. 목표 개수(size)를 채울 때까지 반복
+        while (results.size() < size && pageSearchCount < maxPageSearchLimit) {
+            // 2-1. 현재 페이지 계산
+            int pageNum = (currentGlobalIndex / ALADIN_MAX_RESULTS) + 1; // 1부터 시작
+            int startIndex = currentGlobalIndex % ALADIN_MAX_RESULTS; // 페이지 내 시작 인덱스 (0 ~ 49)
+
+            // 2-2. 알라딘 API 요청
+            URI uri = getBaseUriBuilder(ALADIN_SEARCH_PATH)
+                    .queryParam("Query", keyword)
+                    .queryParam("SearchTarget", "All")
+                    .queryParam("MaxResults", ALADIN_MAX_RESULTS)
+                    .queryParam("Start", pageNum)
+                    .build()
+                    .toUri();
+
+            List<AladinResponseDto.AladinItem> rawItems;
+            AladinResponseDto.AladinApiResult apiResult;
+            try {
+                apiResult = execute(uri);
+                rawItems = apiResult.getItem() != null ? apiResult.getItem() : Collections.emptyList();
+            } catch (Exception e) {
+                log.error("[SEARCH_ERROR] message='{}'", e.getMessage());
+                throw new CustomException(AladinErrorCode.ALADIN_API_ERROR);
+            }
+            if (apiResult.getTotalResults() != null) {
+                totalResults = apiResult.getTotalResults();
+            }
+
+            // 더 이상 검색 결과가 없는 경우 종료
+            if (rawItems.isEmpty()) {
+                break;
+            }
+
+            int filteredCount = 0;
+
+            for (int i = startIndex; i < rawItems.size(); i++) {
+                currentGlobalIndex++;
+                AladinResponseDto.AladinItem item = rawItems.get(i);
+
+                if (!AladinUtils.isValid(item)) {
+                    filteredCount++;
+                    continue;
+                }
+
+                results.add(AladinConverter.toBookSearchDto(item));
+
+                if (results.size() >= size) {
+                    break;
+                }
+            }
+
+            if (filteredCount > 0) {
+                log.debug("[FILTERING] page={}, filteredCount={}", pageNum, filteredCount);
+            }
+
+            // 이번 페이지를 다 돌았는데도 size가 안 찼다면?
+            // while 문 조건에 의해 다시 위로 올라감 -> currentGlobalIndex는 이미 증가했으므로 자동으로 다음 페이지 계산됨
+            // 예: 49번(1페이지 끝)까지 봤으면 currentGlobalIndex=50이 됨 -> 다음 루프에서 pageNum=2로 계산됨.
+            pageSearchCount++;
+
+            // 현재 페이지가 마지막 페이지인 경우 종료
+            if (rawItems.size() < ALADIN_MAX_RESULTS) {
+                break;
+            }
+        }
+
+        Integer nextCursor = null;
+
+        if (!results.isEmpty() && currentGlobalIndex < totalResults) {
+            nextCursor = currentGlobalIndex;
+        }
+        if (pageSearchCount >= maxPageSearchLimit) {
+            log.warn("[MAX_LIMIT_REACHED] keyword='{}', limit={}, fetched={}",
+                    keyword, maxPageSearchLimit, results.size());
+        }
+        return new BookResponseDto.SearchResultDto(
+                totalResults,
+                nextCursor != null,
+                nextCursor,
+                results
+        );
+    }
 
     // 도서 상세 정보 조회
     public BookResponseDto.BookDetailDto lookupItem(String isbn13) {
@@ -107,49 +196,49 @@ public class AladinService {
                 .queryParam("ItemIdType", "ISBN13") // 혹은 파라미터화
                 .build()
                 .toUri();
-        List<AladinResponseDto.AladinItem> items = execute(uri);
+        AladinResponseDto.AladinApiResult apiResult = execute(uri);
+        List<AladinResponseDto.AladinItem> items = apiResult.getItem() != null
+                ? apiResult.getItem() : Collections.emptyList();
 
         // ISBN13에 해당하는 도서가 없는 경우
         if (items.isEmpty()) {
-            throw new CustomException(ErrorCode.ISBN13_NOT_FOUND);
+            throw new CustomException(BookErrorCode.ISBN13_NOT_FOUND);
         }
+
         AladinResponseDto.AladinItem item = items.get(0);
-
-        // 19금 도서인 경우 예외 처리
-        if(item.isAdult()) {
-            throw new CustomException(ErrorCode.BOOK_NOT_ALLOWED);
+        if (!AladinUtils.isValid(item)) {
+            log.info("[LOOKUP_INVALID] isbn={}, title='{}'", isbn13, item.getTitle());
+            throw new CustomException(BookErrorCode.BOOK_NOT_ALLOWED);
         }
 
-        String rawCategoryName = parseMainCategory(item.getCategoryName());
-        // 카테고리 매핑 확인
+        String rawCategoryName = AladinUtils.extractCategoryName(item.getCategoryName());
         BookCategory bookCategory = BookCategory.match(rawCategoryName)
-                .orElseThrow(() -> new CustomException(ErrorCode.BOOK_NOT_ALLOWED));
-        return AladinConverter.toBookDetailDto(item, bookCategory.getDbName());
+                .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_ALLOWED));
+        String dbCategoryName = bookCategory.getDbName();
+
+        return AladinConverter.toBookDetailDto(item, dbCategoryName);
     }
 
     // API 호출 및 응답 파싱 공통 메서드
-    private List<AladinResponseDto.AladinItem> execute(URI uri) {
+    private AladinResponseDto.AladinApiResult execute(URI uri) {
+        log.debug("[API_REQUEST] url={}", uri);
         try {
             AladinResponseDto.AladinApiResult response = restClient.get()
                     .uri(uri)
                     .retrieve()
                     .body(AladinResponseDto.AladinApiResult.class);
 
-            if (isEmpty(response)) {
-                log.info("[AladinClient] 응답 결과 없음. URI={}", uri);
-                return Collections.emptyList();
+            if (response == null) {
+                log.info("[API_EMPTY] url={}", uri);
+                return new AladinResponseDto.AladinApiResult();
             }
 
-            return response.getItem();
+            return response;
 
         } catch (Exception e) {
-            log.error("[AladinClient] API 호출 실패: URL={}, Error={}", uri, e.getMessage());
-            throw new CustomException(ErrorCode.ALADIN_API_ERROR);
+            log.error("[API_ERROR] url={}, message='{}'", uri, e.getMessage());
+            throw new CustomException(AladinErrorCode.ALADIN_API_ERROR);
         }
-    }
-
-    private boolean isEmpty(AladinResponseDto.AladinApiResult response) {
-        return response == null || response.getItem() == null;
     }
 
     // 공통 URL 빌더
@@ -161,20 +250,5 @@ public class AladinService {
                 .queryParam("output", "js")
                 .queryParam("Version", "20131101");
     }
-    /**
-     * 알라딘 카테고리 문자열에서 1depth만 추출
-     * 예: "국내도서>소설/시/희곡>한국소설" -> "소설/시/희곡"
-     */
-    private String parseMainCategory(String fullCategoryString) {
-        if (fullCategoryString == null || fullCategoryString.isBlank()) {
-            return "";
-        }
-        String[] parts = fullCategoryString.split(">");
-        // parts[0]: "국내도서" or "전자책"
-        // parts[1]: "소설/시/희곡"
-        if (parts.length > 1) {
-            return parts[1].trim();
-        }
-        return ""; // 형식이 맞지 않으면 빈 문자열 -> 필터링
-    }
+
 }

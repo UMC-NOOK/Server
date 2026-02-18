@@ -24,4 +24,4 @@ include::focus.adoc[]
 include::search.adoc[]
 
 == test
-iclude::test.adoc[]
+include::test.adoc[]
