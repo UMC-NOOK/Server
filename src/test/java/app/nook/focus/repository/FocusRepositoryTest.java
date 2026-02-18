@@ -28,12 +28,12 @@ public class FocusRepositoryTest {
     void findAllByOrderByIdAsc_성공() {
         // given
         Theme t1 = themeRepository.save(Theme.builder()
-                .name(ThemeName.Theme2)
+                .name(ThemeName.THEME2)
                 .imageUrl("https://cdn.nook.com/themes/theme2.png")
                 .build());
 
         Theme t2 = themeRepository.save(Theme.builder()
-                .name(ThemeName.Theme1)
+                .name(ThemeName.THEME1)
                 .imageUrl("https://cdn.nook.com/themes/theme1.png")
                 .build());
 

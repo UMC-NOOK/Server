@@ -8,8 +8,6 @@ import lombok.*;
 @Entity
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Table(name = "themes")
 public class Theme extends BaseEntity {
 
@@ -22,7 +20,12 @@ public class Theme extends BaseEntity {
     @Column(nullable = false, unique = true)
     private ThemeName name;
 
-    @Column(name = "image_url", nullable = false)
+    @Column(name = "image_url", length =1000, nullable = false)
     private String imageUrl;
 
+    @Builder
+    public Theme(ThemeName name, String imageUrl) {
+        this.name = name;
+        this.imageUrl = imageUrl;
+    }
 }

@@ -11,13 +11,11 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Table(
         name = "focuses",
         indexes = {
                 @Index(
-                        name = "idx_focus_bookcase",
+                        name = "idx_focus_library",
                         columnList = "library_id"
                 )
         }
@@ -46,10 +44,16 @@ public class Focus extends BaseEntity {
     @Column(name = "duration_sec")
     private Integer durationSec;
 
+    @Builder
+    public Focus(Library library, Theme theme) {
+        this.library = library;
+        this.theme = theme;
+    }
 
     public void startFocus() {
         this.startedAt = LocalDateTime.now();
     }
+
 
     public void endFocus() {
         this.endedAt = LocalDateTime.now();
