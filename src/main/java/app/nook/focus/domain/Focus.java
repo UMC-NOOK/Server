@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
         indexes = {
                 @Index(
                         name = "idx_focus_bookcase",
-                        columnList = "bookcase_id"
+                        columnList = "library_id"
                 )
         }
 )
@@ -30,7 +30,7 @@ public class Focus extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "bookcase_id", nullable = false)
+    @JoinColumn(name = "library_id", nullable = false)
     private Library library;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
