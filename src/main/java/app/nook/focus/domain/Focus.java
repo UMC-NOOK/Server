@@ -33,9 +33,9 @@ public class Focus extends BaseEntity {
     @JoinColumn(name = "bookcase_id", nullable = false)
     private Library library;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "theme_name", nullable = false)
-    private ThemeName themeName;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "theme_id", nullable = false)
+    private Theme theme;
 
     @Column(name = "started_at")
     private LocalDateTime startedAt;
