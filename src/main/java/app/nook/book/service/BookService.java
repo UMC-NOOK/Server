@@ -62,6 +62,7 @@ public class BookService {
     }
 
     // bookId 기반 상세조회: USER/ALADIN 공통 상세 진입점
+    @Transactional
     public BookResponseDto.BookDetailDto getBookDetailById(User user, Long bookId) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));

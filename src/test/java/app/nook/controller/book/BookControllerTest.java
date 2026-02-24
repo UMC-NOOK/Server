@@ -395,7 +395,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
                         .param("publicationDate", "2024-01-01")
                         .param("isbn13", "9788936439743")
                         .with(request -> {
-                            request.setMethod("PUT");
+                            request.setMethod("PATCH");
                             return request;
                         })
                         .header("Authorization", "Bearer test-access-token")

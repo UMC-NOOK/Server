@@ -19,6 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -65,12 +66,13 @@ class UserBookFacadeTest {
         BookResponseDto.BookDetailDto detail = BookResponseDto.BookDetailDto.builder()
                 .bookId(100L).title("혼모노").build();
 
-        given(fileStorageService.uploadCover(any())).willReturn("/uploads/covers/a.png");
-        given(bookService.createUserBook(eq(user), any(), anyString())).willReturn(saved);
+        given(bookService.createUserBook(eq(user), any(), isNull())).willReturn(saved);
         given(bookService.getBookDetailById(user, 100L)).willReturn(detail);
 
         BookResponseDto.BookDetailDto result = userBookFacade.createUserBook(user, req);
 
+        verify(fileStorageService, never()).uploadCover(any());
+        verify(bookService).createUserBook(eq(user), any(), isNull());
         verify(libraryService).save(user, 100L);
         assertThat(result.getBookId()).isEqualTo(100L);
     }
@@ -95,15 +97,14 @@ class UserBookFacadeTest {
         BookResponseDto.BookDetailDto detail = BookResponseDto.BookDetailDto.builder()
                 .bookId(100L).title("혼모노 수정").build();
 
-        given(fileStorageService.uploadCover(any())).willReturn("/uploads/covers/new.png");
         willDoNothing().given(bookService)
-                .updateUserBook(eq(user), eq(100L), any(BookRequestDto.UpdateUserBookRequest.class), anyString());
+                .updateUserBook(eq(user), eq(100L), any(BookRequestDto.UpdateUserBookRequest.class), isNull());
         given(bookService.getBookDetailById(user, 100L)).willReturn(detail);
 
         BookResponseDto.BookDetailDto result = userBookFacade.updateUserBook(user, 100L, req);
 
-        verify(fileStorageService).uploadCover(any());
-        verify(bookService).updateUserBook(eq(user), eq(100L), any(BookRequestDto.UpdateUserBookRequest.class), anyString());
+        verify(fileStorageService, never()).uploadCover(any());
+        verify(bookService).updateUserBook(eq(user), eq(100L), any(BookRequestDto.UpdateUserBookRequest.class), isNull());
         verify(bookService).getBookDetailById(user, 100L);
         assertThat(result.getBookId()).isEqualTo(100L);
     }

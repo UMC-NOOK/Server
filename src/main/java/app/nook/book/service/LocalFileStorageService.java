@@ -67,10 +67,28 @@ public class LocalFileStorageService implements FileStorageService {
         }
 
         String fileName = fileUrl.substring(idx + marker.length());
-        Path path = Paths.get(uploadDir).resolve(fileName);
+
+        // 부적절한 경로 차단
+        if (fileName.isBlank() || fileName.contains("/") || fileName.contains("\\") || fileName.contains("..")) {
+            log.warn("[COVER_DELETE_REJECTED] invalid fileName extracted from url. fileUrl={}", fileUrl);
+            return;
+        }
+
+        // 경로 정규화 + 루트 이탈 방지
+        Path basePath = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Path targetPath = basePath.resolve(fileName).normalize();
+        if (!targetPath.startsWith(basePath)) {
+            log.warn("[COVER_DELETE_REJECTED] path traversal detected. fileUrl={}, targetPath={}", fileUrl, targetPath);
+            return;
+        }
+
         try {
-            Files.deleteIfExists(path);
-        } catch (IOException ignored) {
+            boolean deleted = Files.deleteIfExists(targetPath);
+            if (!deleted) {
+                log.info("[COVER_DELETE_SKIPPED] file not found. path={}", targetPath);
+            }
+        } catch (IOException e) {
+            log.warn("[COVER_DELETE_FAILED] path={}", targetPath, e);
         }
     }
 

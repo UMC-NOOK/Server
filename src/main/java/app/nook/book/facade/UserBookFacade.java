@@ -28,7 +28,7 @@ public class UserBookFacade {
         boolean hasCover = request.coverImage() != null && !request.coverImage().isEmpty();
         log.info("[USER_BOOK_CREATE_START] userId={}, hasCover={}", user.getId(), hasCover);
 
-        String coverImageUrl = fileStorageService.uploadCover(request.coverImage());
+        String coverImageUrl = hasCover ? fileStorageService.uploadCover(request.coverImage()) : null;
 
         Book book = bookService.createUserBook(user, request, coverImageUrl);
         log.info("[USER_BOOK_CREATE_SAVED] userId={}, bookId={}", user.getId(), book.getId());
@@ -46,7 +46,7 @@ public class UserBookFacade {
         boolean hasNewCover = request.coverImage() != null && !request.coverImage().isEmpty();
         log.info("[USER_BOOK_UPDATE_START] userId={}, bookId={}, hasNewCover={}", user.getId(), bookId, hasNewCover);
 
-        String newCoverUrl = fileStorageService.uploadCover(request.coverImage());
+        String newCoverUrl = hasNewCover ? fileStorageService.uploadCover(request.coverImage()) : null;
         bookService.updateUserBook(user, bookId, request, newCoverUrl);
 
         log.info("[USER_BOOK_UPDATE_DONE] userId={}, bookId={}", user.getId(), bookId);

@@ -10,6 +10,7 @@ include::{snippets}/book-controller-test/도서_상세조회_성공/response-fie
 === 도서 상세 조회 (bookId)
 
 include::{snippets}/book-controller-test/도서_상세조회_book-id_성공/http-request.adoc[]
+include::{snippets}/book-controller-test/도서_상세조회_book-id_성공/path-parameters.adoc[]
 include::{snippets}/book-controller-test/도서_상세조회_book-id_성공/http-response.adoc[]
 include::{snippets}/book-controller-test/도서_상세조회_book-id_성공/response-fields.adoc[]
 

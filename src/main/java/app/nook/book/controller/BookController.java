@@ -9,6 +9,7 @@ import app.nook.global.response.SuccessCode;
 import app.nook.user.service.CustomUserDetails;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -52,7 +53,7 @@ public class BookController {
     @GetMapping("/id/{bookId}")
     public ApiResponse<BookResponseDto.BookDetailDto> getBookDetailsById(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long bookId
+            @PathVariable @Positive(message = "bookId는 1 이상이어야 합니다.") Long bookId
     ) {
         return ApiResponse.onSuccess(
                 bookService.getBookDetailById(userDetails.getUser(), bookId), SuccessCode.OK);
@@ -69,10 +70,11 @@ public class BookController {
     }
 
     // 사용자 도서 수정 (본인 생성 USER 도서만 허용)
-    @PutMapping(value = "/user/{bookId}", consumes = "multipart/form-data")
+    // coverImage 미전송/null이면 기존 표지 유지, 삭제는 별도 API로 처리
+    @PatchMapping(value = "/user/{bookId}", consumes = "multipart/form-data")
     public ApiResponse<BookResponseDto.BookDetailDto> updateUserBook(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long bookId,
+            @PathVariable @Positive(message = "bookId는 1 이상이어야 합니다.") Long bookId,
             @Valid @ModelAttribute BookRequestDto.UpdateUserBookRequest request
     ) {
         return ApiResponse.onSuccess(

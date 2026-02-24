@@ -107,7 +107,9 @@ public class Book extends BaseEntity {
         this.publicationDate = request.publicationDate();
         this.pages = request.pages();
         this.description = request.description();
-        this.coverImageUrl = coverImageUrl;
         this.category = category;
+        if (coverImageUrl != null && !coverImageUrl.isBlank()) {
+            this.coverImageUrl = coverImageUrl;
+        }
     }
 }

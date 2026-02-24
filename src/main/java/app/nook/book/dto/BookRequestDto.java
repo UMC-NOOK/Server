@@ -24,6 +24,7 @@ public class BookRequestDto {
             @Size(max = 500, message = "소개는 500자를 초과할 수 없습니다.")
             String description,
 
+            @Min(value = 1, message = "페이지 수는 1 이상이어야 합니다.")
             Integer pages,
 
             @Size(max = 1500, message = "출판사는 1500자를 초과할 수 없습니다.")
@@ -31,7 +32,7 @@ public class BookRequestDto {
 
             String publicationDate,
 
-            @Pattern(regexp = "^$|\\d{1,13}", message = "ISBN은 숫자만 입력 가능하며 최대 13자리입니다.")
+            @Pattern(regexp = "^(|\\d{1,13})$", message = "ISBN은 숫자만 입력 가능하며 최대 13자리입니다.")
             String isbn13,
 
             MultipartFile coverImage
@@ -53,7 +54,7 @@ public class BookRequestDto {
                 @Size(max = 500, message = "소개는 500자를 초과할 수 없습니다.")
                 String description,
 
-                @Min(1)
+                @Min(value = 1, message = "페이지 수는 1 이상이어야 합니다.")
                 Integer pages,
 
                 @Size(max = 1500, message = "출판사는 1500자를 초과할 수 없습니다.")
@@ -61,7 +62,7 @@ public class BookRequestDto {
 
                 String publicationDate,
 
-                @Pattern(regexp = "^$|\\d{1,13}", message = "ISBN은 숫자만 입력 가능하며 최대 13자리입니다.")
+                @Pattern(regexp = "^(|\\d{1,13})$", message = "ISBN은 숫자만 입력 가능하며 최대 13자리입니다.")
                 String isbn13,
 
                 MultipartFile coverImage
