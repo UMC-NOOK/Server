@@ -33,13 +33,13 @@ class ThemeServiceTest {
     @BeforeEach
     void setUp() {
         theme1 = Theme.builder()
-                .name(ThemeName.Theme1)
+                .name(ThemeName.THEME1)
                 .imageUrl("https://cdn.nook.com/themes/theme1.png")
                 .build();
         ReflectionTestUtils.setField(theme1, "id", 1L);
 
         theme2 = Theme.builder()
-                .name(ThemeName.Theme2)
+                .name(ThemeName.THEME2)
                 .imageUrl("https://cdn.nook.com/themes/theme2.png")
                 .build();
         ReflectionTestUtils.setField(theme2, "id", 2L);
@@ -59,11 +59,11 @@ class ThemeServiceTest {
         assertThat(result.themes()).hasSize(2);
 
         assertThat(result.themes().get(0).themeId()).isEqualTo(1L);
-        assertThat(result.themes().get(0).name()).isEqualTo("Theme1");
+        assertThat(result.themes().get(0).name()).isEqualTo("THEME1");
         assertThat(result.themes().get(0).imageUrl()).isEqualTo("https://cdn.nook.com/themes/theme1.png");
 
         assertThat(result.themes().get(1).themeId()).isEqualTo(2L);
-        assertThat(result.themes().get(1).name()).isEqualTo("Theme2");
+        assertThat(result.themes().get(1).name()).isEqualTo("THEME2");
         assertThat(result.themes().get(1).imageUrl()).isEqualTo("https://cdn.nook.com/themes/theme2.png");
     }
 

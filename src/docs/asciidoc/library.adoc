@@ -30,3 +30,19 @@ include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/h
 include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/request-headers.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/http-response.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/response-fields.adoc[]
+
+=== 서재 월별 포커스 통계 조회
+
+include::{snippets}/library-stats-controller-test/월별_포커스_통계_조회_성공/http-request.adoc[]
+include::{snippets}/library-stats-controller-test/월별_포커스_통계_조회_성공/request-headers.adoc[]
+include::{snippets}/library-stats-controller-test/월별_포커스_통계_조회_성공/query-parameters.adoc[]
+include::{snippets}/library-stats-controller-test/월별_포커스_통계_조회_성공/http-response.adoc[]
+include::{snippets}/library-stats-controller-test/월별_포커스_통계_조회_성공/response-fields.adoc[]
+
+=== 서재 월별 포커스 시간 통계 조회
+
+include::{snippets}/library-stats-controller-test/월별_포커스_시간_통계_조회_성공/http-request.adoc[]
+include::{snippets}/library-stats-controller-test/월별_포커스_시간_통계_조회_성공/request-headers.adoc[]
+include::{snippets}/library-stats-controller-test/월별_포커스_시간_통계_조회_성공/query-parameters.adoc[]
+include::{snippets}/library-stats-controller-test/월별_포커스_시간_통계_조회_성공/http-response.adoc[]
+include::{snippets}/library-stats-controller-test/월별_포커스_시간_통계_조회_성공/response-fields.adoc[]
