@@ -39,18 +39,6 @@ public class LibraryViewDto {
             int focusMin,
             String coverUrl
     ){}
-
-    public record FocusBookResponseDto(
-            YearMonth yearMonth,
-            int totalFocusMin,
-            List<FocusBookItem> focusBookItems
-    ){}
-
-    public record FocusBookItem(
-            LocalDate date,
-            FocusTimeSlot timeSlot
-    ){}
-
     public record StatusBookResponseDto(
             ReadingStatus readingStatus,
             int totalBookNum,

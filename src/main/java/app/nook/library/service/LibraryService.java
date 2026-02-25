@@ -4,6 +4,7 @@ import app.nook.book.domain.Book;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
+import app.nook.focus.repository.FocusRepository;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.ErrorCode;
@@ -20,6 +21,9 @@ import app.nook.timeline.domain.enums.BookTimeLineType;
 import app.nook.timeline.repository.BookTimeLineRepository;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -39,8 +43,11 @@ public class LibraryService {
     private final LibraryRepository libraryRepository;
     private final BookRepository bookRepository;
     private final BookTimeLineRepository bookTimeLineRepository;
+    private final FocusRepository focusRepository;
+    private final CacheManager cacheManager;
 
-    // TODO: Book 도메인 에러코드로 추후 수정
+
+    // 서재 책 개수 조회
 
     // 서재 책 등록
     @Transactional
@@ -52,10 +59,7 @@ public class LibraryService {
             throw new CustomException(LibraryErrorCode.BOOK_ALREADY_EXIST);
 
         // 서재 생성
-        Library library = Library.builder()
-                .user(user)
-                .book(book)
-                .build();
+        Library library = new Library(user,book);
         Library savedLibrary = libraryRepository.save(library);
 
         // 타임라인 업데이트
@@ -66,18 +70,32 @@ public class LibraryService {
                 savedLibrary.getId()
         );
         bookTimeLineRepository.save(timeLine);
+        evictStatusBookFirstPageCaches(user.getId());
     }
 
     // 서재 책 삭제
     @Transactional
     public void deleteById(User user, Long bookId){
+        // 책 존재 검증
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
         Library library = libraryRepository.findByUserAndBook(user,book);
-        // 책 존재 확인
+        // 서재 책 존재 확인
         if (library == null)
             throw new CustomException(LibraryErrorCode.BOOK_NOT_EXIST);
+
+        // 캐시 무효화에 필요한 데이터 조회
+        List<FocusRepository.FocusYearMonthProjection> affectedYearMonths =
+                focusRepository.findDistinctFocusYearMonthsByLibraryAndUser(
+                        library.getId(),
+                        user.getId()
+                );
+
         libraryRepository.delete(library);
+
+        // 캐시 무효화
+        evictMonthlyStatsCaches(user.getId(), affectedYearMonths);
+        evictStatusBookFirstPageCaches(user.getId());
     }
 
     // 서재 책 상태변경
@@ -101,16 +119,15 @@ public class LibraryService {
                 library.getReadingStatus().toString(),
                 library.getId());
         bookTimeLineRepository.save(timeLine);
+        evictStatusBookFirstPageCaches(user.getId());
     }
 
-    // 서재 월별 책 조회
-//    public LibraryViewDto.MonthlyBookResponseDto viewMonthly(User user, YearMonth yearMonth){
-//        libraryRepository.findByUserAndYearMonth(user,yearMonth)
-//    }
-
-    // 서재 포커스 시간별 책 조회
-
     // 서재 상태별 책 조회
+    @Cacheable(
+            value = "libraryStatusFirstPage",
+            key = "#user.id + ':' + #status",
+            condition = "#cursor == null && #size == 20"
+    )
     public LibraryViewDto.StatusBookResponseDto viewBooksByStatus(
             User user,
             ReadingStatus status,
@@ -154,5 +171,40 @@ public class LibraryService {
                 .replace("_", "\\_");
         Pageable pageable = PageRequest.of(page, size);
         return libraryRepository.searchByUserIdAndKeyword(userId, escapedKeyword, pageable);
+    }
+
+    // 캐시 무효화 월별
+    private void evictMonthlyStatsCaches(
+            Long userId,
+            List<FocusRepository.FocusYearMonthProjection> yearMonths
+    ) {
+        if (yearMonths == null || yearMonths.isEmpty()) {
+            return;
+        }
+        Cache monthlyCache = cacheManager.getCache("libraryMonthlyCurrent");
+        Cache focusTimeCache = cacheManager.getCache("focusMonthlyCurrent");
+
+        for (FocusRepository.FocusYearMonthProjection yearMonth : yearMonths) {
+            int year = yearMonth.getYearValue();
+            int month = yearMonth.getMonthValue();
+            String key = userId + ":" + YearMonth.of(year, month);
+            if (monthlyCache != null) {
+                monthlyCache.evict(key);
+            }
+            if (focusTimeCache != null) {
+                focusTimeCache.evict(key);
+            }
+        }
+    }
+
+    // 기본 상태별 목록 캐시 무효화 - 첫 페이지
+    private void evictStatusBookFirstPageCaches(Long userId) {
+        Cache cache = cacheManager.getCache("libraryStatusFirstPage");
+        if (cache == null) {
+            return;
+        }
+        for (ReadingStatus status : ReadingStatus.values()) {
+            cache.evict(userId + ":" + status);
+        }
     }
 }

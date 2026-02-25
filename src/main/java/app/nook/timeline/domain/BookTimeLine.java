@@ -17,13 +17,9 @@ import lombok.NoArgsConstructor;
         name = "book_timelines",
         indexes = {
                 @Index(
-                        name = "idx_book_timelines_library",
-                        columnList = "library_id"
+                        name = "idx_book_timelines_library_created",
+                        columnList = "library_id, created_at DESC"
                 ),
-                @Index(
-                        name = "idx_book_timelines_type",
-                        columnList = "type"
-                )
         }
 )
 public class BookTimeLine extends BaseEntity {
