@@ -5,6 +5,9 @@ build/
 # REST Docs
 build/generated-snippets/
 
+# Static resources
+src/main/resources/static/docs/*.html
+
 /src/main/resources/application-secret.properties
 
 db/postgres
