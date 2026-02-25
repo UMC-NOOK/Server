@@ -2,20 +2,21 @@ package app.nook.controller.book;
 
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
+import app.nook.book.dto.BookRequestDto;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.exception.BookErrorCode;
+import app.nook.book.facade.UserBookFacade;
 import app.nook.book.service.BookService;
 import app.nook.global.common.AbstractRestDocsTests;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.service.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -23,8 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
@@ -32,6 +32,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.response
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -40,12 +41,14 @@ public class BookControllerTest extends AbstractRestDocsTests {
     @MockitoBean
     private BookService bookService;
 
-    private User user;
+    @MockitoBean
+    private UserBookFacade userBookFacade;
+
     private CustomUserDetails userDetails;
 
     @BeforeEach
     void setUpUser() {
-        user = User.builder()
+        User user = User.builder()
                 .email("test@example.com")
                 .nickName("테스터")
                 .provider("google")
@@ -152,6 +155,61 @@ public class BookControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @DisplayName("bookId로 도서 상세 조회 성공")
+    void 도서_상세조회_bookId_성공() throws Exception {
+        BookResponseDto.BookDetailDto response = BookResponseDto.BookDetailDto.builder()
+                .bookId(1L)
+                .isbn13("9788936434267")
+                .title("테스트책")
+                .author("저자")
+                .publisher("출판사")
+                .publicationDate("2023-03-21")
+                .mallType("국내도서")
+                .mallTypeCode(MallType.BOOK)
+                .category("소설/시/희곡")
+                .pages(312)
+                .description("한강의 소설")
+                .coverImageUrl("http://example.com/cover.jpg")
+                .sourceType(SourceType.USER)
+                .bookShelfId(3L)
+                .build();
+
+        given(bookService.getBookDetailById(any(User.class), eq(1L))).willReturn(response);
+
+        mockMvc.perform(get("/api/books/id/{bookId}", 1L)
+                        .header("Authorization", "Bearer test-access-token")
+                        .with(user(userDetails)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.bookId").value(1L))
+                .andExpect(jsonPath("$.result.title").value("테스트책"))
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        pathParameters(
+                                parameterWithName("bookId").description("도서 ID")
+                        ),
+                        responseFields(
+                                ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.bookId").description("도서 ID"),
+                                        fieldWithPath("result.isbn13").description("ISBN13").optional(),
+                                        fieldWithPath("result.title").description("도서 제목"),
+                                        fieldWithPath("result.author").description("저자"),
+                                        fieldWithPath("result.publisher").description("출판사").optional(),
+                                        fieldWithPath("result.publicationDate").description("출판일").optional(),
+                                        fieldWithPath("result.mallType").description("상품 유형").optional(),
+                                        fieldWithPath("result.mallTypeCode").description("상품 유형 코드").optional(),
+                                        fieldWithPath("result.category").description("카테고리").optional(),
+                                        fieldWithPath("result.pages").description("페이지 수").optional(),
+                                        fieldWithPath("result.description").description("도서 설명").optional(),
+                                        fieldWithPath("result.coverImageUrl").description("표지 이미지 URL").optional(),
+                                        fieldWithPath("result.aladinLink").description("알라딘 링크").optional(),
+                                        fieldWithPath("result.sourceType").description("데이터 출처"),
+                                        fieldWithPath("result.bookShelfId").description("서재 ID").optional()
+                                )
+                        )
+                ));
+    }
+
+    @Test
     @DisplayName("주간 베스트셀러 목록 조회 성공")
     void 주간베스트셀러_조회_성공() throws Exception {
         // given
@@ -237,6 +295,132 @@ public class BookControllerTest extends AbstractRestDocsTests {
                                         fieldWithPath("result[].coverImageUrl").description("표지 이미지 URL"),
                                         fieldWithPath("result[].publisher").description("출판사"),
                                         fieldWithPath("result[].rank").description("베스트셀러 순위")
+                                )
+                        )
+                ));
+    }
+
+    @Test
+    @DisplayName("사용자 도서 등록 성공")
+    void 사용자_도서_등록_성공() throws Exception {
+        BookResponseDto.BookDetailDto response = BookResponseDto.BookDetailDto.builder()
+                .bookId(101L)
+                .title("혼모노")
+                .author("성해은")
+                .category("소설/시/희곡")
+                .sourceType(SourceType.USER)
+                .bookShelfId(5L)
+                .build();
+
+        given(userBookFacade.createUserBook(any(User.class), any(BookRequestDto.CreateUserBookRequest.class)))
+                .willReturn(response);
+
+        MockMultipartFile cover = new MockMultipartFile(
+                "coverImage", "cover.png", "image/png", "fake".getBytes()
+        );
+
+        mockMvc.perform(multipart("/api/books/user")
+                        .file(cover)
+                        .param("title", "혼모노")
+                        .param("author", "성해은")
+                        .param("categoryName", "소설/시/희곡")
+                        .param("description", "소개")
+                        .param("pages", "348")
+                        .param("publisher", "민음사")
+                        .param("publicationDate", "2023-06-05")
+                        .param("isbn13", "9788936439743")
+                        .header("Authorization", "Bearer test-access-token")
+                        .with(user(userDetails)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS-201"))
+                .andExpect(jsonPath("$.result.bookId").value(101L))
+                .andExpect(jsonPath("$.result.sourceType").value("USER"))
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        responseFields(
+                                ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.bookId").description("도서 ID"),
+                                        fieldWithPath("result.isbn13").description("ISBN13").optional(),
+                                        fieldWithPath("result.title").description("도서 제목"),
+                                        fieldWithPath("result.author").description("저자"),
+                                        fieldWithPath("result.publisher").description("출판사").optional(),
+                                        fieldWithPath("result.publicationDate").description("출판일").optional(),
+                                        fieldWithPath("result.mallType").description("상품 유형").optional(),
+                                        fieldWithPath("result.mallTypeCode").description("상품 유형 코드").optional(),
+                                        fieldWithPath("result.category").description("카테고리").optional(),
+                                        fieldWithPath("result.pages").description("페이지 수").optional(),
+                                        fieldWithPath("result.description").description("도서 설명").optional(),
+                                        fieldWithPath("result.coverImageUrl").description("표지 이미지 URL").optional(),
+                                        fieldWithPath("result.aladinLink").description("알라딘 링크").optional(),
+                                        fieldWithPath("result.sourceType").description("데이터 출처"),
+                                        fieldWithPath("result.bookShelfId").description("서재 ID").optional()
+                                )
+                        )
+                ));
+    }
+
+    @Test
+    @DisplayName("사용자 도서 수정 성공")
+    void 사용자_도서_수정_성공() throws Exception {
+        BookResponseDto.BookDetailDto response = BookResponseDto.BookDetailDto.builder()
+                .isbn13("1721329381232")
+                .bookId(101L)
+                .title("혼모노 수정")
+                .author("성해은")
+                .publisher("창비")
+                .publicationDate("2012-02-03")
+                .category("소설/시/희곡")
+                .pages(212)
+                .description("혼모노 수정")
+                .coverImageUrl("http://example.com/cover.jpg")
+                .sourceType(SourceType.USER)
+                .bookShelfId(5L)
+                .build();
+
+        given(userBookFacade.updateUserBook(any(User.class), anyLong(), any(BookRequestDto.UpdateUserBookRequest.class)))
+                .willReturn(response);
+
+        MockMultipartFile cover = new MockMultipartFile(
+                "coverImage", "cover2.png", "image/png", "fake2".getBytes()
+        );
+
+        mockMvc.perform(multipart("/api/books/user/{bookId}", 101L)
+                        .file(cover)
+                        .param("title", "혼모노 수정")
+                        .param("author", "성해은")
+                        .param("categoryName", "소설/시/희곡")
+                        .param("description", "소개수정")
+                        .param("pages", "360")
+                        .param("publisher", "민음사")
+                        .param("publicationDate", "2024-01-01")
+                        .param("isbn13", "9788936439743")
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        })
+                        .header("Authorization", "Bearer test-access-token")
+                        .with(user(userDetails)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.bookId").value(101L))
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        responseFields(
+                                ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.bookId").description("도서 ID"),
+                                        fieldWithPath("result.isbn13").description("ISBN13").optional(),
+                                        fieldWithPath("result.title").description("도서 제목"),
+                                        fieldWithPath("result.author").description("저자"),
+                                        fieldWithPath("result.publisher").description("출판사").optional(),
+                                        fieldWithPath("result.publicationDate").description("출판일").optional(),
+                                        fieldWithPath("result.mallType").description("상품 유형").optional(),
+                                        fieldWithPath("result.mallTypeCode").description("상품 유형 코드").optional(),
+                                        fieldWithPath("result.category").description("카테고리").optional(),
+                                        fieldWithPath("result.pages").description("페이지 수").optional(),
+                                        fieldWithPath("result.description").description("도서 설명").optional(),
+                                        fieldWithPath("result.coverImageUrl").description("표지 이미지 URL").optional(),
+                                        fieldWithPath("result.aladinLink").description("알라딘 링크").optional(),
+                                        fieldWithPath("result.sourceType").description("데이터 출처"),
+                                        fieldWithPath("result.bookShelfId").description("서재 ID").optional()
                                 )
                         )
                 ));

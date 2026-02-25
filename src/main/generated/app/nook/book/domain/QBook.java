@@ -32,6 +32,8 @@ public class QBook extends EntityPathBase<Book> {
 
     public final StringPath coverImageUrl = createString("coverImageUrl");
 
+    public final NumberPath<Long> createdByUserId = createNumber("createdByUserId", Long.class);
+
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdDate = _super.createdDate;
 
