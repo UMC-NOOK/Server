@@ -56,7 +56,7 @@ public class QSearchHistory extends EntityPathBase<SearchHistory> {
 
     public QSearchHistory(Class<? extends SearchHistory> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.user = inits.isInitialized("user") ? new app.nook.user.domain.QUser(forProperty("user")) : null;
+        this.user = inits.isInitialized("user") ? new app.nook.user.domain.QUser(forProperty("user"), inits.get("user")) : null;
     }
 
 }
