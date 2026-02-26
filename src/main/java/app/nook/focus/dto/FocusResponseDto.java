@@ -1,7 +1,5 @@
 package app.nook.focus.dto;
 
-import app.nook.focus.domain.enums.ThemeName;
-
 import java.util.List;
 
 public class FocusResponseDto {

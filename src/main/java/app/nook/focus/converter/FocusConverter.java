@@ -1,7 +1,6 @@
 package app.nook.focus.converter;
 
 import app.nook.focus.domain.Theme;
-import app.nook.focus.domain.enums.ThemeName;
 import app.nook.focus.dto.FocusResponseDto;
 
 import java.util.List;

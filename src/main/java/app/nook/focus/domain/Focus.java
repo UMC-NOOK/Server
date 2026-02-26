@@ -1,7 +1,6 @@
 package app.nook.focus.domain;
 
 import app.nook.global.common.BaseEntity;
-import app.nook.focus.domain.enums.ThemeName;
 import app.nook.library.domain.Library;
 import jakarta.persistence.*;
 import lombok.*;

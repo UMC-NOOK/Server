@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/focuses")
-public class ThemeController {
+public class FocusController {
 
     private final ThemeService themeService;
 
