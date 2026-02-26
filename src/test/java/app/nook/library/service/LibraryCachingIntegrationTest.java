@@ -4,13 +4,15 @@ import app.nook.NookApplication;
 import app.nook.book.domain.Book;
 import app.nook.book.repository.BookRepository;
 import app.nook.focus.repository.FocusRepository;
+import app.nook.global.common.security.WithCustomUser;
 import app.nook.library.domain.Library;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.timeline.repository.BookTimeLineRepository;
 import app.nook.user.domain.User;
-import app.nook.user.domain.enums.UserRole;
+import app.nook.user.service.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -40,6 +42,7 @@ import static org.mockito.Mockito.verify;
         properties = "spring.main.allow-bean-definition-overriding=true"
 )
 @ActiveProfiles("test")
+@WithCustomUser(userId = 1L)
 class LibraryCachingIntegrationTest {
 
     @TestConfiguration
@@ -86,7 +89,7 @@ class LibraryCachingIntegrationTest {
     @Test
     void viewMonthly_동일키_호출시_한번만_조회된다() {
         // given
-        Long userId = 1L;
+        Long userId = currentUserId();
         YearMonth yearMonth = YearMonth.of(2026, 2);
         LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
         LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
@@ -105,20 +108,13 @@ class LibraryCachingIntegrationTest {
     @Test
     void deleteById_후_viewMonthly_재조회시_캐시가_무효화된다() {
         // given
-        Long userId = 1L;
+        Long userId = currentUserId();
         Long bookId = 100L;
         YearMonth yearMonth = YearMonth.of(2026, 2);
         LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
         LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
 
-        User user = User.builder()
-                .email("user@test.com")
-                .nickName("user")
-                .provider("kakao")
-                .providerId("provider-id")
-                .role(UserRole.USER)
-                .build();
-        ReflectionTestUtils.setField(user, "id", userId);
+        User user = currentUser();
 
         Book book = Book.builder()
                 .isbn13("9780000000001")
@@ -149,7 +145,7 @@ class LibraryCachingIntegrationTest {
     @Test
     void viewMonthly_키가_다르면_각각_캐시가_분리된다() {
         // given
-        Long user1 = 1L;
+        Long user1 = currentUserId();
         Long user2 = 2L;
         YearMonth feb = YearMonth.of(2026, 2);
         YearMonth mar = YearMonth.of(2026, 3);
@@ -179,6 +175,17 @@ class LibraryCachingIntegrationTest {
         if (cache != null) {
             cache.clear();
         }
+    }
+
+    private Long currentUserId() {
+        return currentUser().getId();
+    }
+
+    private User currentUser() {
+        CustomUserDetails principal = (CustomUserDetails) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        return principal.getUser();
     }
 
     private FocusRepository.MonthlyFocusStatsProjection monthlyProjection(
