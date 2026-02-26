@@ -100,7 +100,6 @@ public class LibraryService {
                 .collect(Collectors.toList());
 
         libraryRepository.delete(library);
-        bookTimeLineRepository.deleteByLibrary(library);
 
         eventPublisher.publishEvent(
                 LibraryCacheInvalidateEvent.statusAndMonthly(user.getId(), affectedYearMonths)

@@ -26,10 +26,14 @@ public class QLibrary extends EntityPathBase<Library> {
 
     public final app.nook.book.domain.QBook book;
 
+    public final ListPath<app.nook.timeline.domain.BookTimeLine, app.nook.timeline.domain.QBookTimeLine> bookTimeLines = this.<app.nook.timeline.domain.BookTimeLine, app.nook.timeline.domain.QBookTimeLine>createList("bookTimeLines", app.nook.timeline.domain.BookTimeLine.class, app.nook.timeline.domain.QBookTimeLine.class, PathInits.DIRECT2);
+
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdDate = _super.createdDate;
 
     public final DatePath<java.time.LocalDate> endedAt = createDate("endedAt", java.time.LocalDate.class);
+
+    public final ListPath<app.nook.focus.domain.Focus, app.nook.focus.domain.QFocus> focuses = this.<app.nook.focus.domain.Focus, app.nook.focus.domain.QFocus>createList("focuses", app.nook.focus.domain.Focus.class, app.nook.focus.domain.QFocus.class, PathInits.DIRECT2);
 
     public final NumberPath<Long> focusSec = createNumber("focusSec", Long.class);
 

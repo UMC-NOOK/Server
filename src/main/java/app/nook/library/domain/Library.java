@@ -1,8 +1,10 @@
 package app.nook.library.domain;
 
 import app.nook.book.domain.Book;
+import app.nook.focus.domain.Focus;
 import app.nook.global.common.BaseEntity;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.timeline.domain.BookTimeLine;
 import app.nook.user.domain.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -10,6 +12,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -50,6 +54,12 @@ public class Library extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
+
+    @OneToMany(mappedBy = "library", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Focus> focuses = new ArrayList<>();
+
+    @OneToMany(mappedBy = "library", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BookTimeLine> bookTimeLines = new ArrayList<>();
 
     @Column(name = "started_at")
     private LocalDate startedAt;
