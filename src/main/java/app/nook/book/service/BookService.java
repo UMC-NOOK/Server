@@ -2,14 +2,16 @@ package app.nook.book.service;
 
 import app.nook.aladin.service.AladinService;
 import app.nook.book.converter.BookConverter;
-import app.nook.book.dto.BookResponseDto;
 import app.nook.book.domain.Book;
 import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
+import app.nook.book.dto.BookRequestDto;
+import app.nook.book.dto.BookResponseDto;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
+import app.nook.book.utils.BookUtils;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import app.nook.library.repository.LibraryRepository;
@@ -33,16 +35,17 @@ public class BookService {
     private final LibraryRepository libraryRepository;
     private final AladinService aladinService;
 
-    // 도서 상세 조회
-    // TODO: 사용자가 추가한 서재인 경우 필터링 로직 추가 예정
+    // ISBN 기반 상세조회: ALADIN 소스만 조회/저장 대상으로 사용
     @Transactional
     public BookResponseDto.BookDetailDto getBookDetailByIsbn(User user, String isbn13) {
 
-        Optional<Book> existingBook = bookRepository.findByIsbn13(isbn13);
+        Optional<Book> existingBook = bookRepository.findByIsbn13AndSourceType(isbn13, SourceType.ALADIN);
         if (existingBook.isPresent()) {
             Book book = existingBook.get();
 
-            if (isOutdated(book.getModifiedDate()) && book.getSourceType()== SourceType.ALADIN) {
+            if (book.getSourceType() == SourceType.ALADIN
+                    && book.getIsbn13() != null
+                    && isOutdated(book.getModifiedDate())) {
                 log.info("[BOOK_UPDATE] isbn={}, title={}", isbn13, book.getTitle());
                 updateBookInfo(book, isbn13);
             }
@@ -50,7 +53,7 @@ public class BookService {
             return BookConverter.toBookDetailDto(book, findLibraryId(user, book));
         }
 
-        log.info("[API_FETCH] isbn={}, status='Not found in DB'", isbn13);
+        log.info("[API_FETCH] isbn={}, status='Not found in DB(ALADIN)'", isbn13);
         BookResponseDto.BookDetailDto bookDetailDto = aladinService.lookupItem(isbn13);
         Category category = findCategory(bookDetailDto);
         Book newBook = bookRepository.save(BookConverter.toBook(bookDetailDto, category, SourceType.ALADIN));
@@ -58,7 +61,61 @@ public class BookService {
         return BookConverter.toBookDetailDto(newBook, null);
     }
 
-    // 주간 베스트셀러
+    // bookId 기반 상세조회: USER/ALADIN 공통 상세 진입점
+    @Transactional
+    public BookResponseDto.BookDetailDto getBookDetailById(User user, Long bookId) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
+
+        if (book.getSourceType() == SourceType.ALADIN
+                && book.getIsbn13() != null
+                && isOutdated(book.getModifiedDate())) {
+            updateBookInfo(book, book.getIsbn13());
+        }
+
+        return BookConverter.toBookDetailDto(book, findLibraryId(user, book));
+    }
+
+    @Transactional
+    public Book createUserBook(User user, BookRequestDto.CreateUserBookRequest request, String coverImageUrl) {
+        // 프론트 categoryName을 DB Category(FK)로 매핑
+        Category category = findUserBookCategory(request.categoryName());
+        Book book = Book.builder()
+                .isbn13(BookUtils.normalizeIsbn(request.isbn13()))
+                .title(request.title())
+                .author(request.author())
+                .publisher(request.publisher())
+                .publicationDate(request.publicationDate())
+                .pages(request.pages())
+                .description(request.description())
+                .coverImageUrl(coverImageUrl)
+                .aladinLink(null)
+                .sourceType(SourceType.USER)
+                .createdByUserId(user.getId())
+                .category(category)
+                .build();
+
+        Book saved = bookRepository.save(book);
+        log.info("[USER_BOOK_CREATE_SAVED] userId={}, bookId={}, sourceType={}",
+                user.getId(), saved.getId(), saved.getSourceType());
+        return saved;
+    }
+
+    @Transactional
+    public void updateUserBook(
+            User user, Long bookId, BookRequestDto.UpdateUserBookRequest request, String newCoverImageUrl) {
+        // 소유권 검증 후에만 USER 도서 수정 허용
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
+        validateUserBookOwnership(user, book);
+        String coverImageUrlToUse = (newCoverImageUrl == null || newCoverImageUrl.isBlank())
+                ? book.getCoverImageUrl() : newCoverImageUrl;
+
+        book.updateUserBookInfo(request, coverImageUrlToUse, findUserBookCategory(request.categoryName()));
+        log.info("[USER_BOOK_UPDATE_DONE] userId={}, bookId={}", user.getId(), bookId);
+    }
+
+    // 주간 베스트셀러 조회
     // TODO: redis 도입 예정
     public List<BookResponseDto.BookPreviewDto> getWeeklyBestsellers() {
         log.info("[FETCH_WEEKLY_BEST]");
@@ -69,10 +126,10 @@ public class BookService {
         return bookPreviewDtos;
     }
 
-    // 사용자 맞춤 추천 베스트셀러
-    // TODO: 카테고리 추출 및 redis는 이후 구현 예정
+    // 사용자 맞춤 추천 베스트셀러 조회
+    // TODO: 카테고리 추출 및 redis 이후 구현 예정
     public List<BookResponseDto.BookPreviewDto> getPersonalizedBestsellers(Long userId) {
-        String categoryId = "1"; // 예시 카테고리 ID
+        String categoryId = "1"; // 임시 카테고리 ID
 
         log.info("[FETCH_PERSONAL_BEST] categoryId={}", categoryId);
         List<BookResponseDto.BookPreviewDto> bookPreviewDtos = aladinService.fetchItemList(
@@ -82,13 +139,34 @@ public class BookService {
         return bookPreviewDtos;
     }
 
+    private void validateUserBookOwnership(User user, Book book) {
+        if (book.getSourceType() != SourceType.USER) {
+            log.warn("[USER_BOOK_UPDATE_FORBIDDEN] requestUserId={}, bookId={}, reason=NOT_USER_SOURCE, sourceType={}",
+                    user.getId(), book.getId(), book.getSourceType());
+            throw new CustomException(BookErrorCode.BOOK_NOT_OWNED);
+        }
+        if (book.getCreatedByUserId() == null || !book.getCreatedByUserId().equals(user.getId())) {
+            log.warn("[USER_BOOK_UPDATE_FORBIDDEN] requestUserId={}, bookId={}, reason=NOT_OWNER, createdByUserId={}",
+                    user.getId(), book.getId(), book.getCreatedByUserId());
+            throw new CustomException(BookErrorCode.BOOK_NOT_OWNED);
+        }
+    }
+
+    // USER 도서는 BOOK mallType 기준 카테고리만 허용
+    private Category findUserBookCategory(String categoryName) {
+        return categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, categoryName)
+                .orElseThrow(() -> {
+                    log.warn("[USER_BOOK_CATEGORY_NOT_FOUND] categoryName={}", categoryName);
+                    return new CustomException(BookErrorCode.CATEGORY_NOT_FOUND);
+                });
+    }
+
     private Category findCategory(BookResponseDto.BookDetailDto bookDetailDto) {
-        MallType mallType = bookDetailDto.getMallTypeCode(); // 예: BOOK
-        String categoryName = bookDetailDto.getCategory(); // 예: 소설/시/희곡
+        MallType mallType = bookDetailDto.getMallTypeCode();
+        String categoryName = bookDetailDto.getCategory();
 
         return categoryRepository.findByMallTypeAndCategoryName(mallType, categoryName)
                 .orElseGet(() -> {
-                    // 예외 처리: 알라딘이 보낸 1 Depth 이름이 우리 DB 초기화 리스트에 없는 경우
                     log.warn("[CATEGORY_MAPPING_FAIL] mallType={}, category='{}'", mallType, categoryName);
                     throw new CustomException(BookErrorCode.BOOK_NOT_ALLOWED);
                 });
@@ -113,3 +191,4 @@ public class BookService {
         return (library != null) ? library.getId() : null;
     }
 }
+

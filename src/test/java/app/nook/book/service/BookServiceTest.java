@@ -5,6 +5,7 @@ import app.nook.book.domain.Book;
 import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
+import app.nook.book.dto.BookRequestDto;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
@@ -93,7 +94,7 @@ class BookServiceTest {
         ReflectionTestUtils.setField(book, "id", 1L);
         ReflectionTestUtils.setField(book, "modifiedDate", LocalDateTime.now());
 
-        given(bookRepository.findByIsbn13(TEST_ISBN_1))
+        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN))
                 .willReturn(Optional.of(book));
         given(bookRepository.findById(1L))
                 .willReturn(Optional.of(book));
@@ -111,7 +112,7 @@ class BookServiceTest {
         assertThat(result.getPages()).isEqualTo(184);
 
         // DB에 있었으므로 알라딘 API는 호출되지 않아야 함
-        verify(bookRepository, times(1)).findByIsbn13(TEST_ISBN_1);
+        verify(bookRepository, times(1)).findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN);
         verify(aladinService, never()).lookupItem(any());
     }
 
@@ -126,7 +127,7 @@ class BookServiceTest {
         ReflectionTestUtils.setField(savedBookWithId, "id", 100L);
 
         // Mocking 시나리오
-        given(bookRepository.findByIsbn13(TEST_ISBN_1)).willReturn(Optional.empty()); // DB 없음
+        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN)).willReturn(Optional.empty()); // DB 없음
         given(aladinService.lookupItem(TEST_ISBN_1)).willReturn(apiResponse); // API 호출
         given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, TEST_CATEGORY_NAME))
                 .willReturn(Optional.of(category)); // 카테고리 조회
@@ -168,7 +169,7 @@ class BookServiceTest {
                 .category("존재하지않는카테고리")
                 .build();
 
-        given(bookRepository.findByIsbn13(TEST_ISBN_1)).willReturn(Optional.empty());
+        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN)).willReturn(Optional.empty());
         given(aladinService.lookupItem(TEST_ISBN_1)).willReturn(apiResponse);
         // 카테고리 조회 실패 시뮬레이션
         given(categoryRepository.findByMallTypeAndCategoryName(any(), any()))
@@ -184,6 +185,22 @@ class BookServiceTest {
 
         // 예외 발생 시 저장이 수행되면 안 됨 (데이터 오염 방지)
         verify(bookRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("bookId 기반 상세 조회 성공")
+    void getBookDetailById_success() {
+        Book book = createBook(TEST_ISBN_1, "제목", 184);
+        ReflectionTestUtils.setField(book, "id", 20L);
+        ReflectionTestUtils.setField(book, "sourceType", SourceType.USER);
+
+        given(bookRepository.findById(20L)).willReturn(Optional.of(book));
+        given(libraryRepository.findByUserAndBook(testUser, book)).willReturn(null);
+
+        BookResponseDto.BookDetailDto result = bookService.getBookDetailById(testUser, 20L);
+
+        assertThat(result.getBookId()).isEqualTo(20L);
+        assertThat(result.getTitle()).isEqualTo("제목");
     }
 
     @Test
@@ -229,6 +246,79 @@ class BookServiceTest {
         assertThat(result.get(0).title()).isEqualTo("채식주의자");
 
         verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 5, "1");
+    }
+
+    @Test
+    @DisplayName("사용자 도서 생성 성공")
+    void createUserBook_success() {
+        BookRequestDto.CreateUserBookRequest request = new BookRequestDto.CreateUserBookRequest(
+                "혼모노", "성해은", TEST_CATEGORY_NAME, "소개", 348, TEST_PUBLISHER,
+                "2023-06-05", "9788936439743", null
+        );
+
+        given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, TEST_CATEGORY_NAME))
+                .willReturn(Optional.of(category));
+        given(bookRepository.save(any(Book.class))).willAnswer(invocation -> {
+            Book saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 100L);
+            return saved;
+        });
+
+        Book saved = bookService.createUserBook(testUser, request, "/uploads/covers/a.png");
+
+        assertThat(saved.getId()).isEqualTo(100L);
+        assertThat(saved.getSourceType()).isEqualTo(SourceType.USER);
+        assertThat(saved.getCreatedByUserId()).isEqualTo(TEST_USER_ID);
+        assertThat(saved.getCategory()).isEqualTo(category);
+        assertThat(saved.getIsbn13()).isEqualTo("9788936439743");
+    }
+
+    @Test
+    @DisplayName("사용자 도서 수정 - 본인 소유가 아니면 실패")
+    void updateUserBook_notOwned_fail() {
+        BookRequestDto.UpdateUserBookRequest request = new BookRequestDto.UpdateUserBookRequest(
+                "수정제목", "수정저자", TEST_CATEGORY_NAME, "수정소개", 200, TEST_PUBLISHER,
+                "2024-01-01", "1234567890123", null
+        );
+
+        Book book = createBook("1234567890123", "원제목", 120);
+        ReflectionTestUtils.setField(book, "id", 10L);
+        ReflectionTestUtils.setField(book, "sourceType", SourceType.USER);
+        ReflectionTestUtils.setField(book, "createdByUserId", 999L);
+
+        given(bookRepository.findById(10L)).willReturn(Optional.of(book));
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> bookService.updateUserBook(testUser, 10L, request, null)
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_NOT_OWNED);
+    }
+
+    @Test
+    @DisplayName("사용자 도서 수정 - 카테고리 없음 실패")
+    void updateUserBook_categoryNotFound_fail() {
+        BookRequestDto.UpdateUserBookRequest request = new BookRequestDto.UpdateUserBookRequest(
+                "수정제목", "수정저자", "없는카테고리", "수정소개", 200, TEST_PUBLISHER,
+                "2024-01-01", "1234567890123", null
+        );
+
+        Book book = createBook("1234567890123", "원제목", 120);
+        ReflectionTestUtils.setField(book, "id", 11L);
+        ReflectionTestUtils.setField(book, "sourceType", SourceType.USER);
+        ReflectionTestUtils.setField(book, "createdByUserId", TEST_USER_ID);
+
+        given(bookRepository.findById(11L)).willReturn(Optional.of(book));
+        given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, "없는카테고리"))
+                .willReturn(Optional.empty());
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> bookService.updateUserBook(testUser, 11L, request, null)
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.CATEGORY_NOT_FOUND);
     }
 
     // === 헬퍼 메서드 ===

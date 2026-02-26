@@ -57,7 +57,8 @@ public class WebSecurityConfig {
                                 "/docs/**",              // REST Docs
                                 "/index.html",
                                 "/api/auth/**",
-                                "/ws/**"
+                                "/ws/**",
+                                "/uploads/**"            // TODO: 임시 로컬 이미지 업로드용, 추후 S3로 변경 예정
                         ).permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()
