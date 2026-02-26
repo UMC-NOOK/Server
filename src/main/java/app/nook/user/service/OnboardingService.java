@@ -4,10 +4,14 @@ import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.CategoryRepository;
+import app.nook.book.service.FileStorageService;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.ErrorCode;
+import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.repository.LibraryRepository;
 import app.nook.user.domain.User;
 import app.nook.user.dto.OnboardingDto;
+import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,13 +25,19 @@ import java.util.concurrent.ThreadLocalRandom;
 public class OnboardingService {
 
     private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
+    private final LibraryRepository libraryRepository;
+    private final FileStorageService fileStorageService;
+
 
     @Transactional
     public OnboardingDto.CompleteResponse completeOnboarding(
-            User user,
+            Long userId,
             OnboardingDto.CompleteRequest request
     ) {
-        List<Category> selected = request.categories().stream()
+        User user = getUser(userId);
+
+        List<Category> selected = request.getCategories().stream()
                 .distinct()
                 .map(name -> categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, name)
                         .orElseThrow(() -> new CustomException(BookErrorCode.CATEGORY_NOT_FOUND)))
@@ -38,11 +48,15 @@ public class OnboardingService {
         }
 
         Category preferred = choosePreferredCategory(user, selected);
+        String profileUrl = user.getProfileUrl();
+        if (request.getProfileImage() != null && !request.getProfileImage().isEmpty()) {
+            profileUrl = fileStorageService.uploadProfile(request.getProfileImage());
+        }
 
         user.updateOnboarding(
-                request.goal(),
-                request.nickname(),
-                request.profileUrl(),
+                request.getGoal(),
+                request.getNickname(),
+                profileUrl,
                 preferred
         );
 
@@ -54,18 +68,27 @@ public class OnboardingService {
 
     }
 
-    public OnboardingDto.StatusResponse getOnboardingStatus(User user) {
+    public OnboardingDto.StatusResponse getOnboardingStatus(Long userId) {
+        User user = getUser(userId);
         return new OnboardingDto.StatusResponse(
                 user.needsOnboarding(),
                 user.getOnboardingCompletedAt()
         );
     }
 
+    public OnboardingDto.GoalResponse getGoal(Long userId) {
+        User user = getUser(userId);
+        long finishedCount = libraryRepository.countByUserAndReadingStatus(user, ReadingStatus.FINISHED);
+        int remaining = Math.max(0, user.getGoal() - (int) finishedCount);
+        return new OnboardingDto.GoalResponse(user.getGoal(), remaining);
+    }
+
     @Transactional
     public OnboardingDto.GoalUpdateResponse updateGoal(
-            User user,
+            Long userId,
             OnboardingDto.GoalUpdateRequest request
     ) {
+        User user = getUser(userId);
         user.updateGoal(request.goal());
         return new OnboardingDto.GoalUpdateResponse(user.getGoal());
     }
@@ -83,5 +106,10 @@ public class OnboardingService {
             return selected.get(0);
         }
         return selected.get(ThreadLocalRandom.current().nextInt(selected.size()));
+    }
+
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
 }

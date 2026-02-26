@@ -35,7 +35,8 @@ spring:
 file:
   cover-upload-dir: uploads/covers
   profile-upload-dir: uploads/profiles
-
+  cover-url-prefix: /uploads/covers/
+  profile-url-prefix: /uploads/profiles/
 
 jwt:
   secret: ${JWT_SECRET}

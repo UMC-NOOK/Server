@@ -1,18 +1,29 @@
 package app.nook.user.dto;
 
 import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 public class OnboardingDto {
 
-    public record CompleteRequest(
-            @Min(1) @Max(300) short goal,
-            @NotBlank @Size(max = 10) String nickname,
-            @NotEmpty @Size(min = 1, max = 2) List<String> categories,
-            String profileUrl
-    ) {}
+    @Getter
+    @Setter
+    public static class CompleteRequest {
+        @Min(1) @Max(300)
+        private short goal;
+
+        @NotBlank @Size(max = 10)
+        private String nickname;
+
+        @NotEmpty @Size(min = 1, max = 2)
+        private List<String> categories;
+
+        private MultipartFile profileImage;
+    }
 
     public record CompleteResponse(
             boolean onboardingCompleted,
@@ -33,5 +44,8 @@ public class OnboardingDto {
             short goal
     ) {}
 
-    public record ProfileImageUploadResponse(String profileUrl) {}
+    public record GoalResponse(
+            short goal,
+            int remainingCount
+    ) {}
 }

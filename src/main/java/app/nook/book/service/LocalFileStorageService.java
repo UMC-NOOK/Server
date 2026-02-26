@@ -30,27 +30,33 @@ public class LocalFileStorageService implements FileStorageService {
     @Value("${file.profile-upload-dir:uploads/profiles}")
     private String profileUploadDir;
 
+    @Value("${file.cover-url-prefix:/uploads/covers/}")
+    private String coverUrlPrefix;
+
+    @Value("${file.profile-url-prefix:/uploads/profiles/}")
+    private String profileUrlPrefix;
+
     @Override
     public String uploadCover(MultipartFile file) {
-        return upload(file, coverUploadDir);
+        return upload(file, coverUploadDir, coverUrlPrefix);
     }
 
     @Override
     public String uploadProfile(MultipartFile file) {
-        return upload(file, profileUploadDir);
+        return upload(file, profileUploadDir, profileUrlPrefix);
     }
 
     @Override
     public void deleteCoverByUrl(String fileUrl) {
-        deleteByUrl(fileUrl, coverUploadDir);
+        deleteByUrl(fileUrl, coverUploadDir, coverUrlPrefix);
     }
 
     @Override
     public void deleteProfileByUrl(String fileUrl) {
-        deleteByUrl(fileUrl, profileUploadDir);
+        deleteByUrl(fileUrl, profileUploadDir, profileUrlPrefix);
     }
 
-    private String upload(MultipartFile file, String uploadDir) {
+    private String upload(MultipartFile file, String uploadDir, String urlPrefix) {
         if (file == null || file.isEmpty()) {
             return null;
         }
@@ -61,7 +67,6 @@ public class LocalFileStorageService implements FileStorageService {
         }
 
         try {
-            String urlPrefix = "/" + uploadDir + "/";
             Path dirPath = Paths.get(uploadDir);
             Files.createDirectories(dirPath);
 
@@ -69,7 +74,7 @@ public class LocalFileStorageService implements FileStorageService {
             Path targetPath = dirPath.resolve(fileName);
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-            return urlPrefix + fileName;
+            return normalizeUrlPrefix(urlPrefix) + fileName;
         } catch (IOException e) {
             log.error("[FILE_UPLOAD_FAILED] originalFilename={}", file.getOriginalFilename(), e);
             throw new CustomException(FileErrorCode.FILE_UPLOAD_FAILED);
@@ -77,12 +82,12 @@ public class LocalFileStorageService implements FileStorageService {
     }
 
 
-    private void deleteByUrl(String fileUrl, String baseDir) {
+    private void deleteByUrl(String fileUrl, String baseDir, String urlPrefix) {
         if (fileUrl == null || fileUrl.isBlank()) {
             return;
         }
 
-        String marker = "/" + baseDir + "/";
+        String marker = normalizeUrlPrefix(urlPrefix);
 
         int idx = fileUrl.indexOf(marker);
         if (idx < 0) {
@@ -123,6 +128,13 @@ public class LocalFileStorageService implements FileStorageService {
             throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
         }
         return filename.substring(dotIndex + 1).toLowerCase();
+    }
+
+    private String normalizeUrlPrefix(String prefix) {
+        String p = (prefix == null || prefix.isBlank()) ? "/" : prefix.trim();
+        if (!p.startsWith("/")) p = "/" + p;
+        if (!p.endsWith("/")) p = p + "/";
+        return p;
     }
 }
 

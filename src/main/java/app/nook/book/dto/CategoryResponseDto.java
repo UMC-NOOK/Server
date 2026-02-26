@@ -10,6 +10,6 @@ public class CategoryResponseDto {
     ) {}
 
     public record BookCategoryList(
-            List<BookCategoryItem> categoryItems
+            List<BookCategoryItem> categories
     ) {}
 }

@@ -13,11 +13,14 @@ import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.book.utils.BookUtils;
 import app.nook.global.exception.CustomException;
+import app.nook.global.response.ErrorCode;
 import app.nook.library.domain.Library;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.user.domain.User;
+import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +36,7 @@ public class BookService {
     private final BookRepository bookRepository;
     private final CategoryRepository categoryRepository;
     private final LibraryRepository libraryRepository;
+    private final UserRepository userRepository;
     private final AladinService aladinService;
 
     // ISBN 기반 상세조회: ALADIN 소스만 조회/저장 대상으로 사용
@@ -127,9 +131,9 @@ public class BookService {
     }
 
     // 사용자 맞춤 추천 베스트셀러 조회
-    // TODO: 카테고리 추출 및 redis 이후 구현 예정
-    public List<BookResponseDto.BookPreviewDto> getPersonalizedBestsellers(Long userId) {
-        String categoryId = "1"; // 임시 카테고리 ID
+    // TODO: redis 이후 구현 예정
+    public List<BookResponseDto.BookPreviewDto> getPersonalizedBestsellers(User user) {
+        String categoryId = String.valueOf(resolveRecommendationCategoryId(user.getId()));
 
         log.info("[FETCH_PERSONAL_BEST] categoryId={}", categoryId);
         List<BookResponseDto.BookPreviewDto> bookPreviewDtos = aladinService.fetchItemList(
@@ -137,6 +141,25 @@ public class BookService {
 
         log.info("[FETCH_PERSONAL_BEST_SUCCESS] count={}", bookPreviewDtos.size());
         return bookPreviewDtos;
+    }
+
+    private int resolveRecommendationCategoryId(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        List<Integer> topFromLibrary = libraryRepository.findTopAladinCategoryIdsByUserId(
+                userId, MallType.BOOK, PageRequest.of(0, 1)
+        );
+
+        if (!topFromLibrary.isEmpty()) {
+            return topFromLibrary.get(0);
+        }
+
+        if (user.getPreferredCategory() != null) {
+            return user.getPreferredCategory().getAladinCategoryId();
+        }
+
+        return 1;
     }
 
     private void validateUserBookOwnership(User user, Book book) {

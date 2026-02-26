@@ -239,7 +239,7 @@ class BookServiceTest {
                 .willReturn(mockBestsellers);
 
         // when
-        List<BookResponseDto.BookPreviewDto> result = bookService.getPersonalizedBestsellers(TEST_USER_ID);
+        List<BookResponseDto.BookPreviewDto> result = bookService.getPersonalizedBestsellers(testUser);
 
         // then
         assertThat(result).hasSize(1);
