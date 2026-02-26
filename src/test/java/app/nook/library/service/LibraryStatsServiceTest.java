@@ -2,6 +2,8 @@ package app.nook.library.service;
 
 import app.nook.focus.repository.FocusRepository;
 import app.nook.library.dto.FocusRankDto;
+import app.nook.library.dto.FocusTimeSlot;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,144 +29,212 @@ class LibraryStatsServiceTest {
     @InjectMocks
     private LibraryStatsService libraryStatsService;
 
+    private FocusRankDto.MonthlyFocusRow row(
+            LocalDate date,
+            Long bookId,
+            String coverImageUrl,
+            Long totalSec
+    ) {
+        return new FocusRankDto.MonthlyFocusRow(date, bookId, coverImageUrl, totalSec);
+    }
+
+    private FocusRepository.MonthlyFocusStatsProjection toProjection(FocusRankDto.MonthlyFocusRow row) {
+        return new FocusRepository.MonthlyFocusStatsProjection() {
+            @Override
+            public Integer getYearValue() {
+                return row.date().getYear();
+            }
+
+            @Override
+            public Integer getMonthValue() {
+                return row.date().getMonthValue();
+            }
+
+            @Override
+            public Integer getDayValue() {
+                return row.date().getDayOfMonth();
+            }
+
+            @Override
+            public Long getBookId() {
+                return row.bookId();
+            }
+
+            @Override
+            public String getCoverImageUrl() {
+                return row.coverImageUrl();
+            }
+
+            @Override
+            public Long getTotalSec() {
+                return row.totalSec();
+            }
+        };
+    }
+
+    private FocusRepository.FocusTimeStatsProjection timeProjection(LocalDate date, Long totalSec) {
+        return new FocusRepository.FocusTimeStatsProjection() {
+            @Override
+            public Integer getYearValue() {
+                return date.getYear();
+            }
+
+            @Override
+            public Integer getMonthValue() {
+                return date.getMonthValue();
+            }
+
+            @Override
+            public Integer getDayValue() {
+                return date.getDayOfMonth();
+            }
+
+            @Override
+            public Long getTotalSec() {
+                return totalSec;
+            }
+        };
+    }
+
+    @DisplayName("월별 포커스 통계 조회")
     @Nested
     class ViewMonthly {
 
-        @Test
-        void 정상_케이스() {
-            // given
-            Long userId = 1L;
-            YearMonth yearMonth = YearMonth.of(2026, 2);
-            LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
-            LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
+        @DisplayName("성공")
+        @Nested
+        class Success {
 
-            List<FocusRankDto.MonthlyFocusRow> rows = List.of(
-                    row(LocalDate.of(2026, 2, 1), 11L, "cover-11", 1200L),
-                    row(LocalDate.of(2026, 2, 2), 22L, "cover-22", 600L),
-                    row(LocalDate.of(2026, 2, 3), 33L, "cover-33", 1800L)
-            );
-            given(focusRepository.findMonthlyFocusStats(userId, start, end))
-                    .willReturn(rows.stream().map(this::toProjection).toList());
+            @Test
+            @DisplayName("월별 통계를 정상 조회한다")
+            void 정상_케이스() {
+                Long userId = 1L;
+                YearMonth yearMonth = YearMonth.of(2026, 2);
+                LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
+                LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
 
-            // when
-            FocusRankDto.MonthlyBooksResponseDto result = libraryStatsService.viewMonthly(userId, yearMonth);
+                List<FocusRankDto.MonthlyFocusRow> rows = List.of(
+                        row(LocalDate.of(2026, 2, 1), 11L, "cover-11", 1200L),
+                        row(LocalDate.of(2026, 2, 2), 22L, "cover-22", 600L),
+                        row(LocalDate.of(2026, 2, 3), 33L, "cover-33", 1800L)
+                );
+                given(focusRepository.findMonthlyFocusStats(userId, start, end))
+                        .willReturn(rows.stream().map(LibraryStatsServiceTest.this::toProjection).toList());
 
-            // then
-            verify(focusRepository).findMonthlyFocusStats(userId, start, end);
-            assertThat(result.yearMonth()).isEqualTo(yearMonth);
-            assertThat(result.totalFocusMin()).isEqualTo((1200 + 600 + 1800) / 60);
-            assertThat(result.days()).hasSize(3);
+                FocusRankDto.MonthlyBooksResponseDto result = libraryStatsService.viewMonthly(userId, yearMonth);
 
-            FocusRankDto.DailyBookItem day1 = result.days().get(0);
-            assertThat(day1.date()).isEqualTo(LocalDate.of(2026, 2, 1));
-            assertThat(day1.bookCount()).isEqualTo(1L);
-            assertThat(day1.topBook().bookId()).isEqualTo(11L);
-            assertThat(day1.topBook().coverUrl()).isEqualTo("cover-11");
+                verify(focusRepository).findMonthlyFocusStats(userId, start, end);
+                assertThat(result.yearMonth()).isEqualTo(yearMonth);
+                assertThat(result.totalBookCount()).isEqualTo(3);
+                assertThat(result.days()).hasSize(3);
+            }
 
-            FocusRankDto.DailyBookItem day2 = result.days().get(1);
-            assertThat(day2.date()).isEqualTo(LocalDate.of(2026, 2, 2));
-            assertThat(day2.bookCount()).isEqualTo(1L);
-            assertThat(day2.topBook().bookId()).isEqualTo(22L);
+            @Test
+            @DisplayName("동일 날짜 다중 도서일 때 topBook을 계산한다")
+            void 동일_날짜에_여러_책_존재시_topBook_검증() {
+                Long userId = 2L;
+                YearMonth yearMonth = YearMonth.of(2026, 2);
+                LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
+                LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
 
-            FocusRankDto.DailyBookItem day3 = result.days().get(2);
-            assertThat(day3.date()).isEqualTo(LocalDate.of(2026, 2, 3));
-            assertThat(day3.bookCount()).isEqualTo(1L);
-            assertThat(day3.topBook().bookId()).isEqualTo(33L);
+                List<FocusRankDto.MonthlyFocusRow> rows = List.of(
+                        row(LocalDate.of(2026, 2, 10), 100L, "cover-100", 300L),
+                        row(LocalDate.of(2026, 2, 10), 200L, "cover-200", 1200L),
+                        row(LocalDate.of(2026, 2, 11), 300L, "cover-300", 600L)
+                );
+                given(focusRepository.findMonthlyFocusStats(userId, start, end))
+                        .willReturn(rows.stream().map(LibraryStatsServiceTest.this::toProjection).toList());
+
+                FocusRankDto.MonthlyBooksResponseDto result = libraryStatsService.viewMonthly(userId, yearMonth);
+
+                verify(focusRepository).findMonthlyFocusStats(userId, start, end);
+                FocusRankDto.DailyBookItem sameDay = result.days().stream()
+                        .filter(d -> d.date().equals(LocalDate.of(2026, 2, 10)))
+                        .findFirst()
+                        .orElseThrow();
+                assertThat(sameDay.bookCount()).isEqualTo(2L);
+                assertThat(sameDay.topBook().bookId()).isEqualTo(200L);
+            }
         }
 
-        @Test
-        void 동일_날짜에_여러_책_존재시_topBook_검증() {
-            // given
-            Long userId = 2L;
-            YearMonth yearMonth = YearMonth.of(2026, 2);
-            LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
-            LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
+        @DisplayName("실패")
+        @Nested
+        class Failure {
 
-            List<FocusRankDto.MonthlyFocusRow> rows = List.of(
-                    row(LocalDate.of(2026, 2, 10), 100L, "cover-100", 300L),
-                    row(LocalDate.of(2026, 2, 10), 200L, "cover-200", 1200L),
-                    row(LocalDate.of(2026, 2, 11), 300L, "cover-300", 600L)
-            );
-            given(focusRepository.findMonthlyFocusStats(userId, start, end))
-                    .willReturn(rows.stream().map(this::toProjection).toList());
+            @Test
+            @DisplayName("데이터가 없으면 빈 응답을 반환한다")
+            void 포커스_기록이_없으면_빈_응답() {
+                Long userId = 3L;
+                YearMonth yearMonth = YearMonth.of(2026, 2);
+                LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
+                LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
 
-            // when
-            FocusRankDto.MonthlyBooksResponseDto result = libraryStatsService.viewMonthly(userId, yearMonth);
+                given(focusRepository.findMonthlyFocusStats(userId, start, end))
+                        .willReturn(List.of());
 
-            // then
-            verify(focusRepository).findMonthlyFocusStats(userId, start, end);
-            FocusRankDto.DailyBookItem sameDay = result.days().stream()
-                    .filter(d -> d.date().equals(LocalDate.of(2026, 2, 10)))
-                    .findFirst()
-                    .orElseThrow();
+                FocusRankDto.MonthlyBooksResponseDto result = libraryStatsService.viewMonthly(userId, yearMonth);
 
-            assertThat(sameDay.bookCount()).isEqualTo(2L);
-            assertThat(sameDay.topBook().bookId()).isEqualTo(200L);
-            assertThat(sameDay.topBook().coverUrl()).isEqualTo("cover-200");
+                verify(focusRepository).findMonthlyFocusStats(userId, start, end);
+                assertThat(result.yearMonth()).isEqualTo(yearMonth);
+                assertThat(result.totalBookCount()).isZero();
+                assertThat(result.days()).isEmpty();
+            }
+        }
+    }
+
+    @DisplayName("월별 포커스 시간 통계 조회")
+    @Nested
+    class ViewFocusTimeStats {
+
+        @DisplayName("성공")
+        @Nested
+        class Success {
+
+            @Test
+            @DisplayName("월별 포커스 시간 통계를 정상 조회한다")
+            void 정상_조회() {
+                Long userId = 10L;
+                YearMonth yearMonth = YearMonth.of(2026, 2);
+                LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
+                LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
+
+                given(focusRepository.findFocusTimeStats(userId, start, end))
+                        .willReturn(List.of(
+                                timeProjection(LocalDate.of(2026, 2, 1), 3600L),
+                                timeProjection(LocalDate.of(2026, 2, 2), 1800L)
+                        ));
+
+                FocusRankDto.FocusBookResponseDto result = libraryStatsService.viewFocusTimeStats(userId, yearMonth);
+
+                verify(focusRepository).findFocusTimeStats(userId, start, end);
+                assertThat(result.yearMonth()).isEqualTo(yearMonth);
+                assertThat(result.totalFocusMin()).isEqualTo(90);
+                assertThat(result.focusBookItems()).hasSize(2);
+                assertThat(result.focusBookItems().get(0).timeSlot()).isEqualTo(FocusTimeSlot.FOCUS_04);
+                assertThat(result.focusBookItems().get(1).timeSlot()).isEqualTo(FocusTimeSlot.FOCUS_02);
+            }
         }
 
-        @Test
-        void 포커스_기록이_없으면_빈_응답() {
-            // given
-            Long userId = 3L;
-            YearMonth yearMonth = YearMonth.of(2026, 2);
-            LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
-            LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
+        @DisplayName("실패")
+        @Nested
+        class Failure {
 
-            given(focusRepository.findMonthlyFocusStats(userId, start, end))
-                    .willReturn(List.of());
+            @Test
+            @DisplayName("데이터가 없으면 빈 응답을 반환한다")
+            void 데이터_없음() {
+                Long userId = 11L;
+                YearMonth yearMonth = YearMonth.of(2026, 2);
+                LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
+                LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
 
-            // when
-            FocusRankDto.MonthlyBooksResponseDto result = libraryStatsService.viewMonthly(userId, yearMonth);
+                given(focusRepository.findFocusTimeStats(userId, start, end))
+                        .willReturn(List.of());
 
-            // then
-            verify(focusRepository).findMonthlyFocusStats(userId, start, end);
-            assertThat(result.yearMonth()).isEqualTo(yearMonth);
-            assertThat(result.totalFocusMin()).isZero();
-            assertThat(result.days()).isEmpty();
-        }
+                FocusRankDto.FocusBookResponseDto result = libraryStatsService.viewFocusTimeStats(userId, yearMonth);
 
-        private FocusRankDto.MonthlyFocusRow row(
-                LocalDate date,
-                Long bookId,
-                String coverImageUrl,
-                Long totalSec
-        ) {
-            return new FocusRankDto.MonthlyFocusRow(date, bookId, coverImageUrl, totalSec);
-        }
-
-        private FocusRepository.MonthlyFocusStatsProjection toProjection(FocusRankDto.MonthlyFocusRow row) {
-            return new FocusRepository.MonthlyFocusStatsProjection() {
-                @Override
-                public Integer getYearValue() {
-                    return row.date().getYear();
-                }
-
-                @Override
-                public Integer getMonthValue() {
-                    return row.date().getMonthValue();
-                }
-
-                @Override
-                public Integer getDayValue() {
-                    return row.date().getDayOfMonth();
-                }
-
-                @Override
-                public Long getBookId() {
-                    return row.bookId();
-                }
-
-                @Override
-                public String getCoverImageUrl() {
-                    return row.coverImageUrl();
-                }
-
-                @Override
-                public Long getTotalSec() {
-                    return row.totalSec();
-                }
-            };
+                verify(focusRepository).findFocusTimeStats(userId, start, end);
+                assertThat(result.totalFocusMin()).isZero();
+                assertThat(result.focusBookItems()).isEmpty();
+            }
         }
     }
 }

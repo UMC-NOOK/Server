@@ -1,18 +1,21 @@
 package app.nook.controller.book;
 
 import app.nook.book.domain.enums.SearchType;
+import app.nook.book.controller.BookSearchController;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.facade.BookSearchFacade;
-import app.nook.global.common.AbstractRestDocsTests;
+import app.nook.global.common.AbstractWebMvcRestDocsTests;
+import app.nook.global.common.security.WithCustomUser;
+import app.nook.global.config.WebSecurityConfig;
 import app.nook.global.docs.ApiResponseSnippet;
-import app.nook.user.domain.User;
-import app.nook.user.domain.enums.UserRole;
-import app.nook.user.service.CustomUserDetails;
-import org.junit.jupiter.api.BeforeEach;
+import app.nook.user.filter.JwtExceptionFilter;
+import app.nook.user.filter.JwtFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,11 +29,21 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class BookSearchControllerTest extends AbstractRestDocsTests {
+@WebMvcTest(
+        controllers = BookSearchController.class,
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.ASSIGNABLE_TYPE,
+                classes = {
+                        WebSecurityConfig.class,
+                        JwtFilter.class,
+                        JwtExceptionFilter.class
+                }
+        )
+)
+class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
 
     private static final Long TEST_USER_ID = 1L;
     private static final String TEST_KEYWORD = "채식주의자";
@@ -40,22 +53,8 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
     @MockitoBean
     private BookSearchFacade bookSearchFacade;
 
-    private CustomUserDetails userDetails;
-
-    @BeforeEach
-    void setUpUser() {
-        User user = User.builder()
-                .email("test@example.com")
-                .nickName("테스터")
-                .provider("google")
-                .providerId("provider-id")
-                .role(UserRole.USER)
-                .build();
-        ReflectionTestUtils.setField(user, "id", TEST_USER_ID);
-        userDetails = new CustomUserDetails(user);
-    }
-
     @Test
+    @WithCustomUser
     @DisplayName("도서 검색 성공 - 첫 검색 (cursor=null)")
     void 도서검색_첫검색_성공() throws Exception {
         // given
@@ -68,8 +67,7 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
         mockMvc.perform(
                         get("/api/books/search/{type}", "GLOBAL")
                                 .param("keyword", TEST_KEYWORD)
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.totalResults").value(2))
@@ -107,6 +105,7 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("도서 검색 성공 - 페이지네이션 (cursor 사용)")
     void 도서검색_페이지네이션_성공() throws Exception {
         // given
@@ -121,40 +120,40 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
                         get("/api/books/search/{type}", "GLOBAL")
                                 .param("keyword", TEST_KEYWORD)
                                 .param("cursor", String.valueOf(cursor))
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.nextCursor").value(4));
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("도서 검색 실패 - 빈 검색어")
     void 도서검색_빈검색어_실패() throws Exception {
         // when & then
         mockMvc.perform(
                         get("/api/books/search/{type}", "GLOBAL")
                                 .param("keyword", "") // 빈 문자열
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isBadRequest());
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("도서 검색 실패 - 검색어 누락")
     void 도서검색_검색어누락_실패() throws Exception {
         // when & then
         mockMvc.perform(
                         get("/api/books/search/{type}", "GLOBAL")
                                 // keyword 파라미터 없음
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isBadRequest());
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("도서 검색 실패 - 음수 커서")
     void 도서검색_음수커서_실패() throws Exception {
         // when & then
@@ -162,26 +161,26 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
                         get("/api/books/search/{type}", "GLOBAL")
                                 .param("keyword", TEST_KEYWORD)
                                 .param("cursor", "-1") // 음수
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isBadRequest());
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("도서 검색 실패 - 잘못된 검색 타입")
     void 도서검색_잘못된타입_실패() throws Exception {
         // when & then
         mockMvc.perform(
                         get("/api/books/search/{type}", "INVALID_TYPE")
                                 .param("keyword", TEST_KEYWORD)
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isBadRequest()); // TypeMismatchException 발생
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("검색 기록 조회 성공")
     void 검색기록조회_성공() throws Exception {
         // given
@@ -193,8 +192,7 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
         // when & then
         mockMvc.perform(
                         get("/api/books/search/{type}/histories", "GLOBAL")
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result").isArray())
@@ -214,6 +212,7 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("특정 검색어 삭제 성공")
     void 검색기록삭제_성공() throws Exception {
         // given
@@ -223,8 +222,7 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
         // when & then
         mockMvc.perform(
                         delete("/api/books/search/{type}/histories?keyword={keyword}", "GLOBAL", TEST_KEYWORD)
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andDo(documentWithAuth(
@@ -244,19 +242,20 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("검색어 삭제 실패 - 검색어 누락")
     void 검색기록삭제_검색어누락_실패() throws Exception {
         // when & then
         mockMvc.perform(
                         delete("/api/books/search/{type}/histories", "GLOBAL")
                                 // keyword 파라미터 없음
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isBadRequest());
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("전체 검색 기록 삭제 성공")
     void 검색기록전체삭제_성공() throws Exception {
         // given
@@ -266,8 +265,7 @@ class BookSearchControllerTest extends AbstractRestDocsTests {
         // when & then
         mockMvc.perform(
                         delete("/api/books/search/{type}/histories/all", "GLOBAL")
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andDo(documentWithAuth(

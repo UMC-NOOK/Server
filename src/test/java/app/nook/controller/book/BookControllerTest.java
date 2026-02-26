@@ -2,22 +2,23 @@ package app.nook.controller.book;
 
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
+import app.nook.book.controller.BookController;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.service.BookService;
-import app.nook.global.common.AbstractRestDocsTests;
+import app.nook.global.common.AbstractWebMvcRestDocsTests;
+import app.nook.global.common.security.WithCustomUser;
+import app.nook.global.config.WebSecurityConfig;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
-import app.nook.user.domain.User;
-import app.nook.user.domain.enums.UserRole;
-import app.nook.user.service.CustomUserDetails;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.util.ReflectionTestUtils;
+import app.nook.user.filter.JwtExceptionFilter;
+import app.nook.user.filter.JwtFilter;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,32 +32,27 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWit
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class BookControllerTest extends AbstractRestDocsTests {
+@WebMvcTest(
+        controllers = BookController.class,
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.ASSIGNABLE_TYPE,
+                classes = {
+                        WebSecurityConfig.class,
+                        JwtFilter.class,
+                        JwtExceptionFilter.class
+                }
+        )
+)
+public class BookControllerTest extends AbstractWebMvcRestDocsTests {
 
     @MockitoBean
     private BookService bookService;
 
-    private User user;
-    private CustomUserDetails userDetails;
-
-    @BeforeEach
-    void setUpUser() {
-        user = User.builder()
-                .email("test@example.com")
-                .nickName("테스터")
-                .provider("google")
-                .providerId("provider-id")
-                .role(UserRole.USER)
-                .build();
-        ReflectionTestUtils.setField(user, "id", 1L);
-        userDetails = new CustomUserDetails(user);
-    }
-
     @Test
+    @WithCustomUser
     @DisplayName("ISBN으로 도서 상세 조회 성공")
     void 도서_상세조회_성공() throws Exception {
         // given
@@ -80,14 +76,13 @@ public class BookControllerTest extends AbstractRestDocsTests {
                 .bookShelfId(null)
                 .build();
 
-        given(bookService.getBookDetailByIsbn(any(User.class), eq(isbn13)))
+        given(bookService.getBookDetailByIsbn(any(), eq(isbn13)))
                 .willReturn(response);
 
         // when & then
         mockMvc.perform(
                         get("/api/books/{isbn13}", isbn13)
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.title").value("채식주의자"))
@@ -119,6 +114,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("잘못된 ISBN 형식으로 조회 시 400 Bad Request")
     void 도서_상세조회_실패_잘못된_ISBN_형식() throws Exception {
         // given
@@ -127,31 +123,31 @@ public class BookControllerTest extends AbstractRestDocsTests {
         // when & then
         mockMvc.perform(
                         get("/api/books/{isbn13}", invalidIsbn)
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isBadRequest());
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("존재하지 않는 도서 조회 시 404 Not Found")
     void 도서_상세조회_실패_존재하지않는_도서() throws Exception {
         // given
         String isbn13 = "9999999999999";
 
-        given(bookService.getBookDetailByIsbn(any(User.class), eq(isbn13)))
+        given(bookService.getBookDetailByIsbn(any(), eq(isbn13)))
                 .willThrow(new CustomException(BookErrorCode.BOOK_NOT_FOUND));
 
         // when & then
         mockMvc.perform(
                         get("/api/books/{isbn13}", isbn13)
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isNotFound());
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("주간 베스트셀러 목록 조회 성공")
     void 주간베스트셀러_조회_성공() throws Exception {
         // given
@@ -180,8 +176,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
         // when & then
         mockMvc.perform(
                         get("/api/books/bestsellers")
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result[0].title").value("채식주의자"))
@@ -201,6 +196,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("사용자 맞춤 추천 베스트셀러 조회 성공")
     void 추천베스트셀러_조회_성공() throws Exception {
         // given
@@ -222,8 +218,7 @@ public class BookControllerTest extends AbstractRestDocsTests {
         // when & then
         mockMvc.perform(
                         get("/api/books/recommendations")
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result[0].title").value("채식주의자"))
