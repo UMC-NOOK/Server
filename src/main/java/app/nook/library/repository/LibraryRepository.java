@@ -12,10 +12,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
-public interface LibraryRepository extends JpaRepository<Library,Long>, LibraryRepositoryCustom{
+public interface LibraryRepository extends JpaRepository<Library,Long> {
 
     Library findByUserAndBook(User user, Book book);
 
@@ -58,4 +57,5 @@ public interface LibraryRepository extends JpaRepository<Library,Long>, LibraryR
             @Param("keyword") String keyword,
             Pageable pageable);
 
+    int countByUser(User user);
 }

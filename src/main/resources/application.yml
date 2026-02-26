@@ -5,7 +5,6 @@ spring:
     name: nook-api
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
-
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -21,7 +20,8 @@ spring:
         show_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
-
+  cache:
+    type: redis
   data:
     redis:
       host: ${REDIS_HOST:localhost}

@@ -13,11 +13,6 @@ public class TimeLineConverter {
             String snapshotValue,
             Long targetId
     ) {
-        return BookTimeLine.builder()
-                .library(library)
-                .type(bookTimeLineType)
-                .snapshotValue(snapshotValue)
-                .targetId(targetId)
-                .build();
+        return new BookTimeLine(library,bookTimeLineType,snapshotValue,targetId);
     }
 }

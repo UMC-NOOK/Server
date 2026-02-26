@@ -11,6 +11,7 @@ import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.book.repository.BookRepository;
+import app.nook.focus.repository.FocusRepository;
 import app.nook.timeline.repository.BookTimeLineRepository;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
@@ -48,6 +51,15 @@ class LibraryServiceTest {
 
     @Mock
     private BookTimeLineRepository bookTimeLineRepository;
+
+    @Mock
+    private FocusRepository focusRepository;
+
+    @Mock
+    private CacheManager cacheManager;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private LibraryService libraryService;

@@ -15,8 +15,8 @@ import java.time.LocalDateTime;
         name = "focuses",
         indexes = {
                 @Index(
-                        name = "idx_focus_library",
-                        columnList = "library_id"
+                        name = "idx_focus_library_started",
+                        columnList = "library_id, started_at"
                 )
         }
 )
