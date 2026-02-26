@@ -82,6 +82,8 @@ public class Library extends BaseEntity {
         this.readingStatus = readingStatus;
         if(readingStatus.equals(ReadingStatus.FINISHED)){
             this.endedAt = LocalDateTime.now().toLocalDate();
+        } else if(readingStatus.equals(ReadingStatus.READING)){
+            this.startedAt = LocalDateTime.now().toLocalDate();
         }
     }
 

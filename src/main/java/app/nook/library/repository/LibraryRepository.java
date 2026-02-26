@@ -3,7 +3,6 @@ package app.nook.library.repository;
 import app.nook.book.domain.Book;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
-import app.nook.library.dto.FocusRankDto;
 import app.nook.user.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,12 +10,8 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.security.core.parameters.P;
 
-import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 public interface LibraryRepository extends JpaRepository<Library,Long> {

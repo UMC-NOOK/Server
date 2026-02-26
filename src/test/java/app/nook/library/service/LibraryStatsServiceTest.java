@@ -59,7 +59,7 @@ class LibraryStatsServiceTest {
             assertThat(day1.date()).isEqualTo(LocalDate.of(2026, 2, 1));
             assertThat(day1.bookCount()).isEqualTo(1L);
             assertThat(day1.topBook().bookId()).isEqualTo(11L);
-            assertThat(day1.topBook().CoverUrl()).isEqualTo("cover-11");
+            assertThat(day1.topBook().coverUrl()).isEqualTo("cover-11");
 
             FocusRankDto.DailyBookItem day2 = result.days().get(1);
             assertThat(day2.date()).isEqualTo(LocalDate.of(2026, 2, 2));
@@ -100,7 +100,7 @@ class LibraryStatsServiceTest {
 
             assertThat(sameDay.bookCount()).isEqualTo(2L);
             assertThat(sameDay.topBook().bookId()).isEqualTo(200L);
-            assertThat(sameDay.topBook().CoverUrl()).isEqualTo("cover-200");
+            assertThat(sameDay.topBook().coverUrl()).isEqualTo("cover-200");
         }
 
         @Test
@@ -136,8 +136,18 @@ class LibraryStatsServiceTest {
         private FocusRepository.MonthlyFocusStatsProjection toProjection(FocusRankDto.MonthlyFocusRow row) {
             return new FocusRepository.MonthlyFocusStatsProjection() {
                 @Override
-                public LocalDate getDateValue() {
-                    return row.date();
+                public Integer getYearValue() {
+                    return row.date().getYear();
+                }
+
+                @Override
+                public Integer getMonthValue() {
+                    return row.date().getMonthValue();
+                }
+
+                @Override
+                public Integer getDayValue() {
+                    return row.date().getDayOfMonth();
                 }
 
                 @Override

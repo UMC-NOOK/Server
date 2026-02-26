@@ -35,7 +35,7 @@ public class FocusRankDto {
 
     public record BookCalendarInfo(
             Long bookId,
-            String CoverUrl
+            String coverUrl
     ){}
 
     public record BookDetailInfo(

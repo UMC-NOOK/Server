@@ -85,7 +85,7 @@ class LibraryStatsControllerTest extends AbstractRestDocsTests {
                                 fieldWithPath("result.days[].bookCount").type(JsonFieldType.NUMBER).description("해당 날짜에 읽은 책 수"),
                                 fieldWithPath("result.days[].topBook").type(JsonFieldType.OBJECT).optional().description("가장 오래 읽은 책"),
                                 fieldWithPath("result.days[].topBook.bookId").type(JsonFieldType.NUMBER).optional().description("도서 ID"),
-                                fieldWithPath("result.days[].topBook.CoverUrl").type(JsonFieldType.STRING).optional().description("도서 커버 URL")
+                                fieldWithPath("result.days[].topBook.coverUrl").type(JsonFieldType.STRING).optional().description("도서 커버 URL")
                         ))
                 ));
     }

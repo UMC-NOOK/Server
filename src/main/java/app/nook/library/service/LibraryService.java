@@ -1,18 +1,17 @@
 package app.nook.library.service;
 
 import app.nook.book.domain.Book;
-import app.nook.book.dto.BookResponseDto;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
 import app.nook.library.converter.LibraryConverter;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
+import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.timeline.converter.TimeLineConverter;
@@ -21,9 +20,8 @@ import app.nook.timeline.domain.enums.BookTimeLineType;
 import app.nook.timeline.repository.BookTimeLineRepository;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -34,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,7 +43,7 @@ public class LibraryService {
     private final BookRepository bookRepository;
     private final BookTimeLineRepository bookTimeLineRepository;
     private final FocusRepository focusRepository;
-    private final CacheManager cacheManager;
+    private final ApplicationEventPublisher eventPublisher;
 
 
     // 서재 책 개수 조회
@@ -70,7 +69,7 @@ public class LibraryService {
                 savedLibrary.getId()
         );
         bookTimeLineRepository.save(timeLine);
-        evictStatusBookFirstPageCaches(user.getId());
+        eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(user.getId()));
     }
 
     // 서재 책 삭제
@@ -85,17 +84,20 @@ public class LibraryService {
             throw new CustomException(LibraryErrorCode.BOOK_NOT_EXIST);
 
         // 캐시 무효화에 필요한 데이터 조회
-        List<FocusRepository.FocusYearMonthProjection> affectedYearMonths =
+        List<YearMonth> affectedYearMonths =
                 focusRepository.findDistinctFocusYearMonthsByLibraryAndUser(
                         library.getId(),
                         user.getId()
-                );
+                ).stream()
+                .map(ym -> YearMonth.of(ym.getYearValue(), ym.getMonthValue()))
+                .collect(Collectors.toList());
 
         libraryRepository.delete(library);
+        bookTimeLineRepository.deleteByLibrary(library);
 
-        // 캐시 무효화
-        evictMonthlyStatsCaches(user.getId(), affectedYearMonths);
-        evictStatusBookFirstPageCaches(user.getId());
+        eventPublisher.publishEvent(
+                LibraryCacheInvalidateEvent.statusAndMonthly(user.getId(), affectedYearMonths)
+        );
     }
 
     // 서재 책 상태변경
@@ -119,7 +121,7 @@ public class LibraryService {
                 library.getReadingStatus().toString(),
                 library.getId());
         bookTimeLineRepository.save(timeLine);
-        evictStatusBookFirstPageCaches(user.getId());
+        eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(user.getId()));
     }
 
     // 서재 상태별 책 조회
@@ -173,38 +175,4 @@ public class LibraryService {
         return libraryRepository.searchByUserIdAndKeyword(userId, escapedKeyword, pageable);
     }
 
-    // 캐시 무효화 월별
-    private void evictMonthlyStatsCaches(
-            Long userId,
-            List<FocusRepository.FocusYearMonthProjection> yearMonths
-    ) {
-        if (yearMonths == null || yearMonths.isEmpty()) {
-            return;
-        }
-        Cache monthlyCache = cacheManager.getCache("libraryMonthlyCurrent");
-        Cache focusTimeCache = cacheManager.getCache("focusMonthlyCurrent");
-
-        for (FocusRepository.FocusYearMonthProjection yearMonth : yearMonths) {
-            int year = yearMonth.getYearValue();
-            int month = yearMonth.getMonthValue();
-            String key = userId + ":" + YearMonth.of(year, month);
-            if (monthlyCache != null) {
-                monthlyCache.evict(key);
-            }
-            if (focusTimeCache != null) {
-                focusTimeCache.evict(key);
-            }
-        }
-    }
-
-    // 기본 상태별 목록 캐시 무효화 - 첫 페이지
-    private void evictStatusBookFirstPageCaches(Long userId) {
-        Cache cache = cacheManager.getCache("libraryStatusFirstPage");
-        if (cache == null) {
-            return;
-        }
-        for (ReadingStatus status : ReadingStatus.values()) {
-            cache.evict(userId + ":" + status);
-        }
-    }
 }

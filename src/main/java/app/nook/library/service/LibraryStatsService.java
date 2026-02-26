@@ -2,7 +2,6 @@ package app.nook.library.service;
 
 import app.nook.focus.repository.FocusRepository;
 import app.nook.library.dto.FocusRankDto;
-import app.nook.library.dto.FocusTimeSlot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -39,7 +38,7 @@ public class LibraryStatsService {
         List<FocusRankDto.MonthlyFocusRow> rows = focusRepository.findMonthlyFocusStats(userId, start, end)
                 .stream()
                 .map(row -> new FocusRankDto.MonthlyFocusRow(
-                        row.getDateValue(),
+                        LocalDate.of(row.getYearValue(), row.getMonthValue(), row.getDayValue()),
                         row.getBookId(),
                         row.getCoverImageUrl(),
                         row.getTotalSec()
@@ -88,40 +87,30 @@ public class LibraryStatsService {
         return new FocusRankDto.MonthlyBooksResponseDto(yearMonth,totalFocusMin,dailyBookItems);
     }
 
-    // 서재 포커스 시간별 책 조회
+    // 서재 월별 포커스 시간 통계 조회
     @Cacheable(
             value = "focusMonthlyCurrent",
             key = "#userId + ':' + #yearMonth"
     )
     public FocusRankDto.FocusBookResponseDto viewFocusTimeStats(Long userId, YearMonth yearMonth) {
-        // 월 범위 계산
         LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
-        LocalDateTime end = yearMonth.plusMonths(1)
-                .atDay(1)
-                .atStartOfDay();
+        LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
 
-        // 집계 결과 받아오기
         List<FocusRankDto.FocusTimeRow> rows = focusRepository.findFocusTimeStats(userId, start, end)
                 .stream()
                 .map(row -> new FocusRankDto.FocusTimeRow(
-                        row.getDateValue(),
+                        LocalDate.of(row.getYearValue(), row.getMonthValue(), row.getDayValue()),
                         row.getTotalSec()
                 ))
                 .toList();
 
-        // 월 전체 초를 분으로 변환
-        long totalSec = rows.stream()
-                .mapToLong(FocusRankDto.FocusTimeRow::totalSec)
-                .sum();
+        long totalSec = rows.stream().mapToLong(FocusRankDto.FocusTimeRow::totalSec).sum();
         int totalFocusMin = (int) (totalSec / 60);
-
-        // 가장 많이 포커스한 날짜 초 단위
         long maxDaySec = rows.stream()
                 .mapToLong(FocusRankDto.FocusTimeRow::totalSec)
                 .max()
                 .orElse(0L);
 
-        // 날짜별로 FocusDateItem 매핑
         List<FocusRankDto.FocusDateItem> focusBookItems = rows.stream()
                 .sorted(Comparator.comparing(FocusRankDto.FocusTimeRow::date))
                 .map(row -> new FocusRankDto.FocusDateItem(

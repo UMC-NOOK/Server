@@ -189,8 +189,18 @@ class LibraryCachingIntegrationTest {
     ) {
         return new FocusRepository.MonthlyFocusStatsProjection() {
             @Override
-            public LocalDate getDateValue() {
-                return dateValue;
+            public Integer getYearValue() {
+                return dateValue.getYear();
+            }
+
+            @Override
+            public Integer getMonthValue() {
+                return dateValue.getMonthValue();
+            }
+
+            @Override
+            public Integer getDayValue() {
+                return dateValue.getDayOfMonth();
             }
 
             @Override
