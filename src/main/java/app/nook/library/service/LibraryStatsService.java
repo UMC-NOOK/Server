@@ -45,11 +45,7 @@ public class LibraryStatsService {
                 ))
                 .toList();
 
-        // 월 전체 초를 분으로 변환
-        long totalSec = rows.stream()
-                .mapToLong(FocusRankDto.MonthlyFocusRow::totalSec)
-                .sum();
-        int totalFocusMin = (int) (totalSec / 60);
+        int totalBookCount = rows.size();
 
         // 날짜별로 다시 그룹화
         Map<LocalDate, List<FocusRankDto.MonthlyFocusRow>> groupedByDate = rows.stream()
@@ -84,7 +80,7 @@ public class LibraryStatsService {
                 })
                 .sorted(Comparator.comparing(FocusRankDto.DailyBookItem::date)) // 오름차순 정렬
                 .toList();
-        return new FocusRankDto.MonthlyBooksResponseDto(yearMonth,totalFocusMin,dailyBookItems);
+        return new FocusRankDto.MonthlyBooksResponseDto(yearMonth, totalBookCount, dailyBookItems);
     }
 
     // 서재 월별 포커스 시간 통계 조회

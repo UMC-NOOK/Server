@@ -27,16 +27,11 @@ public class LibraryViewDto {
             List<BookResponseDto> monthlyBookItems
     ){}
 
-    public record DailyBookResponse(
-            LocalDate localDate,
-            CursorResponse<UserBookResponseDto> bookItems
-    ){}
-
     public record UserBookResponseDto(
             Long bookId,
             String title,
             String author,
-            int focusMin,
+            int focusSec,
             String coverUrl
     ){}
     public record StatusBookResponseDto(
@@ -79,4 +74,7 @@ public class LibraryViewDto {
             LocalDate endedAt
     ) implements UserStatusBookItem {}
 
+    public record BookCountResponseDto(
+        int totalBookNum
+    ){}
 }

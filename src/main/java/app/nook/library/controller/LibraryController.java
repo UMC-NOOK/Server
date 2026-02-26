@@ -2,6 +2,7 @@ package app.nook.library.controller;
 
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
+import app.nook.global.dto.CursorResponse;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.dto.LibraryViewDto;
@@ -11,9 +12,12 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequiredArgsConstructor
@@ -63,6 +67,32 @@ public class LibraryController {
     ) {
         LibraryViewDto.StatusBookResponseDto response =
                 libraryService.viewBooksByStatus(userDetails.getUser(), status, cursor, size);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
+    }
+
+    // 서재 책 개수 조회
+    @GetMapping("/count")
+    public ApiResponse<LibraryViewDto.BookCountResponseDto> viewBookCount(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        LibraryViewDto.BookCountResponseDto response =
+                libraryService.countBooks(userDetails.getUser());
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
+    }
+
+    // 해당 날짜의 포커스 기록 반환
+    @GetMapping("/focus-records")
+    public ApiResponse<CursorResponse<LibraryViewDto.UserBookResponseDto>> viewFocusRecordByDate(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam
+            @NotNull
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate date,
+            @RequestParam(required = false) @Min(0) Long cursor,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
+    ) {
+        CursorResponse<LibraryViewDto.UserBookResponseDto> response =
+                libraryService.viewFocusRecordByDate(userDetails.getUser(), date, cursor, size);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 }

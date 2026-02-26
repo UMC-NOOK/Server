@@ -22,7 +22,7 @@ public class FocusRankDto {
     // 월 통계
     public record MonthlyBooksResponseDto(
             YearMonth yearMonth,
-            int totalFocusMin,
+            int totalBookCount,
             List<DailyBookItem> days
     ){}
 
@@ -43,7 +43,7 @@ public class FocusRankDto {
             String coverUrl,
             String title,
             String author,
-            Long focusMin
+            Long focusSec
     ) {}
 
     // 중간 row dto

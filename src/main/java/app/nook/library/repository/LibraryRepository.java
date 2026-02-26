@@ -57,4 +57,5 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
             @Param("keyword") String keyword,
             Pageable pageable);
 
+    int countByUser(User user);
 }

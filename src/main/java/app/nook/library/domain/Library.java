@@ -57,8 +57,11 @@ public class Library extends BaseEntity {
     @Column(name = "ended_at")
     private LocalDate endedAt;
 
-    @Column(name = "focus_min")
-    private Long focusMin = 0L;
+    @Column(name = "focus_sec")
+    private Long focusSec = 0L;
+
+    @Column(name = "page")
+    private int page = 0;
 
     @Builder
     public Library(
@@ -72,8 +75,13 @@ public class Library extends BaseEntity {
 
 
     // 포커스 시 읽은 기록 업데이트
-    public void recordFocus(long addedMinutes) {
-        this.focusMin += addedMinutes;
+    public void recordFocus(long addedSeconds) {
+        this.focusSec += addedSeconds;
+    }
+
+    // 페이지 업데이트
+    public void recordPage(int page) {
+        this.page = page;
     }
 
     // 완독 -> 독서 중

@@ -1,6 +1,9 @@
 package app.nook.focus.repository;
 
 import app.nook.focus.domain.Focus;
+import app.nook.user.domain.User;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -117,4 +120,19 @@ public interface FocusRepository extends JpaRepository<Focus, Long> {
             @Param("end") LocalDateTime end
     );
 
+    @Query("""
+        select f
+        from Focus f
+        where f.library.user = :user
+          and (:cursor is null or f.id < :cursor)
+          and f.startedAt >= :start
+          and f.startedAt < :end
+        order by f.id desc
+    """)
+    Slice<Focus> findByLibraryWithCursorByDate(
+            @Param("user") User user,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("cursor") Long cursor,
+            Pageable pageable);
 }

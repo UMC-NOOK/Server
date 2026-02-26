@@ -3,6 +3,7 @@ package app.nook.library.service;
 import app.nook.book.domain.Book;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
+import app.nook.focus.domain.Focus;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
@@ -29,6 +30,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
@@ -47,6 +50,10 @@ public class LibraryService {
 
 
     // 서재 책 개수 조회
+    // 서재 책은 최대 100000권이므로 int로 반환 타입 설정
+    public LibraryViewDto.BookCountResponseDto countBooks(User user) {
+        return new LibraryViewDto.BookCountResponseDto(libraryRepository.countByUser(user));
+    }
 
     // 서재 책 등록
     @Transactional
@@ -173,6 +180,45 @@ public class LibraryService {
                 .replace("_", "\\_");
         Pageable pageable = PageRequest.of(page, size);
         return libraryRepository.searchByUserIdAndKeyword(userId, escapedKeyword, pageable);
+    }
+
+
+    // 날짜별 포커스 기록 조회 커서 페이징
+    public CursorResponse<LibraryViewDto.UserBookResponseDto> viewFocusRecordByDate(
+            User user,
+            LocalDate date,
+            Long cursor,
+            int size
+    ) {
+            Pageable pageable = PageRequest.of(0, size + 1);
+            LocalDateTime start = date.atStartOfDay();
+            LocalDateTime end = date.plusDays(1).atStartOfDay();
+
+            Slice<Focus> focuses = focusRepository.findByLibraryWithCursorByDate(
+                    user,
+                    start,
+                    end,
+                    cursor,
+                    pageable
+            );
+
+            List<Focus> content = focuses.getContent();
+            boolean hasNext = content.size() > size;
+            List<Focus> pageContent = hasNext ? content.subList(0, size) : content;
+
+            List<LibraryViewDto.UserBookResponseDto> bookItems = pageContent.stream()
+                    .map(focus -> new LibraryViewDto.UserBookResponseDto(
+                            focus.getLibrary().getBook().getId(),
+                            focus.getLibrary().getBook().getTitle(),
+                            focus.getLibrary().getBook().getAuthor(),
+                            focus.getDurationSec() == null ? 0 : focus.getDurationSec(),
+                            focus.getLibrary().getBook().getCoverImageUrl()
+                    ))
+                    .toList();
+
+            Long nextCursor = hasNext ? pageContent.get(pageContent.size() - 1).getId() : null;
+
+            return CursorResponse.of(bookItems, nextCursor, hasNext);
     }
 
 }

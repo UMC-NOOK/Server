@@ -31,12 +31,14 @@ public class QLibrary extends EntityPathBase<Library> {
 
     public final DatePath<java.time.LocalDate> endedAt = createDate("endedAt", java.time.LocalDate.class);
 
-    public final NumberPath<Long> focusMin = createNumber("focusMin", Long.class);
+    public final NumberPath<Long> focusSec = createNumber("focusSec", Long.class);
 
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> modifiedDate = _super.modifiedDate;
+
+    public final NumberPath<Integer> page = createNumber("page", Integer.class);
 
     public final EnumPath<app.nook.library.domain.enums.ReadingStatus> readingStatus = createEnum("readingStatus", app.nook.library.domain.enums.ReadingStatus.class);
 

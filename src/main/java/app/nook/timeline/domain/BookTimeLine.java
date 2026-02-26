@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
         indexes = {
                 @Index(
                         name = "idx_book_timelines_library_created",
-                        columnList = "library_id, created_at DESC"
+                        columnList = "library_id, created_date DESC"
                 ),
         }
 )
