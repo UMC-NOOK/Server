@@ -170,17 +170,37 @@ test {
 jacocoTestCoverageVerification {
 	violationRules {
 		rule {
+			element = 'CLASS'
+			includes = ['app.nook.*.service.*']
+			excludes = [
+					'app.nook.*.service.*Test*',
+					'app.nook.user.service.CustomUserDetailService',
+					'app.nook.**.exception.**',
+					'app.nook.**.*ErrorCode*',
+					'app.nook.**.enums.**'
+			]
 			limit {
 				counter = 'LINE'
 				value = 'COVEREDRATIO'
 				minimum = 0.60
 			}
 		}
+		rule {
+			element = 'CLASS'
+			includes = ['app.nook.*.controller.*']
+			excludes = [
+					'app.nook.*.controller.*Test*',
+					'app.nook.**.exception.**',
+					'app.nook.**.*ErrorCode*',
+					'app.nook.**.enums.**'
+			]
+			limit {
+				counter = 'LINE'
+				value = 'COVEREDRATIO'
+				minimum = 0.40
+			}
+		}
 	}
-}
-
-jacocoTestCoverageVerification {
-	enabled = false // 임시
 }
 
 
