@@ -59,6 +59,7 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
             Pageable pageable);
 
     int countByUser(User user);
+
     @Query("""
       select c.aladinCategoryId
       from Library l

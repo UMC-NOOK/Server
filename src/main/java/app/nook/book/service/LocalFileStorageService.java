@@ -74,7 +74,9 @@ public class LocalFileStorageService implements FileStorageService {
             Path targetPath = dirPath.resolve(fileName);
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-            return normalizeUrlPrefix(urlPrefix) + fileName;
+            String url = normalizeUrlPrefix(urlPrefix) + fileName;
+            log.info("[FILE_UPLOAD_SUCCESS] uploadDir={}, fileName={}, url={}", uploadDir, fileName, url);
+            return url;
         } catch (IOException e) {
             log.error("[FILE_UPLOAD_FAILED] originalFilename={}", file.getOriginalFilename(), e);
             throw new CustomException(FileErrorCode.FILE_UPLOAD_FAILED);
@@ -115,6 +117,9 @@ public class LocalFileStorageService implements FileStorageService {
             boolean deleted = Files.deleteIfExists(targetPath);
             if (!deleted) {
                 log.info("[FILE_DELETE_SKIPPED] file not found. path={}", targetPath);
+            }
+            else {
+                log.info("[FILE_DELETE_SUCCESS] path={}", targetPath);
             }
         } catch (IOException e) {
             log.warn("[FILE_DELETE_FAILED] path={}", targetPath, e);

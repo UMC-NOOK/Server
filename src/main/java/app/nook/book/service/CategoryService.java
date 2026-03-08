@@ -5,6 +5,7 @@ import app.nook.book.domain.enums.MallType;
 import app.nook.book.dto.CategoryResponseDto;
 import app.nook.book.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +14,7 @@ import java.util.List;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
@@ -27,6 +29,7 @@ public class CategoryService {
                             c.getAladinCategoryId()
                     );
                 }).toList();
+        log.info("[CATEGORY_LIST_FETCH] mallType=BOOK, count={}", items.size());
         return new CategoryResponseDto.BookCategoryList(items);
     }
 }

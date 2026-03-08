@@ -14,6 +14,7 @@ import app.nook.global.exception.CustomException;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
+import app.nook.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -60,6 +62,9 @@ class BookServiceTest {
 
     @Mock
     private LibraryRepository libraryRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private BookService bookService;
@@ -228,14 +233,17 @@ class BookServiceTest {
     }
 
     @Test
-    @DisplayName("사용자 맞춤 추천 베스트셀러 조회 성공")
-    void getPersonalizedBestsellers_성공() {
+    @DisplayName("추천 카테고리: 서재 최다 카테고리 우선")
+    void getPersonalizedBestsellers_서재우선() {
         // given
         List<BookResponseDto.BookPreviewDto> mockBestsellers = Arrays.asList(
                 createBookPreviewDto(TEST_ISBN_1, "채식주의자", 1)
         );
 
-        given(aladinService.fetchItemList("Bestseller", "BOOK", 5, "1"))
+        given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(testUser));
+        given(libraryRepository.findTopAladinCategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
+                .willReturn(List.of(42));
+        given(aladinService.fetchItemList("Bestseller", "BOOK", 5, "42"))
                 .willReturn(mockBestsellers);
 
         // when
@@ -245,6 +253,48 @@ class BookServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).title()).isEqualTo("채식주의자");
 
+        verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 5, "42");
+    }
+
+    @Test
+    @DisplayName("추천 카테고리: 서재가 없으면 온보딩 preferred_category 사용")
+    void getPersonalizedBestsellers_온보딩fallback() {
+        Category preferred = Category.of(MallType.BOOK, "에세이", 77);
+        ReflectionTestUtils.setField(preferred, "id", 99L);
+        ReflectionTestUtils.setField(testUser, "preferredCategory", preferred);
+
+        List<BookResponseDto.BookPreviewDto> mockBestsellers = List.of(
+                createBookPreviewDto(TEST_ISBN_2, "소년이 온다", 1)
+        );
+
+        given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(testUser));
+        given(libraryRepository.findTopAladinCategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
+                .willReturn(List.of());
+        given(aladinService.fetchItemList("Bestseller", "BOOK", 5, "77"))
+                .willReturn(mockBestsellers);
+
+        List<BookResponseDto.BookPreviewDto> result = bookService.getPersonalizedBestsellers(testUser);
+
+        assertThat(result).hasSize(1);
+        verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 5, "77");
+    }
+
+    @Test
+    @DisplayName("추천 카테고리: 서재/온보딩 모두 없으면 default 1")
+    void getPersonalizedBestsellers_defaultFallback() {
+        List<BookResponseDto.BookPreviewDto> mockBestsellers = List.of(
+                createBookPreviewDto(TEST_ISBN_1, "채식주의자", 1)
+        );
+
+        given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(testUser));
+        given(libraryRepository.findTopAladinCategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
+                .willReturn(List.of());
+        given(aladinService.fetchItemList("Bestseller", "BOOK", 5, "1"))
+                .willReturn(mockBestsellers);
+
+        List<BookResponseDto.BookPreviewDto> result = bookService.getPersonalizedBestsellers(testUser);
+
+        assertThat(result).hasSize(1);
         verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 5, "1");
     }
 

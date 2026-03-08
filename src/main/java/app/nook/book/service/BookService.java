@@ -152,13 +152,18 @@ public class BookService {
         );
 
         if (!topFromLibrary.isEmpty()) {
-            return topFromLibrary.get(0);
+            int categoryId = topFromLibrary.get(0);
+            log.info("[RECOMMEND_CATEGORY_SOURCE] userId={}, source=LIBRARY, categoryId={}", userId, categoryId);
+            return categoryId;
         }
 
         if (user.getPreferredCategory() != null) {
-            return user.getPreferredCategory().getAladinCategoryId();
+            int categoryId = user.getPreferredCategory().getAladinCategoryId();
+            log.info("[RECOMMEND_CATEGORY_SOURCE] userId={}, source=ONBOARDING, categoryId={}", userId, categoryId);
+            return categoryId;
         }
 
+        log.info("[RECOMMEND_CATEGORY_SOURCE] userId={}, source=DEFAULT, categoryId=1", userId);
         return 1;
     }
 

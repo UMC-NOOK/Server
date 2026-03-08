@@ -13,6 +13,7 @@ import app.nook.user.domain.User;
 import app.nook.user.dto.OnboardingDto;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class OnboardingService {
 
     private final CategoryRepository categoryRepository;
@@ -35,6 +37,11 @@ public class OnboardingService {
             Long userId,
             OnboardingDto.CompleteRequest request
     ) {
+        log.info("[ONBOARDING_COMPLETE_START] userId={}, hasProfileImage={}, categoryCount={}",
+                userId,
+                request.getProfileImage() != null && !request.getProfileImage().isEmpty(),
+                request.getCategories() == null ? 0 : request.getCategories().size());
+
         User user = getUser(userId);
 
         List<Category> selected = request.getCategories().stream()
@@ -44,6 +51,7 @@ public class OnboardingService {
                 .toList();
 
         if (selected.isEmpty() || selected.size() > 2) {
+            log.warn("[ONBOARDING_INVALID_CATEGORIES] userId={}, size={}", userId, selected.size());
             throw new CustomException(ErrorCode.INVALID_REQUEST);
         }
 
@@ -59,6 +67,9 @@ public class OnboardingService {
                 profileUrl,
                 preferred
         );
+
+        log.info("[ONBOARDING_COMPLETE_SUCCESS] userId={}, preferredCategory={}, goal={}",
+                userId, preferred.getCategoryName(), request.getGoal());
 
         return new OnboardingDto.CompleteResponse(
                 true,
@@ -80,6 +91,10 @@ public class OnboardingService {
         User user = getUser(userId);
         long finishedCount = libraryRepository.countByUserAndReadingStatus(user, ReadingStatus.FINISHED);
         int remaining = Math.max(0, user.getGoal() - (int) finishedCount);
+
+        log.info("[GOAL_STATUS] userId={}, goal={}, finishedCount={}, remaining={}",
+                userId, user.getGoal(), finishedCount, remaining);
+
         return new OnboardingDto.GoalResponse(user.getGoal(), remaining);
     }
 
@@ -89,7 +104,11 @@ public class OnboardingService {
             OnboardingDto.GoalUpdateRequest request
     ) {
         User user = getUser(userId);
+        short before = user.getGoal();
+
         user.updateGoal(request.goal());
+        log.info("[GOAL_UPDATE] userId={}, from={}, to={}", userId, before, user.getGoal());
+
         return new OnboardingDto.GoalUpdateResponse(user.getGoal());
     }
 
