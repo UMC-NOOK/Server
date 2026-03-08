@@ -83,12 +83,12 @@ class LibraryServiceTest {
     }
 
     @Nested
-    @DisplayName("save")
+    @DisplayName("서재 책 등록")
     class Save {
 
         @Test
         @DisplayName("성공")
-        void save_성공() {
+        void 책_등록_성공() {
             User user = user();
 
             Book book = Book.builder()
@@ -147,7 +147,7 @@ class LibraryServiceTest {
     }
 
     @Nested
-    @DisplayName("deleteById")
+    @DisplayName("서재 책 삭제")
     class DeleteById {
 
         @Test
@@ -194,7 +194,7 @@ class LibraryServiceTest {
     }
 
     @Nested
-    @DisplayName("changeStatus")
+    @DisplayName("서재 독서 상태 변경")
     class ChangeStatus {
 
         @Test
