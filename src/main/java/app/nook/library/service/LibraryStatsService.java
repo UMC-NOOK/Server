@@ -51,6 +51,7 @@ public class LibraryStatsService {
         return queryResult.response();
     }
 
+    // 캐시 미스 시 DB에서 조회하는 메서드
     private MonthlyBooksQueryResultDto loadMonthlyBooksFromDB(Long userId, YearMonth yearMonth) {
         // 월 범위 계산
         LocalDate startDate = yearMonth.atDay(1);

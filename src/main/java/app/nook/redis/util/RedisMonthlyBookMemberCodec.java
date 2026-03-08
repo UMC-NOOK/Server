@@ -1,6 +1,8 @@
 package app.nook.redis.util;
 
 import app.nook.redis.dto.RedisDayRow;
+import app.nook.redis.exception.RedisErrorCode;
+import app.nook.redis.exception.RedisOperationException;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -19,7 +21,19 @@ public final class RedisMonthlyBookMemberCodec {
     }
 
     public static RedisDayRow decode(String value) {
+        if (value == null || value.isBlank()) {
+            throw new RedisOperationException(
+                    RedisErrorCode.REDIS_SERIALIZATION_FAILED,
+                    new IllegalArgumentException("Redis monthly book member is blank")
+            );
+        }
         String[] tokens = value.split(":", 4);
+        if (tokens.length < 4) {
+            throw new RedisOperationException(
+                    RedisErrorCode.REDIS_SERIALIZATION_FAILED,
+                    new IllegalArgumentException("Invalid Redis monthly book member format")
+            );
+        }
         LocalDate date = LocalDate.parse(tokens[0]);
         long bookCount = Long.parseLong(tokens[1]);
         Long topBookId = "null".equals(tokens[2]) ? null : Long.parseLong(tokens[2]);
