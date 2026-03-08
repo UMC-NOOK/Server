@@ -11,9 +11,11 @@ import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.user.domain.User;
 import app.nook.user.dto.OnboardingDto;
+import app.nook.user.event.ProfileImageCleanupEvent;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class OnboardingService {
     private final UserRepository userRepository;
     private final LibraryRepository libraryRepository;
     private final FileStorageService fileStorageService;
+    private final ApplicationEventPublisher eventPublisher;
 
 
     @Transactional
@@ -71,20 +74,27 @@ public class OnboardingService {
         String oldProfileUrl = user.getProfileUrl();
         String profileUrl = oldProfileUrl;
         boolean hasNewProfileImage = request.getProfileImage() != null && !request.getProfileImage().isEmpty();
+        boolean uploadedNewProfileImage = false;
 
-        if (hasNewProfileImage) {
-            profileUrl = fileStorageService.uploadProfile(request.getProfileImage());
-        }
+        try {
+            if (hasNewProfileImage) {
+                profileUrl = fileStorageService.uploadProfile(request.getProfileImage());
+                uploadedNewProfileImage = true;
+            }
 
-        user.updateOnboarding(
-                request.getGoal(),
-                request.getNickname(),
-                profileUrl,
-                preferred
-        );
+            user.updateOnboarding(
+                    request.getGoal(),
+                    request.getNickname(),
+                    profileUrl,
+                    preferred
+            );
 
-        if (hasNewProfileImage && oldProfileUrl != null && !oldProfileUrl.isBlank() && !oldProfileUrl.equals(profileUrl)) {
-            fileStorageService.deleteProfileByUrl(oldProfileUrl);
+            publishProfileCleanupEventIfNeeded(hasNewProfileImage, oldProfileUrl, profileUrl);
+        } catch (RuntimeException e) {
+            if (uploadedNewProfileImage && profileUrl != null && !profileUrl.isBlank() && !profileUrl.equals(oldProfileUrl)) {
+                fileStorageService.deleteProfileByUrl(profileUrl);
+            }
+            throw e;
         }
 
         log.info("[ONBOARDING_COMPLETE_SUCCESS] userId={}, preferredCategory={}, goal={}",
@@ -129,6 +139,13 @@ public class OnboardingService {
         log.info("[GOAL_UPDATE] userId={}, from={}, to={}", userId, before, user.getGoal());
 
         return new OnboardingDto.GoalUpdateResponse(user.getGoal());
+    }
+
+    private void publishProfileCleanupEventIfNeeded(boolean hasNewProfileImage, String oldProfileUrl, String newProfileUrl) {
+        if (!hasNewProfileImage || oldProfileUrl == null || oldProfileUrl.isBlank() || oldProfileUrl.equals(newProfileUrl)) {
+            return;
+        }
+        eventPublisher.publishEvent(new ProfileImageCleanupEvent(oldProfileUrl));
     }
 
     private Category choosePreferredCategory(User user, List<Category> selected) {

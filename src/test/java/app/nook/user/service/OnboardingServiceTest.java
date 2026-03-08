@@ -12,6 +12,7 @@ import app.nook.library.repository.LibraryRepository;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.dto.OnboardingDto;
+import app.nook.user.event.ProfileImageCleanupEvent;
 import app.nook.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -29,6 +31,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyShort;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -43,6 +47,8 @@ class OnboardingServiceTest {
     private LibraryRepository libraryRepository;
     @Mock
     private FileStorageService fileStorageService;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private OnboardingService onboardingService;
@@ -135,6 +141,59 @@ class OnboardingServiceTest {
 
         assertThat(user.getProfileUrl()).isEqualTo("/uploads/profiles/a.png");
         verify(fileStorageService, times(1)).uploadProfile(file);
+    }
+
+    @Test
+    @DisplayName("completeOnboarding 실패 시 새로 업로드한 프로필 이미지를 정리한다")
+    void completeOnboarding_fail_cleanupUploadedProfileImage() {
+        MockMultipartFile file = new MockMultipartFile(
+                "profileImage", "p.png", "image/png", "img".getBytes()
+        );
+
+        User spyUser = spy(user);
+        OnboardingDto.CompleteRequest req = new OnboardingDto.CompleteRequest();
+        req.setGoal((short) 10);
+        req.setNickname("imgNick");
+        req.setCategories(List.of("소설/시/희곡"));
+        req.setProfileImage(file);
+
+        given(userRepository.findById(1L)).willReturn(Optional.of(spyUser));
+        given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, "소설/시/희곡"))
+                .willReturn(Optional.of(fiction));
+        given(fileStorageService.uploadProfile(file)).willReturn("/uploads/profiles/new.png");
+        doThrow(new RuntimeException("db fail")).when(spyUser)
+                .updateOnboarding(anyShort(), anyString(), anyString(), any());
+
+        assertThrows(RuntimeException.class, () -> onboardingService.completeOnboarding(1L, req));
+
+        verify(fileStorageService).deleteProfileByUrl("/uploads/profiles/new.png");
+    }
+
+    @Test
+    @DisplayName("completeOnboarding 성공 시 기존 프로필 이미지 정리 이벤트를 발행한다")
+    void completeOnboarding_success_publishProfileCleanupEvent() {
+        MockMultipartFile file = new MockMultipartFile(
+                "profileImage", "p.png", "image/png", "img".getBytes()
+        );
+
+        ReflectionTestUtils.setField(user, "profileUrl", "/uploads/profiles/old.png");
+
+        OnboardingDto.CompleteRequest req = new OnboardingDto.CompleteRequest();
+        req.setGoal((short) 10);
+        req.setNickname("imgNick");
+        req.setCategories(List.of("소설/시/희곡"));
+        req.setProfileImage(file);
+
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, "소설/시/희곡"))
+                .willReturn(Optional.of(fiction));
+        given(fileStorageService.uploadProfile(file)).willReturn("/uploads/profiles/new.png");
+
+        onboardingService.completeOnboarding(1L, req);
+
+        assertThat(user.getProfileUrl()).isEqualTo("/uploads/profiles/new.png");
+        verify(eventPublisher).publishEvent(new ProfileImageCleanupEvent("/uploads/profiles/old.png"));
+        verify(fileStorageService, never()).deleteProfileByUrl("/uploads/profiles/old.png");
     }
 
     @Test
