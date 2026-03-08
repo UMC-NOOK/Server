@@ -52,7 +52,7 @@ public class RedisZSETService {
                     .reverseRangeWithScores(dayKey, 0, -1);
 
             if (tuples == null || tuples.isEmpty()) {
-                int totalBookCount = totalBookCountStr == null ? 0 : Integer.parseInt(totalBookCountStr);
+                int totalBookCount = parseIntegerOrDefault(totalBookCountStr, 0, totalKey);
                 return new FocusRankDto.MonthlyBooksResponseDto(yearMonth, totalBookCount, List.of());
             }
 
@@ -70,8 +70,8 @@ public class RedisZSETService {
                 RedisDayRow decoded;
                 try {
                     decoded = RedisMonthlyBookMemberCodec.decode(tuple.getValue());
-                } catch (RedisOperationException e) {
-                    log.warn("Skip malformed monthly books cache member. key={}, member={}", dayKey, tuple.getValue());
+                } catch (RuntimeException e) {
+                    log.warn("월별 책 캐시 멤버 형식 오류로 건너뜁니다. key={}, member={}", dayKey, tuple.getValue());
                     continue;
                 }
                 scoredRows.add(new ScoredRedisDayRow(tuple.getScore(), decoded));
@@ -89,7 +89,7 @@ public class RedisZSETService {
                     })
                     .toList();
 
-            int totalBookCount = Integer.parseInt(totalBookCountStr);
+            int totalBookCount = parseIntegerOrDefault(totalBookCountStr, 0, totalKey);
             return new FocusRankDto.MonthlyBooksResponseDto(yearMonth, totalBookCount, days);
         });
     }
@@ -221,7 +221,7 @@ public class RedisZSETService {
                             tuple.getScore().longValue()
                     ));
                 } catch (RuntimeException e) {
-                    log.warn("Skip malformed monthly focus time cache member. key={}, member={}", key, tuple.getValue());
+                    log.warn("[HOME][FOCUS] 월별 포커스 시간 캐시 멤버 형식 오류로 건너뜀 key={}, member={}", key, tuple.getValue());
                 }
             }
             return rows.stream()
@@ -284,12 +284,21 @@ public class RedisZSETService {
                 return List.of();
             }
 
-            return tuples.stream()
-                    .filter(tuple -> tuple.getValue() != null && tuple.getScore() != null)
-                    .map(tuple -> new HourlyFocusStat(
+            List<HourlyFocusStat> rows = new ArrayList<>();
+            for (ZSetOperations.TypedTuple<String> tuple : tuples) {
+                if (tuple.getValue() == null || tuple.getScore() == null) {
+                    continue;
+                }
+                try {
+                    rows.add(new HourlyFocusStat(
                             Integer.parseInt(tuple.getValue()),
                             tuple.getScore().longValue()
-                    ))
+                    ));
+                } catch (RuntimeException e) {
+                    log.warn("[HOME][FOCUS] 시간대 포커스 캐시 멤버 형식 오류로 건너뜀 key={}, member={}", key, tuple.getValue());
+                }
+            }
+            return rows.stream()
                     .sorted((a, b) -> Integer.compare(a.hour(), b.hour()))
                     .toList();
         });
@@ -336,5 +345,17 @@ public class RedisZSETService {
             operation.run();
             return null;
         });
+    }
+
+    private int parseIntegerOrDefault(String value, int defaultValue, String key) {
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (RuntimeException e) {
+            log.warn("정수 캐시 값 형식 오류로 기본값을 사용합니다. key={}, value={}", key, value);
+            return defaultValue;
+        }
     }
 }
