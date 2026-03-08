@@ -10,6 +10,7 @@ import app.nook.redis.exception.RedisOperationException;
 import app.nook.redis.util.RedisMonthlyBookMemberCodec;
 import app.nook.redis.util.RedisStatsKeyUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.redis.RedisConnectionFailureException;
@@ -28,6 +29,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class RedisZSETService {
     private final StringRedisTemplate stringRedisTemplate;
@@ -65,7 +67,13 @@ public class RedisZSETService {
                 if (tuple.getValue() == null || tuple.getScore() == null) {
                     continue;
                 }
-                RedisDayRow decoded = RedisMonthlyBookMemberCodec.decode(tuple.getValue());
+                RedisDayRow decoded;
+                try {
+                    decoded = RedisMonthlyBookMemberCodec.decode(tuple.getValue());
+                } catch (RedisOperationException e) {
+                    log.warn("Skip malformed monthly books cache member. key={}, member={}", dayKey, tuple.getValue());
+                    continue;
+                }
                 scoredRows.add(new ScoredRedisDayRow(tuple.getScore(), decoded));
             }
 
@@ -93,10 +101,14 @@ public class RedisZSETService {
             String totalKey = totalCountKey(userId, yearMonth);
             String existsKey = monthlyBooksExistsKey(userId, yearMonth);
 
+            // 갱신 중에는 캐시 미스로 처리되도록 존재 마커를 먼저 제거
+            stringRedisTemplate.delete(existsKey);
             stringRedisTemplate.delete(dayKey);
 
-            for (FocusRankDto.DailyBookItem day : response.days()) {
-                long score = day.date().toEpochDay();
+            for (int i = 0; i < response.days().size(); i++) {
+                FocusRankDto.DailyBookItem day = response.days().get(i);
+                // 입력 순서를 유지하도록 순위 점수 저장
+                long score = response.days().size() - i;
                 String member = RedisMonthlyBookMemberCodec.encode(
                         day.date(),
                         day.bookCount(),
@@ -126,6 +138,8 @@ public class RedisZSETService {
             String totalKey = totalCountKey(userId, yearMonth);
             String existsKey = monthlyBooksExistsKey(userId, yearMonth);
 
+            // 갱신 중에는 캐시 미스로 처리되도록 존재 마커를 먼저 제거
+            stringRedisTemplate.delete(existsKey);
             stringRedisTemplate.delete(dayKey);
 
             for (MonthlyBookCacheRow row : rows) {
@@ -163,6 +177,8 @@ public class RedisZSETService {
         executeWrite(() -> {
             String key = monthlyFocusTimeKey(userId, yearMonth);
             String existsKey = monthlyFocusTimeExistsKey(userId, yearMonth);
+            // 갱신 중에는 캐시 미스로 처리되도록 존재 마커를 먼저 제거
+            stringRedisTemplate.delete(existsKey);
             stringRedisTemplate.delete(key);
 
             for (FocusRankDto.FocusTimeRow row : rows) {
@@ -194,12 +210,21 @@ public class RedisZSETService {
                 return List.of();
             }
 
-            return tuples.stream()
-                    .filter(tuple -> tuple.getValue() != null && tuple.getScore() != null)
-                    .map(tuple -> new FocusRankDto.FocusTimeRow(
+            List<FocusRankDto.FocusTimeRow> rows = new ArrayList<>();
+            for (ZSetOperations.TypedTuple<String> tuple : tuples) {
+                if (tuple.getValue() == null || tuple.getScore() == null) {
+                    continue;
+                }
+                try {
+                    rows.add(new FocusRankDto.FocusTimeRow(
                             LocalDate.parse(tuple.getValue()),
                             tuple.getScore().longValue()
-                    ))
+                    ));
+                } catch (RuntimeException e) {
+                    log.warn("Skip malformed monthly focus time cache member. key={}, member={}", key, tuple.getValue());
+                }
+            }
+            return rows.stream()
                     .sorted(Comparator.comparing(FocusRankDto.FocusTimeRow::date))
                     .toList();
         });

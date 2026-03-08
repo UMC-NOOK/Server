@@ -56,11 +56,14 @@ public class Focus extends BaseEntity {
     private LocalTime endedTime;
 
     @Builder
-    public Focus(Theme theme, LocalDateTime startedAt, LocalDateTime endedAt, Integer durationSec) {
+    public Focus(Theme theme, LocalDateTime startedAt, LocalDateTime endedAt, Integer durationSec, Library library) {
         this.theme = theme;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.durationSec = durationSec;
-        this.focusDate = startedAt.toLocalDate();
+        this.focusDate = startedAt != null ? startedAt.toLocalDate() : null;
+        this.startedTime = startedAt != null ? startedAt.toLocalTime() : null;
+        this.endedTime = endedAt != null ? endedAt.toLocalTime() : null;
+        this.library = library;
     }
 }
