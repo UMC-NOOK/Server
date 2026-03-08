@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FocusTest {
 
@@ -40,5 +41,35 @@ class FocusTest {
                 .build();
 
         assertThat(focus.getFocusDate()).isEqualTo(startedAt.toLocalDate());
+    }
+
+    @Test
+    @DisplayName("startedAt/endedAt가 있으면 durationSec는 시간차로 계산된다")
+    void builder_computesDurationSecFromStartedAtAndEndedAt() {
+        LocalDateTime startedAt = LocalDateTime.of(2026, 3, 8, 10, 0, 0);
+        LocalDateTime endedAt = startedAt.plusMinutes(30);
+
+        Focus focus = Focus.builder()
+                .startedAt(startedAt)
+                .endedAt(endedAt)
+                .durationSec(1)
+                .build();
+
+        assertThat(focus.getDurationSec()).isEqualTo(1800);
+    }
+
+    @Test
+    @DisplayName("endedAt이 startedAt보다 빠르면 예외가 발생한다")
+    void builder_throwsWhenEndedAtBeforeStartedAt() {
+        LocalDateTime startedAt = LocalDateTime.of(2026, 3, 8, 10, 0, 0);
+        LocalDateTime endedAt = startedAt.minusMinutes(1);
+
+        assertThatThrownBy(() -> Focus.builder()
+                .startedAt(startedAt)
+                .endedAt(endedAt)
+                .durationSec(60)
+                .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("endedAt must be after startedAt");
     }
 }
