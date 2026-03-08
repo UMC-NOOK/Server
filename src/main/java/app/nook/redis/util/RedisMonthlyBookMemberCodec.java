@@ -24,24 +24,28 @@ public final class RedisMonthlyBookMemberCodec {
         if (value == null || value.isBlank()) {
             throw new RedisOperationException(
                     RedisErrorCode.REDIS_SERIALIZATION_FAILED,
-                    new IllegalArgumentException("Redis monthly book member is blank")
+                    new IllegalArgumentException()
             );
         }
         String[] tokens = value.split(":", 4);
         if (tokens.length < 4) {
             throw new RedisOperationException(
                     RedisErrorCode.REDIS_SERIALIZATION_FAILED,
-                    new IllegalArgumentException("Invalid Redis monthly book member format")
+                    new IllegalArgumentException()
             );
         }
-        LocalDate date = LocalDate.parse(tokens[0]);
-        long bookCount = Long.parseLong(tokens[1]);
-        Long topBookId = "null".equals(tokens[2]) ? null : Long.parseLong(tokens[2]);
-        String coverUrl = new String(Base64.getUrlDecoder().decode(tokens[3]), StandardCharsets.UTF_8);
-        if (coverUrl.isBlank()) {
-            coverUrl = null;
+        try {
+            LocalDate date = LocalDate.parse(tokens[0]);
+            long bookCount = Long.parseLong(tokens[1]);
+            Long topBookId = "null".equals(tokens[2]) ? null : Long.parseLong(tokens[2]);
+            String coverUrl = new String(Base64.getUrlDecoder().decode(tokens[3]), StandardCharsets.UTF_8);
+            if (coverUrl.isBlank()) {
+                coverUrl = null;
+            }
+            return new RedisDayRow(date, bookCount, topBookId, coverUrl);
+        } catch (RuntimeException e) {
+            throw new RedisOperationException(RedisErrorCode.REDIS_SERIALIZATION_FAILED, e);
         }
-        return new RedisDayRow(date, bookCount, topBookId, coverUrl);
     }
 
     private static String safe(String value) {
