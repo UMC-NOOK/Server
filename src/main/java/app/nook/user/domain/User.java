@@ -82,7 +82,10 @@ public class User extends BaseEntity {
         this.nickName = nickName;
         this.profileUrl = profileUrl;
         this.preferredCategory = preferredCategory;
-        this.onboardingCompletedAt = LocalDateTime.now();
+
+        if (this.onboardingCompletedAt == null) {
+            this.onboardingCompletedAt = LocalDateTime.now();
+        }
     }
 
     public void updateGoal(short goal) {

@@ -18,6 +18,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockPart;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
@@ -31,6 +32,8 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.request.RequestDocumentation.partWithName;
+import static org.springframework.restdocs.request.RequestDocumentation.requestParts;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -67,18 +70,27 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
         MockMultipartFile profile = new MockMultipartFile(
                 "profileImage", "profile.png", "image/png", "img".getBytes()
         );
+        MockPart goal = new MockPart("goal", "120".getBytes());
+        MockPart nickname = new MockPart("nickname", "nick_01".getBytes());
+        MockPart categories = new MockPart("categories", "에세이".getBytes());
 
         mockMvc.perform(multipart("/api/users/me/onboarding/complete")
                         .file(profile)
-                        .param("goal", "120")
-                        .param("nickname", "nick_01")
-                        .param("categories", "에세이")
+                        .part(goal)
+                        .part(nickname)
+                        .part(categories)
                         .header(AUTH_HEADER, AUTH_TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.onboardingCompleted").value(true))
                 .andExpect(jsonPath("$.result.preferredCategory").value("에세이"))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
+                        requestParts(
+                                partWithName("goal").description("독서 목표 권수 (1~300)"),
+                                partWithName("nickname").description("닉네임 (최대 10자)"),
+                                partWithName("categories").description("선호 카테고리 (1~2개)"),
+                                partWithName("profileImage").description("프로필 이미지 파일").optional()
+                        ),
                         responseFields(
                                 ApiResponseSnippet.withResult(
                                         fieldWithPath("result.onboardingCompleted").description("온보딩 완료 여부"),

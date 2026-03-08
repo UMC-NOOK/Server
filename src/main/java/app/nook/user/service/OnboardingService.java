@@ -44,8 +44,19 @@ public class OnboardingService {
 
         User user = getUser(userId);
 
-        List<Category> selected = request.getCategories().stream()
-                .distinct()
+        List<String> categories = request.getCategories();
+
+        if (categories == null || categories.isEmpty() || categories.size() > 2) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST);
+        }
+        if (categories.stream().anyMatch(c -> c == null || c.isBlank())) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST);
+        }
+        if (categories.stream().distinct().count() != categories.size()) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST);
+        }
+
+        List<Category> selected = categories.stream()
                 .map(name -> categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, name)
                         .orElseThrow(() -> new CustomException(BookErrorCode.CATEGORY_NOT_FOUND)))
                 .toList();
@@ -56,8 +67,12 @@ public class OnboardingService {
         }
 
         Category preferred = choosePreferredCategory(user, selected);
-        String profileUrl = user.getProfileUrl();
-        if (request.getProfileImage() != null && !request.getProfileImage().isEmpty()) {
+
+        String oldProfileUrl = user.getProfileUrl();
+        String profileUrl = oldProfileUrl;
+        boolean hasNewProfileImage = request.getProfileImage() != null && !request.getProfileImage().isEmpty();
+
+        if (hasNewProfileImage) {
             profileUrl = fileStorageService.uploadProfile(request.getProfileImage());
         }
 
@@ -67,6 +82,10 @@ public class OnboardingService {
                 profileUrl,
                 preferred
         );
+
+        if (hasNewProfileImage && oldProfileUrl != null && !oldProfileUrl.isBlank() && !oldProfileUrl.equals(profileUrl)) {
+            fileStorageService.deleteProfileByUrl(oldProfileUrl);
+        }
 
         log.info("[ONBOARDING_COMPLETE_SUCCESS] userId={}, preferredCategory={}, goal={}",
                 userId, preferred.getCategoryName(), request.getGoal());

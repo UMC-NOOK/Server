@@ -160,15 +160,7 @@ class OnboardingServiceTest {
         req.setNickname("nick");
         req.setCategories(List.of("소설/시/희곡", "에세이", "경제경영"));
 
-        Category econ = Category.of(MallType.BOOK, "경제경영", 3);
-
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, "소설/시/희곡"))
-                .willReturn(Optional.of(fiction));
-        given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, "에세이"))
-                .willReturn(Optional.of(essay));
-        given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, "경제경영"))
-                .willReturn(Optional.of(econ));
 
         CustomException ex = assertThrows(CustomException.class,
                 () -> onboardingService.completeOnboarding(1L, req));
