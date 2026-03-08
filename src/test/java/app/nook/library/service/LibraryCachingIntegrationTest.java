@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -93,7 +94,7 @@ class LibraryCachingIntegrationTest {
         libraryStatsService.viewMonthly(userId, yearMonth);
 
         verify(focusRepository, times(1)).findMonthlyFocusStats(eq(userId), eq(start), eq(end));
-        verify(redisZSETService, times(1)).saveMonthlyBooks(eq(userId), eq(yearMonth), any());
+        verify(redisZSETService, times(1)).saveMonthlyBooks(eq(userId), eq(yearMonth), anyInt(), any());
     }
 
     @Test

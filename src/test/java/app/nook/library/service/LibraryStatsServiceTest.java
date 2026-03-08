@@ -20,6 +20,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -91,6 +92,7 @@ class LibraryStatsServiceTest {
                 assertThat(result).isEqualTo(cached);
                 verify(focusRepository, never()).findMonthlyFocusStats(any(), any(), any());
                 verify(redisZSETService, never()).saveMonthlyBooks(any(), any(), any());
+                verify(redisZSETService, never()).saveMonthlyBooks(any(), any(), anyInt(), any());
             }
 
             @Test
@@ -136,7 +138,7 @@ class LibraryStatsServiceTest {
                 libraryStatsService.viewMonthly(userId, yearMonth);
 
                 verify(focusRepository, times(1)).findMonthlyFocusStats(userId, start, end);
-                verify(redisZSETService, times(1)).saveMonthlyBooks(eq(userId), eq(yearMonth), any());
+                verify(redisZSETService, times(1)).saveMonthlyBooks(eq(userId), eq(yearMonth), anyInt(), any());
             }
 
             @Test
