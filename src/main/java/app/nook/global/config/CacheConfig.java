@@ -29,15 +29,6 @@ public class CacheConfig {
 
         Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
 
-        cacheConfigs.put("libraryMonthlyCurrent",
-                defaultConfig.entryTtl(Duration.ofMinutes(3)));
-
-        cacheConfigs.put("libraryMonthlyPast",
-                defaultConfig.entryTtl(Duration.ofHours(24)));
-
-        cacheConfigs.put("focusMonthlyCurrent",
-                defaultConfig.entryTtl(Duration.ofMinutes(3)));
-
         cacheConfigs.put("libraryStatusFirstPage",
                 defaultConfig.entryTtl(Duration.ofMinutes(2)));
 
