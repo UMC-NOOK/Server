@@ -5,9 +5,6 @@ import java.util.List;
 
 /**
  * 캐시 무효화 이벤트를 처리하는 레코드
- * @param userId
- * @param affectedYearMonths
- * @param evictStatusFirstPage
  */
 public record LibraryCacheInvalidateEvent(
         Long userId,
