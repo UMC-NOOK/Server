@@ -6,7 +6,10 @@ import app.nook.library.domain.Library;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Getter
@@ -15,9 +18,9 @@ import java.time.LocalDateTime;
         name = "focuses",
         indexes = {
                 @Index(
-                        name = "idx_focus_library_started",
-                        columnList = "library_id, started_at"
-                )
+                        name = "idx_focus_library_focus_date",
+                        columnList = "library_id, focus_date"
+                ),
         }
 )
 public class Focus extends BaseEntity {
@@ -44,23 +47,43 @@ public class Focus extends BaseEntity {
     @Column(name = "duration_sec")
     private Integer durationSec;
 
+    @Column(name = "focus_date")
+    private LocalDate focusDate;
+
+    @Column(name = "started_time")
+    private LocalTime startedTime;
+
+    @Column(name = "ended_time")
+    private LocalTime endedTime;
+
     @Builder
-    public Focus(Library library, Theme theme) {
-        this.library = library;
+    public Focus(Theme theme, LocalDateTime startedAt, LocalDateTime endedAt, Integer durationSec, Library library) {
         this.theme = theme;
+        this.startedAt = startedAt;
+        this.endedAt = endedAt;
+        this.durationSec = resolveDurationSec(startedAt, endedAt, durationSec);
+        this.focusDate = startedAt != null ? startedAt.toLocalDate() : null;
+        this.startedTime = startedAt != null ? startedAt.toLocalTime() : null;
+        this.endedTime = endedAt != null ? endedAt.toLocalTime() : null;
+        this.library = library;
     }
 
-    public void startFocus() {
-        this.startedAt = LocalDateTime.now();
-    }
-
-
-    public void endFocus() {
-        this.endedAt = LocalDateTime.now();
-
-        if (startedAt != null) {
-            this.durationSec =
-                    (int) java.time.Duration.between(startedAt, endedAt).getSeconds();
+    private Integer resolveDurationSec(LocalDateTime startedAt, LocalDateTime endedAt, Integer durationSec) {
+        if (startedAt != null && endedAt != null) {
+            long computedDurationSec = Duration.between(startedAt, endedAt).getSeconds();
+            if (computedDurationSec < 0) {
+                throw new IllegalArgumentException("endedAt must be after startedAt");
+            }
+            if (computedDurationSec > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("durationSec is out of range");
+            }
+            return (int) computedDurationSec;
         }
+
+        if (durationSec != null && durationSec < 0) {
+            throw new IllegalArgumentException("durationSec must not be negative");
+        }
+
+        return durationSec;
     }
 }

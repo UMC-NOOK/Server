@@ -2,6 +2,7 @@ package app.nook.global.exception;
 
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.ErrorCode;
+import app.nook.redis.exception.RedisOperationException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -77,6 +78,14 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     // 도메인 CustomException
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<Object> handleCustomException(CustomException e, HttpServletRequest request) {
+        ApiResponse<Object> body = ApiResponse.onFailure(e.getErrorCode(), null);
+        WebRequest webRequest = new ServletWebRequest(request);
+        return handleExceptionInternal(e, body, new HttpHeaders(), e.getErrorCode().getHttpStatus(), webRequest);
+    }
+
+    // Redis 예외
+    @ExceptionHandler(RedisOperationException.class)
+    public ResponseEntity<Object> handleRedisOperationException(RedisOperationException e, HttpServletRequest request) {
         ApiResponse<Object> body = ApiResponse.onFailure(e.getErrorCode(), null);
         WebRequest webRequest = new ServletWebRequest(request);
         return handleExceptionInternal(e, body, new HttpHeaders(), e.getErrorCode().getHttpStatus(), webRequest);
