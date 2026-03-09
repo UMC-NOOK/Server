@@ -22,6 +22,7 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
     @Query("""
         select l
         from Library l
+        join fetch l.book b
         where l.user = :user
           and l.readingStatus = :status
           and (:cursor is null or l.id < :cursor)
