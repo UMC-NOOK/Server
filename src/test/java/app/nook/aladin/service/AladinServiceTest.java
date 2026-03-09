@@ -132,6 +132,29 @@ class AladinServiceTest {
     }
 
     @Test
+    @DisplayName("검색 성공 - cursor가 있으면 같은 페이지의 다음 항목부터 조회")
+    void searchItems_커서시작_같은페이지이어받기() {
+        // given
+        server.expect(once(), requestTo(uriForSearch("한강", 1)))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(queryParam("Query", "한강"))
+                .andExpect(queryParam("Start", "1"))
+                .andRespond(withSuccess(searchPageForCursorResponseJson(), MediaType.APPLICATION_JSON));
+
+        // when
+        BookResponseDto.SearchResultDto result = aladinService.searchItems("한강", 1, 2);
+
+        // then
+        assertThat(result.totalResults()).isEqualTo(100L);
+        assertThat(result.books()).hasSize(2);
+        assertThat(result.books().get(0).getTitle()).isEqualTo("소년이 온다");
+        assertThat(result.books().get(1).getTitle()).isEqualTo("작별하지 않는다");
+        assertThat(result.hasNext()).isTrue();
+        assertThat(result.nextCursor()).isEqualTo(3);
+        server.verify();
+    }
+
+    @Test
     @DisplayName("검색 성공 - 무효 아이템을 건너뛰고 다음 페이지까지 이어서 수집")
     void searchItems_필터링으로다음페이지이월() {
         // given
@@ -192,6 +215,24 @@ class AladinServiceTest {
         assertThat(result.getMallType()).isEqualTo("국내도서");
         assertThat(result.getCategory()).isEqualTo("소설/시/희곡");
         assertThat(result.getPages()).isEqualTo(184);
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("상세 조회 실패 - API 오류 시 ALADIN_API_ERROR")
+    void lookupItem_API오류_예외변환() {
+        // given
+        server.expect(once(), requestTo(uriForLookup("9780000000002")))
+                .andRespond(withServerError());
+
+        // when
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> aladinService.lookupItem("9780000000002")
+        );
+
+        // then
+        assertThat(ex.getErrorCode()).isEqualTo(AladinErrorCode.ALADIN_API_ERROR);
         server.verify();
     }
 
@@ -414,6 +455,49 @@ class AladinServiceTest {
                     ]
                   }
                   """.formatted(items);
+    }
+
+    private String searchPageForCursorResponseJson() {
+        return """
+                  {
+                    "totalResults": 100,
+                    "item": [
+                      {
+                        "isbn13": "9788936434267",
+                        "title": "채식주의자",
+                        "author": "한강",
+                        "categoryName": "국내도서>소설/시/희곡",
+                        "mallType": "BOOK",
+                        "publisher": "창비",
+                        "pubDate": "2024-01-01",
+                        "cover": "https://img.test/1.jpg",
+                        "adult": false
+                      },
+                      {
+                        "isbn13": "9788936433598",
+                        "title": "소년이 온다",
+                        "author": "한강",
+                        "categoryName": "국내도서>소설/시/희곡",
+                        "mallType": "BOOK",
+                        "publisher": "창비",
+                        "pubDate": "2024-01-02",
+                        "cover": "https://img.test/2.jpg",
+                        "adult": false
+                      },
+                      {
+                        "isbn13": "9788936434120",
+                        "title": "작별하지 않는다",
+                        "author": "한강",
+                        "categoryName": "국내도서>소설/시/희곡",
+                        "mallType": "BOOK",
+                        "publisher": "문학동네",
+                        "pubDate": "2024-01-03",
+                        "cover": "https://img.test/3.jpg",
+                        "adult": false
+                      }
+                    ]
+                  }
+                  """;
     }
 
     private String searchPage2ResponseJson() {
