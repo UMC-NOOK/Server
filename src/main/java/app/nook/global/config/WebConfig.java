@@ -14,8 +14,11 @@ import java.nio.file.Paths;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${file.upload-dir:uploads/covers}")
-    private String uploadDir;
+    @Value("${file.cover-upload-dir:uploads/covers}")
+    private String coverUploadDir;
+
+    @Value("${file.profile-upload-dir:uploads/profiles}")
+    private String profileUploadDir;
 
     // 검색 타입 문자열을 SearchType enum으로 변환
     @Override
@@ -36,9 +39,12 @@ public class WebConfig implements WebMvcConfigurer {
     // 보안 설정(WebSecurityConfig)에서 /uploads/** 공개 여부를 함께 관리해야 함
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String absolutePath = Paths.get(uploadDir).toAbsolutePath().toUri().toString();
+        String coverAbsolutePath = Paths.get(coverUploadDir).toAbsolutePath().toUri().toString();
         registry.addResourceHandler("/uploads/covers/**")
-                .addResourceLocations(absolutePath);
+                .addResourceLocations(coverAbsolutePath);
+        String profileAbsolutePath = Paths.get(profileUploadDir).toAbsolutePath().toUri().toString();
+        registry.addResourceHandler("/uploads/profiles/**")
+                .addResourceLocations(profileAbsolutePath);
     }
 }
 

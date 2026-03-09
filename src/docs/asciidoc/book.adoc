@@ -26,6 +26,12 @@ include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/htt
 include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/http-response.adoc[]
 include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/response-fields.adoc[]
 
+=== 도서 카테고리 조회
+
+include::{snippets}/category-controller-test/도서카테고리_조회_성공/http-request.adoc[]
+include::{snippets}/category-controller-test/도서카테고리_조회_성공/http-response.adoc[]
+include::{snippets}/category-controller-test/도서카테고리_조회_성공/response-fields.adoc[]
+
 === 사용자 도서 등록
 
 include::{snippets}/book-controller-test/사용자_도서_등록_성공/http-request.adoc[]
