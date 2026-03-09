@@ -492,4 +492,52 @@ class LibraryServiceTest {
             assertThat(result.getItems().get(0).focusSec()).isZero();
         }
     }
+
+    @Nested
+    @DisplayName("최근 포커스 조회")
+    class ViewRecentFocus {
+
+        @Test
+        @DisplayName("최근 포커스가 있으면 bookId/title/page를 반환하고 page 0은 null 처리한다")
+        void viewRecentFocus_성공_page_null_처리() {
+            User user = user();
+
+            Book book = Book.builder()
+                    .isbn13("1234567890123")
+                    .title("최근 도서")
+                    .author("작가")
+                    .coverImageUrl("cover")
+                    .build();
+            ReflectionTestUtils.setField(book, "id", 11L);
+
+            Library library = Library.builder().user(user).book(book).build();
+            ReflectionTestUtils.setField(library, "page", 0);
+
+            Focus focus = new Focus();
+            ReflectionTestUtils.setField(focus, "id", 99L);
+            ReflectionTestUtils.setField(focus, "library", library);
+
+            given(focusRepository.findRecentByUser(eq(user), any(PageRequest.class)))
+                    .willReturn(List.of(focus));
+
+            LibraryViewDto.RecentFocusResponseDto result = libraryService.viewRecentFocus(user);
+
+            assertThat(result).isNotNull();
+            assertThat(result.bookId()).isEqualTo(11L);
+            assertThat(result.title()).isEqualTo("최근 도서");
+            assertThat(result.page()).isNull();
+        }
+
+        @Test
+        @DisplayName("최근 포커스가 없으면 null을 반환한다")
+        void viewRecentFocus_데이터없음_null반환() {
+            User user = user();
+            given(focusRepository.findRecentByUser(eq(user), any(PageRequest.class)))
+                    .willReturn(List.of());
+
+            LibraryViewDto.RecentFocusResponseDto result = libraryService.viewRecentFocus(user);
+
+            assertThat(result).isNull();
+        }
+    }
 }

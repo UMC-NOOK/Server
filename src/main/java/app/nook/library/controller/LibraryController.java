@@ -113,6 +113,8 @@ public class LibraryController {
     ) {
         LibraryViewDto.RecentFocusResponseDto response =
                 libraryService.viewRecentFocus(userDetails.getUser());
+        if(response == null)
+            return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 }
