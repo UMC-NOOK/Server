@@ -219,30 +219,56 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 ));
     }
 
-    @Test
-    @WithCustomUser
-    void 최근_포커스_도서_조회_성공() throws Exception {
-        LibraryViewDto.RecentFocusResponseDto response = new LibraryViewDto.RecentFocusResponseDto(
-                1L,
-                "타이틀",
-                12
-        );
+    @DisplayName("최근 포커스 도서 조회")
+    @Nested
+    class ViewRecentFocus {
 
-        given(libraryService.viewRecentFocus(any())).willReturn(response);
+        @DisplayName("성공")
+        @Nested
+        class Success {
 
-        mockMvc.perform(
-                        get("/api/library/recent-focus")
-                                .header(AUTH_HEADER, AUTH_TOKEN)
-                )
-                .andExpect(status().isOk())
-                .andDo(documentWithAuth(
-                        "{class-name}/{method-name}",
-                        responseFields(ApiResponseSnippet.withResult(
-                                fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
-                                fieldWithPath("result.title").type(STRING).description("도서 제목"),
-                                fieldWithPath("result.page").type(NUMBER).optional().description("최근 포커스 시 기록된 페이지 (없으면 null)")
-                        ))
-                ));
+            @Test
+            @WithCustomUser
+            void 최근_포커스_도서_조회_데이터있음_200() throws Exception {
+                LibraryViewDto.RecentFocusResponseDto response = new LibraryViewDto.RecentFocusResponseDto(
+                        1L,
+                        "타이틀",
+                        12
+                );
+
+                given(libraryService.viewRecentFocus(any())).willReturn(response);
+
+                mockMvc.perform(
+                                get("/api/library/recent-focus")
+                                        .header(AUTH_HEADER, AUTH_TOKEN)
+                        )
+                        .andExpect(status().isOk())
+                        .andDo(documentWithAuth(
+                                "{class-name}/최근_포커스_도서_조회_성공",
+                                responseFields(ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
+                                        fieldWithPath("result.title").type(STRING).description("도서 제목"),
+                                        fieldWithPath("result.page").type(NUMBER).optional().description("최근 포커스 시 기록된 페이지 (없으면 null)")
+                                ))
+                        ));
+            }
+
+            @Test
+            @WithCustomUser
+            void 최근_포커스_도서_조회_데이터없음_204() throws Exception {
+                given(libraryService.viewRecentFocus(any())).willReturn(null);
+
+                mockMvc.perform(
+                                get("/api/library/recent-focus")
+                                        .header(AUTH_HEADER, AUTH_TOKEN)
+                        )
+                        .andExpect(status().isOk())
+                        .andDo(documentWithAuth(
+                                "{class-name}/최근_포커스_도서_조회_데이터없음_204",
+                                responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                        ));
+            }
+        }
     }
 
     @DisplayName("서재 책 개수 조회")
