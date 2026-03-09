@@ -1,14 +1,19 @@
 package app.nook.library.service;
 
 import app.nook.focus.repository.FocusRepository;
+import app.nook.library.converter.MonthlyBooksStatsMapper;
+import app.nook.library.dto.DailyBookAggregateDto;
 import app.nook.library.dto.FocusRankDto;
+import app.nook.library.dto.MonthlyBooksQueryResultDto;
+import app.nook.redis.dto.MonthlyBookCacheRow;
+import app.nook.redis.exception.RedisOperationException;
+import app.nook.redis.service.RedisZSETService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.Comparator;
 import java.util.List;
@@ -16,29 +21,47 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class LibraryStatsService {
 
     private final FocusRepository focusRepository;
+    private final RedisZSETService redisZSETService;
 
-    // 서재 월별 책 조회
-    @Cacheable(
-            value = "libraryMonthlyCurrent",
-            key = "#userId + ':' + #yearMonth"
-    )
+    // 서재 월별 책 조회 Redis ZSET 캐시 확인, 미스 시 DB 조회
     public FocusRankDto.MonthlyBooksResponseDto viewMonthly(Long userId, YearMonth yearMonth) {
+        // Redis ZSET 캐시 확인
+        FocusRankDto.MonthlyBooksResponseDto cached = safeLoadMonthlyBooks(userId, yearMonth);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 캐시 미스 시 DB 조회
+        MonthlyBooksQueryResultDto queryResult = loadMonthlyBooksFromDB(userId, yearMonth);
+
+        // Redis ZSET에 저장(score=topFocusSec)
+        safeSaveMonthlyBooks(
+                userId,
+                yearMonth,
+                queryResult.totalBookCount(),
+                queryResult.cacheRows()
+        );
+
+        return queryResult.response();
+    }
+
+    // 캐시 미스 시 DB에서 조회하는 메서드
+    private MonthlyBooksQueryResultDto loadMonthlyBooksFromDB(Long userId, YearMonth yearMonth) {
         // 월 범위 계산
-        LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
-        LocalDateTime end = yearMonth.plusMonths(1)
-                .atDay(1)
-                .atStartOfDay();
+        LocalDate startDate = yearMonth.atDay(1);
+        LocalDate endDate = yearMonth.plusMonths(1).atDay(1);
 
         // 집계 결과 받아오기
-        List<FocusRankDto.MonthlyFocusRow> rows = focusRepository.findMonthlyFocusStats(userId, start, end)
+        List<FocusRankDto.MonthlyFocusRow> rows = focusRepository.findMonthlyFocusStats(userId, startDate, endDate)
                 .stream()
                 .map(row -> new FocusRankDto.MonthlyFocusRow(
-                        LocalDate.of(row.getYearValue(), row.getMonthValue(), row.getDayValue()),
+                        row.getFocusDate(),
                         row.getBookId(),
                         row.getCoverImageUrl(),
                         row.getTotalSec()
@@ -53,52 +76,35 @@ public class LibraryStatsService {
                         Collectors.groupingBy(FocusRankDto.MonthlyFocusRow::date)
                 );
 
-        // DailyBookItem으로 매핑
-        List<FocusRankDto.DailyBookItem> dailyBookItems = groupedByDate.entrySet().stream()
-                .map(entry -> {
-                    LocalDate date = entry.getKey();
-                    List<FocusRankDto.MonthlyFocusRow> dayRows = entry.getValue();
+        // 날짜별 top focusSec를 같이 계산해 정렬 기준으로 사용
+        List<DailyBookAggregateDto> aggregates = MonthlyBooksStatsMapper.toAggregates(groupedByDate);
 
-                    // 날짜별 다른 책 개수
-                    long bookCount = dayRows.size();
+        List<FocusRankDto.DailyBookItem> dailyBookItems = MonthlyBooksStatsMapper.toDailyBookItems(aggregates);
 
-                    // 가장 오래 읽은 책
-                    FocusRankDto.MonthlyFocusRow top = dayRows.stream()
-                            .max(Comparator.comparingLong(FocusRankDto.MonthlyFocusRow::totalSec))
-                            .orElse(null);
+        List<MonthlyBookCacheRow> cacheRows = MonthlyBooksStatsMapper.toCacheRows(aggregates);
 
-                    FocusRankDto.BookCalendarInfo topBook = null;
-
-                    // 오래 읽은 책이 있으면 매핑
-                    if (top!=null) {
-                        topBook = new FocusRankDto.BookCalendarInfo(
-                                top.bookId(),
-                                top.coverImageUrl()
-                        );
-                    }
-                    return new FocusRankDto.DailyBookItem(date, bookCount, topBook);
-                })
-                .sorted(Comparator.comparing(FocusRankDto.DailyBookItem::date)) // 오름차순 정렬
-                .toList();
-        return new FocusRankDto.MonthlyBooksResponseDto(yearMonth, totalBookCount, dailyBookItems);
+        FocusRankDto.MonthlyBooksResponseDto response =
+                new FocusRankDto.MonthlyBooksResponseDto(yearMonth, totalBookCount, dailyBookItems);
+        return new MonthlyBooksQueryResultDto(totalBookCount, response, cacheRows);
     }
 
-    // 서재 월별 포커스 시간 통계 조회
-    @Cacheable(
-            value = "focusMonthlyCurrent",
-            key = "#userId + ':' + #yearMonth"
-    )
+    // 서재 월별 포커스 시간 통계 조회 (Redis ZSET 캐시 → 미스 시 DB 조회)
     public FocusRankDto.FocusBookResponseDto viewFocusTimeStats(Long userId, YearMonth yearMonth) {
-        LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
-        LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
+        List<FocusRankDto.FocusTimeRow> rows = safeLoadMonthlyFocusTime(userId, yearMonth);
+        // 캐시 미스 시 DB 조회
+        if (rows == null) {
+            LocalDate startDate = yearMonth.atDay(1);
+            LocalDate endDate = yearMonth.plusMonths(1).atDay(1);
 
-        List<FocusRankDto.FocusTimeRow> rows = focusRepository.findFocusTimeStats(userId, start, end)
-                .stream()
-                .map(row -> new FocusRankDto.FocusTimeRow(
-                        LocalDate.of(row.getYearValue(), row.getMonthValue(), row.getDayValue()),
-                        row.getTotalSec()
-                ))
-                .toList();
+            rows = focusRepository.findFocusTimeStats(userId, startDate, endDate)
+                    .stream()
+                    .map(row -> new FocusRankDto.FocusTimeRow(
+                            row.getFocusDate(),
+                            row.getTotalSec()
+                    ))
+                    .toList();
+            safeSaveMonthlyFocusTime(userId, yearMonth, rows);
+        }
 
         long totalSec = rows.stream().mapToLong(FocusRankDto.FocusTimeRow::totalSec).sum();
         int totalFocusMin = (int) (totalSec / 60);
@@ -106,6 +112,7 @@ public class LibraryStatsService {
                 .mapToLong(FocusRankDto.FocusTimeRow::totalSec)
                 .max()
                 .orElse(0L);
+
 
         List<FocusRankDto.FocusDateItem> focusBookItems = rows.stream()
                 .sorted(Comparator.comparing(FocusRankDto.FocusTimeRow::date))
@@ -117,4 +124,44 @@ public class LibraryStatsService {
 
         return new FocusRankDto.FocusBookResponseDto(yearMonth, totalFocusMin, focusBookItems);
     }
+
+    private FocusRankDto.MonthlyBooksResponseDto safeLoadMonthlyBooks(Long userId, YearMonth yearMonth) {
+        try {
+            return redisZSETService.loadMonthlyBooks(userId, yearMonth);
+        } catch (RedisOperationException e) {
+            log.warn("Redis loadMonthlyBooks failed. userId={}, yearMonth={}", userId, yearMonth, e);
+            return null;
+        }
+    }
+
+    private void safeSaveMonthlyBooks(
+            Long userId,
+            YearMonth yearMonth,
+            int totalBookCount,
+            List<MonthlyBookCacheRow> rows
+    ) {
+        try {
+            redisZSETService.saveMonthlyBooks(userId, yearMonth, totalBookCount, rows);
+        } catch (RedisOperationException e) {
+            log.warn("Redis saveMonthlyBooks failed. userId={}, yearMonth={}", userId, yearMonth, e);
+        }
+    }
+
+    private List<FocusRankDto.FocusTimeRow> safeLoadMonthlyFocusTime(Long userId, YearMonth yearMonth) {
+        try {
+            return redisZSETService.loadMonthlyFocusTime(userId, yearMonth);
+        } catch (RedisOperationException e) {
+            log.warn("Redis loadMonthlyFocusTime failed. userId={}, yearMonth={}", userId, yearMonth, e);
+            return null;
+        }
+    }
+
+    private void safeSaveMonthlyFocusTime(Long userId, YearMonth yearMonth, List<FocusRankDto.FocusTimeRow> rows) {
+        try {
+            redisZSETService.saveMonthlyFocusTime(userId, yearMonth, rows);
+        } catch (RedisOperationException e) {
+            log.warn("Redis saveMonthlyFocusTime failed. userId={}, yearMonth={}", userId, yearMonth, e);
+        }
+    }
+
 }

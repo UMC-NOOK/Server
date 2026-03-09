@@ -31,7 +31,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
@@ -92,11 +91,12 @@ public class LibraryService {
 
         // 캐시 무효화에 필요한 데이터 조회
         List<YearMonth> affectedYearMonths =
-                focusRepository.findDistinctFocusYearMonthsByLibraryAndUser(
+                focusRepository.findDistinctFocusDatesByLibraryAndUser(
                         library.getId(),
                         user.getId()
                 ).stream()
-                .map(ym -> YearMonth.of(ym.getYearValue(), ym.getMonthValue()))
+                .map(YearMonth::from)
+                .distinct()
                 .collect(Collectors.toList());
 
         libraryRepository.delete(library);
@@ -190,13 +190,11 @@ public class LibraryService {
             int size
     ) {
             Pageable pageable = PageRequest.of(0, size + 1);
-            LocalDateTime start = date.atStartOfDay();
-            LocalDateTime end = date.plusDays(1).atStartOfDay();
 
+            // count 쿼리 없이 조회
             Slice<Focus> focuses = focusRepository.findByLibraryWithCursorByDate(
                     user,
-                    start,
-                    end,
+                    date,
                     cursor,
                     pageable
             );

@@ -19,6 +19,7 @@ spring:
         format_sql: true
         show_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_batch_fetch_size: 100
     open-in-view: false
   cache:
     type: redis
@@ -66,5 +67,4 @@ auth:
     client-secret: ${GOOGLE_CLIENT_SECRET}
     token-request-uri: ${TOKEN_REQUEST_URI}
     user-info-uri: ${MEMBER_INFO_REQUEST_URI}
-
 

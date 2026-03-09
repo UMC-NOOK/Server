@@ -31,6 +31,10 @@ public class QFocus extends EntityPathBase<Focus> {
 
     public final DateTimePath<java.time.LocalDateTime> endedAt = createDateTime("endedAt", java.time.LocalDateTime.class);
 
+    public final TimePath<java.time.LocalTime> endedTime = createTime("endedTime", java.time.LocalTime.class);
+
+    public final DatePath<java.time.LocalDate> focusDate = createDate("focusDate", java.time.LocalDate.class);
+
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
     public final app.nook.library.domain.QLibrary library;
@@ -39,6 +43,8 @@ public class QFocus extends EntityPathBase<Focus> {
     public final DateTimePath<java.time.LocalDateTime> modifiedDate = _super.modifiedDate;
 
     public final DateTimePath<java.time.LocalDateTime> startedAt = createDateTime("startedAt", java.time.LocalDateTime.class);
+
+    public final TimePath<java.time.LocalTime> startedTime = createTime("startedTime", java.time.LocalTime.class);
 
     public final QTheme theme;
 

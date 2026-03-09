@@ -1,43 +1,27 @@
 package app.nook.library.event;
 
-import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.redis.service.RedisCacheService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+/**
+ * 커밋 후에 캐시 무효화 실행하는 메서드
+ */
 @Component
 @RequiredArgsConstructor
 public class LibraryCacheInvalidationListener {
 
-    private final CacheManager cacheManager;
+    private final RedisCacheService redisCacheService;
 
+    // 트랜잭션 커밋 후 이벤트 처리하여 캐시 무효화
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAfterCommit(LibraryCacheInvalidateEvent event) {
-        if (event.affectedYearMonths() != null && !event.affectedYearMonths().isEmpty()) {
-            Cache monthlyCache = cacheManager.getCache("libraryMonthlyCurrent");
-            Cache focusTimeCache = cacheManager.getCache("focusMonthlyCurrent");
-            for (var yearMonth : event.affectedYearMonths()) {
-                String key = event.userId() + ":" + yearMonth;
-                if (monthlyCache != null) {
-                    monthlyCache.evict(key);
-                }
-                if (focusTimeCache != null) {
-                    focusTimeCache.evict(key);
-                }
-            }
-        }
-
+        // 캐시 무효화
+        redisCacheService.evictLibraryMonthlyCaches(event.userId(), event.affectedYearMonths());
         if (event.evictStatusFirstPage()) {
-            Cache statusCache = cacheManager.getCache("libraryStatusFirstPage");
-            if (statusCache == null) {
-                return;
-            }
-            for (ReadingStatus status : ReadingStatus.values()) {
-                statusCache.evict(event.userId() + ":" + status);
-            }
+            redisCacheService.evictLibraryStatusFirstPage(event.userId());
         }
     }
 }
