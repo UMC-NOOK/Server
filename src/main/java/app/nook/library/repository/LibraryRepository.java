@@ -60,9 +60,17 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
 
     int countByUser(User user);
 
+    @Query("""
+        select l
+        from Library l
+        join fetch l.book b
+        where l.user.id = :userId
+        and l.readingStatus = :status
+        order by l.id desc
+    """)
     List<Library> findByUserIdAndReadingStatusOrderByIdDesc(
             Long userId,
-            ReadingStatus readingStatus,
+            ReadingStatus status,
             Pageable pageable
     );
 }
