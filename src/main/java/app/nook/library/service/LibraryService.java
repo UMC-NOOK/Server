@@ -218,4 +218,37 @@ public class LibraryService {
             return CursorResponse.of(bookItems, nextCursor, hasNext);
     }
 
+    public LibraryViewDto.BeforeReadingResponseDto viewBeforeReadingBooks(User user) {
+        List<LibraryViewDto.BeforeBookItem> books = libraryRepository
+                .findByUserIdAndReadingStatusOrderByIdDesc(
+                        user.getId(),
+                        ReadingStatus.BEFORE,
+                        PageRequest.of(0, 5)
+                )
+                .stream()
+                .map(library -> new LibraryViewDto.BeforeBookItem(
+                        library.getBook().getId(),
+                        library.getBook().getTitle(),
+                        library.getBook().getAuthor(),
+                        library.getBook().getCoverImageUrl()
+                ))
+                .toList();
+
+        return new LibraryViewDto.BeforeReadingResponseDto(books);
+    }
+
+    public LibraryViewDto.RecentFocusResponseDto viewRecentFocus(User user) {
+        return focusRepository.findRecentByUser(user, PageRequest.of(0, 1)).stream().findFirst()
+                .map(focus -> {
+                    int currentPage = focus.getLibrary().getPage();
+                    Integer page = currentPage == 0 ? null : currentPage;
+                    return new LibraryViewDto.RecentFocusResponseDto(
+                            focus.getLibrary().getBook().getId(),
+                            focus.getLibrary().getBook().getTitle(),
+                            page
+                    );
+                })
+                .orElse(null);
+    }
+
 }

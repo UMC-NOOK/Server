@@ -190,6 +190,61 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 ));
     }
 
+    @Test
+    @WithCustomUser
+    void 읽기전_상태_책_5권_조회_성공() throws Exception {
+        LibraryViewDto.BeforeReadingResponseDto response = new LibraryViewDto.BeforeReadingResponseDto(
+                List.of(
+                        new LibraryViewDto.BeforeBookItem(1L, "제목1", "저자1", "https://example.com/1.jpg"),
+                        new LibraryViewDto.BeforeBookItem(2L, "제목2", "저자2", "https://example.com/2.jpg")
+                )
+        );
+
+        given(libraryService.viewBeforeReadingBooks(any())).willReturn(response);
+
+        mockMvc.perform(
+                        get("/api/library/before-reading")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isOk())
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        responseFields(ApiResponseSnippet.withResult(
+                                fieldWithPath("result.books").type(ARRAY).description("읽기 전 상태 도서 목록 (최대 5권)"),
+                                fieldWithPath("result.books[].bookId").type(NUMBER).description("도서 ID"),
+                                fieldWithPath("result.books[].title").type(STRING).description("도서 제목"),
+                                fieldWithPath("result.books[].author").type(STRING).description("도서 저자"),
+                                fieldWithPath("result.books[].coverUrl").type(STRING).description("도서 커버 URL")
+                        ))
+                ));
+    }
+
+    @Test
+    @WithCustomUser
+    void 최근_포커스_도서_조회_성공() throws Exception {
+        LibraryViewDto.RecentFocusResponseDto response = new LibraryViewDto.RecentFocusResponseDto(
+                1L,
+                "타이틀",
+                12
+        );
+
+        given(libraryService.viewRecentFocus(any())).willReturn(response);
+
+        mockMvc.perform(
+                        get("/api/library/recent-focus")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isOk())
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        responseFields(ApiResponseSnippet.withResult(
+                                fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
+                                fieldWithPath("result.title").type(STRING).description("도서 제목"),
+                                fieldWithPath("result.page").type(NUMBER).optional().description("최근 포커스 시 기록된 페이지 (없으면 null)")
+                        ))
+                ));
+    }
+
     @DisplayName("서재 책 개수 조회")
     @Nested
     class ViewBookCount {

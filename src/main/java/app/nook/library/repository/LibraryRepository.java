@@ -58,4 +58,10 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
             Pageable pageable);
 
     int countByUser(User user);
+
+    List<Library> findByUserIdAndReadingStatusOrderByIdDesc(
+            Long userId,
+            ReadingStatus readingStatus,
+            Pageable pageable
+    );
 }
