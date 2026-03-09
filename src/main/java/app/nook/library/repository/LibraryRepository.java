@@ -1,6 +1,7 @@
 package app.nook.library.repository;
 
 import app.nook.book.domain.Book;
+import app.nook.book.domain.enums.MallType;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.user.domain.User;
@@ -58,4 +59,20 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
             Pageable pageable);
 
     int countByUser(User user);
+
+    @Query("""
+      select c.aladinCategoryId
+      from Library l
+      join l.book b
+      join b.category c
+      where l.user.id = :userId
+        and c.mallType = :mallType
+      group by c.id, c.aladinCategoryId
+      order by count(l.id) desc, c.id asc
+  """)
+    List<Integer> findTopAladinCategoryIdsByUserId(
+            @Param("userId") Long userId,
+            @Param("mallType") MallType mallType,
+            Pageable pageable
+    );
 }

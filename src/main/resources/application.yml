@@ -34,8 +34,10 @@ spring:
       max-request-size: 5MB
 
 file:
-  upload-dir: uploads/covers
-
+  cover-upload-dir: uploads/covers
+  profile-upload-dir: uploads/profiles
+  cover-url-prefix: /uploads/covers/
+  profile-url-prefix: /uploads/profiles/
 
 jwt:
   secret: ${JWT_SECRET}
