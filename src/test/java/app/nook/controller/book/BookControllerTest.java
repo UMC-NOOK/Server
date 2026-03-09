@@ -214,7 +214,7 @@
                   new BookResponseDto.BookPreviewDto("9788936434267", "채식주의자", "한강", "http://example.com/cover1.jpg", "창비", 1)
           );
 
-          given(bookService.getPersonalizedBestsellers(any(Long.class))).willReturn(response);
+          given(bookService.getPersonalizedBestsellers(any())).willReturn(response);
 
           mockMvc.perform(get("/api/books/recommendations").header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())

@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
@@ -103,4 +104,18 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         );
     }
 
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<Object> handleBindException(BindException e, WebRequest request) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        e.getBindingResult().getFieldErrors().forEach(fieldError -> {
+            String field = fieldError.getField();
+            String msg = Optional.ofNullable(fieldError.getDefaultMessage()).orElse("");
+            errors.merge(field, msg, (a, b) -> a + ", " + b);
+        });
+
+        ApiResponse<Object> body = ApiResponse.onFailure(ErrorCode.INVALID_REQUEST, errors);
+        return handleExceptionInternal(
+                e, body, new HttpHeaders(), ErrorCode.INVALID_REQUEST.getHttpStatus(), request
+        );
+    }
 }

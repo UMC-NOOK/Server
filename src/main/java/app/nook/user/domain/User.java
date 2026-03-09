@@ -1,5 +1,6 @@
 package app.nook.user.domain;
 
+import app.nook.book.domain.Category;
 import app.nook.book.domain.SearchHistory;
 import app.nook.global.common.BaseEntity;
 import app.nook.user.domain.enums.UserRole;
@@ -47,6 +48,12 @@ public class User extends BaseEntity {
 
     private String nickName;
 
+    private LocalDateTime onboardingCompletedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "preferred_category_id")
+    private Category preferredCategory;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SearchHistory> searchHistories = new ArrayList<>();
 
@@ -68,5 +75,24 @@ public class User extends BaseEntity {
 
     public void increaseChatUsage() {
         this.chatUsage++;
+    }
+
+    public void updateOnboarding(short goal, String nickName, String profileUrl, Category preferredCategory) {
+        this.goal = goal;
+        this.nickName = nickName;
+        this.profileUrl = profileUrl;
+        this.preferredCategory = preferredCategory;
+
+        if (this.onboardingCompletedAt == null) {
+            this.onboardingCompletedAt = LocalDateTime.now();
+        }
+    }
+
+    public void updateGoal(short goal) {
+        this.goal = goal;
+    }
+
+    public boolean needsOnboarding() {
+        return this.onboardingCompletedAt == null;
     }
 }

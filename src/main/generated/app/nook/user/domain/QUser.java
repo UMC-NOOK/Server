@@ -18,6 +18,8 @@ public class QUser extends EntityPathBase<User> {
 
     private static final long serialVersionUID = -747444330L;
 
+    private static final PathInits INITS = PathInits.DIRECT2;
+
     public static final QUser user = new QUser("user");
 
     public final app.nook.global.common.QBaseEntity _super = new app.nook.global.common.QBaseEntity(this);
@@ -40,6 +42,10 @@ public class QUser extends EntityPathBase<User> {
 
     public final StringPath nickName = createString("nickName");
 
+    public final DateTimePath<java.time.LocalDateTime> onboardingCompletedAt = createDateTime("onboardingCompletedAt", java.time.LocalDateTime.class);
+
+    public final app.nook.book.domain.QCategory preferredCategory;
+
     public final StringPath profileUrl = createString("profileUrl");
 
     public final StringPath provider = createString("provider");
@@ -53,15 +59,24 @@ public class QUser extends EntityPathBase<User> {
     public final EnumPath<app.nook.user.domain.enums.UserStatus> status = createEnum("status", app.nook.user.domain.enums.UserStatus.class);
 
     public QUser(String variable) {
-        super(User.class, forVariable(variable));
+        this(User.class, forVariable(variable), INITS);
     }
 
     public QUser(Path<? extends User> path) {
-        super(path.getType(), path.getMetadata());
+        this(path.getType(), path.getMetadata(), PathInits.getFor(path.getMetadata(), INITS));
     }
 
     public QUser(PathMetadata metadata) {
-        super(User.class, metadata);
+        this(metadata, PathInits.getFor(metadata, INITS));
+    }
+
+    public QUser(PathMetadata metadata, PathInits inits) {
+        this(User.class, metadata, inits);
+    }
+
+    public QUser(Class<? extends User> type, PathMetadata metadata, PathInits inits) {
+        super(type, metadata, inits);
+        this.preferredCategory = inits.isInitialized("preferredCategory") ? new app.nook.book.domain.QCategory(forProperty("preferredCategory")) : null;
     }
 
 }
