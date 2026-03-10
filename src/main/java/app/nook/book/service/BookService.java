@@ -126,6 +126,7 @@ public class BookService {
     @Cacheable(
             cacheNames = CacheConfig.WEEKLY_BESTSELLERS_CACHE,
             key = "'weekly'",
+            unless = "#result == null || #result.isEmpty()",
             sync = true
     )
     public List<BookResponseDto.BookPreviewDto> getWeeklyBestsellers() {
