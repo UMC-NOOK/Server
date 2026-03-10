@@ -40,6 +40,7 @@ public class BookService {
     private final LibraryRepository libraryRepository;
     private final UserRepository userRepository;
     private final AladinService aladinService;
+    private final PersonalizedBestsellerCacheService personalizedBestsellerCacheService;
 
     // ISBN 기반 상세조회: ALADIN 소스만 조회/저장 대상으로 사용
     @Transactional
@@ -137,23 +138,18 @@ public class BookService {
     }
 
     // 사용자 맞춤 추천 베스트셀러 조회
-    @Cacheable(
-            cacheNames = CacheConfig.PERSONALIZED_BESTSELLERS_CACHE,
-            key = "'category:' + #root.target.resolveRecommendationCategoryId(#user.id)",
-            sync = true
-    )
     public List<BookResponseDto.BookPreviewDto> getPersonalizedBestsellers(User user) {
-        String categoryId = String.valueOf(resolveRecommendationCategoryId(user.getId()));
+        int categoryId = resolveRecommendationCategoryId(user.getId());
 
         log.info("[FETCH_PERSONAL_BEST] categoryId={}", categoryId);
-        List<BookResponseDto.BookPreviewDto> bookPreviewDtos = aladinService.fetchItemList(
-                "Bestseller", "BOOK", 5, categoryId);
+        List<BookResponseDto.BookPreviewDto> bookPreviewDtos =
+                personalizedBestsellerCacheService.getByCategoryId(categoryId);
 
         log.info("[FETCH_PERSONAL_BEST_SUCCESS] count={}", bookPreviewDtos.size());
         return bookPreviewDtos;
     }
 
-    public int resolveRecommendationCategoryId(Long userId) {
+    private int resolveRecommendationCategoryId(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
