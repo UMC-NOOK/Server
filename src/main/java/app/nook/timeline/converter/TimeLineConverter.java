@@ -4,15 +4,24 @@ import app.nook.library.domain.Library;
 import app.nook.timeline.domain.BookTimeLine;
 import app.nook.timeline.domain.enums.BookTimeLineType;
 
+import java.time.LocalDateTime;
+
 
 public class TimeLineConverter {
 
     public static BookTimeLine toBookTimeLine(
             Library library,
             BookTimeLineType bookTimeLineType,
-            String snapshotValue,
-            Long targetId
+            Long targetId,
+            LocalDateTime occurredAt,
+            String previewText
     ) {
-        return new BookTimeLine(library,bookTimeLineType,snapshotValue,targetId);
+        return new BookTimeLine(
+                library,
+                bookTimeLineType,
+                targetId,
+                occurredAt,
+                previewText
+        );
     }
 }

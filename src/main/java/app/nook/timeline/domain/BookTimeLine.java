@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @NoArgsConstructor
@@ -17,8 +19,8 @@ import lombok.NoArgsConstructor;
         name = "book_timelines",
         indexes = {
                 @Index(
-                        name = "idx_book_timelines_library_created",
-                        columnList = "library_id, created_date DESC"
+                        name = "idx_book_timelines_library_occurred",
+                        columnList = "library_id, occurred_at DESC, timeline_id DESC"
                 ),
         }
 )
@@ -37,22 +39,27 @@ public class BookTimeLine extends BaseEntity {
     @Column(name = "type", nullable = false, length = 50)
     private BookTimeLineType type;
 
-    @Column(name = "snapshot_value")
-    private String snapshotValue;
-
-    @Column(name = "target_id")
+    @Column(name = "target_id", nullable = false)
     private Long targetId;
+
+    @Column(name = "occurred_at", nullable = false)
+    private LocalDateTime occurredAt;
+
+    @Column(name = "preview_text", length = 500)
+    private String previewText;
 
     @Builder
     public BookTimeLine(
             Library library,
             BookTimeLineType type,
-            String snapshotValue,
-            Long targetId
+            Long targetId,
+            LocalDateTime occurredAt,
+            String previewText
     ) {
         this.library = library;
         this.type = type;
-        this.snapshotValue = snapshotValue;
         this.targetId = targetId;
+        this.occurredAt = occurredAt;
+        this.previewText = previewText;
     }
 }
