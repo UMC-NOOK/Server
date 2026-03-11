@@ -23,6 +23,7 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
     @Query("""
         select l
         from Library l
+        join fetch l.book b
         where l.user = :user
           and l.readingStatus = :status
           and (:cursor is null or l.id < :cursor)
@@ -60,6 +61,18 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
 
     int countByUser(User user);
 
+    @Query("""
+        select l
+        from Library l
+        join fetch l.book b
+        where l.user.id = :userId
+        and l.readingStatus = :status
+        order by l.id desc
+    """)
+    List<Library> findByUserIdAndReadingStatusOrderByIdDesc(
+            Long userId,
+            ReadingStatus readingStatus,
+            Pageable pageable);
     @Query("""
       select c.aladinCategoryId
       from Library l

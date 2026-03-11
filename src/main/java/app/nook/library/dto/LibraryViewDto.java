@@ -77,4 +77,14 @@ public class LibraryViewDto {
     public record BookCountResponseDto(
         int totalBookNum
     ){}
+
+    public record BeforeReadingResponseDto(
+            List<BeforeBookItem> books
+    ) {}
+
+    public record RecentFocusResponseDto(
+            Long bookId,
+            String title,
+            Integer page
+    ) {}
 }

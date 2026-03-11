@@ -95,4 +95,26 @@ public class LibraryController {
                 libraryService.viewFocusRecordByDate(userDetails.getUser(), date, cursor, size);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
+
+    // 읽기 전 상태의 책 5권 조회
+    @GetMapping("/before-reading")
+    public ApiResponse<LibraryViewDto.BeforeReadingResponseDto> viewBeforeReadingBooks(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        LibraryViewDto.BeforeReadingResponseDto response =
+                libraryService.viewBeforeReadingBooks(userDetails.getUser());
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
+    }
+
+    // 가장 최근에 포커스한 책, page 조회
+    @GetMapping("/recent-focus")
+    public ApiResponse<LibraryViewDto.RecentFocusResponseDto> viewRecentFocus(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        LibraryViewDto.RecentFocusResponseDto response =
+                libraryService.viewRecentFocus(userDetails.getUser());
+        if(response == null)
+            return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
+    }
 }

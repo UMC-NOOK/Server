@@ -1,7 +1,7 @@
 package app.nook.focus.domain;
 
 import app.nook.global.common.BaseEntity;
-import app.nook.focus.domain.enums.ThemeName;
+import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import jakarta.persistence.*;
 import lombok.*;
@@ -61,29 +61,10 @@ public class Focus extends BaseEntity {
         this.theme = theme;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
-        this.durationSec = resolveDurationSec(startedAt, endedAt, durationSec);
+        this.durationSec = durationSec;
         this.focusDate = startedAt != null ? startedAt.toLocalDate() : null;
         this.startedTime = startedAt != null ? startedAt.toLocalTime() : null;
         this.endedTime = endedAt != null ? endedAt.toLocalTime() : null;
         this.library = library;
-    }
-
-    private Integer resolveDurationSec(LocalDateTime startedAt, LocalDateTime endedAt, Integer durationSec) {
-        if (startedAt != null && endedAt != null) {
-            long computedDurationSec = Duration.between(startedAt, endedAt).getSeconds();
-            if (computedDurationSec < 0) {
-                throw new IllegalArgumentException("endedAt must be after startedAt");
-            }
-            if (computedDurationSec > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("durationSec is out of range");
-            }
-            return (int) computedDurationSec;
-        }
-
-        if (durationSec != null && durationSec < 0) {
-            throw new IllegalArgumentException("durationSec must not be negative");
-        }
-
-        return durationSec;
     }
 }
