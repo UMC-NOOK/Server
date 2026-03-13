@@ -1,11 +1,15 @@
 package app.nook.focus.domain;
 
 import app.nook.global.common.BaseEntity;
+import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Getter
@@ -14,9 +18,9 @@ import java.time.LocalDateTime;
         name = "focuses",
         indexes = {
                 @Index(
-                        name = "idx_focus_library",
-                        columnList = "library_id"
-                )
+                        name = "idx_focus_library_focus_date",
+                        columnList = "library_id, focus_date"
+                ),
         }
 )
 public class Focus extends BaseEntity {
@@ -43,23 +47,24 @@ public class Focus extends BaseEntity {
     @Column(name = "duration_sec")
     private Integer durationSec;
 
+    @Column(name = "focus_date")
+    private LocalDate focusDate;
+
+    @Column(name = "started_time")
+    private LocalTime startedTime;
+
+    @Column(name = "ended_time")
+    private LocalTime endedTime;
+
     @Builder
-    public Focus(Library library, Theme theme) {
-        this.library = library;
+    public Focus(Theme theme, LocalDateTime startedAt, LocalDateTime endedAt, Integer durationSec, Library library) {
         this.theme = theme;
-    }
-
-    public void startFocus() {
-        this.startedAt = LocalDateTime.now();
-    }
-
-
-    public void endFocus() {
-        this.endedAt = LocalDateTime.now();
-
-        if (startedAt != null) {
-            this.durationSec =
-                    (int) java.time.Duration.between(startedAt, endedAt).getSeconds();
-        }
+        this.startedAt = startedAt;
+        this.endedAt = endedAt;
+        this.durationSec = durationSec;
+        this.focusDate = startedAt != null ? startedAt.toLocalDate() : null;
+        this.startedTime = startedAt != null ? startedAt.toLocalTime() : null;
+        this.endedTime = endedAt != null ? endedAt.toLocalTime() : null;
+        this.library = library;
     }
 }

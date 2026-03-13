@@ -1,19 +1,26 @@
 package app.nook.controller.user;
 
-import app.nook.global.common.AbstractRestDocsTests;
+import app.nook.global.common.AbstractWebMvcRestDocsTests;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.ErrorCode;
+import app.nook.global.config.WebSecurityConfig;
+import app.nook.user.controller.AuthController;
 import app.nook.user.dto.OAuthDTO;
 import app.nook.user.dto.UserDTO;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.oauth.OAuthService;
+import app.nook.user.filter.JwtExceptionFilter;
+import app.nook.user.filter.JwtFilter;
 import app.nook.user.service.CustomUserDetails;
 import app.nook.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -27,7 +34,18 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.response
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class AuthControllerTest extends AbstractRestDocsTests {
+@WebMvcTest(
+        controllers = AuthController.class,
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.ASSIGNABLE_TYPE,
+                classes = {
+                        WebSecurityConfig.class,
+                        JwtFilter.class,
+                        JwtExceptionFilter.class
+                }
+        )
+)
+class AuthControllerTest extends AbstractWebMvcRestDocsTests {
 
     @MockitoBean
     private OAuthService oAuthService;

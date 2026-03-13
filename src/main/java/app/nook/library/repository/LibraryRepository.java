@@ -1,6 +1,7 @@
 package app.nook.library.repository;
 
 import app.nook.book.domain.Book;
+import app.nook.book.domain.enums.MallType;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.user.domain.User;
@@ -12,10 +13,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
-public interface LibraryRepository extends JpaRepository<Library,Long>, LibraryRepositoryCustom{
+public interface LibraryRepository extends JpaRepository<Library,Long> {
 
     Library findByUserAndBook(User user, Book book);
 
@@ -23,6 +23,7 @@ public interface LibraryRepository extends JpaRepository<Library,Long>, LibraryR
     @Query("""
         select l
         from Library l
+        join fetch l.book b
         where l.user = :user
           and l.readingStatus = :status
           and (:cursor is null or l.id < :cursor)
@@ -58,4 +59,33 @@ public interface LibraryRepository extends JpaRepository<Library,Long>, LibraryR
             @Param("keyword") String keyword,
             Pageable pageable);
 
+    int countByUser(User user);
+
+    @Query("""
+        select l
+        from Library l
+        join fetch l.book b
+        where l.user.id = :userId
+        and l.readingStatus = :status
+        order by l.id desc
+    """)
+    List<Library> findByUserIdAndReadingStatusOrderByIdDesc(
+            Long userId,
+            ReadingStatus readingStatus,
+            Pageable pageable);
+    @Query("""
+      select c.aladinCategoryId
+      from Library l
+      join l.book b
+      join b.category c
+      where l.user.id = :userId
+        and c.mallType = :mallType
+      group by c.id, c.aladinCategoryId
+      order by count(l.id) desc, c.id asc
+  """)
+    List<Integer> findTopAladinCategoryIdsByUserId(
+            @Param("userId") Long userId,
+            @Param("mallType") MallType mallType,
+            Pageable pageable
+    );
 }

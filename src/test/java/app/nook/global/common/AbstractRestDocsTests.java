@@ -11,7 +11,6 @@ import org.springframework.restdocs.RestDocumentationExtension;
 import org.springframework.restdocs.mockmvc.RestDocumentationResultHandler;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultHandler;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
@@ -27,6 +26,9 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
+/**
+ * 통합 테스트용
+ */
 @Import(RestDocsConfiguration.class)
 @ExtendWith(RestDocumentationExtension.class)
 @AutoConfigureRestDocs
@@ -34,17 +36,16 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
         "spring.profiles.active=test"
 })
 @ActiveProfiles("test")
-@TestPropertySource(properties = {
-        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
-})
 public abstract class AbstractRestDocsTests {
+
+    protected static final String AUTH_HEADER = "Authorization";
+    protected static final String AUTH_TOKEN = "Bearer test-access-token";
 
     @Autowired
     protected RestDocumentationResultHandler restDocs;
 
-     @Autowired
-     protected Snippet authorizationHeaderSnippet;
+    @Autowired
+    protected Snippet authorizationHeaderSnippet;
 
     protected MockMvc mockMvc;
 
@@ -79,5 +80,4 @@ public abstract class AbstractRestDocsTests {
                 preprocessResponse(prettyPrint()),
                 mergedSnippets);
     }
-
 }

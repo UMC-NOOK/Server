@@ -46,7 +46,7 @@ public class BookController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         return ApiResponse.onSuccess(
-                bookService.getPersonalizedBestsellers(userDetails.getUser().getId()), SuccessCode.OK);
+                bookService.getPersonalizedBestsellers(userDetails.getUser()), SuccessCode.OK);
     }
 
     // bookId 기반 상세조회: 서재/내부 목록에서 상세 진입 시 사용

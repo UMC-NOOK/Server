@@ -13,3 +13,31 @@ include::{snippets}/auth-controller-test/dev로그인_성공/http-request.adoc[]
 include::{snippets}/auth-controller-test/dev로그인_성공/request-fields.adoc[]
 include::{snippets}/auth-controller-test/dev로그인_성공/http-response.adoc[]
 include::{snippets}/auth-controller-test/dev로그인_성공/response-fields.adoc[]
+
+== 온보딩
+
+=== 온보딩 완료
+
+include::{snippets}/onboarding-controller-test/온보딩완료_성공/http-request.adoc[]
+include::{snippets}/onboarding-controller-test/온보딩완료_성공/http-response.adoc[]
+include::{snippets}/onboarding-controller-test/온보딩완료_성공/response-fields.adoc[]
+include::{snippets}/onboarding-controller-test/온보딩완료_성공/request-parts.adoc[]
+
+=== 온보딩 상태 조회
+
+include::{snippets}/onboarding-controller-test/온보딩상태_조회_성공/http-request.adoc[]
+include::{snippets}/onboarding-controller-test/온보딩상태_조회_성공/http-response.adoc[]
+include::{snippets}/onboarding-controller-test/온보딩상태_조회_성공/response-fields.adoc[]
+
+=== 독서 목표 조회
+
+include::{snippets}/onboarding-controller-test/독서목표_조회_성공/http-request.adoc[]
+include::{snippets}/onboarding-controller-test/독서목표_조회_성공/http-response.adoc[]
+include::{snippets}/onboarding-controller-test/독서목표_조회_성공/response-fields.adoc[]
+
+=== 독서 목표 수정
+
+include::{snippets}/onboarding-controller-test/독서목표_수정_성공/http-request.adoc[]
+include::{snippets}/onboarding-controller-test/독서목표_수정_성공/request-fields.adoc[]
+include::{snippets}/onboarding-controller-test/독서목표_수정_성공/http-response.adoc[]
+include::{snippets}/onboarding-controller-test/독서목표_수정_성공/response-fields.adoc[]

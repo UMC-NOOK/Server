@@ -2,6 +2,7 @@ package app.nook.global.exception;
 
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.ErrorCode;
+import app.nook.redis.exception.RedisOperationException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -9,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
@@ -82,6 +84,14 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(e, body, new HttpHeaders(), e.getErrorCode().getHttpStatus(), webRequest);
     }
 
+    // Redis 예외
+    @ExceptionHandler(RedisOperationException.class)
+    public ResponseEntity<Object> handleRedisOperationException(RedisOperationException e, HttpServletRequest request) {
+        ApiResponse<Object> body = ApiResponse.onFailure(e.getErrorCode(), null);
+        WebRequest webRequest = new ServletWebRequest(request);
+        return handleExceptionInternal(e, body, new HttpHeaders(), e.getErrorCode().getHttpStatus(), webRequest);
+    }
+
     @ExceptionHandler({InvalidFormatException.class})
     public ResponseEntity<ApiResponse<Object>> handleInvalidDateFormat(InvalidFormatException ex) {
         if (ex.getTargetType() == LocalDate.class) {
@@ -94,4 +104,18 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         );
     }
 
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<Object> handleBindException(BindException e, WebRequest request) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        e.getBindingResult().getFieldErrors().forEach(fieldError -> {
+            String field = fieldError.getField();
+            String msg = Optional.ofNullable(fieldError.getDefaultMessage()).orElse("");
+            errors.merge(field, msg, (a, b) -> a + ", " + b);
+        });
+
+        ApiResponse<Object> body = ApiResponse.onFailure(ErrorCode.INVALID_REQUEST, errors);
+        return handleExceptionInternal(
+                e, body, new HttpHeaders(), ErrorCode.INVALID_REQUEST.getHttpStatus(), request
+        );
+    }
 }

@@ -26,17 +26,23 @@ public class QLibrary extends EntityPathBase<Library> {
 
     public final app.nook.book.domain.QBook book;
 
+    public final ListPath<app.nook.timeline.domain.BookTimeLine, app.nook.timeline.domain.QBookTimeLine> bookTimeLines = this.<app.nook.timeline.domain.BookTimeLine, app.nook.timeline.domain.QBookTimeLine>createList("bookTimeLines", app.nook.timeline.domain.BookTimeLine.class, app.nook.timeline.domain.QBookTimeLine.class, PathInits.DIRECT2);
+
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdDate = _super.createdDate;
 
     public final DatePath<java.time.LocalDate> endedAt = createDate("endedAt", java.time.LocalDate.class);
 
-    public final NumberPath<Long> focusMin = createNumber("focusMin", Long.class);
+    public final ListPath<app.nook.focus.domain.Focus, app.nook.focus.domain.QFocus> focuses = this.<app.nook.focus.domain.Focus, app.nook.focus.domain.QFocus>createList("focuses", app.nook.focus.domain.Focus.class, app.nook.focus.domain.QFocus.class, PathInits.DIRECT2);
+
+    public final NumberPath<Long> focusSec = createNumber("focusSec", Long.class);
 
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> modifiedDate = _super.modifiedDate;
+
+    public final NumberPath<Integer> page = createNumber("page", Integer.class);
 
     public final EnumPath<app.nook.library.domain.enums.ReadingStatus> readingStatus = createEnum("readingStatus", app.nook.library.domain.enums.ReadingStatus.class);
 
@@ -63,7 +69,7 @@ public class QLibrary extends EntityPathBase<Library> {
     public QLibrary(Class<? extends Library> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.book = inits.isInitialized("book") ? new app.nook.book.domain.QBook(forProperty("book"), inits.get("book")) : null;
-        this.user = inits.isInitialized("user") ? new app.nook.user.domain.QUser(forProperty("user")) : null;
+        this.user = inits.isInitialized("user") ? new app.nook.user.domain.QUser(forProperty("user"), inits.get("user")) : null;
     }
 
 }
