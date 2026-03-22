@@ -1,5 +1,6 @@
 package app.nook.focus.converter;
 
+import app.nook.focus.domain.Focus;
 import app.nook.focus.domain.Theme;
 import app.nook.focus.dto.FocusResponseDto;
 
@@ -17,5 +18,18 @@ public class FocusConverter {
                 .toList();
 
         return new FocusResponseDto.ThemeListDto(items);
+    }
+
+    public static FocusResponseDto.FocusStart toFocusStartResponse(Focus focus) {
+        return new FocusResponseDto.FocusStart(
+                focus.getId(),
+                focus.getLibrary().getId(),
+                focus.getLibrary().getBook().getId(),
+                focus.getLibrary().getBook().getTitle(),
+                focus.getLibrary().getBook().getAuthor(),
+                focus.getTheme().getId(),
+                focus.getTheme().getName().name(),
+                focus.getStartedAt()
+        );
     }
 }

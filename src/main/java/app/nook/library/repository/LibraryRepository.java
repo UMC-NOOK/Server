@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public interface LibraryRepository extends JpaRepository<Library,Long> {
@@ -88,4 +89,6 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
             @Param("mallType") MallType mallType,
             Pageable pageable
     );
+
+    Optional<Library> findByIdAndUserId(Long libraryId, Long userId);
 }
