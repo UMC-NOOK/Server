@@ -10,6 +10,7 @@ import app.nook.focus.repository.FocusRepository;
 import app.nook.focus.repository.ThemeRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
+import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -55,5 +56,29 @@ public class FocusService {
         Focus savedFocus = focusRepository.save(focus);
 
         return FocusConverter.toFocusStartResponse(savedFocus);
+    }
+
+    public FocusResponseDto.FocusEnd endFocus(Long userId, FocusRequestDto.FocusEnd request) {
+
+        Focus focus = focusRepository.findByIdAndLibraryUserId(request.focusId(), userId)
+                .orElseThrow(() -> new CustomException(FocusErrorCode.FOCUS_NOT_FOUND));
+
+        if (focus.getEndedAt() != null) {
+            throw new CustomException(FocusErrorCode.FOCUS_ALREADY_ENDED);
+        }
+
+        focus.endFocus(LocalDateTime.now());
+
+        Library library = focus.getLibrary();
+        library.recordFocus(focus.getDurationSec());
+        library.recordPage(request.page());
+
+        if (Boolean.TRUE.equals(request.isFinished())) {
+            library.updateStatus(ReadingStatus.FINISHED);
+        } else if (library.getReadingStatus() == ReadingStatus.BEFORE) {
+            library.updateStatus(ReadingStatus.READING);
+        }
+
+        return FocusConverter.toFocusEndResponse(focus);
     }
 }

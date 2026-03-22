@@ -7,4 +7,9 @@ public class FocusRequestDto {
             Long themeId
     ) {}
 
+    public record FocusEnd(
+            Long focusId,
+            Integer page,
+            Boolean isFinished
+    ) {}
 }

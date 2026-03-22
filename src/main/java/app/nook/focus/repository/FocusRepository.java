@@ -21,4 +21,5 @@ public interface FocusRepository extends JpaRepository<Focus, Long>, FocusReposi
     """)
     List<Focus> findRecentByUser(@Param("user") User user, Pageable pageable);
     Optional<Focus> findByLibraryUserIdAndEndedAtIsNull(Long userId);
+    Optional<Focus> findByIdAndLibraryUserId(Long focusId, Long userId);
 }

@@ -32,4 +32,30 @@ public class FocusConverter {
                 focus.getStartedAt()
         );
     }
+
+    public static FocusResponseDto.FocusEnd toFocusEndResponse(Focus focus) {
+        return new FocusResponseDto.FocusEnd(
+                focus.getId(),
+                focus.getLibrary().getId(),
+                focus.getStartedAt(),
+                focus.getEndedAt(),
+                focus.getDurationSec(),
+                formatDuration(focus.getDurationSec()),
+                focus.getLibrary().getPage(),
+                focus.getLibrary().getFocusSec(),
+                focus.getLibrary().getReadingStatus().name()
+        );
+    }
+
+    private static String formatDuration(Integer totalSec) {
+        if (totalSec == null) {
+            return "00:00:00";
+        }
+
+        int hour = totalSec / 3600;
+        int minute = (totalSec % 3600) / 60;
+        int second = totalSec % 60;
+
+        return String.format("%02d:%02d:%02d", hour, minute, second);
+    }
 }

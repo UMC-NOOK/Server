@@ -35,5 +35,13 @@ public class FocusController {
     ) {
         return ApiResponse.onSuccess(focusService.startFocus(userDetails.getUser(), request), SuccessCode.CREATED);
     }
+
+    @PostMapping("/end")
+    public ApiResponse<FocusResponseDto.FocusEnd> endFocus(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid FocusRequestDto.FocusEnd request
+    ) {
+        return ApiResponse.onSuccess(focusService.endFocus(userDetails.getUser().getId(), request), SuccessCode.OK);
+    }
 }
 

@@ -26,4 +26,16 @@ public class FocusResponseDto {
             LocalDateTime startedAt
 
     ) {}
+
+    public record FocusEnd(
+            Long focusId,
+            Long libraryId,
+            LocalDateTime startedAt,
+            LocalDateTime endedAt,
+            Integer durationSec,
+            String durationText,
+            Integer page,
+            Long totalFocusSec,
+            String readingStatus
+    ) {}
 }
