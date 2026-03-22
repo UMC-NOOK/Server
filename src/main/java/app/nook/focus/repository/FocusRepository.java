@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface FocusRepository extends JpaRepository<Focus, Long>, FocusRepositoryCustom {
     @Query("""
@@ -19,4 +20,6 @@ public interface FocusRepository extends JpaRepository<Focus, Long>, FocusReposi
         order by f.id desc
     """)
     List<Focus> findRecentByUser(@Param("user") User user, Pageable pageable);
+    Optional<Focus> findByLibraryUserIdAndEndedAtIsNull(Long userId);
+    Optional<Focus> findByIdAndLibraryUserId(Long focusId, Long userId);
 }

@@ -67,4 +67,10 @@ public class Focus extends BaseEntity {
         this.endedTime = endedAt != null ? endedAt.toLocalTime() : null;
         this.library = library;
     }
+
+    public void endFocus(LocalDateTime endedAt) {
+        this.endedAt = endedAt;
+        this.endedTime = endedAt.toLocalTime();
+        this.durationSec = (int) Duration.between(this.startedAt, endedAt).getSeconds();
+    }
 }

@@ -5,3 +5,17 @@
 include::{snippets}/focus-theme-controller-test/포커스_테마목록_조회_성공/http-request.adoc[]
 include::{snippets}/focus-theme-controller-test/포커스_테마목록_조회_성공/http-response.adoc[]
 include::{snippets}/focus-theme-controller-test/포커스_테마목록_조회_성공/response-fields.adoc[]
+
+=== 포커스 시작
+
+include::{snippets}/focus-controller-test/포커스_시작_성공/http-request.adoc[]
+include::{snippets}/focus-controller-test/포커스_시작_성공/request-fields.adoc[]
+include::{snippets}/focus-controller-test/포커스_시작_성공/http-response.adoc[]
+include::{snippets}/focus-controller-test/포커스_시작_성공/response-fields.adoc[]
+
+=== 포커스 종료
+
+include::{snippets}/focus-controller-test/포커스_종료_성공/http-request.adoc[]
+include::{snippets}/focus-controller-test/포커스_종료_성공/request-fields.adoc[]
+include::{snippets}/focus-controller-test/포커스_종료_성공/http-response.adoc[]
+include::{snippets}/focus-controller-test/포커스_종료_성공/response-fields.adoc[]
