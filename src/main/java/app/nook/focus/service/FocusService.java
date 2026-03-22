@@ -55,6 +55,10 @@ public class FocusService {
 
         Focus savedFocus = focusRepository.save(focus);
 
+        if (library.getReadingStatus() == ReadingStatus.BEFORE) {
+            library.updateStatus(ReadingStatus.READING);
+        }
+
         return FocusConverter.toFocusStartResponse(savedFocus);
     }
 
