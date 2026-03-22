@@ -7,10 +7,12 @@ import app.nook.aladin.utils.AladinUtils;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.domain.enums.BookCategory;
 import app.nook.book.exception.BookErrorCode;
+import app.nook.global.config.CacheConfig;
 import app.nook.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -92,7 +94,11 @@ public class AladinService {
      * Global Index 기반 (0~49: 1페이지, 50~99: 2페이지 ...)
      * size만큼 채워질 때까지 다음 페이지를 계속 조회함
      */
-    // TODO: redis 도입 예정
+    @Cacheable(
+            cacheNames = CacheConfig.ALADIN_SEARCH_CACHE,
+            key = "#keyword + ':' + (#cursor == null ? 0 : #cursor) + ':' + #size",
+            sync = true
+    )
     public BookResponseDto.SearchResultDto searchItems(String keyword, Integer cursor, int size) {
         List<BookResponseDto.BookSearchDto> results = new ArrayList<>();
         Long totalResults = 0L;

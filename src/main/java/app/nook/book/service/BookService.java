@@ -12,6 +12,7 @@ import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.book.utils.BookUtils;
+import app.nook.global.config.CacheConfig;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.ErrorCode;
 import app.nook.library.domain.Library;
@@ -20,6 +21,7 @@ import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +40,7 @@ public class BookService {
     private final LibraryRepository libraryRepository;
     private final UserRepository userRepository;
     private final AladinService aladinService;
+    private final PersonalizedBestsellerCacheService personalizedBestsellerCacheService;
 
     // ISBN 기반 상세조회: ALADIN 소스만 조회/저장 대상으로 사용
     @Transactional
@@ -120,7 +123,12 @@ public class BookService {
     }
 
     // 주간 베스트셀러 조회
-    // TODO: redis 도입 예정
+    @Cacheable(
+            cacheNames = CacheConfig.WEEKLY_BESTSELLERS_CACHE,
+            key = "'weekly'",
+            unless = "#result == null || #result.isEmpty()",
+            sync = true
+    )
     public List<BookResponseDto.BookPreviewDto> getWeeklyBestsellers() {
         log.info("[FETCH_WEEKLY_BEST]");
         List<BookResponseDto.BookPreviewDto> bookPreviewDtos = aladinService.fetchItemList(
@@ -131,13 +139,12 @@ public class BookService {
     }
 
     // 사용자 맞춤 추천 베스트셀러 조회
-    // TODO: redis 이후 구현 예정
     public List<BookResponseDto.BookPreviewDto> getPersonalizedBestsellers(User user) {
-        String categoryId = String.valueOf(resolveRecommendationCategoryId(user.getId()));
+        int categoryId = resolveRecommendationCategoryId(user.getId());
 
         log.info("[FETCH_PERSONAL_BEST] categoryId={}", categoryId);
-        List<BookResponseDto.BookPreviewDto> bookPreviewDtos = aladinService.fetchItemList(
-                "Bestseller", "BOOK", 5, categoryId);
+        List<BookResponseDto.BookPreviewDto> bookPreviewDtos =
+                personalizedBestsellerCacheService.getByCategoryId(categoryId);
 
         log.info("[FETCH_PERSONAL_BEST_SUCCESS] count={}", bookPreviewDtos.size());
         return bookPreviewDtos;
@@ -219,4 +226,3 @@ public class BookService {
         return (library != null) ? library.getId() : null;
     }
 }
-
