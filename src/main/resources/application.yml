@@ -39,6 +39,14 @@ file:
   cover-url-prefix: /uploads/covers/
   profile-url-prefix: /uploads/profiles/
 
+# image
+cloudflare:
+  r2:
+    endpoint: ${R2_END_POINT}
+    bucket-name: ${R2_BUCKET_NAME}
+    access-key: ${R2_ACCESS_KEY}
+    secret-key: ${R2_SECRET_KEY}
+
 jwt:
   secret: ${JWT_SECRET}
 
@@ -50,6 +58,7 @@ openai:
   api:
     key: ${OPENAI_API_KEY}
 
+# oauth
 auth:
   kakao:
     client-id: ${KAKAO_CLIENT_ID}
