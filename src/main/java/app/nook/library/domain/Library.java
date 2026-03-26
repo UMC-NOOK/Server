@@ -73,6 +73,9 @@ public class Library extends BaseEntity {
     @Column(name = "page")
     private int page = 0;
 
+    @Version
+    private Long version;
+
     @Builder
     public Library(
             User user,

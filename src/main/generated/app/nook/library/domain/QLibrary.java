@@ -50,6 +50,8 @@ public class QLibrary extends EntityPathBase<Library> {
 
     public final app.nook.user.domain.QUser user;
 
+    public final NumberPath<Long> version = createNumber("version", Long.class);
+
     public QLibrary(String variable) {
         this(Library.class, forVariable(variable), INITS);
     }
