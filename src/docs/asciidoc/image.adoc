@@ -1,0 +1,15 @@
+== 사진
+
+=== 사진 단건 업로드
+include::{snippets}/image-upload-controller-test/단건_업로드_URL_발급_성공/http-request.adoc[]
+include::{snippets}/image-upload-controller-test/단건_업로드_URL_발급_성공/request-headers.adoc[]
+include::{snippets}/image-upload-controller-test/단건_업로드_URL_발급_성공/request-fields.adoc[]
+include::{snippets}/image-upload-controller-test/단건_업로드_URL_발급_성공/http-response.adoc[]
+include::{snippets}/image-upload-controller-test/단건_업로드_URL_발급_성공/response-fields.adoc[]
+
+=== 사진 다건 업로드
+include::{snippets}/image-upload-controller-test/다건_업로드_URL_발급_성공/http-request.adoc[]
+include::{snippets}/image-upload-controller-test/다건_업로드_URL_발급_성공/request-headers.adoc[]
+include::{snippets}/image-upload-controller-test/다건_업로드_URL_발급_성공/request-fields.adoc[]
+include::{snippets}/image-upload-controller-test/다건_업로드_URL_발급_성공/http-response.adoc[]
+include::{snippets}/image-upload-controller-test/다건_업로드_URL_발급_성공/response-fields.adoc[]
