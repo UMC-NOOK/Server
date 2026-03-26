@@ -1,0 +1,36 @@
+== 기록
+
+=== 기록 생성
+이미지 파일은 먼저 이미지 업로드 API로 업로드한 뒤, 발급받은 `key` 목록을 `imageKeys`로 전달합니다.
+`presigned URL` 자체를 기록 생성 요청에 넣지 않습니다.
+
+include::{snippets}/record-controller-test/기록_생성_성공/http-request.adoc[]
+include::{snippets}/record-controller-test/기록_생성_성공/request-headers.adoc[]
+include::{snippets}/record-controller-test/기록_생성_성공/path-parameters.adoc[]
+include::{snippets}/record-controller-test/기록_생성_성공/request-fields.adoc[]
+include::{snippets}/record-controller-test/기록_생성_성공/http-response.adoc[]
+include::{snippets}/record-controller-test/기록_생성_성공/response-fields.adoc[]
+
+=== 기록 수정
+기록 수정도 동일하게 업로드 완료된 이미지의 최종 `key` 목록을 `imageKeys`로 전달합니다.
+기존 이미지를 유지하려면 해당 `key`를 그대로 포함하고, 제거할 이미지는 목록에서 제외합니다.
+
+include::{snippets}/record-controller-test/기록_수정_성공/http-request.adoc[]
+include::{snippets}/record-controller-test/기록_수정_성공/request-headers.adoc[]
+include::{snippets}/record-controller-test/기록_수정_성공/path-parameters.adoc[]
+include::{snippets}/record-controller-test/기록_수정_성공/request-fields.adoc[]
+include::{snippets}/record-controller-test/기록_수정_성공/http-response.adoc[]
+include::{snippets}/record-controller-test/기록_수정_성공/response-fields.adoc[]
+
+=== 기록 삭제
+include::{snippets}/record-controller-test/기록_삭제_성공/http-request.adoc[]
+include::{snippets}/record-controller-test/기록_삭제_성공/request-headers.adoc[]
+include::{snippets}/record-controller-test/기록_삭제_성공/path-parameters.adoc[]
+include::{snippets}/record-controller-test/기록_삭제_성공/http-response.adoc[]
+include::{snippets}/record-controller-test/기록_삭제_성공/response-fields.adoc[]
+
+=== 기록 전체 개수 조회
+include::{snippets}/record-controller-test/기록_전체개수_조회_성공/http-request.adoc[]
+include::{snippets}/record-controller-test/기록_전체개수_조회_성공/request-headers.adoc[]
+include::{snippets}/record-controller-test/기록_전체개수_조회_성공/http-response.adoc[]
+include::{snippets}/record-controller-test/기록_전체개수_조회_성공/response-fields.adoc[]
