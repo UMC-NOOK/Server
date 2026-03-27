@@ -23,5 +23,5 @@ include::focus.adoc[]
 == 검색
 include::search.adoc[]
 
-== test
-include::test.adoc[]
+== 사진
+include::image.adoc[]

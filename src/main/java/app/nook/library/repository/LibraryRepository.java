@@ -5,10 +5,12 @@ import app.nook.book.domain.enums.MallType;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.user.domain.User;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,6 +21,18 @@ import java.util.Set;
 public interface LibraryRepository extends JpaRepository<Library,Long> {
 
     Library findByUserAndBook(User user, Book book);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select l
+        from Library l
+        where l.id = :libraryId
+          and l.user.id = :userId
+    """)
+    java.util.Optional<Library> findByIdAndUserIdForUpdate(
+            @Param("libraryId") Long libraryId,
+            @Param("userId") Long userId
+    );
 
 
     @Query("""

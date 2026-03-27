@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDate;
@@ -31,6 +32,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
@@ -43,6 +45,7 @@ import static org.springframework.restdocs.request.RequestDocumentation.pathPara
 import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.restdocs.payload.JsonFieldType.*;
 
 @WebMvcTest(
@@ -130,6 +133,26 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         ),
                         responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
                 ));
+    }
+
+    @Test
+    @WithCustomUser
+    void 서재_책_상태변경_실패_낙관적잠금충돌() throws Exception {
+        ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
+
+        willThrow(new ObjectOptimisticLockingFailureException("Library", 1L))
+                .given(libraryService).changeStatus(any(), any());
+
+        mockMvc.perform(
+                        patch("/api/library/status")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .with(csrf())
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON-004"));
     }
 
     @Test
