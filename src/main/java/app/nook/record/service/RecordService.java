@@ -61,7 +61,7 @@ public class RecordService {
             throw new CustomException(LibraryErrorCode.BOOK_NOT_EXIST);
         }
 
-        // 서재 최대 개수를 넘기지 않도록 생성 요청 충돌 방지를 위해 낙관적 락이 걸리도록 설정
+        // 서재 최대 개수 초과를 막기 위해 for update 기반 비관적 락을 건다.
         libraryRepository.findByIdAndUserIdForUpdate(library.getId(), user.getId())
                 .orElseThrow(() -> new CustomException(LibraryErrorCode.BOOK_NOT_EXIST));
 
@@ -99,7 +99,7 @@ public class RecordService {
                 .orElseThrow(() -> new CustomException(RecordErrorCode.RECORD_NOT_FOUND));
 
         if (!record.getLibrary().getUser().getId().equals(user.getId())) {
-            throw new CustomException(LibraryErrorCode.BOOK_NOT_EXIST);
+            throw new CustomException(RecordErrorCode.RECORD_NOT_AUTHORIZED);
         }
 
         record.update(requestDto.content(), requestDto.emotion());
