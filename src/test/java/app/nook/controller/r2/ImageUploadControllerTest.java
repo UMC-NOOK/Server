@@ -4,8 +4,6 @@ import app.nook.global.common.AbstractWebMvcRestDocsTests;
 import app.nook.global.common.security.WithCustomUser;
 import app.nook.global.config.WebSecurityConfig;
 import app.nook.global.docs.ApiResponseSnippet;
-import app.nook.global.exception.CustomException;
-import app.nook.global.response.FileErrorCode;
 import app.nook.r2.controller.ImageUploadController;
 import app.nook.r2.dto.ImageUploadRequestDto;
 import app.nook.r2.dto.ImageUrlResponseDto;
@@ -156,10 +154,6 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
             @Test
             @WithCustomUser
             void 단건_업로드_URL_발급_실패_유효하지않은_파일타입() throws Exception {
-                // given
-                given(presignedUrlService.generateUploadUrl(anyLong(), any()))
-                        .willThrow(new CustomException(FileErrorCode.INVALID_FILE_TYPE));
-
                 // when & then
                 mockMvc.perform(post("/api/images/upload-url")
                                 .header(AUTH_HEADER, AUTH_TOKEN)
@@ -169,8 +163,8 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                                 )))
                         .andExpect(status().isBadRequest())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value("FILE-400"))
-                        .andExpect(jsonPath("$.message").value("유효하지 않은 파일 형식입니다."));
+                        .andExpect(jsonPath("$.code").value("COMMON-002"))
+                        .andExpect(jsonPath("$.result.contentType").exists());
             }
         }
     }

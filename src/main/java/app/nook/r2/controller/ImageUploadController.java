@@ -7,6 +7,7 @@ import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.service.CustomUserDetails;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +25,7 @@ public class ImageUploadController {
     @PostMapping("/upload-url")
     public ApiResponse<ImageUrlResponseDto> issueUploadUrl(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody ImageUploadRequestDto requestDto
+            @Valid @RequestBody ImageUploadRequestDto requestDto
     ) {
         return ApiResponse.onSuccess(
                 presignedUrlService.generateUploadUrl(userDetails.getUser().getId(), requestDto),
@@ -36,7 +37,7 @@ public class ImageUploadController {
     @PostMapping("/upload-urls")
     public ApiResponse<List<ImageUrlResponseDto>> issueUploadUrls(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody MultipleImageUploadRequestDto requestDto
+            @Valid @RequestBody MultipleImageUploadRequestDto requestDto
     ) {
         return ApiResponse.onSuccess(
                 presignedUrlService.generateMultipleUploadUrls(userDetails.getUser().getId(), requestDto.files()),
