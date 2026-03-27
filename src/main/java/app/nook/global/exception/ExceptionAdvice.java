@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import jakarta.persistence.OptimisticLockException;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -116,6 +118,19 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         ApiResponse<Object> body = ApiResponse.onFailure(ErrorCode.INVALID_REQUEST, errors);
         return handleExceptionInternal(
                 e, body, new HttpHeaders(), ErrorCode.INVALID_REQUEST.getHttpStatus(), request
+        );
+    }
+
+    @ExceptionHandler({OptimisticLockException.class, ObjectOptimisticLockingFailureException.class})
+    public ResponseEntity<Object> handleOptimisticLockException(Exception e, HttpServletRequest request) {
+        ApiResponse<Object> body = ApiResponse.onFailure(ErrorCode.CONCURRENT_MODIFICATION, null);
+        WebRequest webRequest = new ServletWebRequest(request);
+        return handleExceptionInternal(
+                e,
+                body,
+                new HttpHeaders(),
+                ErrorCode.CONCURRENT_MODIFICATION.getHttpStatus(),
+                webRequest
         );
     }
 }
