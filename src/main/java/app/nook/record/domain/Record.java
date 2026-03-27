@@ -40,7 +40,7 @@ public class Record extends BaseEntity {
 
     private String content;
 
-    @OneToMany(mappedBy = "record", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "record")
     @OrderBy("orderIndex ASC, createdDate ASC")
     private List<RecordImage> images = new ArrayList<>();
 
