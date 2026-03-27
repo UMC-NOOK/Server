@@ -8,7 +8,6 @@ import app.nook.global.response.FileErrorCode;
 import app.nook.library.domain.Library;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
-import app.nook.r2.service.PresignedUrlService;
 import app.nook.record.domain.Record;
 import app.nook.record.domain.RecordImage;
 import app.nook.record.dto.RecordRequestDto;
@@ -41,7 +40,6 @@ public class RecordService {
     private final BookRepository bookRepository;
     private final RecordImageRepository recordImageRepository;
     private final ApplicationEventPublisher eventPublisher;
-    private final PresignedUrlService presignedUrlService;
 
     // 기록 생성
     @Transactional
@@ -165,19 +163,31 @@ public class RecordService {
     private void syncRecordImages(Record record, List<String> requestedImageKeys) {
         List<RecordImage> existingImages = new ArrayList<>(record.getImages());
 
+        // 삭제될 이미지들을 추출
+        List<String> keysToDelete = existingImages.stream()
+                .map(RecordImage::getKey)
+                .filter(Objects::nonNull)
+                .filter(key -> !requestedImageKeys.contains(key))
+                .toList();
+
         // 기존 이미지 중 요청된 이미지 키에 없는 것들은 삭제
         existingImages.stream()
                 .filter(recordImage -> !requestedImageKeys.contains(recordImage.getKey()))
                 .forEach(recordImage -> {
-                    if (recordImage.getKey() != null) {
-                        presignedUrlService.deleteFile(recordImage.getKey());
-                    }
                     record.getImages().remove(recordImage);
                     recordImageRepository.delete(recordImage);
                 });
 
+        // 이미지 연관관계 정리
         record.getImages().clear();
+
+        // 이미지 저장
         saveRecordImages(record, requestedImageKeys);
+
+        // 삭제할 이미지가 있다면 삭제 이벤트 발행
+        if (!keysToDelete.isEmpty()) {
+            eventPublisher.publishEvent(new RecordDeletedEvent(record.getId(), keysToDelete));
+        }
     }
 
     // TODO: 독서 기록 상세조회
