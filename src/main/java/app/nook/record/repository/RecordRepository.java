@@ -20,9 +20,9 @@ public interface RecordRepository extends JpaRepository<Record, Long> {
 
 
     @Query("""
-        select count(r) from Record r join fetch
-        Library l where r.library.id = l.id
-                and l.user.id = :userId
+        select count(r)
+        from Record r
+        where r.library.user.id = :userId
         """)
-    int countByUserId(@Param("userId") Long userId);
+    long countByUserId(@Param("userId") Long userId);
 }

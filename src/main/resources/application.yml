@@ -42,7 +42,7 @@ file:
 # image
 cloudflare:
   r2:
-    endpoint: ${R2_END_POINT}
+    endpoint: ${R2_ENDPOINT}
     bucket-name: ${R2_BUCKET_NAME}
     access-key: ${R2_ACCESS_KEY}
     secret-key: ${R2_SECRET_KEY}
@@ -76,4 +76,3 @@ auth:
     client-secret: ${GOOGLE_CLIENT_SECRET}
     token-request-uri: ${TOKEN_REQUEST_URI}
     user-info-uri: ${MEMBER_INFO_REQUEST_URI}
-

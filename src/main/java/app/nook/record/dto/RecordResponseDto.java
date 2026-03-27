@@ -11,7 +11,7 @@ public class RecordResponseDto {
     }
 
     public record RecordCountDto(
-            int count
+            long count
     ) {
     }
 
