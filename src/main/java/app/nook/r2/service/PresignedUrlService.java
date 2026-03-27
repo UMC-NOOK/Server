@@ -16,7 +16,6 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,7 +26,9 @@ public class PresignedUrlService {
 
     // 만료 시간 필수 지정
     private static final int EXPIRATION_SECONDS = 300;
+    // 현재 업로드 정책은 PNG만 지원한다.
     private static final String FIXED_IMAGE_MIME_TYPE = "image/png";
+    private static final String FIXED_IMAGE_EXTENSION = ".png";
     private static final long MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024L;
     private static final int MAX_FILE_COUNT = 5;
 
@@ -40,13 +41,6 @@ public class PresignedUrlService {
 
     private static final Set<String> ALLOWED = Set.of(
             "book", "profile", "record"
-    );
-    private static final Map<String, String> MIME_TO_EXTENSION = Map.of(
-            "image/png", ".png",
-            "image/jpeg", ".jpg",
-            "image/jpg", ".jpg",
-            "image/webp", ".webp",
-            "image/gif", ".gif"
     );
 
 
@@ -70,12 +64,11 @@ public class PresignedUrlService {
     public ImageUrlResponseDto generateUploadUrl(Long userId, ImageUploadRequestDto requestDto){
         NormalizedUpload normalized = validateAndNormalizeUploadRequest(requestDto);
         String key = buildObjectKey(userId, normalized.contentType(), normalized.extension());
-        return generateUploadUrl(key, normalized.contentType());
+        return generateUploadUrl(key);
     }
 
-    // 키, 타입 기반으로 url을 생성
-    private ImageUrlResponseDto generateUploadUrl(String key, String contentType) {
-        normalizeAndValidateContentType(contentType);
+    // 키 기반으로 presigned 업로드 url을 생성
+    private ImageUrlResponseDto generateUploadUrl(String key) {
         PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
@@ -141,7 +134,7 @@ public class PresignedUrlService {
                  .map(requestDto -> {
                      NormalizedUpload normalized = validateAndNormalizeUploadRequest(requestDto);
                      String key = buildObjectKey(userId, normalized.contentType(), normalized.extension());
-                     return generateUploadUrl(key, normalized.contentType());
+                     return generateUploadUrl(key);
                  })
                  .toList();
      }
@@ -155,7 +148,7 @@ public class PresignedUrlService {
             throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
         }
         String normalizedContentType = normalizeAndValidateContentType(requestDto.contentType());
-        String extension = resolveExtension(FIXED_IMAGE_MIME_TYPE);
+        String extension = FIXED_IMAGE_EXTENSION;
         return new NormalizedUpload(normalizedContentType, extension);
     }
 
@@ -187,10 +180,6 @@ public class PresignedUrlService {
             throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
         }
         return normalized;
-    }
-
-    private String resolveExtension(String mimeType) {
-        return MIME_TO_EXTENSION.getOrDefault(mimeType, ".png");
     }
 
     // 고유 키 생성
