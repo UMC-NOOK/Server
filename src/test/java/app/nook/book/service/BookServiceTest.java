@@ -66,6 +66,9 @@ class BookServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private PersonalizedBestsellerCacheService personalizedBestsellerCacheService;
+
     @InjectMocks
     private BookService bookService;
 
@@ -243,7 +246,7 @@ class BookServiceTest {
         given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(testUser));
         given(libraryRepository.findTopAladinCategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
                 .willReturn(List.of(42));
-        given(aladinService.fetchItemList("Bestseller", "BOOK", 5, "42"))
+        given(personalizedBestsellerCacheService.getByCategoryId(42))
                 .willReturn(mockBestsellers);
 
         // when
@@ -253,7 +256,7 @@ class BookServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).title()).isEqualTo("채식주의자");
 
-        verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 5, "42");
+        verify(personalizedBestsellerCacheService, times(1)).getByCategoryId(42);
     }
 
     @Test
@@ -270,13 +273,13 @@ class BookServiceTest {
         given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(testUser));
         given(libraryRepository.findTopAladinCategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
                 .willReturn(List.of());
-        given(aladinService.fetchItemList("Bestseller", "BOOK", 5, "77"))
+        given(personalizedBestsellerCacheService.getByCategoryId(77))
                 .willReturn(mockBestsellers);
 
         List<BookResponseDto.BookPreviewDto> result = bookService.getPersonalizedBestsellers(testUser);
 
         assertThat(result).hasSize(1);
-        verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 5, "77");
+        verify(personalizedBestsellerCacheService, times(1)).getByCategoryId(77);
     }
 
     @Test
@@ -289,13 +292,13 @@ class BookServiceTest {
         given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(testUser));
         given(libraryRepository.findTopAladinCategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
                 .willReturn(List.of());
-        given(aladinService.fetchItemList("Bestseller", "BOOK", 5, "1"))
+        given(personalizedBestsellerCacheService.getByCategoryId(1))
                 .willReturn(mockBestsellers);
 
         List<BookResponseDto.BookPreviewDto> result = bookService.getPersonalizedBestsellers(testUser);
 
         assertThat(result).hasSize(1);
-        verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 5, "1");
+        verify(personalizedBestsellerCacheService, times(1)).getByCategoryId(1);
     }
 
     @Test
