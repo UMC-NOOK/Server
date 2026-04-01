@@ -1,6 +1,6 @@
 package app.nook.timeline.dto;
 
-import app.nook.timeline.domain.enums.BookTimeLineType;
+import app.nook.timeline.domain.enums.TimelineType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,31 +29,57 @@ public class TimelineResponseDto {
     ) {}
 
     public record TimelinePreviewDto(
-            List<TimelineItemDto> items,
-            Long nextCursor,
-            boolean hasNext
+            List<TimelineDateGroupDto> dateGroups
     ) {}
 
     public record TimelineItemDto(
             Long timelineId,
-            BookTimeLineType type,
+            TimelineType type,
             LocalDateTime occurredAt,
-            TimelineDisplayDateDto displayDate,
             String title,
             String subtitle,
             String previewText,
-            Long targetId,
-            List<TimelineActionType> actions
+            Long targetId
     ) {}
 
-    public record TimelineDisplayDateDto(
+    public record TimelineDateGroupDto(
             Integer year,
             String monthDay,
-            boolean showYear
+            boolean showYear,
+            List<TimelineItemDto> items
     ) {}
 
-    public enum TimelineActionType {
-        VIEW_DETAIL,
-        REMOVE_FROM_LIBRARY
+    public record TimelineDetailDto(
+            Long timelineId,
+            TimelineType type,
+            LocalDateTime occurredAt,
+            TimelineDetail detail
+    ) {}
+
+    public sealed interface TimelineDetail
+            permits TimelineRegisterDetailDto,
+                    TimelineStatusDetailDto,
+                    TimelineFocusDetailDto,
+                    TimelineRecordDetailDto {
     }
+
+    public record TimelineRegisterDetailDto(
+            String description
+    ) implements TimelineDetail {}
+
+    public record TimelineStatusDetailDto(
+            String title,
+            String description
+    ) implements TimelineDetail {}
+
+    public record TimelineFocusDetailDto(
+            String timeText,
+            Integer page
+    ) implements TimelineDetail {}
+
+    public record TimelineRecordDetailDto(
+            String content,
+            String emotion,
+            List<String> imageUrls
+    ) implements TimelineDetail {}
 }

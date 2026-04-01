@@ -5,7 +5,7 @@ import app.nook.global.common.security.WithCustomUser;
 import app.nook.global.config.WebSecurityConfig;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.timeline.controller.TimelineController;
-import app.nook.timeline.domain.enums.BookTimeLineType;
+import app.nook.timeline.domain.enums.TimelineType;
 import app.nook.timeline.dto.TimelineResponseDto;
 import app.nook.timeline.service.TimelineQueryService;
 import app.nook.user.filter.JwtExceptionFilter;
@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
@@ -32,7 +31,6 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWit
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
-import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
@@ -66,14 +64,20 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                 TimelineResponseDto.TimelineItemDto previewItem =
                         new TimelineResponseDto.TimelineItemDto(
                                 10L,
-                                BookTimeLineType.REGISTER,
+                                TimelineType.REGISTER,
                                 LocalDateTime.of(2025, 12, 30, 12, 0),
-                                new TimelineResponseDto.TimelineDisplayDateDto(2025, "12.30", true),
                                 "서재에 등록했어요",
                                 null,
                                 "서재에 등록했어요",
-                                12L,
-                                List.of(TimelineResponseDto.TimelineActionType.REMOVE_FROM_LIBRARY)
+                                12L
+                        );
+
+                TimelineResponseDto.TimelineDateGroupDto group =
+                        new TimelineResponseDto.TimelineDateGroupDto(
+                                2025,
+                                "12.30",
+                                true,
+                                List.of(previewItem)
                         );
 
                 TimelineResponseDto.TimelineSummaryDto response =
@@ -91,9 +95,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                                         null
                                 ),
                                 new TimelineResponseDto.TimelinePreviewDto(
-                                        List.of(previewItem),
-                                        null,
-                                        false
+                                        List.of(group)
                                 )
                         );
 
@@ -122,22 +124,18 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.recordSummary.recordCount").type(JsonFieldType.NUMBER).description("기록 개수"),
                                         fieldWithPath("result.recordSummary.latestRecordPreview").type(JsonFieldType.NULL).optional().description("최근 기록 preview"),
                                         fieldWithPath("result.timelinePreview").type(JsonFieldType.OBJECT).description("독서 이력 preview"),
-                                        fieldWithPath("result.timelinePreview.items").type(JsonFieldType.ARRAY).description("독서 이력 아이템 목록"),
-                                        fieldWithPath("result.timelinePreview.items[].timelineId").type(JsonFieldType.NUMBER).description("타임라인 ID"),
-                                        fieldWithPath("result.timelinePreview.items[].type").type(JsonFieldType.STRING).description("타임라인 타입"),
-                                        fieldWithPath("result.timelinePreview.items[].occurredAt").type(JsonFieldType.STRING).description("이벤트 발생 시각"),
-                                        fieldWithPath("result.timelinePreview.items[].displayDate").type(JsonFieldType.OBJECT).description("화면 표시용 날짜 정보"),
-                                        fieldWithPath("result.timelinePreview.items[].displayDate.year").type(JsonFieldType.NUMBER).description("표시 연도"),
-                                        fieldWithPath("result.timelinePreview.items[].displayDate.monthDay").type(JsonFieldType.STRING).description("월/일 표시값"),
-                                        fieldWithPath("result.timelinePreview.items[].displayDate.showYear").type(JsonFieldType.BOOLEAN).description("연도 표시 여부"),
-                                        fieldWithPath("result.timelinePreview.items[].title").type(JsonFieldType.STRING).description("카드 제목"),
-                                        fieldWithPath("result.timelinePreview.items[].subtitle").type(JsonFieldType.NULL).optional().description("카드 부제목"),
-                                        fieldWithPath("result.timelinePreview.items[].previewText").type(JsonFieldType.STRING).description("카드 preview 텍스트"),
-                                        fieldWithPath("result.timelinePreview.items[].targetId").type(JsonFieldType.NUMBER).description("원본 대상 ID"),
-                                        fieldWithPath("result.timelinePreview.items[].actions").type(JsonFieldType.ARRAY).description("지원 액션 목록"),
-                                        fieldWithPath("result.timelinePreview.items[].actions[]").type(JsonFieldType.STRING).description("액션 타입"),
-                                        fieldWithPath("result.timelinePreview.nextCursor").type(JsonFieldType.NULL).optional().description("다음 커서"),
-                                        fieldWithPath("result.timelinePreview.hasNext").type(JsonFieldType.BOOLEAN).description("다음 페이지 존재 여부")
+                                        fieldWithPath("result.timelinePreview.dateGroups").type(JsonFieldType.ARRAY).description("날짜별 독서 이력 preview 그룹"),
+                                        fieldWithPath("result.timelinePreview.dateGroups[].year").type(JsonFieldType.NUMBER).description("연도"),
+                                        fieldWithPath("result.timelinePreview.dateGroups[].monthDay").type(JsonFieldType.STRING).description("월/일"),
+                                        fieldWithPath("result.timelinePreview.dateGroups[].showYear").type(JsonFieldType.BOOLEAN).description("연도 표시 여부"),
+                                        fieldWithPath("result.timelinePreview.dateGroups[].items").type(JsonFieldType.ARRAY).description("해당 날짜의 독서 이력 아이템 목록"),
+                                        fieldWithPath("result.timelinePreview.dateGroups[].items[].timelineId").type(JsonFieldType.NUMBER).description("타임라인 ID"),
+                                        fieldWithPath("result.timelinePreview.dateGroups[].items[].type").type(JsonFieldType.STRING).description("타임라인 타입"),
+                                        fieldWithPath("result.timelinePreview.dateGroups[].items[].occurredAt").type(JsonFieldType.STRING).description("이벤트 발생 시각"),
+                                        fieldWithPath("result.timelinePreview.dateGroups[].items[].title").type(JsonFieldType.STRING).description("카드 제목"),
+                                        fieldWithPath("result.timelinePreview.dateGroups[].items[].subtitle").type(JsonFieldType.NULL).optional().description("카드 부제목"),
+                                        fieldWithPath("result.timelinePreview.dateGroups[].items[].previewText").type(JsonFieldType.STRING).description("카드 preview 텍스트"),
+                                        fieldWithPath("result.timelinePreview.dateGroups[].items[].targetId").type(JsonFieldType.NUMBER).description("원본 대상 ID")
                                 ))
                         ));
             }
@@ -173,30 +171,32 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                 TimelineResponseDto.TimelineItemDto item =
                         new TimelineResponseDto.TimelineItemDto(
                                 10L,
-                                BookTimeLineType.REGISTER,
+                                TimelineType.REGISTER,
                                 LocalDateTime.of(2025, 12, 30, 12, 0),
-                                new TimelineResponseDto.TimelineDisplayDateDto(2025, "12.30", true),
                                 "서재에 등록했어요",
                                 null,
                                 "서재에 등록했어요",
-                                12L,
-                                List.of(TimelineResponseDto.TimelineActionType.REMOVE_FROM_LIBRARY)
+                                12L
+                        );
+
+                TimelineResponseDto.TimelineDateGroupDto group =
+                        new TimelineResponseDto.TimelineDateGroupDto(
+                                2025,
+                                "12.30",
+                                true,
+                                List.of(item)
                         );
 
                 TimelineResponseDto.TimelinePreviewDto response =
                         new TimelineResponseDto.TimelinePreviewDto(
-                                List.of(item),
-                                10L,
-                                true
+                                List.of(group)
                         );
 
-                given(timelineQueryService.getTimelinePreview(any(), anyLong(), any(), anyInt()))
+                given(timelineQueryService.getTimelinePreview(any(), anyLong()))
                         .willReturn(response);
 
                 mockMvc.perform(
                                 get("/api/library/{libraryId}/timeline", 12L)
-                                        .param("cursor", "20")
-                                        .param("size", "10")
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )
                         .andExpect(status().isOk())
@@ -205,27 +205,19 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                                 pathParameters(
                                         parameterWithName("libraryId").description("독서 이력을 조회할 서재 ID")
                                 ),
-                                queryParameters(
-                                        parameterWithName("cursor").optional().description("커서(이전 페이지 마지막 timeline ID)"),
-                                        parameterWithName("size").description("조회할 개수")
-                                ),
                                 responseFields(ApiResponseSnippet.withResult(
-                                        fieldWithPath("result.items").type(JsonFieldType.ARRAY).description("독서 이력 아이템 목록"),
-                                        fieldWithPath("result.items[].timelineId").type(JsonFieldType.NUMBER).description("타임라인 ID"),
-                                        fieldWithPath("result.items[].type").type(JsonFieldType.STRING).description("타임라인 타입"),
-                                        fieldWithPath("result.items[].occurredAt").type(JsonFieldType.STRING).description("이벤트 발생 시각"),
-                                        fieldWithPath("result.items[].displayDate").type(JsonFieldType.OBJECT).description("화면 표시용 날짜 정보"),
-                                        fieldWithPath("result.items[].displayDate.year").type(JsonFieldType.NUMBER).description("표시 연도"),
-                                        fieldWithPath("result.items[].displayDate.monthDay").type(JsonFieldType.STRING).description("월/일 표시값"),
-                                        fieldWithPath("result.items[].displayDate.showYear").type(JsonFieldType.BOOLEAN).description("연도 표시 여부"),
-                                        fieldWithPath("result.items[].title").type(JsonFieldType.STRING).description("카드 제목"),
-                                        fieldWithPath("result.items[].subtitle").type(JsonFieldType.NULL).optional().description("카드 부제목"),
-                                        fieldWithPath("result.items[].previewText").type(JsonFieldType.STRING).description("카드 preview 텍스트"),
-                                        fieldWithPath("result.items[].targetId").type(JsonFieldType.NUMBER).description("원본 대상 ID"),
-                                        fieldWithPath("result.items[].actions").type(JsonFieldType.ARRAY).description("지원 액션 목록"),
-                                        fieldWithPath("result.items[].actions[]").type(JsonFieldType.STRING).description("액션 타입"),
-                                        fieldWithPath("result.nextCursor").type(JsonFieldType.NUMBER).description("다음 커서"),
-                                        fieldWithPath("result.hasNext").type(JsonFieldType.BOOLEAN).description("다음 페이지 존재 여부")
+                                        fieldWithPath("result.dateGroups").type(JsonFieldType.ARRAY).description("날짜별 독서 이력 그룹"),
+                                        fieldWithPath("result.dateGroups[].year").type(JsonFieldType.NUMBER).description("연도"),
+                                        fieldWithPath("result.dateGroups[].monthDay").type(JsonFieldType.STRING).description("월/일"),
+                                        fieldWithPath("result.dateGroups[].showYear").type(JsonFieldType.BOOLEAN).description("연도 표시 여부"),
+                                        fieldWithPath("result.dateGroups[].items").type(JsonFieldType.ARRAY).description("해당 날짜의 독서 이력 아이템 목록"),
+                                        fieldWithPath("result.dateGroups[].items[].timelineId").type(JsonFieldType.NUMBER).description("타임라인 ID"),
+                                        fieldWithPath("result.dateGroups[].items[].type").type(JsonFieldType.STRING).description("타임라인 타입"),
+                                        fieldWithPath("result.dateGroups[].items[].occurredAt").type(JsonFieldType.STRING).description("이벤트 발생 시각"),
+                                        fieldWithPath("result.dateGroups[].items[].title").type(JsonFieldType.STRING).description("카드 제목"),
+                                        fieldWithPath("result.dateGroups[].items[].subtitle").type(JsonFieldType.NULL).optional().description("카드 부제목"),
+                                        fieldWithPath("result.dateGroups[].items[].previewText").type(JsonFieldType.STRING).description("카드 preview 텍스트"),
+                                        fieldWithPath("result.dateGroups[].items[].targetId").type(JsonFieldType.NUMBER).description("원본 대상 ID")
                                 ))
                         ));
             }
@@ -236,16 +228,64 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
         class Failure {
 
             @Test
-            @DisplayName("size가 범위를 벗어나면 400")
-            @WithCustomUser
+            @DisplayName("인증 정보가 없으면 401")
             void invalidSize() throws Exception {
                 mockMvc.perform(
                                 get("/api/library/{libraryId}/timeline", 12L)
-                                        .param("size", "101")
-                                        .header(AUTH_HEADER, AUTH_TOKEN)
                         )
-                        .andExpect(status().isBadRequest());
+                        .andExpect(status().isUnauthorized());
             }
+        }
+    }
+
+    @DisplayName("독서 이력 상세 조회")
+    @Nested
+    class GetTimelineDetail {
+
+        @Test
+        @DisplayName("독서 이력 상세 조회")
+        @WithCustomUser
+        void getTimelineDetail() throws Exception {
+            TimelineResponseDto.TimelineDetailDto response =
+                    new TimelineResponseDto.TimelineDetailDto(
+                            31L,
+                            TimelineType.RECORD,
+                            LocalDateTime.of(2025, 12, 20, 21, 10),
+                            new TimelineResponseDto.TimelineRecordDetailDto(
+                                    "말하기와 듣기...",
+                                    "FUN",
+                                    List.of("https://img/a", "https://img/b")
+                            )
+                    );
+
+            given(timelineQueryService.getTimelineDetail(any(), anyLong(), anyLong()))
+                    .willReturn(response);
+
+            mockMvc.perform(
+                            get("/api/library/{libraryId}/timeline/{timelineId}", 12L, 31L)
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                    )
+                    .andExpect(status().isOk())
+                    .andDo(documentWithAuth(
+                            "{class-name}/{method-name}",
+                            pathParameters(
+                                    parameterWithName("libraryId").description("독서 이력을 조회할 서재 ID"),
+                                    parameterWithName("timelineId").description("상세 조회할 타임라인 ID")
+                            ),
+                            responseFields(ApiResponseSnippet.withResult(
+                                    fieldWithPath("result.timelineId").type(JsonFieldType.NUMBER).description("타임라인 ID"),
+                                    fieldWithPath("result.type").type(JsonFieldType.STRING).description("타임라인 타입"),
+                                    fieldWithPath("result.occurredAt").type(JsonFieldType.STRING).description("이벤트 발생 시각"),
+                                    fieldWithPath("result.detail").type(JsonFieldType.OBJECT).description("타입별 상세 정보"),
+                                    fieldWithPath("result.detail.title").type(JsonFieldType.STRING).optional().description("STATUS 타입 상세 제목"),
+                                    fieldWithPath("result.detail.description").type(JsonFieldType.STRING).optional().description("REGISTER/STATUS 타입 상세 설명"),
+                                    fieldWithPath("result.detail.timeText").type(JsonFieldType.STRING).optional().description("FOCUS 타입 상세 시간 정보"),
+                                    fieldWithPath("result.detail.page").type(JsonFieldType.NUMBER).optional().description("FOCUS 타입 상세 종료 시점 페이지"),
+                                    fieldWithPath("result.detail.content").type(JsonFieldType.STRING).optional().description("RECORD 타입 상세 기록 본문"),
+                                    fieldWithPath("result.detail.emotion").type(JsonFieldType.STRING).optional().description("RECORD 타입 상세 기록 감정 코드"),
+                                    fieldWithPath("result.detail.imageUrls").type(JsonFieldType.ARRAY).optional().description("RECORD 타입 상세 기록 이미지 URL 목록")
+                            ))
+                    ));
         }
     }
 }

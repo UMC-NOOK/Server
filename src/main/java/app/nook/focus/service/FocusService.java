@@ -12,6 +12,7 @@ import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class FocusService {
     private final FocusRepository focusRepository;
     private final LibraryRepository libraryRepository;
     private final ThemeRepository themeRepository;
+    private final TimelineCommandService timelineCommandService;
 
     public FocusResponseDto.FocusStart startFocus(User user, FocusRequestDto.FocusStart request) {
 
@@ -71,7 +73,7 @@ public class FocusService {
             throw new CustomException(FocusErrorCode.FOCUS_ALREADY_ENDED);
         }
 
-        focus.endFocus(LocalDateTime.now());
+        focus.endFocus(LocalDateTime.now(), request.page());
 
         Library library = focus.getLibrary();
         library.recordFocus(focus.getDurationSec());
@@ -82,6 +84,8 @@ public class FocusService {
         } else if (library.getReadingStatus() == ReadingStatus.BEFORE) {
             library.updateStatus(ReadingStatus.READING);
         }
+
+        timelineCommandService.appendFocusCompleted(focus);
 
         return FocusConverter.toFocusEndResponse(focus);
     }

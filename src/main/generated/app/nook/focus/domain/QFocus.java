@@ -33,6 +33,8 @@ public class QFocus extends EntityPathBase<Focus> {
 
     public final TimePath<java.time.LocalTime> endedTime = createTime("endedTime", java.time.LocalTime.class);
 
+    public final NumberPath<Integer> endPage = createNumber("endPage", Integer.class);
+
     public final DatePath<java.time.LocalDate> focusDate = createDate("focusDate", java.time.LocalDate.class);
 
     public final NumberPath<Long> id = createNumber("id", Long.class);

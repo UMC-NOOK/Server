@@ -2,7 +2,7 @@ package app.nook.timeline.domain;
 
 import app.nook.global.common.BaseEntity;
 import app.nook.library.domain.Library;
-import app.nook.timeline.domain.enums.BookTimeLineType;
+import app.nook.timeline.domain.enums.TimelineType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
                 ),
         }
 )
-public class BookTimeLine extends BaseEntity {
+public class Timeline extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,7 +37,7 @@ public class BookTimeLine extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 50)
-    private BookTimeLineType type;
+    private TimelineType type;
 
     @Column(name = "target_id", nullable = false)
     private Long targetId;
@@ -49,9 +49,9 @@ public class BookTimeLine extends BaseEntity {
     private String previewText;
 
     @Builder
-    public BookTimeLine(
+    public Timeline(
             Library library,
-            BookTimeLineType type,
+            TimelineType type,
             Long targetId,
             LocalDateTime occurredAt,
             String previewText

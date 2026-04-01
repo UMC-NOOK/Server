@@ -13,6 +13,7 @@ import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class FocusServiceTest {
@@ -42,6 +44,9 @@ class FocusServiceTest {
 
     @Mock
     private ThemeRepository themeRepository;
+
+    @Mock
+    private TimelineCommandService timelineCommandService;
 
     @InjectMocks
     private FocusService focusService;
@@ -203,8 +208,10 @@ class FocusServiceTest {
         assertThat(result.endedAt()).isNotNull();
         assertThat(result.durationSec()).isGreaterThanOrEqualTo(0);
         assertThat(result.page()).isEqualTo(72);
+        assertThat(focus.getEndPage()).isEqualTo(72);
         assertThat(result.totalFocusSec()).isGreaterThanOrEqualTo(0L);
         assertThat(result.readingStatus()).isEqualTo("FINISHED");
+        verify(timelineCommandService).appendFocusCompleted(focus);
     }
 
     @Test
@@ -223,7 +230,9 @@ class FocusServiceTest {
         // then
         assertThat(result).isNotNull();
         assertThat(result.page()).isEqualTo(45);
+        assertThat(focus.getEndPage()).isEqualTo(45);
         assertThat(result.readingStatus()).isEqualTo("READING");
+        verify(timelineCommandService).appendFocusCompleted(focus);
     }
 
     @Test

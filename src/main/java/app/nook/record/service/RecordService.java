@@ -17,6 +17,7 @@ import app.nook.record.event.RecordDeletedEvent;
 import app.nook.record.exception.RecordErrorCode;
 import app.nook.record.repository.RecordImageRepository;
 import app.nook.record.repository.RecordRepository;
+import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -40,6 +41,7 @@ public class RecordService {
     private final BookRepository bookRepository;
     private final RecordImageRepository recordImageRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final TimelineCommandService timelineCommandService;
 
     // 기록 생성
     @Transactional
@@ -84,6 +86,8 @@ public class RecordService {
         if (!imageKeys.isEmpty()) {
             saveRecordImages(newRecord, imageKeys);
         }
+
+        timelineCommandService.appendRecordCreated(newRecord, imageKeys.size());
     }
 
     // 기록 수정

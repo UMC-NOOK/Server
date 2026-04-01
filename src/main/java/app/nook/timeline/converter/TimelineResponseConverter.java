@@ -1,9 +1,9 @@
 package app.nook.timeline.converter;
 
-import app.nook.timeline.domain.BookTimeLine;
+import app.nook.timeline.domain.Timeline;
 import app.nook.timeline.dto.TimelineResponseDto;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -13,43 +13,51 @@ public class TimelineResponseConverter {
 
     private TimelineResponseConverter() {}
 
-    public static TimelineResponseDto.TimelineDisplayDateDto toDisplayDate(
-            LocalDateTime occurredAt,
+    public static TimelineResponseDto.TimelineDateGroupDto toTimelineDateGroup(
+            LocalDate date,
             boolean showYear
     ) {
-        return new TimelineResponseDto.TimelineDisplayDateDto(
-                occurredAt.getYear(),
-                occurredAt.format(MONTH_DAY_FORMATTER),
-                showYear
+        return new TimelineResponseDto.TimelineDateGroupDto(
+                date.getYear(),
+                date.format(MONTH_DAY_FORMATTER),
+                showYear,
+                List.of()
         );
     }
 
     public static TimelineResponseDto.TimelineItemDto toTimelineItem(
-            BookTimeLine timeline,
-            boolean showYear,
+            Timeline timeline,
             String title,
-            String subtitle,
-            List<TimelineResponseDto.TimelineActionType> actions
+            String subtitle
     ) {
         return new TimelineResponseDto.TimelineItemDto(
                 timeline.getId(),
                 timeline.getType(),
                 timeline.getOccurredAt(),
-                toDisplayDate(timeline.getOccurredAt(), showYear),
                 title,
                 subtitle,
                 timeline.getPreviewText(),
-                timeline.getTargetId(),
-                actions
+                timeline.getTargetId()
         );
     }
 
     public static TimelineResponseDto.TimelinePreviewDto toTimelinePreview(
-            List<TimelineResponseDto.TimelineItemDto> items,
-            Long nextCursor,
-            boolean hasNext
+            List<TimelineResponseDto.TimelineDateGroupDto> dateGroups
     ) {
-        return new TimelineResponseDto.TimelinePreviewDto(items, nextCursor, hasNext);
+        return new TimelineResponseDto.TimelinePreviewDto(dateGroups);
+    }
+
+    public static TimelineResponseDto.TimelineDateGroupDto toTimelineDateGroup(
+            LocalDate date,
+            boolean showYear,
+            List<TimelineResponseDto.TimelineItemDto> items
+    ) {
+        return new TimelineResponseDto.TimelineDateGroupDto(
+                date.getYear(),
+                date.format(MONTH_DAY_FORMATTER),
+                showYear,
+                items
+        );
     }
 
     public static TimelineResponseDto.TimelineSummaryDto toTimelineSummary(
@@ -64,5 +72,37 @@ public class TimelineResponseConverter {
                 recordSummary,
                 timelinePreview
         );
+    }
+
+    public static TimelineResponseDto.TimelineDetailDto toTimelineDetail(
+            Timeline timeline,
+            TimelineResponseDto.TimelineDetail detail
+    ) {
+        return new TimelineResponseDto.TimelineDetailDto(
+                timeline.getId(),
+                timeline.getType(),
+                timeline.getOccurredAt(),
+                detail
+        );
+    }
+
+    public static TimelineResponseDto.TimelineRegisterDetailDto toRegisterDetail(String description) {
+        return new TimelineResponseDto.TimelineRegisterDetailDto(description);
+    }
+
+    public static TimelineResponseDto.TimelineStatusDetailDto toStatusDetail(String title, String description) {
+        return new TimelineResponseDto.TimelineStatusDetailDto(title, description);
+    }
+
+    public static TimelineResponseDto.TimelineFocusDetailDto toFocusDetail(String timeText, Integer page) {
+        return new TimelineResponseDto.TimelineFocusDetailDto(timeText, page);
+    }
+
+    public static TimelineResponseDto.TimelineRecordDetailDto toRecordDetail(
+            String content,
+            String emotion,
+            List<String> imageUrls
+    ) {
+        return new TimelineResponseDto.TimelineRecordDetailDto(content, emotion, imageUrls);
     }
 }

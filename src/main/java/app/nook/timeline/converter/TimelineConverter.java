@@ -1,24 +1,24 @@
 package app.nook.timeline.converter;
 
 import app.nook.library.domain.Library;
-import app.nook.timeline.domain.BookTimeLine;
-import app.nook.timeline.domain.enums.BookTimeLineType;
+import app.nook.timeline.domain.Timeline;
+import app.nook.timeline.domain.enums.TimelineType;
 
 import java.time.LocalDateTime;
 
 
-public class TimeLineConverter {
+public class TimelineConverter {
 
-    public static BookTimeLine toBookTimeLine(
+    public static Timeline toTimeline(
             Library library,
-            BookTimeLineType bookTimeLineType,
+            TimelineType timelineType,
             Long targetId,
             LocalDateTime occurredAt,
             String previewText
     ) {
-        return new BookTimeLine(
+        return new Timeline(
                 library,
-                bookTimeLineType,
+                timelineType,
                 targetId,
                 occurredAt,
                 previewText
