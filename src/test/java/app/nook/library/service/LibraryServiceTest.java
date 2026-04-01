@@ -220,7 +220,7 @@ class LibraryServiceTest {
             libraryService.changeStatus(user, request);
 
             assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
-            verify(timelineCommandService).appendStatusChanged(any());
+            verify(timelineCommandService).appendStatusChanged(any(), any());
         }
 
         @Test

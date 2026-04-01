@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
@@ -109,8 +110,9 @@ public class LibraryService {
         if (library.getReadingStatus() == requestDto.readingStatus())
             throw new CustomException(LibraryErrorCode.BOOK_STATUS_INVALID);
         // 상태 변경
+        LocalDateTime occurredAt = LocalDateTime.now();
         library.updateStatus(requestDto.readingStatus());
-        timelineCommandService.appendStatusChanged(library);
+        timelineCommandService.appendStatusChanged(library, occurredAt);
         eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(user.getId()));
     }
 

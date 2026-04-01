@@ -85,7 +85,7 @@ class TimelineCommandServiceTest {
             ReflectionTestUtils.setField(library, "readingStatus", ReadingStatus.READING);
             ReflectionTestUtils.setField(library, "modifiedDate", modifiedDate);
 
-            timelineCommandService.appendStatusChanged(library);
+            timelineCommandService.appendStatusChanged(library, modifiedDate);
 
             verify(timelineRepository).save(timelineCaptor.capture());
 

@@ -231,13 +231,12 @@ class TimelineQueryServiceTest {
                     timeline(14L, library, TimelineType.RECORD, LocalDateTime.of(2026, 1, 14, 12, 0), "2", 2L),
                     timeline(13L, library, TimelineType.RECORD, LocalDateTime.of(2026, 1, 13, 12, 0), "3", 3L),
                     timeline(12L, library, TimelineType.RECORD, LocalDateTime.of(2026, 1, 12, 12, 0), "4", 4L),
-                    timeline(11L, library, TimelineType.RECORD, LocalDateTime.of(2026, 1, 11, 12, 0), "5", 5L),
-                    timeline(10L, library, TimelineType.RECORD, LocalDateTime.of(2026, 1, 10, 12, 0), "6", 6L)
+                    timeline(11L, library, TimelineType.RECORD, LocalDateTime.of(2026, 1, 11, 12, 0), "5", 5L)
             );
 
             given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
             given(focusRepository.countByLibrary(library)).willReturn(39);
-            given(recordRepository.countByLibraryId(12L)).willReturn(6L);
+            given(recordRepository.countByLibraryId(12L)).willReturn(5L);
             given(recordRepository.findRecentByLibraryId(eq(12L), any())).willReturn(List.of(record(6L, library, "1")));
             given(timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library))
                     .willReturn(timelines);
@@ -375,7 +374,6 @@ class TimelineQueryServiceTest {
                     3240
             );
             ReflectionTestUtils.setField(focus, "endPage", 72);
-            ReflectionTestUtils.setField(focus, "endPage", 72);
 
             List<Timeline> timelines = List.of(
                     timeline(20L, library, TimelineType.REGISTER,
@@ -408,6 +406,32 @@ class TimelineQueryServiceTest {
             assertThat(items.get(2).subtitle()).isEqualTo("16:00 - 16:54");
             assertThat(items.get(3).title()).isEqualTo("독서 기록");
             assertThat(items.get(0).subtitle()).isEqualTo("서재에 등록했어요.");
+        }
+
+        @Test
+        @DisplayName("record preview가 비어 있으면 기록 규칙으로 fallback 한다")
+        void getTimelinePreview_recordPreviewFallback() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+
+            List<Timeline> timelines = List.of(
+                    timeline(17L, library, TimelineType.RECORD,
+                            LocalDateTime.of(2026, 1, 9, 21, 10), "   ", 9001L)
+            );
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library))
+                    .willReturn(timelines);
+            given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of(
+                    recordWithImages(9001L, library, "   ", null, List.of("a.png", "b.png", "c.png"))
+            ));
+
+            TimelineResponseDto.TimelinePreviewDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L);
+
+            TimelineResponseDto.TimelineItemDto item = result.dateGroups().get(0).items().get(0);
+            assertThat(item.title()).isEqualTo("독서 기록");
+            assertThat(item.previewText()).isEqualTo("3개의 이미지");
         }
 
         @Test

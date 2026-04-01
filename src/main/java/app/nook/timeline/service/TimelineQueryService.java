@@ -236,8 +236,8 @@ public class TimelineQueryService {
     private TimelineResponseDto.TimelineItemDto toRecordTimelineItem(Timeline timeline, Map<Long, Record> recordMap) {
         Record record = recordMap.get(timeline.getTargetId());
         String previewText = timeline.getPreviewText();
-        if ((previewText == null || previewText.isBlank()) && record != null && record.getContent() != null) {
-            previewText = record.getContent();
+        if ((previewText == null || previewText.isBlank()) && record != null) {
+            previewText = toRecordPreviewText(record);
         }
 
         return new TimelineResponseDto.TimelineItemDto(

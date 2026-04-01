@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -35,12 +37,12 @@ public class TimelineCommandService {
     }
 
     @Transactional
-    public void appendStatusChanged(Library library) {
+    public void appendStatusChanged(Library library, LocalDateTime occurredAt) {
         Timeline timeline = TimelineConverter.toTimeline(
                 library,
                 TimelineType.STATUS,
                 library.getId(),
-                library.getModifiedDate(),
+                occurredAt,
                 STATUS_PREVIEW_PREFIX + library.getReadingStatus().name()
         );
         timelineRepository.save(timeline);
