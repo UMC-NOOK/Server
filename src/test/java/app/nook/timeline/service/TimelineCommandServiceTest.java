@@ -81,18 +81,20 @@ class TimelineCommandServiceTest {
         @Test
         @DisplayName("성공 - STATUS 타임라인을 저장한다")
         void appendStatusChanged_성공() {
-            LocalDateTime modifiedDate = LocalDateTime.of(2026, 1, 2, 10, 0);
+            LocalDateTime modifiedDate = LocalDateTime.of(2026, 1, 1, 9, 0);
+            LocalDateTime occurredAt = LocalDateTime.of(2026, 1, 2, 10, 0);
             ReflectionTestUtils.setField(library, "readingStatus", ReadingStatus.READING);
             ReflectionTestUtils.setField(library, "modifiedDate", modifiedDate);
 
-            timelineCommandService.appendStatusChanged(library, modifiedDate);
+            timelineCommandService.appendStatusChanged(library, occurredAt);
 
             verify(timelineRepository).save(timelineCaptor.capture());
 
             Timeline saved = timelineCaptor.getValue();
             assertThat(saved.getType()).isEqualTo(TimelineType.STATUS);
             assertThat(saved.getTargetId()).isEqualTo(12L);
-            assertThat(saved.getOccurredAt()).isEqualTo(modifiedDate);
+            assertThat(saved.getOccurredAt()).isEqualTo(occurredAt);
+            assertThat(saved.getOccurredAt()).isNotEqualTo(modifiedDate);
             assertThat(saved.getPreviewText()).isEqualTo("독서 상태 변경: READING");
         }
     }

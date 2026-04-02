@@ -323,11 +323,23 @@ public class TimelineQueryService {
     }
 
     private List<String> toRecordImageUrls(Record record, Long userId) {
-        return record.getImages().stream()
-                .map(RecordImage::getKey)
-                .filter(key -> key != null && !key.isBlank())
-                .map(key -> presignedUrlService.getImageUrl(userId, key))
-                .toList();
+        List<String> imageUrls = new ArrayList<>();
+
+        for (RecordImage image : record.getImages()) {
+            String key = image.getKey();
+            if (key == null || key.isBlank()) {
+                continue;
+            }
+
+            try {
+                imageUrls.add(presignedUrlService.getImageUrl(userId, key));
+            } catch (RuntimeException ex) {
+                log.warn("[TIMELINE_DETAIL_RECORD_IMAGE_URL_FAILED] recordId={}, key={}",
+                        record.getId(), key, ex);
+            }
+        }
+
+        return imageUrls;
     }
 
     private String toFocusDurationText(Integer durationSec) {

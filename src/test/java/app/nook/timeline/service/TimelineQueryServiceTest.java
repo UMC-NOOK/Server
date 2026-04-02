@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("TimelineQueryService 테스트")
@@ -527,6 +528,42 @@ class TimelineQueryServiceTest {
             assertThat(detail.content()).isEqualTo("말하기와 듣기...");
             assertThat(detail.emotion()).isEqualTo("FUN");
             assertThat(detail.imageUrls()).containsExactly("https://img/a", "https://img/b");
+        }
+
+        @Test
+        @DisplayName("RECORD 상세 조회 시 이미지 URL 생성 하나가 실패해도 나머지는 반환한다")
+        void getTimelineDetail_record_이미지일부실패_성공() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            Timeline timeline = timeline(
+                    31L,
+                    library,
+                    TimelineType.RECORD,
+                    LocalDateTime.of(2026, 1, 12, 21, 10),
+                    "기록 preview",
+                    9001L
+            );
+            Record record = recordWithImages(
+                    9001L,
+                    library,
+                    "말하기와 듣기...",
+                    "FUN",
+                    List.of("record/users/1/a.png", "record/users/1/b.png")
+            );
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByIdAndLibrary(31L, library)).willReturn(Optional.of(timeline));
+            given(recordRepository.findWithImagesById(9001L)).willReturn(Optional.of(record));
+            given(presignedUrlService.getImageUrl(1L, "record/users/1/a.png")).willReturn("https://img/a");
+            willThrow(new RuntimeException("presigned url failed"))
+                    .given(presignedUrlService).getImageUrl(1L, "record/users/1/b.png");
+
+            TimelineResponseDto.TimelineDetailDto result =
+                    timelineQueryService.getTimelineDetail(user, 12L, 31L);
+
+            TimelineResponseDto.TimelineRecordDetailDto detail =
+                    (TimelineResponseDto.TimelineRecordDetailDto) result.detail();
+            assertThat(detail.imageUrls()).containsExactly("https://img/a");
         }
     }
 }
