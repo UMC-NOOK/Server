@@ -2,12 +2,14 @@ package app.nook.timeline.domain;
 
 import app.nook.global.common.BaseEntity;
 import app.nook.library.domain.Library;
-import app.nook.timeline.domain.enums.BookTimeLineType;
+import app.nook.timeline.domain.enums.TimelineType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -17,12 +19,12 @@ import lombok.NoArgsConstructor;
         name = "book_timelines",
         indexes = {
                 @Index(
-                        name = "idx_book_timelines_library_created",
-                        columnList = "library_id, created_date DESC"
+                        name = "idx_book_timelines_library_occurred",
+                        columnList = "library_id, occurred_at DESC, timeline_id DESC"
                 ),
         }
 )
-public class BookTimeLine extends BaseEntity {
+public class Timeline extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,24 +37,29 @@ public class BookTimeLine extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 50)
-    private BookTimeLineType type;
+    private TimelineType type;
 
-    @Column(name = "snapshot_value")
-    private String snapshotValue;
-
-    @Column(name = "target_id")
+    @Column(name = "target_id", nullable = false)
     private Long targetId;
 
+    @Column(name = "occurred_at", nullable = false)
+    private LocalDateTime occurredAt;
+
+    @Column(name = "preview_text", length = 500)
+    private String previewText;
+
     @Builder
-    public BookTimeLine(
+    public Timeline(
             Library library,
-            BookTimeLineType type,
-            String snapshotValue,
-            Long targetId
+            TimelineType type,
+            Long targetId,
+            LocalDateTime occurredAt,
+            String previewText
     ) {
         this.library = library;
         this.type = type;
-        this.snapshotValue = snapshotValue;
         this.targetId = targetId;
+        this.occurredAt = occurredAt;
+        this.previewText = previewText;
     }
 }

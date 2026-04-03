@@ -47,6 +47,9 @@ public class Focus extends BaseEntity {
     @Column(name = "duration_sec")
     private Integer durationSec;
 
+    @Column(name = "end_page")
+    private Integer endPage;
+
     @Column(name = "focus_date")
     private LocalDate focusDate;
 
@@ -57,11 +60,19 @@ public class Focus extends BaseEntity {
     private LocalTime endedTime;
 
     @Builder
-    public Focus(Theme theme, LocalDateTime startedAt, LocalDateTime endedAt, Integer durationSec, Library library) {
+    public Focus(
+            Theme theme,
+            LocalDateTime startedAt,
+            LocalDateTime endedAt,
+            Integer durationSec,
+            Integer endPage,
+            Library library
+    ) {
         this.theme = theme;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.durationSec = durationSec;
+        this.endPage = endPage;
         this.focusDate = startedAt != null ? startedAt.toLocalDate() : null;
         this.startedTime = startedAt != null ? startedAt.toLocalTime() : null;
         this.endedTime = endedAt != null ? endedAt.toLocalTime() : null;
@@ -69,7 +80,12 @@ public class Focus extends BaseEntity {
     }
 
     public void endFocus(LocalDateTime endedAt) {
+        endFocus(endedAt, null);
+    }
+
+    public void endFocus(LocalDateTime endedAt, Integer endPage) {
         this.endedAt = endedAt;
+        this.endPage = endPage;
         this.endedTime = endedAt.toLocalTime();
         this.durationSec = (int) Duration.between(this.startedAt, endedAt).getSeconds();
     }

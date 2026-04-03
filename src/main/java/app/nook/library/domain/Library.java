@@ -4,7 +4,7 @@ import app.nook.book.domain.Book;
 import app.nook.focus.domain.Focus;
 import app.nook.global.common.BaseEntity;
 import app.nook.library.domain.enums.ReadingStatus;
-import app.nook.timeline.domain.BookTimeLine;
+import app.nook.timeline.domain.Timeline;
 import app.nook.user.domain.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -59,7 +59,7 @@ public class Library extends BaseEntity {
     private List<Focus> focuses = new ArrayList<>();
 
     @OneToMany(mappedBy = "library", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<BookTimeLine> bookTimeLines = new ArrayList<>();
+    private List<Timeline> timelines = new ArrayList<>();
 
     @Column(name = "started_at")
     private LocalDate startedAt;

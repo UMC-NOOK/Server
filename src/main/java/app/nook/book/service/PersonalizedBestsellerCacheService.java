@@ -19,7 +19,6 @@ public class PersonalizedBestsellerCacheService {
     @Cacheable(
             cacheNames = CacheConfig.PERSONALIZED_BESTSELLERS_CACHE,
             key = "'category:' + #categoryId",
-            unless = "#result == null || #result.isEmpty()",
             sync = true
     )
     public List<BookResponseDto.BookPreviewDto> getByCategoryId(int categoryId) {

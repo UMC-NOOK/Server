@@ -9,7 +9,7 @@ import app.nook.global.common.security.WithCustomUser;
 import app.nook.library.domain.Library;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.redis.service.RedisZSETService;
-import app.nook.timeline.repository.BookTimeLineRepository;
+import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import app.nook.user.service.CustomUserDetails;
 import org.junit.jupiter.api.Test;
@@ -57,7 +57,7 @@ class LibraryCachingIntegrationTest {
     private LibraryRepository libraryRepository;
 
     @MockitoBean
-    private BookTimeLineRepository bookTimeLineRepository;
+    private TimelineCommandService timelineCommandService;
 
     @Test
     void viewMonthly_redisHit이면_db를_조회하지_않는다() {
