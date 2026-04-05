@@ -17,6 +17,9 @@ import java.util.Map;
 @Configuration
 @EnableCaching
 public class CacheConfig {
+    public static final String ALADIN_SEARCH_CACHE = "aladinSearchResults";
+    public static final String WEEKLY_BESTSELLERS_CACHE = "weeklyBestsellers";
+    public static final String PERSONALIZED_BESTSELLERS_CACHE = "personalizedBestsellers";
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -31,6 +34,12 @@ public class CacheConfig {
 
         cacheConfigs.put("libraryStatusFirstPage",
                 defaultConfig.entryTtl(Duration.ofMinutes(2)));
+        cacheConfigs.put(ALADIN_SEARCH_CACHE,
+                defaultConfig.entryTtl(Duration.ofMinutes(10)));
+        cacheConfigs.put(WEEKLY_BESTSELLERS_CACHE,
+                defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        cacheConfigs.put(PERSONALIZED_BESTSELLERS_CACHE,
+                defaultConfig.entryTtl(Duration.ofMinutes(30)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)

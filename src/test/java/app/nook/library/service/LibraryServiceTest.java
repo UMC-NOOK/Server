@@ -12,7 +12,7 @@ import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
-import app.nook.timeline.repository.BookTimeLineRepository;
+import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import org.junit.jupiter.api.DisplayName;
@@ -58,7 +58,7 @@ class LibraryServiceTest {
     private BookRepository bookRepository;
 
     @Mock
-    private BookTimeLineRepository bookTimeLineRepository;
+    private TimelineCommandService timelineCommandService;
 
     @Mock
     private FocusRepository focusRepository;
@@ -108,7 +108,7 @@ class LibraryServiceTest {
 
             libraryService.save(user, 1L);
 
-            verify(bookTimeLineRepository).save(any());
+            verify(timelineCommandService).appendRegister(any());
         }
 
         @Test
@@ -220,7 +220,7 @@ class LibraryServiceTest {
             libraryService.changeStatus(user, request);
 
             assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
-            verify(bookTimeLineRepository).save(any());
+            verify(timelineCommandService).appendStatusChanged(any(), any());
         }
 
         @Test

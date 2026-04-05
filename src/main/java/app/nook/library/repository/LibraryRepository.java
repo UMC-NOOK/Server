@@ -103,4 +103,6 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
             @Param("mallType") MallType mallType,
             Pageable pageable
     );
+
+    Optional<Library> findByIdAndUserId(Long libraryId, Long userId);
 }

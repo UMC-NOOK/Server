@@ -15,10 +15,7 @@ import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
-import app.nook.timeline.converter.TimeLineConverter;
-import app.nook.timeline.domain.BookTimeLine;
-import app.nook.timeline.domain.enums.BookTimeLineType;
-import app.nook.timeline.repository.BookTimeLineRepository;
+import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
@@ -31,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
@@ -43,8 +41,8 @@ public class LibraryService {
 
     private final LibraryRepository libraryRepository;
     private final BookRepository bookRepository;
-    private final BookTimeLineRepository bookTimeLineRepository;
     private final FocusRepository focusRepository;
+    private final TimelineCommandService timelineCommandService;
     private final ApplicationEventPublisher eventPublisher;
 
 
@@ -67,14 +65,7 @@ public class LibraryService {
         Library library = new Library(user,book);
         Library savedLibrary = libraryRepository.save(library);
 
-        // 타임라인 업데이트
-        BookTimeLine timeLine = TimeLineConverter.toBookTimeLine(
-                savedLibrary,
-                BookTimeLineType.REGISTER,
-                savedLibrary.getCreatedDate().toString(),
-                savedLibrary.getId()
-        );
-        bookTimeLineRepository.save(timeLine);
+        timelineCommandService.appendRegister(savedLibrary);
         eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(user.getId()));
     }
 
@@ -119,14 +110,9 @@ public class LibraryService {
         if (library.getReadingStatus() == requestDto.readingStatus())
             throw new CustomException(LibraryErrorCode.BOOK_STATUS_INVALID);
         // 상태 변경
+        LocalDateTime occurredAt = LocalDateTime.now();
         library.updateStatus(requestDto.readingStatus());
-        // 타임라인 업데이트
-        BookTimeLine timeLine = TimeLineConverter.toBookTimeLine(
-                library,
-                BookTimeLineType.STATUS,
-                library.getReadingStatus().toString(),
-                library.getId());
-        bookTimeLineRepository.save(timeLine);
+        timelineCommandService.appendStatusChanged(library, occurredAt);
         eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(user.getId()));
     }
 
