@@ -15,6 +15,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public interface LibraryRepository extends JpaRepository<Library,Long> {
@@ -28,7 +29,7 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
         where l.id = :libraryId
           and l.user.id = :userId
     """)
-    java.util.Optional<Library> findByIdAndUserIdForUpdate(
+    Optional<Library> findByIdAndUserIdForUpdate(
             @Param("libraryId") Long libraryId,
             @Param("userId") Long userId
     );

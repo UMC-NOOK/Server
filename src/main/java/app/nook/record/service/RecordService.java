@@ -190,12 +190,4 @@ public class RecordService {
         }
     }
 
-    // TODO: 독서 기록 상세조회
-
-    // TODO: 독서 기록 전체 목록조회 - 정렬 포함
-
-    // TODO: 특정 책 기록 조회 - 감정 필터
-
-
-
 }
