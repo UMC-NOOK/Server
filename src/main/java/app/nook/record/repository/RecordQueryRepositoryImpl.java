@@ -8,13 +8,18 @@ import app.nook.record.domain.QRecordImage;
 import app.nook.record.domain.enums.Emotion;
 import app.nook.record.domain.enums.SortType;
 import app.nook.record.dto.BookRecordDto;
+import app.nook.record.dto.RecordListCursor;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.DateTimeExpression;
+import com.querydsl.core.types.dsl.EnumPath;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -33,11 +38,13 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
 
     // 정렬 조건에 따라 책별 독서 기록을 그룹핑해서 반환
     public List<BookRecordDto.BookRecordItemDto> findRecordsByCursor(
-            Long userId, Long cursor, SortType sortType, Emotion emotion, int size
+            Long userId, RecordListCursor cursor, SortType sortType, int size
     ){
         QBook book = QBook.book;
         QLibrary library = QLibrary.library;
         QRecord subRecord = new QRecord("subRecord");
+        NumberExpression<Long> recordCount = record.count();
+        DateTimeExpression<LocalDateTime> lastCreatedDate = sortDateExpression(sortType);
 
         return queryFactory
                 .select(Projections.constructor(BookRecordDto.BookRecordItemDto.class,
@@ -49,20 +56,18 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
                                 .from(subRecord)
                                 .where(
                                         subRecord.library.book.eq(book),
-                                        subRecord.library.user.id.eq(userId),
-                                        emotionCondition(subRecord.emotion, emotion)
+                                        subRecord.library.user.id.eq(userId)
                                 )
                                 .orderBy(subRecord.createdDate.desc())
                                 .limit(1),
                         record.library.book.coverImageUrl,
-                        record.count()
+                        recordCount
                 ))
                 .from(record)
                 .join(record.library, library)
                 .join(record.library.book, book)
                 .where(
-                        library.user.id.eq(userId),
-                        emotionCondition(record.emotion, emotion)
+                        library.user.id.eq(userId)
                 )
                 .groupBy(
                         record.library.book.id,
@@ -70,63 +75,134 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
                         record.library.book.author,
                         record.library.book.coverImageUrl
                 )
-                .orderBy(orderByCondition(sortType))
-                .where(
-                        cursorCondition(cursor, sortType),
-                        emotionCondition(record.emotion, emotion),
-                        library.user.id.eq(userId)
-                )
-                .having(havingCondition(cursor, sortType))
+                .having(havingCondition(cursor, sortType, recordCount, lastCreatedDate))
+                .orderBy(orderByConditions(sortType, recordCount, book.id, lastCreatedDate))
                 .limit(size + 1)
                 .fetch();
     }
 
-    private BooleanExpression emotionCondition(com.querydsl.core.types.dsl.EnumPath<Emotion> emotionPath, Emotion emotion) {
+    public LocalDateTime findBookBoundaryCreatedDate(Long userId, Long bookId, SortType sortType) {
+        QLibrary library = QLibrary.library;
+
+        return queryFactory
+                .select(sortDateExpression(sortType))
+                .from(record)
+                .join(record.library, library)
+                .where(
+                        library.user.id.eq(userId),
+                        library.book.id.eq(bookId)
+                )
+                .fetchOne();
+    }
+
+    // 감정 필터
+    private BooleanExpression emotionCondition(EnumPath<Emotion> emotionPath, Emotion emotion) {
         if (emotion == null) {
             return null;
         }
         return emotionPath.eq(emotion);
     }
 
-    private BooleanExpression cursorCondition(Long cursor, SortType sortType) {
-        if (cursor == null) return null;
+    // count 순으로 하는 조건은 having 절에, createdDate 순으로 하는 조건은 where 절에 걸리도록
+    private BooleanExpression havingCondition(
+            RecordListCursor cursor,
+            SortType sortType,
+            NumberExpression<Long> recordCount,
+            DateTimeExpression<LocalDateTime> lastCreatedDate
+    ) {
+        if (cursor == null || cursor.isEmpty()) {
+            return null;
+        }
 
         return switch (sortType) {
-            case RECENT_RECORDED -> record.createdDate.lt(
-                    JPAExpressions
-                            .select(record.createdDate)
-                            .from(record)
-                            .where(record.id.eq(cursor))
+            case RECENT_RECORDED -> createdDateCursorCondition(
+                    cursor.lastCreatedDate(),
+                    lastCreatedDate,
+                    false
             );
-            case OLDEST_RECORDED -> record.createdDate.gt(
-                    JPAExpressions
-                            .select(record.createdDate)
-                            .from(record)
-                            .where(record.id.eq(cursor))
+            case OLDEST_RECORDED -> createdDateCursorCondition(
+                    cursor.lastCreatedDate(),
+                    lastCreatedDate,
+                    true
             );
-            case RECORD_COUNT_DESC, RECORD_COUNT_ASC -> null;
+            case RECORD_COUNT_DESC -> countCursorCondition(
+                    cursor.lastCount(),
+                    recordCount,
+                    false
+            );
+            case RECORD_COUNT_ASC -> countCursorCondition(
+                    cursor.lastCount(),
+                    recordCount,
+                    true
+            );
         };
     }
 
-    private BooleanExpression havingCondition(Long cursor, SortType sortType) {
-        if (cursor == null) return null;
+    // 생성 일자 순으로 커서 설정
+    private BooleanExpression createdDateCursorCondition(
+            LocalDateTime cursorCreatedDate,
+            DateTimeExpression<LocalDateTime> lastCreatedDate,
+            boolean ascending
+    ) {
+        if (cursorCreatedDate == null) {
+            return null;
+        }
 
+        return ascending
+                ? lastCreatedDate.gt(cursorCreatedDate)
+                : lastCreatedDate.lt(cursorCreatedDate);
+    }
+
+    // count 순서로 커서 설정
+    private BooleanExpression countCursorCondition(
+            Long cursorCount,
+            NumberExpression<Long> recordCount,
+            boolean ascending
+    ) {
+        if (cursorCount == null) {
+            return null;
+        }
+
+        return ascending
+                ? recordCount.gt(cursorCount)
+                : recordCount.lt(cursorCount);
+    }
+
+    // 기록 순서 필터
+    private DateTimeExpression<LocalDateTime> sortDateExpression(SortType sortType) {
         return switch (sortType) {
-            case RECORD_COUNT_DESC -> record.count().lt(cursor);
-            case RECORD_COUNT_ASC -> record.count().gt(cursor);
-            case RECENT_RECORDED, OLDEST_RECORDED -> null;
+            case RECENT_RECORDED, RECORD_COUNT_ASC, RECORD_COUNT_DESC -> record.createdDate.max();
+            case OLDEST_RECORDED -> record.createdDate.min();
         };
     }
 
-    private OrderSpecifier<?> orderByCondition(SortType sortType) {
+    private OrderSpecifier<?>[] orderByConditions(
+            SortType sortType,
+            NumberExpression<Long> recordCount,
+            NumberExpression<Long> bookId,
+            DateTimeExpression<LocalDateTime> lastCreatedDate
+    ) {
         return switch (sortType) {
-            case RECENT_RECORDED -> record.createdDate.desc();
-            case OLDEST_RECORDED -> record.createdDate.asc();
-            case RECORD_COUNT_DESC -> record.count().desc();
-            case RECORD_COUNT_ASC -> record.count().asc();
+            case RECENT_RECORDED -> new OrderSpecifier<?>[]{
+                    lastCreatedDate.desc(),
+                    bookId.desc()
+            };
+            case OLDEST_RECORDED -> new OrderSpecifier<?>[]{
+                    lastCreatedDate.asc(),
+                    bookId.asc()
+            };
+            case RECORD_COUNT_DESC -> new OrderSpecifier<?>[]{
+                    recordCount.desc(),
+                    bookId.desc()
+            };
+            case RECORD_COUNT_ASC -> new OrderSpecifier<?>[]{
+                    recordCount.asc(),
+                    bookId.asc()
+            };
         };
     }
 
+    // 최신날짜 내림차순 커서 조건
     private BooleanExpression bookRecordCursorCondition(Long cursor) {
         if (cursor == null) {
             return null;
@@ -134,16 +210,18 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
         return record.id.lt(cursor);
     }
 
+    // 개별 책 기록 조회, 감정별 필터
     public List<Record> findBookRecordsByCursor(
             Long userId, Long bookId, Long cursor, Emotion emotion, int size
     ) {
+        QLibrary library = QLibrary.library;
         List<Long> recordIds = queryFactory
                 .select(record.id)
                 .from(record)
-                .join(record.library, QLibrary.library)
+                .join(record.library,library)
                 .where(
-                        QLibrary.library.user.id.eq(userId),
-                        QLibrary.library.book.id.eq(bookId),
+                        library.user.id.eq(userId),
+                        library.book.id.eq(bookId),
                         emotionCondition(record.emotion, emotion),
                         bookRecordCursorCondition(cursor)
                 )
@@ -163,7 +241,7 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
         return queryFactory
                 .selectDistinct(record)
                 .from(record)
-                .join(record.library, QLibrary.library).fetchJoin()
+                .join(record.library, library).fetchJoin()
                 .leftJoin(record.images, recordImage).fetchJoin()
                 .where(record.id.in(recordIds))
                 .fetch().stream()

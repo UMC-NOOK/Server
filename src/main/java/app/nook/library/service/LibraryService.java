@@ -138,7 +138,7 @@ public class LibraryService {
                         pageable
                 );
 
-        CursorResponse<LibraryViewDto.UserStatusBookItem> cursorResponse =
+        CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse =
                 LibraryConverter.toCursorResponse(libraries.getContent(), size);
 
         int totalCount = 0;
@@ -169,7 +169,7 @@ public class LibraryService {
 
 
     // 날짜별 포커스 기록 조회 커서 페이징
-    public CursorResponse<LibraryViewDto.UserBookResponseDto> viewFocusRecordByDate(
+    public CursorResponse<LibraryViewDto.UserBookResponseDto, Long> viewFocusRecordByDate(
             User user,
             LocalDate date,
             Long cursor,

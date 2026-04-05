@@ -82,7 +82,7 @@ public class LibraryController {
 
     // 해당 날짜의 포커스 기록 반환
     @GetMapping("/focus-records")
-    public ApiResponse<CursorResponse<LibraryViewDto.UserBookResponseDto>> viewFocusRecordByDate(
+    public ApiResponse<CursorResponse<LibraryViewDto.UserBookResponseDto, Long>> viewFocusRecordByDate(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam
             @NotNull
@@ -91,7 +91,7 @@ public class LibraryController {
             @RequestParam(required = false) @Min(0) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
-        CursorResponse<LibraryViewDto.UserBookResponseDto> response =
+        CursorResponse<LibraryViewDto.UserBookResponseDto, Long> response =
                 libraryService.viewFocusRecordByDate(userDetails.getUser(), date, cursor, size);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }

@@ -8,6 +8,7 @@ import app.nook.record.domain.Record;
 import app.nook.record.domain.enums.Emotion;
 import app.nook.record.domain.enums.SortType;
 import app.nook.record.dto.BookRecordDto;
+import app.nook.record.dto.RecordListCursor;
 import app.nook.record.repository.RecordRepository;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -34,20 +35,16 @@ public class RecordViewService {
 
     // 독서 기록 목록 조회
     // 최신 기록 순, 오래된 기록 순, 기록 많은 순, 기록 적은 순, 커서페이징. 첫번째 커서는 Null
-    public CursorResponse<BookRecordDto.BookRecordItemDto> getUserRecords(
+    public CursorResponse<BookRecordDto.BookRecordItemDto, RecordListCursor> getUserRecords(
             User user,
             int size,
-            Long cursor,
-            SortType sortType,
-            String emotion
+            RecordListCursor cursor,
+            SortType sortType
     ) {
-        Emotion emotionFilter = parseEmotionFilter(emotion);
-
         List<BookRecordDto.BookRecordItemDto> recordItems = recordRepository.findRecordsByCursor(
                 user.getId(),
                 cursor,
                 sortType,
-                emotionFilter,
                 size
         );
 
@@ -58,7 +55,9 @@ public class RecordViewService {
                 : recordItems;
 
         // 다음 커서는 마지막 항목의 id, 다음 커서가 없으면 null
-        Long nextCursor = hasNext ? pageContent.get(pageContent.size() - 1).bookId() : null;
+        RecordListCursor nextCursor = hasNext
+                ? toNextCursor(user.getId(), pageContent.get(pageContent.size() - 1), sortType)
+                : null;
 
         return CursorResponse.of(pageContent, nextCursor, hasNext);
 
@@ -69,7 +68,7 @@ public class RecordViewService {
         return recordRepository.countRecordsByEmotion(user.getId());
     }
 
-    public CursorResponse<BookRecordDto.RecordItemDto> getBookRecords(
+    public CursorResponse<BookRecordDto.RecordItemDto, Long> getBookRecords(
             User user,
             Long bookId,
             int size,
@@ -101,6 +100,19 @@ public class RecordViewService {
                 .toList();
 
         return CursorResponse.of(items, nextCursor, hasNext);
+    }
+
+    private RecordListCursor toNextCursor(Long userId, BookRecordDto.BookRecordItemDto item, SortType sortType) {
+        return switch (sortType) {
+            case RECENT_RECORDED, OLDEST_RECORDED -> new RecordListCursor(
+                    null,
+                    recordRepository.findBookBoundaryCreatedDate(userId, item.bookId(), sortType)
+            );
+            case RECORD_COUNT_ASC, RECORD_COUNT_DESC -> new RecordListCursor(
+                    item.recordCount(),
+                    null
+            );
+        };
     }
 
     private Emotion parseEmotionFilter(String emotion) {

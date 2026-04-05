@@ -10,6 +10,7 @@ import app.nook.record.controller.RecordController;
 import app.nook.record.domain.enums.Emotion;
 import app.nook.record.domain.enums.SortType;
 import app.nook.record.dto.BookRecordDto;
+import app.nook.record.dto.RecordListCursor;
 import app.nook.record.dto.RecordRequestDto;
 import app.nook.record.dto.RecordResponseDto;
 import app.nook.record.dto.RecordUpdateRequestDto;
@@ -97,33 +98,32 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     "https://cdn.example.com/books/99.png",
                     2L
             );
-            CursorResponse<BookRecordDto.BookRecordItemDto> response = CursorResponse.of(
+            CursorResponse<BookRecordDto.BookRecordItemDto, RecordListCursor> response = CursorResponse.of(
                     List.of(firstItem, secondItem),
-                    99L,
+                    new RecordListCursor(null, java.time.LocalDateTime.of(2026, 4, 1, 9, 30)),
                     true
             );
 
-            given(recordViewService.getUserRecords(any(), anyInt(), any(), any(), any()))
+            given(recordViewService.getUserRecords(any(), anyInt(), any(), any()))
                     .willReturn(response);
 
             // when & then
             mockMvc.perform(get("/api/records")
                             .header(AUTH_HEADER, AUTH_TOKEN)
                             .param("size", "2")
-                            .param("order", SortType.RECENT_RECORDED.name())
-                            .param("emotion", "FUN"))
+                            .param("order", SortType.RECENT_RECORDED.name()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result.items[0].bookId").value(101))
                     .andExpect(jsonPath("$.result.items[0].title").value("작별하지 않는다"))
-                    .andExpect(jsonPath("$.result.nextCursor").value(99))
+                    .andExpect(jsonPath("$.result.nextCursor.lastCreatedDate").value("2026-04-01T09:30:00"))
                     .andExpect(jsonPath("$.result.hasNext").value(true))
                     .andDo(documentWithAuth(
                             "record-controller-test/독서_기록_목록_조회_성공",
                             queryParameters(
-                                    parameterWithName("cursor").description("다음 페이지 조회에 사용할 커서 값. 첫 요청이면 전달하지 않음").optional(),
+                                    parameterWithName("lastCount").description("기록 개수 정렬에서 다음 페이지 조회에 사용할 마지막 기록 개수").optional(),
+                                    parameterWithName("lastCreatedDate").description("날짜 정렬에서 다음 페이지 조회에 사용할 마지막 기록 생성 시각(ISO-8601)").optional(),
                                     parameterWithName("size").description("한 번에 조회할 독서 기록 묶음 수. 기본값은 20").optional(),
-                                    parameterWithName("order").description("정렬 기준. RECENT_RECORDED, OLDEST_RECORDED, RECORD_COUNT_ASC, RECORD_COUNT_DESC 중 하나 사용").optional(),
-                                    parameterWithName("emotion").description("감정 필터. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나 사용. ALL이면 전체 반환").optional()
+                                    parameterWithName("order").description("정렬 기준. RECENT_RECORDED, OLDEST_RECORDED, RECORD_COUNT_ASC, RECORD_COUNT_DESC 중 하나 사용").optional()
                             ),
                             responseFields(ApiResponseSnippet.withResult(
                                     fieldWithPath("result.items").type(JsonFieldType.ARRAY).description("사용자의 독서 기록을 책 단위로 묶어 반환한 목록"),
@@ -133,7 +133,8 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                     fieldWithPath("result.items[].recordContent").type(JsonFieldType.STRING).description("해당 도서에서 가장 최근에 작성된 기록 내용. 목록 카드에서 대표 미리보기로 사용"),
                                     fieldWithPath("result.items[].coverImageUrl").type(JsonFieldType.STRING).description("도서 표지 이미지 URL. 책 목록 화면에서 대표 이미지로 사용"),
                                     fieldWithPath("result.items[].recordCount").type(JsonFieldType.NUMBER).description("사용자가 해당 도서에 남긴 전체 기록 수"),
-                                    fieldWithPath("result.nextCursor").type(JsonFieldType.NUMBER).description("다음 페이지 조회에 사용할 커서 값. 다음 페이지가 없으면 null").optional(),
+                                    fieldWithPath("result.nextCursor.lastCount").type(JsonFieldType.VARIES).description("기록 개수 정렬에서 다음 페이지 조회에 사용할 마지막 기록 개수").optional(),
+                                    fieldWithPath("result.nextCursor.lastCreatedDate").type(JsonFieldType.VARIES).description("날짜 정렬에서 다음 페이지 조회에 사용할 마지막 기록 생성 시각").optional(),
                                     fieldWithPath("result.hasNext").type(JsonFieldType.BOOLEAN).description("다음 페이지 존재 여부")
                             ))
                     ));
@@ -143,29 +144,28 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
         @WithCustomUser
         void 독서_기록_목록_조회_데이터없음_204() throws Exception {
             // given
-            CursorResponse<BookRecordDto.BookRecordItemDto> response = CursorResponse.of(
+            CursorResponse<BookRecordDto.BookRecordItemDto, RecordListCursor> response = CursorResponse.of(
                     List.of(),
                     null,
                     false
             );
 
-            given(recordViewService.getUserRecords(any(), anyInt(), any(), any(), any()))
+            given(recordViewService.getUserRecords(any(), anyInt(), any(), any()))
                     .willReturn(response);
 
             // when & then
             mockMvc.perform(get("/api/records")
-                            .header(AUTH_HEADER, AUTH_TOKEN)
-                            .param("emotion", "ALL"))
+                            .header(AUTH_HEADER, AUTH_TOKEN))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.isSuccess").value(true))
                     .andExpect(jsonPath("$.code").value("SUCCESS-204"))
                     .andDo(documentWithAuth(
                             "record-controller-test/독서_기록_목록_조회_데이터없음_204",
                             queryParameters(
-                                    parameterWithName("cursor").description("다음 페이지 조회에 사용할 커서 값. 첫 요청이면 전달하지 않음").optional(),
+                                    parameterWithName("lastCount").description("기록 개수 정렬에서 다음 페이지 조회에 사용할 마지막 기록 개수").optional(),
+                                    parameterWithName("lastCreatedDate").description("날짜 정렬에서 다음 페이지 조회에 사용할 마지막 기록 생성 시각(ISO-8601)").optional(),
                                     parameterWithName("size").description("한 번에 조회할 독서 기록 묶음 수. 기본값은 20").optional(),
-                                    parameterWithName("order").description("정렬 기준. RECENT_RECORDED(최근 독서 기록 순), OLDEST_RECORDED(오래된 기록 순), RECORD_COUNT_ASC(기록 개수 적은 순), RECORD_COUNT_DESC(기록 개수 많은 순) 중 하나 사용").optional(),
-                                    parameterWithName("emotion").description("감정 필터. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나 사용. ALL이면 전체 반환").optional()
+                                    parameterWithName("order").description("정렬 기준. RECENT_RECORDED(최근 독서 기록 순), OLDEST_RECORDED(오래된 기록 순), RECORD_COUNT_ASC(기록 개수 적은 순), RECORD_COUNT_DESC(기록 개수 많은 순) 중 하나 사용").optional()
                             ),
                             responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
                     ));
@@ -197,7 +197,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     Emotion.FUN,
                     java.time.LocalDate.of(2026, 4, 1)
             );
-            CursorResponse<BookRecordDto.RecordItemDto> response = CursorResponse.of(
+            CursorResponse<BookRecordDto.RecordItemDto, Long> response = CursorResponse.of(
                     List.of(firstItem, secondItem),
                     27L,
                     true
@@ -243,7 +243,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
         @WithCustomUser
         void 특정_책_기록_감정_필터_조회_데이터없음_204() throws Exception {
             // given
-            CursorResponse<BookRecordDto.RecordItemDto> response = CursorResponse.of(
+            CursorResponse<BookRecordDto.RecordItemDto, Long> response = CursorResponse.of(
                     List.of(),
                     null,
                     false

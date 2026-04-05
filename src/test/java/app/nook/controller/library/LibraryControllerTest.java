@@ -167,7 +167,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         LocalDate.of(2025, 1, 1)
                 );
 
-        CursorResponse<LibraryViewDto.UserStatusBookItem> cursorResponse =
+        CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse =
                 CursorResponse.of(List.of(item), 10L, true);
 
         LibraryViewDto.StatusBookResponseDto response =
@@ -356,7 +356,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         "https://example.com/cover.jpg"
                 );
 
-                CursorResponse<LibraryViewDto.UserBookResponseDto> response =
+                CursorResponse<LibraryViewDto.UserBookResponseDto, Long> response =
                         CursorResponse.of(List.of(item), 77L, true);
 
                 given(libraryService.viewFocusRecordByDate(any(), any(LocalDate.class), any(), anyInt()))
