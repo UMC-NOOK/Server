@@ -10,6 +10,7 @@ import app.nook.record.domain.enums.SortType;
 import app.nook.record.dto.BookRecordDto;
 import app.nook.record.dto.RecordListCursor;
 import app.nook.record.repository.RecordRepository;
+import app.nook.record.util.RecordListCursorCodec;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class RecordViewService {
 
     // 독서 기록 목록 조회
     // 최신 기록 순, 오래된 기록 순, 기록 많은 순, 기록 적은 순, 커서페이징. 첫번째 커서는 Null
-    public CursorResponse<BookRecordDto.BookRecordItemDto, RecordListCursor> getUserRecords(
+    public CursorResponse<BookRecordDto.BookRecordItemDto, String> getUserRecords(
             User user,
             int size,
             RecordListCursor cursor,
@@ -59,7 +60,7 @@ public class RecordViewService {
                 ? toNextCursor(user.getId(), pageContent.get(pageContent.size() - 1), sortType)
                 : null;
 
-        return CursorResponse.of(pageContent, nextCursor, hasNext);
+        return CursorResponse.of(pageContent, RecordListCursorCodec.encode(nextCursor), hasNext);
 
     }
 
@@ -106,10 +107,12 @@ public class RecordViewService {
         return switch (sortType) {
             case RECENT_RECORDED, OLDEST_RECORDED -> new RecordListCursor(
                     null,
+                    item.bookId(),
                     recordRepository.findBookBoundaryCreatedDate(userId, item.bookId(), sortType)
             );
             case RECORD_COUNT_ASC, RECORD_COUNT_DESC -> new RecordListCursor(
                     item.recordCount(),
+                    item.bookId(),
                     null
             );
         };

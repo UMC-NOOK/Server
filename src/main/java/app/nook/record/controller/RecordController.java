@@ -12,17 +12,15 @@ import app.nook.record.dto.RecordResponseDto;
 import app.nook.record.dto.RecordUpdateRequestDto;
 import app.nook.record.service.RecordService;
 import app.nook.record.service.RecordViewService;
+import app.nook.record.util.RecordListCursorCodec;
 import app.nook.user.service.CustomUserDetails;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
 
 @RestController
 @RequiredArgsConstructor
@@ -34,17 +32,17 @@ public class RecordController {
     private final RecordViewService recordViewService;
 
     @GetMapping
-    public ApiResponse<CursorResponse<BookRecordDto.BookRecordItemDto, RecordListCursor>> getUserRecords(
+    public ApiResponse<CursorResponse<BookRecordDto.BookRecordItemDto, String>> getUserRecords(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cursor,
+            @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @RequestParam(defaultValue = "RECENT_RECORDED") SortType order
     ) {
-        CursorResponse<BookRecordDto.BookRecordItemDto, RecordListCursor> response =
+        CursorResponse<BookRecordDto.BookRecordItemDto, String> response =
                 recordViewService.getUserRecords(
                         userDetails.getUser(),
                         size,
-                        cursor == null ? null : new RecordListCursor(null, cursor),
+                        RecordListCursorCodec.decode(cursor),
                         order
                 );
 

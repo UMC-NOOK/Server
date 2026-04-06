@@ -75,7 +75,7 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
                         record.library.book.author,
                         record.library.book.coverImageUrl
                 )
-                .having(havingCondition(cursor, sortType, recordCount, lastCreatedDate))
+                .having(havingCondition(cursor, sortType, recordCount, book.id, lastCreatedDate))
                 .orderBy(orderByConditions(sortType, recordCount, book.id, lastCreatedDate))
                 .limit(size + 1)
                 .fetch();
@@ -108,6 +108,7 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
             RecordListCursor cursor,
             SortType sortType,
             NumberExpression<Long> recordCount,
+            NumberExpression<Long> bookId,
             DateTimeExpression<LocalDateTime> lastCreatedDate
     ) {
         if (cursor == null || cursor.isEmpty()) {
@@ -117,22 +118,30 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
         return switch (sortType) {
             case RECENT_RECORDED -> createdDateCursorCondition(
                     cursor.lastCreatedDate(),
+                    cursor.bookId(),
                     lastCreatedDate,
+                    bookId,
                     false
             );
             case OLDEST_RECORDED -> createdDateCursorCondition(
                     cursor.lastCreatedDate(),
+                    cursor.bookId(),
                     lastCreatedDate,
+                    bookId,
                     true
             );
             case RECORD_COUNT_DESC -> countCursorCondition(
                     cursor.lastCount(),
+                    cursor.bookId(),
                     recordCount,
+                    bookId,
                     false
             );
             case RECORD_COUNT_ASC -> countCursorCondition(
                     cursor.lastCount(),
+                    cursor.bookId(),
                     recordCount,
+                    bookId,
                     true
             );
         };
@@ -141,31 +150,55 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
     // 생성 일자 순으로 커서 설정
     private BooleanExpression createdDateCursorCondition(
             LocalDateTime cursorCreatedDate,
+            Long cursorBookId,
             DateTimeExpression<LocalDateTime> lastCreatedDate,
+            NumberExpression<Long> bookId,
             boolean ascending
     ) {
         if (cursorCreatedDate == null) {
             return null;
         }
 
-        return ascending
+        BooleanExpression byCreatedDate = ascending
                 ? lastCreatedDate.gt(cursorCreatedDate)
                 : lastCreatedDate.lt(cursorCreatedDate);
+
+        if (cursorBookId == null) {
+            return byCreatedDate;
+        }
+
+        BooleanExpression tieBreaker = ascending
+                ? bookId.gt(cursorBookId)
+                : bookId.lt(cursorBookId);
+
+        return byCreatedDate.or(lastCreatedDate.eq(cursorCreatedDate).and(tieBreaker));
     }
 
     // count 순서로 커서 설정
     private BooleanExpression countCursorCondition(
             Long cursorCount,
+            Long cursorBookId,
             NumberExpression<Long> recordCount,
+            NumberExpression<Long> bookId,
             boolean ascending
     ) {
         if (cursorCount == null) {
             return null;
         }
 
-        return ascending
+        BooleanExpression byCount = ascending
                 ? recordCount.gt(cursorCount)
                 : recordCount.lt(cursorCount);
+
+        if (cursorBookId == null) {
+            return byCount;
+        }
+
+        BooleanExpression tieBreaker = ascending
+                ? bookId.gt(cursorBookId)
+                : bookId.lt(cursorBookId);
+
+        return byCount.or(recordCount.eq(cursorCount).and(tieBreaker));
     }
 
     // 기록 순서 필터
@@ -207,7 +240,21 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
         if (cursor == null) {
             return null;
         }
-        return record.id.lt(cursor);
+
+        QRecord cursorRecord = new QRecord("cursorRecord");
+        return record.createdDate.lt(
+                        JPAExpressions
+                                .select(cursorRecord.createdDate)
+                                .from(cursorRecord)
+                                .where(cursorRecord.id.eq(cursor))
+                )
+                .or(record.createdDate.eq(
+                                JPAExpressions
+                                        .select(cursorRecord.createdDate)
+                                        .from(cursorRecord)
+                                        .where(cursorRecord.id.eq(cursor))
+                        )
+                        .and(record.id.lt(cursor)));
     }
 
     // 개별 책 기록 조회, 감정별 필터

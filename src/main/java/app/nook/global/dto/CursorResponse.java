@@ -5,15 +5,15 @@ import lombok.Getter;
 import java.util.List;
 
 @Getter
-public class CursorResponse<T> {
+public class CursorResponse<T, C> {
 
     private final List<T> items;
-    private final Long nextCursor;
+    private final C nextCursor;
     private final boolean hasNext;
 
     public CursorResponse(
             List<T> items,
-            Long nextCursor,
+            C nextCursor,
             boolean hasNext
     ) {
         this.items = items;
@@ -21,9 +21,9 @@ public class CursorResponse<T> {
         this.hasNext = hasNext;
     }
 
-    public static <T> CursorResponse<T> of(
+    public static <T, C> CursorResponse<T, C> of(
             List<T> items,
-            Long nextCursor,
+            C nextCursor,
             boolean hasNext
     ) {
         return new CursorResponse<>(items, nextCursor, hasNext);
