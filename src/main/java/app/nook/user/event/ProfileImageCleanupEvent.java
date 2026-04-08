@@ -1,4 +1,4 @@
 package app.nook.user.event;
 
-public record ProfileImageCleanupEvent(String profileUrl) {
+public record ProfileImageCleanupEvent(String profileImageKey) {
 }

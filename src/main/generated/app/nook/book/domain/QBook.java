@@ -30,7 +30,7 @@ public class QBook extends EntityPathBase<Book> {
 
     public final QCategory category;
 
-    public final StringPath coverImageUrl = createString("coverImageUrl");
+    public final StringPath coverImageKey = createString("coverImageKey");
 
     public final NumberPath<Long> createdByUserId = createNumber("createdByUserId", Long.class);
 

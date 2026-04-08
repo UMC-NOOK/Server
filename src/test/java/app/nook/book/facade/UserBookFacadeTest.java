@@ -4,8 +4,8 @@ import app.nook.book.domain.Book;
 import app.nook.book.dto.BookRequestDto;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.service.BookService;
-import app.nook.book.service.FileStorageService;
 import app.nook.library.service.LibraryService;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +28,7 @@ class UserBookFacadeTest {
 
     @Mock private BookService bookService;
     @Mock private LibraryService libraryService;
-    @Mock private FileStorageService fileStorageService;
+    @Mock private PresignedUrlService presignedUrlService;
 
     @InjectMocks private UserBookFacade userBookFacade;
 
@@ -71,7 +71,7 @@ class UserBookFacadeTest {
 
         BookResponseDto.BookDetailDto result = userBookFacade.createUserBook(user, req);
 
-        verify(fileStorageService, never()).uploadCover(any());
+        verify(presignedUrlService, never()).validateOwnedImageKey(anyLong(), any(), any());
         verify(bookService).createUserBook(eq(user), any(), isNull());
         verify(libraryService).save(user, 100L);
         assertThat(result.getBookId()).isEqualTo(100L);
@@ -103,7 +103,7 @@ class UserBookFacadeTest {
 
         BookResponseDto.BookDetailDto result = userBookFacade.updateUserBook(user, 100L, req);
 
-        verify(fileStorageService, never()).uploadCover(any());
+        verify(presignedUrlService, never()).validateOwnedImageKey(anyLong(), any(), any());
         verify(bookService).updateUserBook(eq(user), eq(100L), any(BookRequestDto.UpdateUserBookRequest.class), isNull());
         verify(bookService).getBookDetailById(user, 100L);
         assertThat(result.getBookId()).isEqualTo(100L);

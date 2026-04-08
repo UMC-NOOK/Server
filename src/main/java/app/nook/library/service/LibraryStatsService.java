@@ -5,6 +5,7 @@ import app.nook.library.converter.MonthlyBooksStatsMapper;
 import app.nook.library.dto.DailyBookAggregateDto;
 import app.nook.library.dto.FocusRankDto;
 import app.nook.library.dto.MonthlyBooksQueryResultDto;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.redis.dto.MonthlyBookCacheRow;
 import app.nook.redis.exception.RedisOperationException;
 import app.nook.redis.service.RedisZSETService;
@@ -28,6 +29,7 @@ public class LibraryStatsService {
 
     private final FocusRepository focusRepository;
     private final RedisZSETService redisZSETService;
+    private final PresignedUrlService presignedUrlService;
 
     // 서재 월별 책 조회 Redis ZSET 캐시 확인, 미스 시 DB 조회
     public FocusRankDto.MonthlyBooksResponseDto viewMonthly(Long userId, YearMonth yearMonth) {
@@ -63,7 +65,7 @@ public class LibraryStatsService {
                 .map(row -> new FocusRankDto.MonthlyFocusRow(
                         row.getFocusDate(),
                         row.getBookId(),
-                        row.getCoverImageUrl(),
+                        presignedUrlService.resolveImageUrl(userId, row.getCoverImageUrl()),
                         row.getTotalSec()
                 ))
                 .toList();

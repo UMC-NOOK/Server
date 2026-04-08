@@ -21,20 +21,20 @@ public class LibraryConverter {
                     library.getBook().getId(),
                     library.getBook().getTitle(),
                     library.getBook().getAuthor(),
-                    library.getBook().getCoverImageUrl()
+                    library.getBook().getCoverImageKey()
             );
             case READING -> new LibraryViewDto.ReadingBookItem(
                     library.getBook().getId(),
                     library.getBook().getTitle(),
                     library.getBook().getAuthor(),
-                    library.getBook().getCoverImageUrl(),
+                    library.getBook().getCoverImageKey(),
                     library.getStartedAt()
             );
             case FINISHED -> new LibraryViewDto.FinishedBookItem(
                     library.getBook().getId(),
                     library.getBook().getTitle(),
                     library.getBook().getAuthor(),
-                    library.getBook().getCoverImageUrl(),
+                    library.getBook().getCoverImageKey(),
                     library.getStartedAt(),
                     library.getEndedAt()
             );

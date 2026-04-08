@@ -17,24 +17,21 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.mock.web.MockPart;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
-import static org.springframework.restdocs.request.RequestDocumentation.partWithName;
-import static org.springframework.restdocs.request.RequestDocumentation.requestParts;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -67,29 +64,25 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
 
         given(onboardingService.completeOnboarding(anyLong(), any())).willReturn(response);
 
-        MockMultipartFile profile = new MockMultipartFile(
-                "profileImage", "profile.png", "image/png", "img".getBytes()
-        );
-        MockPart goal = new MockPart("goal", "120".getBytes());
-        MockPart nickname = new MockPart("nickname", "nick_01".getBytes());
-        MockPart categories = new MockPart("categories", "에세이".getBytes());
-
-        mockMvc.perform(multipart("/api/users/me/onboarding/complete")
-                        .file(profile)
-                        .part(goal)
-                        .part(nickname)
-                        .part(categories)
+        mockMvc.perform(post("/api/users/me/onboarding/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "goal", 120,
+                                "nickname", "nick_01",
+                                "categories", List.of("에세이"),
+                                "profileImageKey", "profile/users/1/profile.png"
+                        )))
                         .header(AUTH_HEADER, AUTH_TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.onboardingCompleted").value(true))
                 .andExpect(jsonPath("$.result.preferredCategory").value("에세이"))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
-                        requestParts(
-                                partWithName("goal").description("독서 목표 권수 (1~300)"),
-                                partWithName("nickname").description("닉네임 (최대 10자)"),
-                                partWithName("categories").description("선호 카테고리 (1~2개)"),
-                                partWithName("profileImage").description("프로필 이미지 파일").optional()
+                        requestFields(
+                                fieldWithPath("goal").description("독서 목표 권수 (1~300)"),
+                                fieldWithPath("nickname").description("닉네임 (최대 10자)"),
+                                fieldWithPath("categories").description("선호 카테고리 (1~2개)"),
+                                fieldWithPath("profileImageKey").description("프로필 이미지 key").optional()
                         ),
                         responseFields(
                                 ApiResponseSnippet.withResult(
@@ -105,10 +98,13 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
     @WithCustomUser
     @DisplayName("온보딩 완료 실패 - goal 범위 초과")
     void 온보딩완료_실패_goal범위초과() throws Exception {
-        mockMvc.perform(multipart("/api/users/me/onboarding/complete")
-                        .param("goal", "301")
-                        .param("nickname", "nick_01")
-                        .param("categories", "에세이")
+        mockMvc.perform(post("/api/users/me/onboarding/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "goal", 301,
+                                "nickname", "nick_01",
+                                "categories", List.of("에세이")
+                        )))
                         .header(AUTH_HEADER, AUTH_TOKEN))
                 .andExpect(status().isBadRequest());
     }
@@ -117,9 +113,11 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
     @WithCustomUser
     @DisplayName("온보딩 완료 실패 - categories 누락")
     void 온보딩완료_실패_categories누락() throws Exception {
-        mockMvc.perform(multipart("/api/users/me/onboarding/complete")
-                        .param("goal", "100")
-                        .param("nickname", "nick_01")
+        mockMvc.perform(post("/api/users/me/onboarding/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"goal":100,"nickname":"nick_01"}
+                                """)
                         .header(AUTH_HEADER, AUTH_TOKEN))
                 .andExpect(status().isBadRequest());
     }
@@ -210,10 +208,11 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
     @Test
     @DisplayName("인증 없음 - 온보딩 완료 401")
     void 인증없음_complete_401() throws Exception {
-        mockMvc.perform(multipart("/api/users/me/onboarding/complete")
-                        .param("goal", "100")
-                        .param("nickname", "nick_01")
-                        .param("categories", "에세이"))
+        mockMvc.perform(post("/api/users/me/onboarding/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"goal":100,"nickname":"nick_01","categories":["에세이"]}
+                                """))
                 .andExpect(status().isUnauthorized());
     }
 

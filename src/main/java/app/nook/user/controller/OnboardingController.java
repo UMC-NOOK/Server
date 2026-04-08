@@ -7,7 +7,6 @@ import app.nook.user.service.CustomUserDetails;
 import app.nook.user.service.OnboardingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,11 +17,11 @@ public class OnboardingController {
 
     private final OnboardingService onboardingService;
 
-    // 온보딩 최종 완료(프로필 이미지 포함)
-    @PostMapping(value = "/complete", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    // 온보딩 최종 완료(프로필 이미지 key 포함)
+    @PostMapping("/complete")
     public ApiResponse<OnboardingDto.CompleteResponse> completeOnboarding(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @ModelAttribute OnboardingDto.CompleteRequest request
+            @Valid @RequestBody OnboardingDto.CompleteRequest request
     ) {
         return ApiResponse.onSuccess(onboardingService.completeOnboarding(userDetails.getUser().getId(), request), SuccessCode.OK);
     }

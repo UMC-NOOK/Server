@@ -1,6 +1,6 @@
 package app.nook.user.event;
 
-import app.nook.book.service.FileStorageService;
+import app.nook.r2.service.PresignedUrlService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -12,11 +12,11 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 public class ProfileImageCleanupListener {
 
-    private final FileStorageService fileStorageService;
+    private final PresignedUrlService presignedUrlService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(ProfileImageCleanupEvent event) {
-        log.info("[PROFILE_IMAGE_CLEANUP] profileUrl={}", event.profileUrl());
-        fileStorageService.deleteProfileByUrl(event.profileUrl());
+        log.info("[PROFILE_IMAGE_CLEANUP] profileImageKey={}", event.profileImageKey());
+        presignedUrlService.deleteFile(event.profileImageKey());
     }
 }
