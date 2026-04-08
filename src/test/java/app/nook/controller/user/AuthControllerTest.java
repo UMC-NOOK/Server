@@ -73,7 +73,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        post("/api/auth/oauth")
+                        post("/api/v1/auth/oauth")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
@@ -113,7 +113,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        post("/api/auth/dev/login")
+                        post("/api/v1/auth/dev/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
@@ -144,7 +144,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                 .willThrow(new CustomException(ErrorCode.INVALID_OAUTH_PROVIDER));
 
         mockMvc.perform(
-                        post("/api/auth/oauth")
+                        post("/api/v1/auth/oauth")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
@@ -160,7 +160,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                 .willThrow(new CustomException(ErrorCode.USER_NOT_FOUND));
 
         mockMvc.perform(
-                        post("/api/auth/dev/login")
+                        post("/api/v1/auth/dev/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
@@ -192,7 +192,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        get("/api/auth/me")
+                        get("/api/v1/auth/me")
                                 .header("Authorization", "Bearer test-access-token")
                                 .with(user(userDetails))
                 )

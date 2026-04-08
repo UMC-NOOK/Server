@@ -1,5 +1,6 @@
 package app.nook.focus.controller;
 
+import app.nook.api.Api1Version;
 import app.nook.focus.dto.FocusRequestDto;
 import app.nook.focus.dto.FocusResponseDto;
 import app.nook.focus.service.FocusService;
@@ -13,8 +14,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@Api1Version
 @RequiredArgsConstructor
-@RequestMapping("/api/focuses")
+@RequestMapping("/focuses")
 public class FocusController {
 
     private final ThemeService themeService;
@@ -44,4 +46,3 @@ public class FocusController {
         return ApiResponse.onSuccess(focusService.endFocus(userDetails.getUser().getId(), request), SuccessCode.OK);
     }
 }
-

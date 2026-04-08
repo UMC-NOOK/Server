@@ -1,5 +1,6 @@
 package app.nook.timeline.controller;
 
+import app.nook.api.Api1Version;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.timeline.dto.TimelineResponseDto;
@@ -12,9 +13,10 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@Api1Version
 @RequiredArgsConstructor
 @Validated
-@RequestMapping("/api/library/{libraryId}/timeline")
+@RequestMapping("/library/{libraryId}/timeline")
 public class TimelineController {
 
     private final TimelineQueryService timelineQueryService;

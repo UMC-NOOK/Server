@@ -1,5 +1,6 @@
 package app.nook.r2.controller;
 
+import app.nook.api.Api1Version;
 import app.nook.r2.dto.ImageUploadRequestDto;
 import app.nook.r2.dto.ImageUrlResponseDto;
 import app.nook.r2.dto.MultipleImageUploadRequestDto;
@@ -15,8 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Api1Version
 @RequiredArgsConstructor
-@RequestMapping("/api/images")
+@RequestMapping("/images")
 public class ImageUploadController {
 
     private final PresignedUrlService presignedUrlService;

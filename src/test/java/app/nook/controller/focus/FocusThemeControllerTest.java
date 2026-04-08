@@ -59,7 +59,7 @@ public class FocusThemeControllerTest extends AbstractRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        get("/api/focuses/themes")
+                        get("/api/v1/focuses/themes")
                                 .header("Authorization", "Bearer test-access-token")
                                 .with(user(userDetails))
                 )

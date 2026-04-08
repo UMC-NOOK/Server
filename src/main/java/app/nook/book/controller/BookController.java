@@ -1,5 +1,6 @@
 package app.nook.book.controller;
 
+import app.nook.api.Api1Version;
 import app.nook.book.dto.BookRequestDto;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.facade.UserBookFacade;
@@ -18,8 +19,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Api1Version
 @RequiredArgsConstructor
-@RequestMapping("/api/books")
+@RequestMapping("/books")
 @Validated
 public class BookController {
     private final BookService bookService;
@@ -82,4 +84,3 @@ public class BookController {
         );
     }
 }
-

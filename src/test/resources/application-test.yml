@@ -18,3 +18,39 @@ spring:
   sql:
     init:
       mode: never
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+cloudflare:
+  r2:
+    endpoint: https://example.r2.cloudflarestorage.com
+    bucket-name: test-bucket
+    access-key: test-access-key
+    secret-key: test-secret-key
+
+jwt:
+  secret: YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=
+aladin:
+  base-url: https://www.aladin.co.kr/ttb/api
+  ttbkey: test-aladin-ttb-key
+
+auth:
+  kakao:
+    client-id: test-kakao-client-id
+    client-secret: test-kakao-client-secret
+    redirect-uri: http://localhost:8080/test/kakao/callback
+    token-request-uri: https://kauth.kakao.com/oauth/token
+    user-info-uri: https://kapi.kakao.com/v2/user/me
+    logout-uri: https://kapi.kakao.com/v1/user/logout
+    unlink-uri: https://kapi.kakao.com/v1/user/unlink
+    admin-key: test-kakao-admin-key
+    logout-redirect-uri: http://localhost:8080/test/kakao/logout
+  google:
+    redirect-uri: http://localhost:8080/test/google/callback
+    client-id: test-google-client-id
+    client-secret: test-google-client-secret
+    token-request-uri: https://oauth2.googleapis.com/token
+    user-info-uri: https://openidconnect.googleapis.com/v1/userinfo

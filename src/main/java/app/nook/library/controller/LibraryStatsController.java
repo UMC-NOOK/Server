@@ -1,5 +1,6 @@
 package app.nook.library.controller;
 
+import app.nook.api.Api1Version;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.library.dto.FocusRankDto;
@@ -18,8 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.YearMonth;
 
 @RestController
+@Api1Version
 @RequiredArgsConstructor
-@RequestMapping("/api/library/stats")
+@RequestMapping("/library/stats")
 @Validated
 public class LibraryStatsController {
 

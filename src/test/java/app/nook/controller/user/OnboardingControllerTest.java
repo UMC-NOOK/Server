@@ -74,7 +74,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
         MockPart nickname = new MockPart("nickname", "nick_01".getBytes());
         MockPart categories = new MockPart("categories", "에세이".getBytes());
 
-        mockMvc.perform(multipart("/api/users/me/onboarding/complete")
+        mockMvc.perform(multipart("/api/v1/users/me/onboarding/complete")
                         .file(profile)
                         .part(goal)
                         .part(nickname)
@@ -105,7 +105,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
     @WithCustomUser
     @DisplayName("온보딩 완료 실패 - goal 범위 초과")
     void 온보딩완료_실패_goal범위초과() throws Exception {
-        mockMvc.perform(multipart("/api/users/me/onboarding/complete")
+        mockMvc.perform(multipart("/api/v1/users/me/onboarding/complete")
                         .param("goal", "301")
                         .param("nickname", "nick_01")
                         .param("categories", "에세이")
@@ -117,7 +117,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
     @WithCustomUser
     @DisplayName("온보딩 완료 실패 - categories 누락")
     void 온보딩완료_실패_categories누락() throws Exception {
-        mockMvc.perform(multipart("/api/users/me/onboarding/complete")
+        mockMvc.perform(multipart("/api/v1/users/me/onboarding/complete")
                         .param("goal", "100")
                         .param("nickname", "nick_01")
                         .header(AUTH_HEADER, AUTH_TOKEN))
@@ -132,7 +132,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
         OnboardingDto.StatusResponse response = new OnboardingDto.StatusResponse(false, completedAt);
         given(onboardingService.getOnboardingStatus(anyLong())).willReturn(response);
 
-        mockMvc.perform(get("/api/users/me/onboarding/status")
+        mockMvc.perform(get("/api/v1/users/me/onboarding/status")
                         .header(AUTH_HEADER, AUTH_TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.needsOnboarding").value(false))
@@ -154,7 +154,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
         OnboardingDto.GoalResponse response = new OnboardingDto.GoalResponse((short) 100, 73);
         given(onboardingService.getGoal(anyLong())).willReturn(response);
 
-        mockMvc.perform(get("/api/users/me/onboarding/goal")
+        mockMvc.perform(get("/api/v1/users/me/onboarding/goal")
                         .header(AUTH_HEADER, AUTH_TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.goal").value(100))
@@ -177,7 +177,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
         OnboardingDto.GoalUpdateResponse response = new OnboardingDto.GoalUpdateResponse((short) 120);
         given(onboardingService.updateGoal(anyLong(), any())).willReturn(response);
 
-        mockMvc.perform(patch("/api/users/me/onboarding/goal")
+        mockMvc.perform(patch("/api/v1/users/me/onboarding/goal")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("goal", 120)))
                         .header(AUTH_HEADER, AUTH_TOKEN))
@@ -200,7 +200,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
     @WithCustomUser
     @DisplayName("독서 목표 수정 실패 - goal 0")
     void 독서목표_수정_실패_goal0() throws Exception {
-        mockMvc.perform(patch("/api/users/me/onboarding/goal")
+        mockMvc.perform(patch("/api/v1/users/me/onboarding/goal")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("goal", 0)))
                         .header(AUTH_HEADER, AUTH_TOKEN))
@@ -210,7 +210,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
     @Test
     @DisplayName("인증 없음 - 온보딩 완료 401")
     void 인증없음_complete_401() throws Exception {
-        mockMvc.perform(multipart("/api/users/me/onboarding/complete")
+        mockMvc.perform(multipart("/api/v1/users/me/onboarding/complete")
                         .param("goal", "100")
                         .param("nickname", "nick_01")
                         .param("categories", "에세이"))
@@ -220,21 +220,21 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
     @Test
     @DisplayName("인증 없음 - 상태 조회 401")
     void 인증없음_status_401() throws Exception {
-        mockMvc.perform(get("/api/users/me/onboarding/status"))
+        mockMvc.perform(get("/api/v1/users/me/onboarding/status"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("인증 없음 - 목표 조회 401")
     void 인증없음_goal_get_401() throws Exception {
-        mockMvc.perform(get("/api/users/me/onboarding/goal"))
+        mockMvc.perform(get("/api/v1/users/me/onboarding/goal"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("인증 없음 - 목표 수정 401")
     void 인증없음_goal_patch_401() throws Exception {
-        mockMvc.perform(patch("/api/users/me/onboarding/goal")
+        mockMvc.perform(patch("/api/v1/users/me/onboarding/goal")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("goal", 100))))
                 .andExpect(status().isUnauthorized());

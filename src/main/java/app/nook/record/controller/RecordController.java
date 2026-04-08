@@ -1,6 +1,7 @@
 package app.nook.record.controller;
 
 
+import app.nook.api.Api1Version;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.record.dto.RecordRequestDto;
@@ -14,8 +15,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@Api1Version
 @RequiredArgsConstructor
-@RequestMapping("/api/records")
+@RequestMapping("/records")
 public class RecordController {
 
     private final RecordService recordService;

@@ -1,70 +1,198 @@
-name: Spring Boot Application CICD with Docker
+name: NOOK DEV CI-CD
 
 on:
+  pull_request:
+    branches: [ "develop-demo" ]
   push:
-    branches: [ "develop" ]
-  workflow_dispatch:
-    inputs:
-      clear_cache:
-        description: "Gradle & Docker 캐시 삭제 여부"
-        required: false
-        default: "false"
+    branches: [ "develop-demo" ]
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: nook-server
 
 jobs:
-  CI-CD:
+  ci:
+    name: ci
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
-    # Gradle 캐시 삭제
-    - name: Clear Gradle Cache
-      if: ${{ github.event.inputs.clear_cache == 'true' }}
-      run: |
-        echo "Clearing Gradle cache..."
-        rm -rf ~/.gradle/caches
-        rm -rf ~/.gradle/wrapper
+      - name: gradlew 권한 부여
+        run: chmod +x ./gradlew
 
-    - name: make application.yml
-      run: | 
-        cd ./src/main/resources
-        touch ./application.yml
-        echo "${{ secrets.YML_DEV }}" > ./application.yml
+      - name: 테스트 + JaCoCo + RestDocs 생성
+        run: ./gradlew clean build
 
-    - name: Grant Execute Permission For Gradlew
-      run: chmod +x gradlew
+      - name: RestDocs 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: restdocs
+          path: build/docs/asciidoc
+          if-no-files-found: warn
 
-    # Docker Build & Push
-    - name: docker build & push
-      run: |
-        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/nook-server .
-        docker push ${{ secrets.DOCKER_USERNAME }}/nook-server:latest
+      - name: JAR 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: app
+          path: build/libs/*.jar
+          if-no-files-found: warn
 
-    - name: Deploy to dev
-      uses: appleboy/ssh-action@master
-      with: 
-        key: ${{ secrets.PRIVATE_KEY }}
-        host: ${{ secrets.HOST_DEV }}
-        username: ${{ secrets.USERNAME }}
-        port: 22
-        script: |
-          # 서버 컨테이너 & 이미지 정리
-          docker rm -f $(docker ps -qa) || true
-          if [ "${{ github.event.inputs.clear_cache }}" = "true" ]; then
-            echo "Clearing Docker build cache..."
-            docker builder prune -af
-            docker image prune -af
-          fi
-          docker pull ${{ secrets.DOCKER_USERNAME }}/nook-server
-          docker-compose -f docker-compose.yml up -d
-          docker image prune -f
+      - name: JaCoCo PR Report
+        uses: madrapps/jacoco-report@v1.6.1
+        with:
+          paths: build/reports/jacoco/test/jacocoTestReport.xml
+          token: ${{ secrets.GIT_TOKEN }}
+          min-coverage-overall: 60
+          min-coverage-changed-files: 60
+
+      - name: JaCoCo HTML Report 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: build/reports/jacoco/test/html
+          if-no-files-found: warn
+
+  docker-dev:
+    name: docker-dev
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      tag: ${{ steps.meta.outputs.tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: gradlew 권한 부여
+        run: chmod +x ./gradlew
+
+      - name: AWS Credentials 설정
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ECR login
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: image tag setting
+        id: meta
+        run: |
+          DATE_TAG=$(TZ=Asia/Seoul date +'%Y%m%d-%H%M')
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TAG="dev-${DATE_TAG}-${SHORT_SHA}"
+          IMAGE="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${TAG}"
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: application-secret.properties 생성
+        run: |
+          mkdir -p ./src/main/resources
+          echo "${{ secrets.APPLICATION_SECRET_PROPERTIES_DEV }}" > ./src/main/resources/application-secret.properties
+
+      - name: Docker 이미지용 JAR + RestDocs 생성
+        run: ./gradlew clean build
+
+      - name: Docker cache clean
+        run: |
+          docker builder prune -f || true
+
+      - name: Docker build & push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.image }}
+
+      - name: Docker Image Vulnerability Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.meta.outputs.image }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      - name: Build summary
+        run: |
+          echo "## DEV Docker Build Result" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${GITHUB_REF}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag: ${{ steps.meta.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: ${{ steps.meta.outputs.image }}" >> $GITHUB_STEP_SUMMARY
+
+  deploy-dev:
+    name: deploy-dev
+    if: github.event_name == 'push'
+    needs: docker-dev
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Dev 서버 배포
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USERNAME }}
+          key: ${{ secrets.DEV_PRIVATE_KEY }}
+          script: |
+            set -e
+
+            IMAGE="${{ needs.docker-dev.outputs.image }}"
+            echo "[DEV] IMAGE=$IMAGE"
+
+            aws ecr get-login-password --region ap-northeast-2 \
+            | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
+
+            cd ~/app
+            git pull origin develop-demo
+
+            chmod +x scripts/deploy.sh
+            ./scripts/deploy.sh "$IMAGE"
+
+      - name: Dev 배포 요약
+        run: |
+          echo "## DEV Deploy Result" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: ${{ needs.docker-dev.outputs.image }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag: ${{ needs.docker-dev.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Target: dev server" >> $GITHUB_STEP_SUMMARY
+
+  notify-failure:
+    name: notify-failure
+    if: ${{ always() && contains(join(needs.*.result, ','), 'failure') }}
+    needs: [ci, docker-dev, deploy-dev]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 워크플로우 실패 알림
+        uses: Ilshidur/action-discord@master
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          message: "DEV CI/CD 실패: ${{ github.repository }} / ${{ github.event.pull_request.html_url || github.ref }}"
