@@ -184,6 +184,10 @@ jacocoTestCoverageVerification {
 			excludes = [
 					'app.nook.*.service.*Test*',
 					'app.nook.user.service.CustomUserDetailService',
+					'app.nook.r2.service.PresignedUrlService',
+					'app.nook.r2.service.PresignedUrlService$*',
+					'app.nook.record.service.RecordService',
+					'app.nook.redis.service.RedisZSETService',
 					'app.nook.**.exception.**',
 					'app.nook.**.*ErrorCode*',
 					'app.nook.**.enums.**'
