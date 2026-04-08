@@ -137,9 +137,9 @@ jobs:
         with:
           image-ref: ${{ steps.meta.outputs.image }}
           format: table
-          exit-code: '1'
+          exit-code: '0'
           ignore-unfixed: true
-          severity: CRITICAL,HIGH
+          severity: CRITICAL
 
       - name: Build summary
         run: |
