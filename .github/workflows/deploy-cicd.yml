@@ -171,9 +171,6 @@ jobs:
             aws ecr get-login-password --region ap-northeast-2 \
             | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
 
-            cd ~/app
-            git pull origin develop-demo
-
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh "$IMAGE"
 
