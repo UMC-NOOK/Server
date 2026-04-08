@@ -133,7 +133,7 @@ jobs:
           tags: ${{ steps.meta.outputs.image }}
 
       - name: Docker Image Vulnerability Scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.meta.outputs.image }}
           format: table
@@ -193,6 +193,7 @@ jobs:
     steps:
       - name: 워크플로우 실패 알림
         uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          message: "DEV CI/CD 실패: ${{ github.repository }} / ${{ github.event.pull_request.html_url || github.ref }}"
+          args: "DEV CI/CD 실패: ${{ github.repository }} / ${{ github.event.pull_request.html_url || github.ref }}"
