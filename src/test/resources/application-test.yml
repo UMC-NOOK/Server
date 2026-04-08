@@ -32,7 +32,7 @@ cloudflare:
     secret-key: test-secret-key
 
 jwt:
-  secret: test-jwt-secret
+  secret: YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=
 aladin:
   base-url: https://www.aladin.co.kr/ttb/api
   ttbkey: test-aladin-ttb-key
