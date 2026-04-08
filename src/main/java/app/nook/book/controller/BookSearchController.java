@@ -1,5 +1,6 @@
 package app.nook.book.controller;
 
+import app.nook.api.Api1Version;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.facade.BookSearchFacade;
@@ -17,7 +18,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/books/search")
+@Api1Version
+@RequestMapping("/books/search")
 @RequiredArgsConstructor
 @Validated
 public class BookSearchController {

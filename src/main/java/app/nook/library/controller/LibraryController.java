@@ -1,5 +1,6 @@
 package app.nook.library.controller;
 
+import app.nook.api.Api1Version;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.global.dto.CursorResponse;
@@ -20,8 +21,9 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 
 @RestController
+@Api1Version
 @RequiredArgsConstructor
-@RequestMapping("/api/library")
+@RequestMapping("/library")
 @Validated
 public class LibraryController {
 

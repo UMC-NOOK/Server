@@ -1,5 +1,6 @@
 package app.nook.user.controller;
 
+import app.nook.api.Api1Version;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.user.dto.OnboardingDto;
@@ -12,8 +13,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@Api1Version
 @RequiredArgsConstructor
-@RequestMapping("/api/users/me/onboarding")
+@RequestMapping("/users/me/onboarding")
 public class OnboardingController {
 
     private final OnboardingService onboardingService;

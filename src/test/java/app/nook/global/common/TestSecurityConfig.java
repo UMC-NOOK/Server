@@ -22,6 +22,7 @@ public class TestSecurityConfig {
                                 response.sendError(HttpStatus.UNAUTHORIZED.value()))
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()

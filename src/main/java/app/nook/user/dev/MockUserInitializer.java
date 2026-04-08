@@ -1,6 +1,7 @@
 package app.nook.user.dev;
 
 import app.nook.user.domain.User;
+import app.nook.user.domain.enums.UserRole;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,7 @@ public class MockUserInitializer implements ApplicationRunner {
                 .nickName(nickname)
                 .provider("DEV")
                 .providerId("DEV_" + email)
+                .role(UserRole.USER)
                 .build();
 
         userRepository.save(user);

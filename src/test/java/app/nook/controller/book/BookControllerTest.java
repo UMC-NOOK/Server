@@ -83,7 +83,7 @@
 
           given(bookService.getBookDetailByIsbn(any(), eq(isbn13))).willReturn(response);
 
-          mockMvc.perform(get("/api/books/{isbn13}", isbn13).header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/{isbn13}", isbn13).header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.title").value("채식주의자"))
                   .andDo(documentWithAuth(
@@ -113,7 +113,7 @@
       @WithCustomUser
       @DisplayName("잘못된 ISBN 형식으로 조회 시 400 Bad Request")
       void 도서_상세조회_실패_잘못된_ISBN_형식() throws Exception {
-          mockMvc.perform(get("/api/books/{isbn13}", "123").header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/{isbn13}", "123").header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isBadRequest());
       }
 
@@ -125,7 +125,7 @@
           given(bookService.getBookDetailByIsbn(any(), eq(isbn13)))
                   .willThrow(new CustomException(BookErrorCode.BOOK_NOT_FOUND));
 
-          mockMvc.perform(get("/api/books/{isbn13}", isbn13).header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/{isbn13}", isbn13).header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isNotFound());
       }
 
@@ -152,7 +152,7 @@
 
           given(bookService.getBookDetailById(any(), eq(1L))).willReturn(response);
 
-          mockMvc.perform(get("/api/books/id/{bookId}", 1L).header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/id/{bookId}", 1L).header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.bookId").value(1L))
                   .andExpect(jsonPath("$.result.title").value("테스트책"))
@@ -190,7 +190,7 @@
 
           given(bookService.getWeeklyBestsellers()).willReturn(response);
 
-          mockMvc.perform(get("/api/books/bestsellers").header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/bestsellers").header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result[0].title").value("채식주의자"))
                   .andDo(documentWithAuth(
@@ -216,7 +216,7 @@
 
           given(bookService.getPersonalizedBestsellers(any())).willReturn(response);
 
-          mockMvc.perform(get("/api/books/recommendations").header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/recommendations").header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result[0].title").value("채식주의자"))
                   .andDo(documentWithAuth(
@@ -250,7 +250,7 @@
 
           MockMultipartFile cover = new MockMultipartFile("coverImage", "cover.png", "image/png", "fake".getBytes());
 
-          mockMvc.perform(multipart("/api/books/user")
+          mockMvc.perform(multipart("/api/v1/books/user")
                           .file(cover)
                           .param("title", "혼모노")
                           .param("author", "성해은")
@@ -311,7 +311,7 @@
 
           MockMultipartFile cover = new MockMultipartFile("coverImage", "cover2.png", "image/png", "fake2".getBytes());
 
-          mockMvc.perform(multipart("/api/books/user/{bookId}", 101L)
+          mockMvc.perform(multipart("/api/v1/books/user/{bookId}", 101L)
                           .file(cover)
                           .param("title", "혼모노 수정")
                           .param("author", "성해은")

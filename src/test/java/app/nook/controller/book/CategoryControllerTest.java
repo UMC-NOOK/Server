@@ -55,7 +55,7 @@ class CategoryControllerTest extends AbstractWebMvcRestDocsTests {
 
         given(categoryService.getBookCategories()).willReturn(response);
 
-        mockMvc.perform(get("/api/categories/book")
+        mockMvc.perform(get("/api/v1/categories/book")
                         .header(AUTH_HEADER, AUTH_TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.categories[0].categoryId").value(1L))
@@ -75,7 +75,7 @@ class CategoryControllerTest extends AbstractWebMvcRestDocsTests {
     @Test
     @DisplayName("도서 카테고리 조회 - 인증 없음 401")
     void 도서카테고리_조회_인증없음_401() throws Exception {
-        mockMvc.perform(get("/api/categories/book"))
+        mockMvc.perform(get("/api/v1/categories/book"))
                 .andExpect(status().isUnauthorized());
     }
 }
