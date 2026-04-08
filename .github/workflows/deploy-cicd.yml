@@ -55,7 +55,7 @@ jobs:
       - name: JaCoCo PR Report
         uses: madrapps/jacoco-report@v1.6.1
         with:
-          paths: build/jacoco/test.exec
+          paths: build/reports/jacoco/test/jacocoTestReport.xml
           token: ${{ secrets.GIT_TOKEN }}
           min-coverage-overall: 60
           min-coverage-changed-files: 60
