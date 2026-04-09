@@ -134,6 +134,13 @@ task copyDocument(type: Copy) {
 	into file("src/main/resources/static/docs")
 }
 
+tasks.named('bootJar') {
+	dependsOn asciidoctor
+	from(file("build/docs/asciidoc")) {
+		into "BOOT-INF/classes/static/docs"
+	}
+}
+
 build {
 	dependsOn copyDocument
 }
