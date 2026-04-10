@@ -79,6 +79,23 @@ public class JwtProvider {
     }
 
     /**
+     * 토큰 만료 여부 확인
+     */
+    public boolean isExpiredToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token);
+            return false;
+        } catch (ExpiredJwtException e) {
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /**
      * Claims 파싱
      */
     public Claims parseClaims(String token) {

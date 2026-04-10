@@ -1,4 +1,4 @@
-package app.nook.api;
+package app.nook.global.api;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.HandlerTypePredicate;

@@ -1,8 +1,10 @@
 package app.nook.user.oauth;
 
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
+import app.nook.global.response.AuthErrorCode;
+import app.nook.global.response.OAuthErrorCode;
 import app.nook.user.domain.User;
+import app.nook.user.domain.enums.UserRole;
 import app.nook.user.dto.OAuthDTO;
 import app.nook.user.dto.UserDTO;
 import app.nook.user.jwt.JwtProvider;
@@ -10,7 +12,6 @@ import app.nook.user.redis.TokenRedis;
 import app.nook.user.redis.TokenRedisRepository;
 import app.nook.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,9 +19,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
-import java.time.Duration;
 import java.util.Map;
 
 @Service
@@ -28,7 +28,7 @@ import java.util.Map;
 @Slf4j
 public class OAuthService {
 
-    private final RestTemplate restTemplate;
+    private final RestClient.Builder restClientBuilder;
     private final ObjectMapper objectMapper;
     private final UserRepository userRepository;
     private final JwtProvider jwtProvider;
@@ -58,8 +58,7 @@ public class OAuthService {
 
     public UserDTO.LoginResponse login(
             String provider,
-            String code,
-            HttpServletResponse response
+            String code
     ) {
         OAuthDTO.TokenWrapper token = requestToken(provider, code);
         Map<String, Object> attributes =
@@ -77,26 +76,16 @@ public class OAuthService {
         tokenRedisRepository.save(
                 TokenRedis.builder()
                         .id(user.getId())
-                        .accessToken(accessToken)
                         .refreshToken(refreshToken)
                         .build()
         );
 
-        ResponseCookie cookie = ResponseCookie.from("accessToken", accessToken)
-                .httpOnly(true)
-                .secure(false) // prod true
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(Duration.ofHours(1))
+        return UserDTO.LoginResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .nickName(user.getNickName())
+                .accessToken(accessToken)
                 .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-
-        return new UserDTO.LoginResponse(
-                user.getId(),
-                user.getEmail(),
-                user.getNickName()
-        );
     }
 
 
@@ -106,7 +95,7 @@ public class OAuthService {
         return switch (provider.toLowerCase()) {
             case "google" -> requestGoogleToken(code);
             case "kakao" -> requestKakaoToken(code);
-            default -> throw new CustomException(ErrorCode.INVALID_OAUTH_PROVIDER);
+            default -> throw new CustomException(AuthErrorCode.INVALID_OAUTH_PROVIDER);
         };
     }
 
@@ -131,22 +120,23 @@ public class OAuthService {
         body.add("code", params.code());
 
         try {
-            ResponseEntity<String> res =
-                    restTemplate.postForEntity(
-                            googleTokenUri,
-                            new HttpEntity<>(body, headers),
-                            String.class
-                    );
+            String resBody = restClientBuilder.build()
+                    .post()
+                    .uri(googleTokenUri)
+                    .headers(httpHeaders -> httpHeaders.addAll(headers))
+                    .body(body)
+                    .retrieve()
+                    .body(String.class);
 
             OAuthDTO.GoogleOAuthTokenResponse token =
-                    objectMapper.readValue(res.getBody(),
+                    objectMapper.readValue(resBody,
                             OAuthDTO.GoogleOAuthTokenResponse.class);
 
             return OAuthDTO.TokenWrapper.fromGoogle(token);
 
         } catch (Exception e) {
             log.error("Google token request failed", e);
-            throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
+            throw new CustomException(OAuthErrorCode.INVALID_OAUTH_TOKEN);
         }
     }
 
@@ -172,17 +162,19 @@ public class OAuthService {
 
         try {
             OAuthDTO.KakaoOAuthTokenResponse token =
-                    restTemplate.postForEntity(
-                            kakaoTokenUri,
-                            new HttpEntity<>(body, headers),
-                            OAuthDTO.KakaoOAuthTokenResponse.class
-                    ).getBody();
+                    restClientBuilder.build()
+                            .post()
+                            .uri(kakaoTokenUri)
+                            .headers(httpHeaders -> httpHeaders.addAll(headers))
+                            .body(body)
+                            .retrieve()
+                            .body(OAuthDTO.KakaoOAuthTokenResponse.class);
 
             return OAuthDTO.TokenWrapper.fromKakao(token);
 
         } catch (Exception e) {
             log.error("Kakao token request failed", e);
-            throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
+            throw new CustomException(OAuthErrorCode.INVALID_OAUTH_TOKEN);
         }
     }
 
@@ -193,21 +185,21 @@ public class OAuthService {
         headers.setBearerAuth(accessToken);
 
         return switch (provider.toLowerCase()) {
-            case "google" -> restTemplate.exchange(
-                    googleUserInfoUri,
-                    HttpMethod.GET,
-                    new HttpEntity<>(headers),
-                    Map.class
-            ).getBody();
+            case "google" -> restClientBuilder.build()
+                    .get()
+                    .uri(googleUserInfoUri)
+                    .headers(httpHeaders -> httpHeaders.addAll(headers))
+                    .retrieve()
+                    .body(Map.class);
 
-            case "kakao" -> restTemplate.exchange(
-                    kakaoUserInfoUri,
-                    HttpMethod.POST,
-                    new HttpEntity<>(headers),
-                    Map.class
-            ).getBody();
+            case "kakao" -> restClientBuilder.build()
+                    .post()
+                    .uri(kakaoUserInfoUri)
+                    .headers(httpHeaders -> httpHeaders.addAll(headers))
+                    .retrieve()
+                    .body(Map.class);
 
-            default -> throw new CustomException(ErrorCode.INVALID_OAUTH_PROVIDER);
+            default -> throw new CustomException(AuthErrorCode.INVALID_OAUTH_PROVIDER);
         };
     }
 
@@ -219,8 +211,10 @@ public class OAuthService {
                 .nickName(attr.getNickname())
                 .provider(provider.toUpperCase())
                 .providerId(attr.getProviderId())
+                .role(UserRole.USER)
                 .build();
 
         return userRepository.save(user);
     }
+
 }

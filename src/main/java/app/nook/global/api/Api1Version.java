@@ -1,4 +1,4 @@
-package app.nook.api;
+package app.nook.global.api;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
