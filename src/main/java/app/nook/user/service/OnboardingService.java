@@ -6,6 +6,7 @@ import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.book.service.FileStorageService;
 import app.nook.global.exception.CustomException;
+import app.nook.global.response.AuthErrorCode;
 import app.nook.global.response.CommonErrorCode;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.repository.LibraryRepository;
@@ -165,6 +166,6 @@ public class OnboardingService {
 
     private User getUser(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(CommonErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
     }
 }

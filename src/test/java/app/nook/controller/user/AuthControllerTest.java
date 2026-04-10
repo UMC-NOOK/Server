@@ -4,7 +4,6 @@ import app.nook.global.common.AbstractWebMvcRestDocsTests;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
-import app.nook.global.response.CommonErrorCode;
 import app.nook.global.config.WebSecurityConfig;
 import app.nook.user.controller.AuthController;
 import app.nook.user.dto.OAuthDTO;
@@ -199,7 +198,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                 new UserDTO.DevLoginRequest("missing@test.com","DEV_USER");
 
         given(userService.devLogin(any()))
-                .willThrow(new CustomException(CommonErrorCode.USER_NOT_FOUND));
+                .willThrow(new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
         mockMvc.perform(
                         post("/api/v1/auth/dev/login")

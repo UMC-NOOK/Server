@@ -2,7 +2,6 @@ package app.nook.user.service;
 
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
-import app.nook.global.response.CommonErrorCode;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.dto.UserDTO;
@@ -36,7 +35,7 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.warn("[DEV LOGIN FAIL] user not found. email={}", email);
-                    return new CustomException(CommonErrorCode.USER_NOT_FOUND);
+                    return new CustomException(AuthErrorCode.USER_NOT_FOUND);
                 });
 
         validateDevUserRole(user);

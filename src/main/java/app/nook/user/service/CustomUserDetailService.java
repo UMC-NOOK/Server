@@ -2,7 +2,6 @@ package app.nook.user.service;
 
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
-import app.nook.global.response.CommonErrorCode;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +25,7 @@ public class CustomUserDetailService implements UserDetailsService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.error("사용자를 찾을 수 없습니다: {}", email);
-                    return new CustomException(CommonErrorCode.USER_NOT_FOUND);
+                    return new CustomException(AuthErrorCode.USER_NOT_FOUND);
                 });
         if (user.getDeletedAt() != null) {
             throw new CustomException(AuthErrorCode.USER_INACTIVE); // 탈퇴한 사용자의 로그인 차단

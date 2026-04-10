@@ -1,7 +1,7 @@
 package app.nook.user.filter;
 
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.CommonErrorCode;
+import app.nook.global.response.AuthErrorCode;
 import app.nook.user.domain.User;
 import app.nook.user.jwt.JwtProvider;
 import app.nook.user.redis.TokenRedis;
@@ -66,7 +66,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private void setAuthentication(String accessToken) {
         String email = jwtProvider.extractEmail(accessToken);
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomException(CommonErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
         CustomUserDetails userDetails = new CustomUserDetails(user);
 
@@ -93,7 +93,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 }
 
                 User user = userRepository.findById(userId)
-                        .orElseThrow(() -> new CustomException(CommonErrorCode.USER_NOT_FOUND));
+                        .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
                 String newAccessToken = jwtProvider.createAccessToken(user);
 
