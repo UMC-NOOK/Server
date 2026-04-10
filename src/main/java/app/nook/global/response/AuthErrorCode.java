@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum AuthErrorCode implements BaseCode {
 
+    INVALID_TOKEN(HttpStatus.BAD_REQUEST, "ACCOUNT-005", "유효하지 않는 토큰입니다."),
+    TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "ACCOUNT-006", "토큰이 만료되었습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "ACCOUNT-007", "인증이 필요합니다."),
     EMAIL_DUPLICATE(HttpStatus.CONFLICT, "ACCOUNT-008", "중복된 이메일입니다."),
     PERMISSION_DENIED(HttpStatus.FORBIDDEN, "ACCOUNT-009", "권한이 없습니다."),
