@@ -1,16 +1,16 @@
 package app.nook.r2.controller;
 
-import app.nook.api.Api1Version;
+import app.nook.global.api.Api1Version;
 import app.nook.r2.dto.ImageUploadRequestDto;
 import app.nook.r2.dto.ImageUrlResponseDto;
 import app.nook.r2.dto.MultipleImageUploadRequestDto;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.r2.service.PresignedUrlService;
-import app.nook.user.service.CustomUserDetails;
+import app.nook.user.annotation.CurrentUser;
+import app.nook.user.domain.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,11 +26,11 @@ public class ImageUploadController {
     // 단건 업로드
     @PostMapping("/upload-url")
     public ApiResponse<ImageUrlResponseDto> issueUploadUrl(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser User user,
             @Valid @RequestBody ImageUploadRequestDto requestDto
     ) {
         return ApiResponse.onSuccess(
-                presignedUrlService.generateUploadUrl(userDetails.getUser().getId(), requestDto),
+                presignedUrlService.generateUploadUrl(user.getId(), requestDto),
                 SuccessCode.OK
         );
     }
@@ -38,11 +38,11 @@ public class ImageUploadController {
     // 다건 업로드
     @PostMapping("/upload-urls")
     public ApiResponse<List<ImageUrlResponseDto>> issueUploadUrls(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser User user,
             @Valid @RequestBody MultipleImageUploadRequestDto requestDto
     ) {
         return ApiResponse.onSuccess(
-                presignedUrlService.generateMultipleUploadUrls(userDetails.getUser().getId(), requestDto.files()),
+                presignedUrlService.generateMultipleUploadUrls(user.getId(), requestDto.files()),
                 SuccessCode.OK
         );
     }

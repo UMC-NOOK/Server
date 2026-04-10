@@ -1,16 +1,16 @@
 package app.nook.focus.controller;
 
-import app.nook.api.Api1Version;
+import app.nook.global.api.Api1Version;
 import app.nook.focus.dto.FocusRequestDto;
 import app.nook.focus.dto.FocusResponseDto;
 import app.nook.focus.service.FocusService;
 import app.nook.focus.service.ThemeService;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
-import app.nook.user.service.CustomUserDetails;
+import app.nook.user.annotation.CurrentUser;
+import app.nook.user.domain.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -32,17 +32,17 @@ public class FocusController {
 
     @PostMapping("/start")
     public ApiResponse<FocusResponseDto.FocusStart> startFocus(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser User user,
             @RequestBody @Valid FocusRequestDto.FocusStart request
     ) {
-        return ApiResponse.onSuccess(focusService.startFocus(userDetails.getUser(), request), SuccessCode.CREATED);
+        return ApiResponse.onSuccess(focusService.startFocus(user, request), SuccessCode.CREATED);
     }
 
     @PostMapping("/end")
     public ApiResponse<FocusResponseDto.FocusEnd> endFocus(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser User user,
             @RequestBody @Valid FocusRequestDto.FocusEnd request
     ) {
-        return ApiResponse.onSuccess(focusService.endFocus(userDetails.getUser().getId(), request), SuccessCode.OK);
+        return ApiResponse.onSuccess(focusService.endFocus(user.getId(), request), SuccessCode.OK);
     }
 }

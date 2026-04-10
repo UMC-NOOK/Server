@@ -1,7 +1,8 @@
 package app.nook.user.service;
 
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
+import app.nook.global.response.AuthErrorCode;
+import app.nook.global.response.CommonErrorCode;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.dto.UserDTO;
@@ -62,11 +63,12 @@ class UserServiceTest {
         assertThat(response.getId()).isEqualTo(1L);
         assertThat(response.getEmail()).isEqualTo("dev@test.com");
         assertThat(response.getNickName()).isEqualTo("DEV_USER");
+        assertThat(response.getAccessToken()).isEqualTo("access-token");
 
         ArgumentCaptor<TokenRedis> tokenCaptor = ArgumentCaptor.forClass(TokenRedis.class);
         verify(tokenRedisRepository).save(tokenCaptor.capture());
         assertThat(tokenCaptor.getValue().getId()).isEqualTo(1L);
-        assertThat(tokenCaptor.getValue().getAccessToken()).isEqualTo("access-token");
+        assertThat(tokenCaptor.getValue().getAccessToken()).isNull();
         assertThat(tokenCaptor.getValue().getRefreshToken()).isEqualTo("refresh-token");
     }
 
@@ -80,6 +82,64 @@ class UserServiceTest {
                 () -> userService.devLogin("missing@test.com")
         );
 
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND);
+        assertThat(ex.getErrorCode()).isEqualTo(CommonErrorCode.USER_NOT_FOUND);
+    }
+
+    @Test
+    void devLogin_ADMIN_권한_예외() {
+        User admin = User.builder()
+                .email("admin@test.com")
+                .nickName("DEV_ADMIN")
+                .role(UserRole.ADMIN)
+                .provider("DEV")
+                .providerId("dev-admin")
+                .build();
+
+        given(userRepository.findByEmail(eq("admin@test.com")))
+                .willReturn(Optional.of(admin));
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> userService.devLogin("admin@test.com")
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.PERMISSION_DENIED);
+    }
+
+    @Test
+    void devSignUp_성공() {
+        UserDTO.DevSignUpRequest request = new UserDTO.DevSignUpRequest("new@test.com", "NEW_USER");
+
+        given(userRepository.existsByEmail(eq("new@test.com"))).willReturn(false);
+        given(userRepository.save(any(User.class))).willAnswer(invocation -> {
+            User saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 3L);
+            return saved;
+        });
+
+        UserDTO.LoginResponse response = userService.devSignUp(request);
+
+        assertThat(response.getId()).isEqualTo(3L);
+        assertThat(response.getEmail()).isEqualTo("new@test.com");
+        assertThat(response.getNickName()).isEqualTo("NEW_USER");
+        assertThat(response.getAccessToken()).isNull();
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        assertThat(userCaptor.getValue().getRole()).isEqualTo(UserRole.USER);
+        assertThat(userCaptor.getValue().getProvider()).isEqualTo("DEV");
+    }
+
+    @Test
+    void devSignUp_이메일중복_예외() {
+        UserDTO.DevSignUpRequest request = new UserDTO.DevSignUpRequest("dup@test.com", "DUP_USER");
+        given(userRepository.existsByEmail(eq("dup@test.com"))).willReturn(true);
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> userService.devSignUp(request)
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.EMAIL_DUPLICATE);
     }
 }

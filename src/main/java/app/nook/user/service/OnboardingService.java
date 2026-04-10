@@ -6,7 +6,7 @@ import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.book.service.FileStorageService;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
+import app.nook.global.response.CommonErrorCode;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.user.domain.User;
@@ -50,13 +50,13 @@ public class OnboardingService {
         List<String> categories = request.getCategories();
 
         if (categories == null || categories.isEmpty() || categories.size() > 2) {
-            throw new CustomException(ErrorCode.INVALID_REQUEST);
+            throw new CustomException(CommonErrorCode.INVALID_REQUEST);
         }
         if (categories.stream().anyMatch(c -> c == null || c.isBlank())) {
-            throw new CustomException(ErrorCode.INVALID_REQUEST);
+            throw new CustomException(CommonErrorCode.INVALID_REQUEST);
         }
         if (categories.stream().distinct().count() != categories.size()) {
-            throw new CustomException(ErrorCode.INVALID_REQUEST);
+            throw new CustomException(CommonErrorCode.INVALID_REQUEST);
         }
 
         List<Category> selected = categories.stream()
@@ -66,7 +66,7 @@ public class OnboardingService {
 
         if (selected.isEmpty() || selected.size() > 2) {
             log.warn("[ONBOARDING_INVALID_CATEGORIES] userId={}, size={}", userId, selected.size());
-            throw new CustomException(ErrorCode.INVALID_REQUEST);
+            throw new CustomException(CommonErrorCode.INVALID_REQUEST);
         }
 
         Category preferred = choosePreferredCategory(user, selected);
@@ -165,6 +165,6 @@ public class OnboardingService {
 
     private User getUser(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(CommonErrorCode.USER_NOT_FOUND));
     }
 }

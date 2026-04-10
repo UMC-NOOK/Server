@@ -1,7 +1,7 @@
 package app.nook.global.exception;
 
 import app.nook.global.response.ApiResponse;
-import app.nook.global.response.ErrorCode;
+import app.nook.global.response.CommonErrorCode;
 import app.nook.redis.exception.RedisOperationException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,11 +39,11 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
                 .orElse("잘못된 요청입니다.");
 
         ApiResponse<Object> body = ApiResponse.onFailure(
-                ErrorCode.INVALID_REQUEST,
+                CommonErrorCode.INVALID_REQUEST,
                 message
         );
         return handleExceptionInternal(e, body, new HttpHeaders(),
-                ErrorCode.INVALID_REQUEST.getHttpStatus(),
+                CommonErrorCode.INVALID_REQUEST.getHttpStatus(),
                 request);
     }
 
@@ -61,11 +61,11 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         });
 
         ApiResponse<Object> body = ApiResponse.onFailure(
-                ErrorCode.INVALID_REQUEST,
+                CommonErrorCode.INVALID_REQUEST,
                 errors
         );
         return handleExceptionInternal(e, body, headers,
-                ErrorCode.INVALID_REQUEST.getHttpStatus(),
+                CommonErrorCode.INVALID_REQUEST.getHttpStatus(),
                 request);
     }
 
@@ -73,9 +73,9 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleUnknownException(Exception e, WebRequest request) {
         log.error("Unhandled exception", e); // printStackTrace() 지양
-        ApiResponse<Object> body = ApiResponse.onFailure(ErrorCode.INTERNAL_SERVER_ERROR, null); // 내부 메시지 노출 X
+        ApiResponse<Object> body = ApiResponse.onFailure(CommonErrorCode.INTERNAL_SERVER_ERROR, null); // 내부 메시지 노출 X
         return handleExceptionInternal(e, body, new HttpHeaders(),
-                ErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus(), request);
+                CommonErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus(), request);
     }
 
     // 도메인 CustomException
@@ -98,11 +98,11 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleInvalidDateFormat(InvalidFormatException ex) {
         if (ex.getTargetType() == LocalDate.class) {
             return ResponseEntity.badRequest().body(
-                    ApiResponse.onFailure(ErrorCode.INVALID_DATE, null)
+                    ApiResponse.onFailure(CommonErrorCode.INVALID_DATE, null)
             );
         }
         return ResponseEntity.badRequest().body(
-                ApiResponse.onFailure(ErrorCode.INVALID_FORMAT, null)
+                ApiResponse.onFailure(CommonErrorCode.INVALID_FORMAT, null)
         );
     }
 
@@ -115,21 +115,21 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
             errors.merge(field, msg, (a, b) -> a + ", " + b);
         });
 
-        ApiResponse<Object> body = ApiResponse.onFailure(ErrorCode.INVALID_REQUEST, errors);
+        ApiResponse<Object> body = ApiResponse.onFailure(CommonErrorCode.INVALID_REQUEST, errors);
         return handleExceptionInternal(
-                e, body, new HttpHeaders(), ErrorCode.INVALID_REQUEST.getHttpStatus(), request
+                e, body, new HttpHeaders(), CommonErrorCode.INVALID_REQUEST.getHttpStatus(), request
         );
     }
 
     @ExceptionHandler({OptimisticLockException.class, ObjectOptimisticLockingFailureException.class})
     public ResponseEntity<Object> handleOptimisticLockException(Exception e, HttpServletRequest request) {
-        ApiResponse<Object> body = ApiResponse.onFailure(ErrorCode.CONCURRENT_MODIFICATION, null);
+        ApiResponse<Object> body = ApiResponse.onFailure(CommonErrorCode.CONCURRENT_MODIFICATION, null);
         WebRequest webRequest = new ServletWebRequest(request);
         return handleExceptionInternal(
                 e,
                 body,
                 new HttpHeaders(),
-                ErrorCode.CONCURRENT_MODIFICATION.getHttpStatus(),
+                CommonErrorCode.CONCURRENT_MODIFICATION.getHttpStatus(),
                 webRequest
         );
     }

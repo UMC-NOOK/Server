@@ -3,7 +3,8 @@ package app.nook.controller.user;
 import app.nook.global.common.AbstractWebMvcRestDocsTests;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
+import app.nook.global.response.AuthErrorCode;
+import app.nook.global.response.CommonErrorCode;
 import app.nook.global.config.WebSecurityConfig;
 import app.nook.user.controller.AuthController;
 import app.nook.user.dto.OAuthDTO;
@@ -64,11 +65,13 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
 
         UserDTO.LoginResponse response =
                 UserDTO.LoginResponse.builder()
+                        .id(1L)
                         .email("jiwon@kakao.com")
                         .nickName("jiwon")
+                        .accessToken("test-access-token")
                         .build();
 
-        given(oAuthService.login(any(), any(), any()))
+        given(oAuthService.login(any(), any()))
                 .willReturn(response);
 
         // when & then
@@ -89,7 +92,8 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 ApiResponseSnippet.withResult(
                                         fieldWithPath("result.id").description("사용자ID"),
                                         fieldWithPath("result.email").description("이메일"),
-                                        fieldWithPath("result.nickName").description("닉네임")
+                                        fieldWithPath("result.nickName").description("닉네임"),
+                                        fieldWithPath("result.accessToken").description("엑세스 토큰")
                                 )
                         )
                 ));
@@ -106,6 +110,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         .id(1L)
                         .email("dev@test.com")
                         .nickName("DEV_USER")
+                        .accessToken("test-access-token")
                         .build();
 
         given(userService.devLogin(any()))
@@ -129,6 +134,43 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 ApiResponseSnippet.withResult(
                                         fieldWithPath("result.id").description("사용자ID"),
                                         fieldWithPath("result.email").description("이메일"),
+                                        fieldWithPath("result.nickName").description("닉네임"),
+                                        fieldWithPath("result.accessToken").description("엑세스 토큰")
+                                )
+                        )
+                ));
+    }
+
+    @Test
+    void DEV회원가입_성공() throws Exception {
+        UserDTO.DevSignUpRequest request =
+                new UserDTO.DevSignUpRequest("new@test.com", "NEW_USER");
+
+        UserDTO.LoginResponse response =
+                UserDTO.LoginResponse.builder()
+                        .id(3L)
+                        .email("new@test.com")
+                        .nickName("NEW_USER")
+                        .build();
+
+        given(userService.devSignUp(any()))
+                .willReturn(response);
+
+                mockMvc.perform(
+                        post("/api/v1/auth/dev/signup")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isOk())
+                .andDo(restDocs.document(
+                        requestFields(
+                                fieldWithPath("email").description("DEV 유저 이메일"),
+                                fieldWithPath("nickName").description("DEV 유저 닉네임")
+                        ),
+                        responseFields(
+                                ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.id").description("사용자ID"),
+                                        fieldWithPath("result.email").description("이메일"),
                                         fieldWithPath("result.nickName").description("닉네임")
                                 )
                         )
@@ -140,8 +182,8 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
         OAuthDTO.OAuthLoginRequest request =
                 new OAuthDTO.OAuthLoginRequest("INVALID","auth-code");
 
-        given(oAuthService.login(any(), any(), any()))
-                .willThrow(new CustomException(ErrorCode.INVALID_OAUTH_PROVIDER));
+        given(oAuthService.login(any(), any()))
+                .willThrow(new CustomException(AuthErrorCode.INVALID_OAUTH_PROVIDER));
 
         mockMvc.perform(
                         post("/api/v1/auth/oauth")
@@ -157,7 +199,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                 new UserDTO.DevLoginRequest("missing@test.com","DEV_USER");
 
         given(userService.devLogin(any()))
-                .willThrow(new CustomException(ErrorCode.USER_NOT_FOUND));
+                .willThrow(new CustomException(CommonErrorCode.USER_NOT_FOUND));
 
         mockMvc.perform(
                         post("/api/v1/auth/dev/login")
@@ -165,6 +207,22 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void DEV회원가입_실패_이메일중복() throws Exception {
+        UserDTO.DevSignUpRequest request =
+                new UserDTO.DevSignUpRequest("dup@test.com", "DUP_USER");
+
+        given(userService.devSignUp(any()))
+                .willThrow(new CustomException(AuthErrorCode.EMAIL_DUPLICATE));
+
+        mockMvc.perform(
+                        post("/api/v1/auth/dev/signup")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isConflict());
     }
 
     @Test
