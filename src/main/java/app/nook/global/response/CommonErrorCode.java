@@ -19,10 +19,9 @@ public enum CommonErrorCode implements BaseCode {
     // 사용자
     DUPLICATE_NAME(HttpStatus.CONFLICT, "ACCOUNT-002", "중복된 닉네임입니다."),
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "ACCOUNT-003", "비밀번호가 유효하지 않습니다."),
-    INVALID_REFRESH_TOKEN(HttpStatus.BAD_REQUEST, "ACCOUNT-004", "유효하지 않는 리프레시 토큰입니다."),
+    INVALID_REFRESH_TOKEN(HttpStatus.BAD_REQUEST, "ACCOUNT-004", "유효하지 않은 리프레시 토큰입니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT-011", "리프레시 토큰을 찾을 수 없습니다."),
-    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "ACCOUNT-012", "리프레시 토큰이 만료되었습니다."),
-    REFRESH_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "ACCOUNT-013", "리프레시 토큰이 유효하지 않습니다.");
+    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "ACCOUNT-012", "리프레시 토큰이 만료되었습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
