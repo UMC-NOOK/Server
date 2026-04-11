@@ -48,17 +48,17 @@ include::{snippets}/success/view-book-count/response-fields.adoc[]
 
 ==== 데이터 있음 (200)
 
-include::{snippets}/success/최근_포커스_도서_조회_성공/http-request.adoc[]
-include::{snippets}/success/최근_포커스_도서_조회_성공/request-headers.adoc[]
-include::{snippets}/success/최근_포커스_도서_조회_성공/http-response.adoc[]
-include::{snippets}/success/최근_포커스_도서_조회_성공/response-fields.adoc[]
+include::{snippets}/library-controller-test/최근_포커스_도서_조회_성공/http-request.adoc[]
+include::{snippets}/library-controller-test/최근_포커스_도서_조회_성공/request-headers.adoc[]
+include::{snippets}/library-controller-test/최근_포커스_도서_조회_성공/http-response.adoc[]
+include::{snippets}/library-controller-test/최근_포커스_도서_조회_성공/response-fields.adoc[]
 
 ==== 데이터 없음 (빈 응답)
 
-include::{snippets}/success/최근_포커스_도서_조회_데이터없음_204/http-request.adoc[opts=optional]
-include::{snippets}/success/최근_포커스_도서_조회_데이터없음_204/request-headers.adoc[opts=optional]
-include::{snippets}/success/최근_포커스_도서_조회_데이터없음_204/http-response.adoc[opts=optional]
-include::{snippets}/success/최근_포커스_도서_조회_데이터없음_204/response-fields.adoc[opts=optional]
+include::{snippets}/library-controller-test/최근_포커스_도서_조회_데이터없음_빈응답_200/http-request.adoc[opts=optional]
+include::{snippets}/library-controller-test/최근_포커스_도서_조회_데이터없음_빈응답_200/request-headers.adoc[opts=optional]
+include::{snippets}/library-controller-test/최근_포커스_도서_조회_데이터없음_빈응답_200/http-response.adoc[opts=optional]
+include::{snippets}/library-controller-test/최근_포커스_도서_조회_데이터없음_빈응답_200/response-fields.adoc[opts=optional]
 
 === 서재 월별 포커스 통계 조회(홈)
 
