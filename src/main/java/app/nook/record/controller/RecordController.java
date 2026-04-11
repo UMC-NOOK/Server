@@ -13,15 +13,13 @@ import app.nook.record.dto.RecordUpdateRequestDto;
 import app.nook.record.service.RecordService;
 import app.nook.record.service.RecordViewService;
 import app.nook.record.util.RecordListCursorCodec;
-import app.nook.user.service.CustomUserDetails;
+import app.nook.user.annotation.CurrentUser;
+import app.nook.user.domain.User;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import app.nook.user.annotation.CurrentUser;
-import app.nook.user.domain.User;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -36,14 +34,14 @@ public class RecordController {
 
     @GetMapping
     public ApiResponse<CursorResponse<BookRecordDto.BookRecordItemDto, String>> getUserRecords(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser User user,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @RequestParam(defaultValue = "RECENT_RECORDED") SortType order
     ) {
         CursorResponse<BookRecordDto.BookRecordItemDto, String> response =
                 recordViewService.getUserRecords(
-                        userDetails.getUser(),
+                        user,
                         size,
                         RecordListCursorCodec.decode(cursor),
                         order
@@ -58,14 +56,14 @@ public class RecordController {
 
     @GetMapping("/books/{bookId}")
     public ApiResponse<CursorResponse<BookRecordDto.RecordItemDto, Long>> getBookRecords(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser User user,
             @PathVariable Long bookId,
-            @RequestParam(required = false) @Min(0) Long cursor,
+            @RequestParam(required = false) @Min(1) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @RequestParam(defaultValue = "ALL") String emotion
     ) {
         CursorResponse<BookRecordDto.RecordItemDto, Long> response =
-                recordViewService.getBookRecords(userDetails.getUser(), bookId, size, cursor, emotion);
+                recordViewService.getBookRecords(user, bookId, size, cursor, emotion);
 
         if (response.getItems().isEmpty()) {
             return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
@@ -76,10 +74,10 @@ public class RecordController {
 
     @GetMapping("/emotions")
     public ApiResponse<BookRecordDto.RecordEmotionCountResponse> getRecordEmotionCounts(
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @CurrentUser User user
     ) {
         return ApiResponse.onSuccess(
-                recordViewService.getRecordEmotionCounts(userDetails.getUser()),
+                recordViewService.getRecordEmotionCounts(user),
                 SuccessCode.OK
         );
     }
