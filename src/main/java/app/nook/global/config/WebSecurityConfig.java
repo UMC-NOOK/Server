@@ -56,7 +56,13 @@ public class WebSecurityConfig {
                                 "/",
                                 "/docs/**",              // REST Docs
                                 "/index.html",
-                                "/api/auth/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/actuator/health",
+                                "/actuator/health/**",
+                                "/actuator/info",
+                                "/api/v1/auth/**",
                                 "/ws/**",
                                 "/uploads/**"         // TODO: 임시 로컬 이미지 업로드용, 추후 S3로 변경 예정
                         ).permitAll()

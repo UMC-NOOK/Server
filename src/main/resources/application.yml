@@ -3,8 +3,9 @@ spring:
     import: optional:classpath:application-secret.properties
   application:
     name: nook-api
+
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:local}
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -54,10 +55,6 @@ aladin:
   base-url: ${ALADIN_BASE_URL}
   ttbkey: ${ALADIN_TTB_KEY}
 
-openai:
-  api:
-    key: ${OPENAI_API_KEY}
-
 # oauth
 auth:
   kakao:
@@ -76,3 +73,25 @@ auth:
     client-secret: ${GOOGLE_CLIENT_SECRET}
     token-request-uri: ${TOKEN_REQUEST_URI}
     user-info-uri: ${MEMBER_INFO_REQUEST_URI}
+
+logging:
+  level:
+    root: info
+    app.nook : debug
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+info:
+  app:
+    name: ${spring.application.name}
+    version: ${APP_VERSION:0.0.1-SNAPSHOT}

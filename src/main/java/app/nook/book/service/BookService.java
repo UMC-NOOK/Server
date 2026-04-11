@@ -14,7 +14,7 @@ import app.nook.book.repository.CategoryRepository;
 import app.nook.book.utils.BookUtils;
 import app.nook.global.config.CacheConfig;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
+import app.nook.global.response.AuthErrorCode;
 import app.nook.library.domain.Library;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.user.domain.User;
@@ -151,7 +151,7 @@ public class BookService {
 
     private int resolveRecommendationCategoryId(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
         List<Integer> topFromLibrary = libraryRepository.findTopAladinCategoryIdsByUserId(
                 userId, MallType.BOOK, PageRequest.of(0, 1)

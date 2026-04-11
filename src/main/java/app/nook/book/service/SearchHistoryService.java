@@ -5,7 +5,7 @@ import app.nook.book.domain.enums.SearchType;
 import app.nook.book.exception.SearchErrorCode;
 import app.nook.book.repository.SearchHistoryRepository;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
+import app.nook.global.response.AuthErrorCode;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -96,6 +96,6 @@ public class SearchHistoryService {
     // 유저 조회 헬퍼 메서드
     private User findUser(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
     }
 }

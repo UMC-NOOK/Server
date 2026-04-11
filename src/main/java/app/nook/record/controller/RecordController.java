@@ -2,11 +2,11 @@ package app.nook.record.controller;
 
 
 import app.nook.global.dto.CursorResponse;
+import app.nook.global.api.Api1Version;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.record.domain.enums.SortType;
 import app.nook.record.dto.BookRecordDto;
-import app.nook.record.dto.RecordListCursor;
 import app.nook.record.dto.RecordRequestDto;
 import app.nook.record.dto.RecordResponseDto;
 import app.nook.record.dto.RecordUpdateRequestDto;
@@ -20,9 +20,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import app.nook.user.annotation.CurrentUser;
+import app.nook.user.domain.User;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@Api1Version
 @RequiredArgsConstructor
 @RequestMapping("/api/records")
 @Validated
@@ -83,39 +86,39 @@ public class RecordController {
 
     @PostMapping("/books/{bookId}")
     public ApiResponse<Void> saveRecord(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser User user,
             @PathVariable Long bookId,
             @Valid @RequestBody RecordRequestDto requestDto
             ) {
-        recordService.createRecord(userDetails.getUser(), bookId, requestDto);
+        recordService.createRecord(user, bookId, requestDto);
         return ApiResponse.onSuccess(null, SuccessCode.CREATED);
     }
 
     @PutMapping("/{recordId}")
     public ApiResponse<Void> updateRecord(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser User user,
             @PathVariable Long recordId,
             @Valid @RequestBody RecordUpdateRequestDto requestDto
     ) {
-        recordService.updateRecord(userDetails.getUser(), recordId, requestDto);
+        recordService.updateRecord(user, recordId, requestDto);
         return ApiResponse.onSuccess(null, SuccessCode.OK);
     }
 
     @DeleteMapping("/{recordId}")
     public ApiResponse<Void> deleteRecord(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser User user,
             @PathVariable Long recordId
     ) {
-        recordService.deleteRecord(userDetails.getUser(), recordId);
+        recordService.deleteRecord(user, recordId);
         return ApiResponse.onSuccess(null, SuccessCode.OK);
     }
 
     @GetMapping("/count")
     public ApiResponse<RecordResponseDto.RecordCountDto> countRecords(
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @CurrentUser User user
     ) {
         return ApiResponse.onSuccess(
-                recordService.countRecords(userDetails.getUser().getId()),
+                recordService.countRecords(user.getId()),
                 SuccessCode.OK
         );
     }

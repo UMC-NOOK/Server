@@ -334,7 +334,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                 willDoNothing().given(recordService).createRecord(any(), anyLong(), any());
 
                 // when & then
-                mockMvc.perform(post("/api/records/books/{bookId}", 1L)
+                mockMvc.perform(post("/api/v1/records/books/{bookId}", 1L)
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
@@ -372,7 +372,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                 );
 
                 // when & then
-                mockMvc.perform(post("/api/records/books/{bookId}", 1L)
+                mockMvc.perform(post("/api/v1/records/books/{bookId}", 1L)
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
@@ -401,7 +401,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
             willDoNothing().given(recordService).updateRecord(any(), anyLong(), any());
 
             // when & then
-            mockMvc.perform(put("/api/records/{recordId}", 10L)
+            mockMvc.perform(put("/api/v1/records/{recordId}", 10L)
                             .header(AUTH_HEADER, AUTH_TOKEN)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -439,7 +439,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                 willDoNothing().given(recordService).deleteRecord(any(), anyLong());
 
                 // when & then
-                mockMvc.perform(delete("/api/records/{recordId}", 10L)
+                mockMvc.perform(delete("/api/v1/records/{recordId}", 10L)
                                 .header(AUTH_HEADER, AUTH_TOKEN))
                         .andExpect(status().isOk())
                         .andDo(documentWithAuth(
@@ -464,7 +464,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                         .given(recordService).deleteRecord(any(), anyLong());
 
                 // when & then
-                mockMvc.perform(delete("/api/records/{recordId}", 999L)
+                mockMvc.perform(delete("/api/v1/records/{recordId}", 999L)
                                 .header(AUTH_HEADER, AUTH_TOKEN))
                         .andExpect(status().isNotFound())
                         .andExpect(jsonPath("$.isSuccess").value(false))
@@ -485,7 +485,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
             given(recordService.countRecords(anyLong())).willReturn(response);
 
             // when & then
-            mockMvc.perform(get("/api/records/count")
+            mockMvc.perform(get("/api/v1/records/count")
                             .header(AUTH_HEADER, AUTH_TOKEN))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result.count").value(12))

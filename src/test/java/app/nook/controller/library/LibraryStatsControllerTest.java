@@ -81,7 +81,7 @@ class LibraryStatsControllerTest extends AbstractWebMvcRestDocsTests {
                         .willReturn(response);
 
                 mockMvc.perform(
-                                get("/api/library/stats/monthly")
+                                get("/api/v1/library/stats/monthly")
                                         .param("yearMonth", "2026-02")
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )
@@ -113,7 +113,7 @@ class LibraryStatsControllerTest extends AbstractWebMvcRestDocsTests {
             @DisplayName("인증 정보가 없으면 401")
             void viewMonthlyStatsWithoutAuth() throws Exception {
                 mockMvc.perform(
-                                get("/api/library/stats/monthly")
+                                get("/api/v1/library/stats/monthly")
                                         .param("yearMonth", "2026-02")
                         )
                         .andExpect(status().isUnauthorized());
@@ -153,7 +153,7 @@ class LibraryStatsControllerTest extends AbstractWebMvcRestDocsTests {
                         .willReturn(response);
 
                 mockMvc.perform(
-                                get("/api/library/stats/focus-monthly")
+                                get("/api/v1/library/stats/focus-monthly")
                                         .param("yearMonth", "2026-02")
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )
@@ -183,7 +183,7 @@ class LibraryStatsControllerTest extends AbstractWebMvcRestDocsTests {
             @WithCustomUser
             void invalidYearMonthFormat() throws Exception {
                 mockMvc.perform(
-                                get("/api/library/stats/focus-monthly")
+                                get("/api/v1/library/stats/focus-monthly")
                                         .param("yearMonth", "2026/02")
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )

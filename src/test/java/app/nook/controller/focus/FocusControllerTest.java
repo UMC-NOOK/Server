@@ -75,7 +75,7 @@ public class FocusControllerTest extends AbstractRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        post("/api/focuses/start")
+                        post("/api/v1/focuses/start")
                                 .header("Authorization", "Bearer test-access-token")
                                 .with(user(userDetails))
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -129,7 +129,7 @@ public class FocusControllerTest extends AbstractRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        post("/api/focuses/end")
+                        post("/api/v1/focuses/end")
                                 .header("Authorization", "Bearer test-access-token")
                                 .with(user(userDetails))
                                 .contentType(MediaType.APPLICATION_JSON)

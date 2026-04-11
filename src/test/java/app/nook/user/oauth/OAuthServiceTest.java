@@ -12,20 +12,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.RestClient;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,12 +28,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.client.ExpectedCount.once;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 @ExtendWith(MockitoExtension.class)
 class OAuthServiceTest {
 
-    @Mock
-    private RestTemplate restTemplate;
+    private OAuthService oAuthService;
+    private MockRestServiceServer server;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -52,11 +51,19 @@ class OAuthServiceTest {
     @Mock
     private TokenRedisRepository tokenRedisRepository;
 
-    @InjectMocks
-    private OAuthService oAuthService;
-
     @BeforeEach
     void setUp() {
+        RestClient.Builder builder = RestClient.builder();
+        server = MockRestServiceServer.bindTo(builder).build();
+
+        oAuthService = new OAuthService(
+                builder,
+                objectMapper,
+                userRepository,
+                jwtProvider,
+                tokenRedisRepository
+        );
+
         ReflectionTestUtils.setField(oAuthService, "googleClientId", "google-client-id");
         ReflectionTestUtils.setField(oAuthService, "googleClientSecret", "google-client-secret");
         ReflectionTestUtils.setField(oAuthService, "googleRedirectUri", "https://app.test/redirect");
@@ -77,24 +84,22 @@ class OAuthServiceTest {
                 }
                 """;
 
-        given(restTemplate.postForEntity(
-                eq("https://google.test/token"),
-                any(HttpEntity.class),
-                eq(String.class)
-        )).willReturn(ResponseEntity.ok(tokenJson));
+        String userInfoJson = """
+                {
+                  "sub": "google-sub",
+                  "email": "user@test.com",
+                  "name": "user",
+                  "picture": "https://img.test/user.png"
+                }
+                """;
 
-        Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("sub", "google-sub");
-        userInfo.put("email", "user@test.com");
-        userInfo.put("name", "user");
-        userInfo.put("picture", "https://img.test/user.png");
+        server.expect(once(), requestTo("https://google.test/token"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess(tokenJson, MediaType.APPLICATION_JSON));
 
-        given(restTemplate.exchange(
-                eq("https://google.test/userinfo"),
-                eq(HttpMethod.GET),
-                any(HttpEntity.class),
-                eq(Map.class)
-        )).willReturn(ResponseEntity.ok(userInfo));
+        server.expect(once(), requestTo("https://google.test/userinfo"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(userInfoJson, MediaType.APPLICATION_JSON));
 
         User user = User.builder()
                 .email("user@test.com")
@@ -110,19 +115,18 @@ class OAuthServiceTest {
         given(jwtProvider.createAccessToken(user)).willReturn("app-access");
         given(jwtProvider.createRefreshToken()).willReturn("app-refresh");
 
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        UserDTO.LoginResponse result = oAuthService.login("google", "auth-code", response);
+        UserDTO.LoginResponse result = oAuthService.login("google", "auth-code");
 
         assertThat(result.getId()).isEqualTo(10L);
         assertThat(result.getEmail()).isEqualTo("user@test.com");
         assertThat(result.getNickName()).isEqualTo("user");
-        assertThat(response.getHeader(HttpHeaders.SET_COOKIE)).contains("accessToken=app-access");
-
+        assertThat(result.getAccessToken()).isEqualTo("app-access");
         ArgumentCaptor<TokenRedis> tokenCaptor = ArgumentCaptor.forClass(TokenRedis.class);
         verify(tokenRedisRepository).save(tokenCaptor.capture());
         assertThat(tokenCaptor.getValue().getId()).isEqualTo(10L);
-        assertThat(tokenCaptor.getValue().getAccessToken()).isEqualTo("app-access");
+        assertThat(tokenCaptor.getValue().getAccessToken()).isNull();
         assertThat(tokenCaptor.getValue().getRefreshToken()).isEqualTo("app-refresh");
+        server.verify();
     }
 
     @Test
@@ -138,24 +142,22 @@ class OAuthServiceTest {
                 }
                 """;
 
-        given(restTemplate.postForEntity(
-                eq("https://google.test/token"),
-                any(HttpEntity.class),
-                eq(String.class)
-        )).willReturn(ResponseEntity.ok(tokenJson));
+        String userInfoJson = """
+                {
+                  "sub": "google-sub-new",
+                  "email": "new@test.com",
+                  "name": "new-user",
+                  "picture": "https://img.test/new.png"
+                }
+                """;
 
-        Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("sub", "google-sub-new");
-        userInfo.put("email", "new@test.com");
-        userInfo.put("name", "new-user");
-        userInfo.put("picture", "https://img.test/new.png");
+        server.expect(once(), requestTo("https://google.test/token"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess(tokenJson, MediaType.APPLICATION_JSON));
 
-        given(restTemplate.exchange(
-                eq("https://google.test/userinfo"),
-                eq(HttpMethod.GET),
-                any(HttpEntity.class),
-                eq(Map.class)
-        )).willReturn(ResponseEntity.ok(userInfo));
+        server.expect(once(), requestTo("https://google.test/userinfo"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(userInfoJson, MediaType.APPLICATION_JSON));
 
         given(userRepository.findByEmail(eq("new@test.com")))
                 .willReturn(Optional.empty());
@@ -173,16 +175,17 @@ class OAuthServiceTest {
         given(jwtProvider.createAccessToken(savedUser)).willReturn("app-access-new");
         given(jwtProvider.createRefreshToken()).willReturn("app-refresh-new");
 
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        UserDTO.LoginResponse result = oAuthService.login("google", "auth-code", response);
+        UserDTO.LoginResponse result = oAuthService.login("google", "auth-code");
 
         assertThat(result.getId()).isEqualTo(20L);
         assertThat(result.getEmail()).isEqualTo("new@test.com");
         assertThat(result.getNickName()).isEqualTo("new-user");
+        assertThat(result.getAccessToken()).isEqualTo("app-access-new");
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
         assertThat(userCaptor.getValue().getProvider()).isEqualTo("GOOGLE");
         assertThat(userCaptor.getValue().getProviderId()).isEqualTo("google-sub-new");
+        server.verify();
     }
 }

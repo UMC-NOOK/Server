@@ -75,7 +75,7 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                         .willReturn(response);
 
                 // when & then
-                mockMvc.perform(post("/api/images/upload-url")
+                mockMvc.perform(post("/api/v1/images/upload-url")
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(
@@ -117,7 +117,7 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                         .willReturn(response);
 
                 // when & then
-                mockMvc.perform(post("/api/images/upload-urls")
+                mockMvc.perform(post("/api/v1/images/upload-urls")
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(
@@ -155,7 +155,7 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
             @WithCustomUser
             void 단건_업로드_URL_발급_실패_유효하지않은_파일타입() throws Exception {
                 // when & then
-                mockMvc.perform(post("/api/images/upload-url")
+                mockMvc.perform(post("/api/v1/images/upload-url")
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(
