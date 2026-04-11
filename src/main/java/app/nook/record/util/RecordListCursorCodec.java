@@ -1,7 +1,7 @@
 package app.nook.record.util;
 
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
+import app.nook.global.response.CommonErrorCode;
 import app.nook.record.dto.RecordListCursor;
 
 import java.nio.charset.StandardCharsets;
@@ -38,7 +38,7 @@ public final class RecordListCursorCodec {
             );
             String[] parts = payload.split("\\|", -1);
             if (parts.length != 3) {
-                throw new CustomException(ErrorCode.INVALID_REQUEST);
+                throw new CustomException(CommonErrorCode.INVALID_REQUEST);
             }
 
             Long lastCount = parseLong(parts[0]);
@@ -48,7 +48,7 @@ public final class RecordListCursorCodec {
             RecordListCursor cursor = new RecordListCursor(lastCount, bookId, lastCreatedDate);
             return cursor.isEmpty() ? null : cursor;
         } catch (IllegalArgumentException exception) {
-            throw new CustomException(ErrorCode.INVALID_REQUEST);
+            throw new CustomException(CommonErrorCode.INVALID_REQUEST);
         }
     }
 

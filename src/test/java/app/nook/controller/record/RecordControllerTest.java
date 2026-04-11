@@ -89,7 +89,8 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     "한강",
                     "가장 오래 남았던 문장을 기록한 독서 메모입니다.",
                     "https://cdn.example.com/books/101.png",
-                    4L
+                    4L,
+                    java.time.LocalDateTime.of(2026, 4, 5, 10, 0)
             );
             BookRecordDto.BookRecordItemDto secondItem = new BookRecordDto.BookRecordItemDto(
                     99L,
@@ -97,7 +98,8 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     "한강",
                     "감정이 크게 남은 부분을 짧게 정리한 기록입니다.",
                     "https://cdn.example.com/books/99.png",
-                    2L
+                    2L,
+                    java.time.LocalDateTime.of(2026, 4, 1, 9, 30)
             );
             String encodedCursor = RecordListCursorCodec.encode(
                     new RecordListCursor(null, 99L, java.time.LocalDateTime.of(2026, 4, 1, 9, 30))
@@ -112,7 +114,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     .willReturn(response);
 
             // when & then
-            mockMvc.perform(get("/api/records")
+            mockMvc.perform(get("/api/v1/records")
                             .header(AUTH_HEADER, AUTH_TOKEN)
                             .param("size", "2")
                             .param("order", SortType.RECENT_RECORDED.name()))
@@ -144,6 +146,34 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
 
         @Test
         @WithCustomUser
+        void 독서_기록_목록_조회_잘못된_커서() throws Exception {
+            // when & then
+            mockMvc.perform(get("/api/v1/records")
+                            .header(AUTH_HEADER, AUTH_TOKEN)
+                            .param("cursor", "invalid-base64!!"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("COMMON-002"));
+
+            org.mockito.Mockito.verify(recordViewService, org.mockito.Mockito.never())
+                    .getUserRecords(any(), anyInt(), any(), any());
+        }
+
+        @Test
+        @WithCustomUser
+        void 독서_기록_목록_조회_잘못된_정렬값() throws Exception {
+            // when & then
+            mockMvc.perform(get("/api/v1/records")
+                            .header(AUTH_HEADER, AUTH_TOKEN)
+                            .param("order", "BAD_ORDER"))
+                    .andExpect(status().isBadRequest());
+
+            org.mockito.Mockito.verify(recordViewService, org.mockito.Mockito.never())
+                    .getUserRecords(any(), anyInt(), any(), any());
+        }
+
+        @Test
+        @WithCustomUser
         void 독서_기록_목록_조회_데이터없음_204() throws Exception {
             // given
             CursorResponse<BookRecordDto.BookRecordItemDto, String> response = CursorResponse.of(
@@ -156,7 +186,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     .willReturn(response);
 
             // when & then
-            mockMvc.perform(get("/api/records")
+            mockMvc.perform(get("/api/v1/records")
                             .header(AUTH_HEADER, AUTH_TOKEN))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.isSuccess").value(true))
@@ -208,7 +238,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     .willReturn(response);
 
             // when & then
-            mockMvc.perform(get("/api/records/books/{bookId}", 101L)
+            mockMvc.perform(get("/api/v1/records/books/{bookId}", 101L)
                             .header(AUTH_HEADER, AUTH_TOKEN)
                             .param("size", "2")
                             .param("emotion", "FUN"))
@@ -254,7 +284,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     .willReturn(response);
 
             // when & then
-            mockMvc.perform(get("/api/records/books/{bookId}", 101L)
+            mockMvc.perform(get("/api/v1/records/books/{bookId}", 101L)
                             .header(AUTH_HEADER, AUTH_TOKEN)
                             .param("emotion", "ALL"))
                     .andExpect(status().isOk())
@@ -295,7 +325,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     .willReturn(response);
 
             // when & then
-            mockMvc.perform(get("/api/records/emotions")
+            mockMvc.perform(get("/api/v1/records/emotions")
                             .header(AUTH_HEADER, AUTH_TOKEN))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result.totalCount").value(7))
