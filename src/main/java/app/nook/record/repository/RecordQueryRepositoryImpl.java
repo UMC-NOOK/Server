@@ -61,7 +61,8 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
                                 .orderBy(subRecord.createdDate.desc())
                                 .limit(1),
                         record.library.book.coverImageUrl,
-                        recordCount
+                        recordCount,
+                        lastCreatedDate
                 ))
                 .from(record)
                 .join(record.library, library)
@@ -79,20 +80,6 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
                 .orderBy(orderByConditions(sortType, recordCount, book.id, lastCreatedDate))
                 .limit(size + 1)
                 .fetch();
-    }
-
-    public LocalDateTime findBookBoundaryCreatedDate(Long userId, Long bookId, SortType sortType) {
-        QLibrary library = QLibrary.library;
-
-        return queryFactory
-                .select(sortDateExpression(sortType))
-                .from(record)
-                .join(record.library, library)
-                .where(
-                        library.user.id.eq(userId),
-                        library.book.id.eq(bookId)
-                )
-                .fetchOne();
     }
 
     // 감정 필터

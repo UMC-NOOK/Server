@@ -36,7 +36,15 @@ include::{snippets}/library-controller-test/읽기전_상태_책_5권_조회_성
 include::{snippets}/library-controller-test/읽기전_상태_책_5권_조회_성공/http-response.adoc[]
 include::{snippets}/library-controller-test/읽기전_상태_책_5권_조회_성공/response-fields.adoc[]
 
-=== 최근 포커스 기록 조회
+
+=== 서재에 등록한 책 개수 조회(홈)
+
+include::{snippets}/success/view-book-count/http-request.adoc[]
+include::{snippets}/success/view-book-count/request-headers.adoc[]
+include::{snippets}/success/view-book-count/http-response.adoc[]
+include::{snippets}/success/view-book-count/response-fields.adoc[]
+
+=== 최근 포커스 기록 조회 (홈-이어서 포커스하기)
 
 ==== 데이터 있음 (200)
 
@@ -45,13 +53,14 @@ include::{snippets}/success/최근_포커스_도서_조회_성공/request-header
 include::{snippets}/success/최근_포커스_도서_조회_성공/http-response.adoc[]
 include::{snippets}/success/최근_포커스_도서_조회_성공/response-fields.adoc[]
 
-==== 데이터 없음 (204)
+==== 데이터 없음 (빈 응답)
 
-include::{snippets}/success/최근_포커스_도서_조회_데이터없음_204/http-request.adoc[]
-include::{snippets}/success/최근_포커스_도서_조회_데이터없음_204/request-headers.adoc[]
-include::{snippets}/success/최근_포커스_도서_조회_데이터없음_204/http-response.adoc[]
+include::{snippets}/success/최근_포커스_도서_조회_데이터없음_204/http-request.adoc[opts=optional]
+include::{snippets}/success/최근_포커스_도서_조회_데이터없음_204/request-headers.adoc[opts=optional]
+include::{snippets}/success/최근_포커스_도서_조회_데이터없음_204/http-response.adoc[opts=optional]
+include::{snippets}/success/최근_포커스_도서_조회_데이터없음_204/response-fields.adoc[opts=optional]
 
-=== 서재 월별 포커스 통계 조회
+=== 서재 월별 포커스 통계 조회(홈)
 
 include::{snippets}/success/view-monthly-stats/http-request.adoc[]
 include::{snippets}/success/view-monthly-stats/request-headers.adoc[]
@@ -59,7 +68,7 @@ include::{snippets}/success/view-monthly-stats/query-parameters.adoc[]
 include::{snippets}/success/view-monthly-stats/http-response.adoc[]
 include::{snippets}/success/view-monthly-stats/response-fields.adoc[]
 
-=== 서재 월별 포커스 시간 통계 조회
+=== 서재 월별 포커스 시간 통계 조회(홈)
 
 include::{snippets}/success/view-focus-monthly-stats/http-request.adoc[]
 include::{snippets}/success/view-focus-monthly-stats/request-headers.adoc[]

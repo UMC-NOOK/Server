@@ -2,7 +2,7 @@ package app.nook.record.service;
 
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
+import app.nook.global.response.CommonErrorCode;
 import app.nook.record.converter.RecordConverter;
 import app.nook.record.domain.Record;
 import app.nook.record.domain.enums.Emotion;
@@ -57,7 +57,7 @@ public class RecordViewService {
 
         // 다음 커서는 마지막 항목의 id, 다음 커서가 없으면 null
         RecordListCursor nextCursor = hasNext
-                ? toNextCursor(user.getId(), pageContent.get(pageContent.size() - 1), sortType)
+                ? toNextCursor(pageContent.get(pageContent.size() - 1), sortType)
                 : null;
 
         return CursorResponse.of(pageContent, RecordListCursorCodec.encode(nextCursor), hasNext);
@@ -103,12 +103,12 @@ public class RecordViewService {
         return CursorResponse.of(items, nextCursor, hasNext);
     }
 
-    private RecordListCursor toNextCursor(Long userId, BookRecordDto.BookRecordItemDto item, SortType sortType) {
+    private RecordListCursor toNextCursor(BookRecordDto.BookRecordItemDto item, SortType sortType) {
         return switch (sortType) {
             case RECENT_RECORDED, OLDEST_RECORDED -> new RecordListCursor(
                     null,
                     item.bookId(),
-                    recordRepository.findBookBoundaryCreatedDate(userId, item.bookId(), sortType)
+                    item.lastCreatedDate()
             );
             case RECORD_COUNT_ASC, RECORD_COUNT_DESC -> new RecordListCursor(
                     item.recordCount(),
@@ -126,7 +126,7 @@ public class RecordViewService {
         try {
             return Emotion.valueOf(emotion.trim().toUpperCase());
         } catch (IllegalArgumentException exception) {
-            throw new CustomException(ErrorCode.INVALID_REQUEST);
+            throw new CustomException(CommonErrorCode.INVALID_REQUEST);
         }
     }
 

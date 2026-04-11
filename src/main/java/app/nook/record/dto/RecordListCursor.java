@@ -4,6 +4,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 
+// 기록 복합 키 커서
 public record RecordListCursor(
         Long lastCount,
         Long bookId,

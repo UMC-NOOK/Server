@@ -2,8 +2,10 @@ package app.nook.record.dto;
 
 import app.nook.r2.dto.ImageUrlResponseDto;
 import app.nook.record.domain.enums.Emotion;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record BookRecordDto(
@@ -15,7 +17,8 @@ public record BookRecordDto(
             String author,
             String recordContent,
             String coverImageUrl,
-            Long recordCount
+            Long recordCount,
+            @JsonIgnore LocalDateTime lastCreatedDate
     ){}
 
     public record RecordItemDto(

@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @Api1Version
 @RequiredArgsConstructor
-@RequestMapping("/api/records")
+@RequestMapping("/records")
 @Validated
 public class RecordController {
 
@@ -110,7 +110,7 @@ public class RecordController {
             @PathVariable Long recordId
     ) {
         recordService.deleteRecord(user, recordId);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
+        return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
     }
 
     @GetMapping("/count")

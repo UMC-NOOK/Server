@@ -12,7 +12,6 @@ public interface RecordQueryRepository {
     public List<BookRecordDto.BookRecordItemDto> findRecordsByCursor(
             Long userId, RecordListCursor cursor, SortType sortType, int size
     );
-    public java.time.LocalDateTime findBookBoundaryCreatedDate(Long userId, Long bookId, SortType sortType);
     public List<Record> findBookRecordsByCursor(
             Long userId, Long bookId, Long cursor, Emotion emotion, int size
     );
