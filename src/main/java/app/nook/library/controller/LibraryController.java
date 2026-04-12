@@ -46,7 +46,7 @@ public class LibraryController {
             @PathVariable Long bookId
     ) {
         libraryService.deleteById(user, bookId);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
+        return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
     }
 
     // 서재 책 상태 변경
@@ -84,7 +84,7 @@ public class LibraryController {
 
     // 해당 날짜의 포커스 기록 반환
     @GetMapping("/focus-records")
-    public ApiResponse<CursorResponse<LibraryViewDto.UserBookResponseDto>> viewFocusRecordByDate(
+    public ApiResponse<CursorResponse<LibraryViewDto.UserBookResponseDto, Long>> viewFocusRecordByDate(
             @CurrentUser User user,
             @RequestParam
             @NotNull
@@ -93,7 +93,7 @@ public class LibraryController {
             @RequestParam(required = false) @Min(0) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
-        CursorResponse<LibraryViewDto.UserBookResponseDto> response =
+        CursorResponse<LibraryViewDto.UserBookResponseDto, Long> response =
                 libraryService.viewFocusRecordByDate(user, date, cursor, size);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
@@ -115,8 +115,6 @@ public class LibraryController {
     ) {
         LibraryViewDto.RecentFocusResponseDto response =
                 libraryService.viewRecentFocus(user);
-        if(response == null)
-            return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 

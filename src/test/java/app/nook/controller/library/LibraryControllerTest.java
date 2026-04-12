@@ -167,7 +167,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         LocalDate.of(2025, 1, 1)
                 );
 
-        CursorResponse<LibraryViewDto.UserStatusBookItem> cursorResponse =
+        CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse =
                 CursorResponse.of(List.of(item), 10L, true);
 
         LibraryViewDto.StatusBookResponseDto response =
@@ -278,7 +278,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
 
             @Test
             @WithCustomUser
-            void 최근_포커스_도서_조회_데이터없음_204() throws Exception {
+            void 최근_포커스_도서_조회_데이터없음_빈응답_200() throws Exception {
                 given(libraryService.viewRecentFocus(any())).willReturn(null);
 
                 mockMvc.perform(
@@ -287,7 +287,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         )
                         .andExpect(status().isOk())
                         .andDo(documentWithAuth(
-                                "{class-name}/최근_포커스_도서_조회_데이터없음_204",
+                                "{class-name}/최근_포커스_도서_조회_데이터없음_빈응답_200",
                                 responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
                         ));
             }
@@ -356,7 +356,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         "https://example.com/cover.jpg"
                 );
 
-                CursorResponse<LibraryViewDto.UserBookResponseDto> response =
+                CursorResponse<LibraryViewDto.UserBookResponseDto, Long> response =
                         CursorResponse.of(List.of(item), 77L, true);
 
                 given(libraryService.viewFocusRecordByDate(any(), any(LocalDate.class), any(), anyInt()))

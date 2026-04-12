@@ -90,7 +90,7 @@ public class WebSecurityConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://localhost:8080",
-                "https://nook-app.shop",
+                "https://dev.reading-nook.site",
                 "https://readingnook.netlify.app"
         ));
         config.addAllowedHeader("*");
