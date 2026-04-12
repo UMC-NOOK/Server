@@ -36,7 +36,7 @@ public class LibraryStatsService {
         // Redis ZSET 캐시 확인
         FocusRankDto.MonthlyBooksResponseDto cached = safeLoadMonthlyBooks(userId, yearMonth);
         if (cached != null) {
-            return cached;
+            return resolveMonthlyBookImageUrls(userId, cached);
         }
 
         // 캐시 미스 시 DB 조회
@@ -50,7 +50,7 @@ public class LibraryStatsService {
                 queryResult.cacheRows()
         );
 
-        return queryResult.response();
+        return resolveMonthlyBookImageUrls(userId, queryResult.response());
     }
 
     // 캐시 미스 시 DB에서 조회하는 메서드
@@ -65,7 +65,7 @@ public class LibraryStatsService {
                 .map(row -> new FocusRankDto.MonthlyFocusRow(
                         row.getFocusDate(),
                         row.getBookId(),
-                        presignedUrlService.resolveImageUrl(userId, row.getCoverImageUrl()),
+                        row.getCoverImageUrl(),
                         row.getTotalSec()
                 ))
                 .toList();
@@ -164,6 +164,37 @@ public class LibraryStatsService {
         } catch (RedisOperationException e) {
             log.warn("Redis saveMonthlyFocusTime failed. userId={}, yearMonth={}", userId, yearMonth, e);
         }
+    }
+
+    private FocusRankDto.MonthlyBooksResponseDto resolveMonthlyBookImageUrls(
+            Long userId,
+            FocusRankDto.MonthlyBooksResponseDto response
+    ) {
+        List<FocusRankDto.DailyBookItem> resolvedDays = response.days().stream()
+                .map(day -> {
+                    FocusRankDto.BookCalendarInfo topBook = day.topBook();
+                    if (topBook == null) {
+                        return day;
+                    }
+
+                    String resolvedCoverUrl = presignedUrlService.resolveImageUrl(userId, topBook.coverUrl());
+
+                    return new FocusRankDto.DailyBookItem(
+                            day.date(),
+                            day.bookCount(),
+                            new FocusRankDto.BookCalendarInfo(
+                                    topBook.bookId(),
+                                    resolvedCoverUrl
+                            )
+                    );
+                })
+                .toList();
+
+        return new FocusRankDto.MonthlyBooksResponseDto(
+                response.yearMonth(),
+                response.totalBookCount(),
+                resolvedDays
+        );
     }
 
 }

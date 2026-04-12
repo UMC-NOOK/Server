@@ -20,6 +20,7 @@ public class OnboardingDto {
         @NotEmpty @Size(min = 1, max = 2)
         private List<String> categories;
 
+        @Size(max = 512)
         private String profileImageKey;
     }
 
