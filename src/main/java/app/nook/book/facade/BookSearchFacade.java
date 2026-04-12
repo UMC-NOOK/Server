@@ -10,6 +10,7 @@ import app.nook.book.service.SearchHistoryService;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import app.nook.library.service.LibraryService;
+import app.nook.r2.service.PresignedUrlService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,7 @@ public class BookSearchFacade {
     private final AladinService aladinService;
     private final SearchHistoryService searchHistoryService;
     private final LibraryService libraryService;
+    private final PresignedUrlService presignedUrlService;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     /**
@@ -91,6 +93,10 @@ public class BookSearchFacade {
         Page<Library> result = libraryService.searchBooksInLibrary(userId, keyword, page, DEFAULT_PAGE_SIZE);
         List<BookResponseDto.BookSearchDto> books = result.getContent().stream()
                 .map(BookConverter::toBookSearchDto)
+                // TODO: BookSearchDto를 mutable setter로 후처리하지 말고, 이미지 URL이 반영된 새 DTO를 생성하는 방식으로 정리
+                .peek(book -> book.setCoverImageUrl(
+                        presignedUrlService.resolveImageUrl(userId, book.getCoverImageUrl())
+                ))
                 .toList();
 
         boolean hasNext = result.hasNext();

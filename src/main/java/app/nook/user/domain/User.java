@@ -43,8 +43,8 @@ public class User extends BaseEntity {
 
     private LocalDateTime deletedAt;
 
-    @Column(columnDefinition = "TEXT")
-    private String profileUrl;
+    @Column(name = "profile_image_key", columnDefinition = "TEXT")
+    private String profileImageKey;
 
     private String nickName;
 
@@ -77,10 +77,10 @@ public class User extends BaseEntity {
         this.chatUsage++;
     }
 
-    public void updateOnboarding(short goal, String nickName, String profileUrl, Category preferredCategory) {
+    public void updateOnboarding(short goal, String nickName, String profileImageKey, Category preferredCategory) {
         this.goal = goal;
         this.nickName = nickName;
-        this.profileUrl = profileUrl;
+        this.profileImageKey = profileImageKey;
         this.preferredCategory = preferredCategory;
 
         if (this.onboardingCompletedAt == null) {

@@ -1,6 +1,6 @@
 package app.nook.user.event;
 
-import app.nook.book.service.FileStorageService;
+import app.nook.r2.service.PresignedUrlService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,7 +14,7 @@ import static org.mockito.Mockito.verify;
 class ProfileImageCleanupListenerTest {
 
     @Mock
-    private FileStorageService fileStorageService;
+    private PresignedUrlService presignedUrlService;
 
     @InjectMocks
     private ProfileImageCleanupListener listener;
@@ -26,6 +26,6 @@ class ProfileImageCleanupListenerTest {
 
         listener.handle(event);
 
-        verify(fileStorageService).deleteProfileByUrl("/uploads/profiles/old.png");
+        verify(presignedUrlService).deleteFile("/uploads/profiles/old.png");
     }
 }

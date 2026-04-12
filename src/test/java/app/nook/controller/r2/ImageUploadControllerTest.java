@@ -68,7 +68,7 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                 // given
                 ImageUrlResponseDto response = new ImageUrlResponseDto(
                         "https://example.com/upload/book/test.png",
-                        "book/test.png"
+                        "book/users/1/test.png"
                 );
 
                 given(presignedUrlService.generateUploadUrl(anyLong(), any()))
@@ -85,7 +85,7 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("SUCCESS-200"))
                         .andExpect(jsonPath("$.result.imageUrl").value("https://example.com/upload/book/test.png"))
-                        .andExpect(jsonPath("$.result.key").value("book/test.png"))
+                        .andExpect(jsonPath("$.result.key").value("book/users/1/test.png"))
                         .andDo(documentWithAuth(
                                 "image-upload-controller-test/단건_업로드_URL_발급_성공",
                                 requestFields(
