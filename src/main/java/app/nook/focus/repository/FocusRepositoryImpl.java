@@ -52,7 +52,7 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
                 .select(new QMonthlyFocusStatsDto(
                         focus.focusDate,
                         focus.library.book.id,
-                        focus.library.book.coverImageKey,
+                        focus.library.book.coverImageUrl,
                         totalSecExpr
                 ))
                 .from(focus)
@@ -60,7 +60,7 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
                 .groupBy(
                         focus.focusDate,
                         focus.library.book.id,
-                        focus.library.book.coverImageKey
+                        focus.library.book.coverImageUrl
                 )
                 .orderBy(totalSecExpr.desc())
                 .fetch();

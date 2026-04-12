@@ -15,7 +15,6 @@ import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
-import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +44,6 @@ public class LibraryService {
     private final FocusRepository focusRepository;
     private final TimelineCommandService timelineCommandService;
     private final ApplicationEventPublisher eventPublisher;
-    private final PresignedUrlService presignedUrlService;
 
 
     // 서재 책 개수 조회
@@ -141,7 +139,7 @@ public class LibraryService {
                 );
 
         CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse =
-                toResolvedCursorResponse(user.getId(), libraries.getContent(), size);
+                LibraryConverter.toCursorResponse(libraries.getContent(), size);
 
         int totalCount = 0;
         if (cursor == null) {
@@ -197,7 +195,7 @@ public class LibraryService {
                             focus.getLibrary().getBook().getTitle(),
                             focus.getLibrary().getBook().getAuthor(),
                             focus.getDurationSec() == null ? 0 : focus.getDurationSec(),
-                            presignedUrlService.resolveImageUrl(user.getId(), focus.getLibrary().getBook().getCoverImageKey())
+                            focus.getLibrary().getBook().getCoverImageUrl()
                     ))
                     .toList();
 
@@ -218,7 +216,7 @@ public class LibraryService {
                         library.getBook().getId(),
                         library.getBook().getTitle(),
                         library.getBook().getAuthor(),
-                        presignedUrlService.resolveImageUrl(user.getId(), library.getBook().getCoverImageKey())
+                        library.getBook().getCoverImageUrl()
                 ))
                 .toList();
 
@@ -237,33 +235,6 @@ public class LibraryService {
                     );
                 })
                 .orElse(null);
-    }
-
-    private CursorResponse<LibraryViewDto.UserStatusBookItem, Long> toResolvedCursorResponse(Long userId, List<Library> libraries, int size) {
-        CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse = LibraryConverter.toCursorResponse(libraries, size);
-        List<LibraryViewDto.UserStatusBookItem> resolvedItems = cursorResponse.getItems().stream()
-                .map(item -> resolveStatusBookItem(userId, item))
-                .toList();
-        return CursorResponse.of(resolvedItems, cursorResponse.getNextCursor(), cursorResponse.isHasNext());
-    }
-
-    private LibraryViewDto.UserStatusBookItem resolveStatusBookItem(Long userId, LibraryViewDto.UserStatusBookItem item) {
-        String resolvedCoverUrl = presignedUrlService.resolveImageUrl(userId, item.coverUrl());
-        if (item instanceof LibraryViewDto.BeforeBookItem before) {
-            return new LibraryViewDto.BeforeBookItem(before.bookId(), before.title(), before.author(), resolvedCoverUrl);
-        }
-        if (item instanceof LibraryViewDto.ReadingBookItem reading) {
-            return new LibraryViewDto.ReadingBookItem(reading.bookId(), reading.title(), reading.author(), resolvedCoverUrl, reading.startedAt());
-        }
-        LibraryViewDto.FinishedBookItem finished = (LibraryViewDto.FinishedBookItem) item;
-        return new LibraryViewDto.FinishedBookItem(
-                finished.bookId(),
-                finished.title(),
-                finished.author(),
-                resolvedCoverUrl,
-                finished.startedAt(),
-                finished.endedAt()
-        );
     }
 
 }

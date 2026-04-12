@@ -4,12 +4,12 @@ import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.CategoryRepository;
+import app.nook.book.service.FileStorageService;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.global.response.CommonErrorCode;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.repository.LibraryRepository;
-import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.dto.OnboardingDto;
@@ -23,6 +23,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -46,9 +47,9 @@ class OnboardingServiceTest {
     @Mock
     private LibraryRepository libraryRepository;
     @Mock
-    private ApplicationEventPublisher eventPublisher;
+    private FileStorageService fileStorageService;
     @Mock
-    private PresignedUrlService presignedUrlService;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private OnboardingService onboardingService;
@@ -94,7 +95,7 @@ class OnboardingServiceTest {
         assertThat(user.getGoal()).isEqualTo((short) 30);
         assertThat(user.getNickName()).isEqualTo("newNick");
         assertThat(user.getPreferredCategory().getId()).isEqualTo(101L);
-        verify(presignedUrlService, never()).validateOwnedImageKey(anyLong(), any(), any());
+        verify(fileStorageService, never()).uploadProfile(any());
     }
 
     @Test
@@ -122,62 +123,78 @@ class OnboardingServiceTest {
     @Test
     @DisplayName("completeOnboarding 성공: 프로필 이미지 업로드")
     void completeOnboarding_success_withProfileImage() {
+        MockMultipartFile file = new MockMultipartFile(
+                "profileImage", "p.png", "image/png", "img".getBytes()
+        );
+
         OnboardingDto.CompleteRequest req = new OnboardingDto.CompleteRequest();
         req.setGoal((short) 10);
         req.setNickname("imgNick");
         req.setCategories(List.of("소설/시/희곡"));
-        req.setProfileImageKey("profile/users/1/a.png");
+        req.setProfileImage(file);
 
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, "소설/시/희곡"))
                 .willReturn(Optional.of(fiction));
+        given(fileStorageService.uploadProfile(file)).willReturn("/uploads/profiles/a.png");
 
         onboardingService.completeOnboarding(1L, req);
 
-        assertThat(user.getProfileImageKey()).isEqualTo("profile/users/1/a.png");
-        verify(presignedUrlService).validateOwnedImageKey(1L, "profile/users/1/a.png", "profile");
+        assertThat(user.getProfileUrl()).isEqualTo("/uploads/profiles/a.png");
+        verify(fileStorageService, times(1)).uploadProfile(file);
     }
 
     @Test
     @DisplayName("completeOnboarding 실패 시 새로 업로드한 프로필 이미지를 정리한다")
     void completeOnboarding_fail_cleanupUploadedProfileImage() {
+        MockMultipartFile file = new MockMultipartFile(
+                "profileImage", "p.png", "image/png", "img".getBytes()
+        );
+
         User spyUser = spy(user);
         OnboardingDto.CompleteRequest req = new OnboardingDto.CompleteRequest();
         req.setGoal((short) 10);
         req.setNickname("imgNick");
         req.setCategories(List.of("소설/시/희곡"));
-        req.setProfileImageKey("profile/users/1/new.png");
+        req.setProfileImage(file);
 
         given(userRepository.findById(1L)).willReturn(Optional.of(spyUser));
         given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, "소설/시/희곡"))
                 .willReturn(Optional.of(fiction));
+        given(fileStorageService.uploadProfile(file)).willReturn("/uploads/profiles/new.png");
         doThrow(new RuntimeException("db fail")).when(spyUser)
                 .updateOnboarding(anyShort(), anyString(), anyString(), any());
 
         assertThrows(RuntimeException.class, () -> onboardingService.completeOnboarding(1L, req));
 
-        verify(presignedUrlService).deleteFile("profile/users/1/new.png");
+        verify(fileStorageService).deleteProfileByUrl("/uploads/profiles/new.png");
     }
 
     @Test
     @DisplayName("completeOnboarding 성공 시 기존 프로필 이미지 정리 이벤트를 발행한다")
     void completeOnboarding_success_publishProfileCleanupEvent() {
-        ReflectionTestUtils.setField(user, "profileImageKey", "profile/users/1/old.png");
+        MockMultipartFile file = new MockMultipartFile(
+                "profileImage", "p.png", "image/png", "img".getBytes()
+        );
+
+        ReflectionTestUtils.setField(user, "profileUrl", "/uploads/profiles/old.png");
 
         OnboardingDto.CompleteRequest req = new OnboardingDto.CompleteRequest();
         req.setGoal((short) 10);
         req.setNickname("imgNick");
         req.setCategories(List.of("소설/시/희곡"));
-        req.setProfileImageKey("profile/users/1/new.png");
+        req.setProfileImage(file);
 
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, "소설/시/희곡"))
                 .willReturn(Optional.of(fiction));
+        given(fileStorageService.uploadProfile(file)).willReturn("/uploads/profiles/new.png");
 
         onboardingService.completeOnboarding(1L, req);
 
-        assertThat(user.getProfileImageKey()).isEqualTo("profile/users/1/new.png");
-        verify(eventPublisher).publishEvent(new ProfileImageCleanupEvent("profile/users/1/old.png"));
+        assertThat(user.getProfileUrl()).isEqualTo("/uploads/profiles/new.png");
+        verify(eventPublisher).publishEvent(new ProfileImageCleanupEvent("/uploads/profiles/old.png"));
+        verify(fileStorageService, never()).deleteProfileByUrl("/uploads/profiles/old.png");
     }
 
     @Test

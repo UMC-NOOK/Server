@@ -3,6 +3,8 @@ package app.nook.user.dto;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,8 +22,7 @@ public class OnboardingDto {
         @NotEmpty @Size(min = 1, max = 2)
         private List<String> categories;
 
-        @Size(max = 512)
-        private String profileImageKey;
+        private MultipartFile profileImage;
     }
 
     public record CompleteResponse(

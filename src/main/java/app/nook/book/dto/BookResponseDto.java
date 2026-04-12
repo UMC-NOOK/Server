@@ -13,7 +13,6 @@ public class BookResponseDto {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Setter
     public static class BookDetailDto {
         private String isbn13;
         private Long bookId;
@@ -45,7 +44,6 @@ public class BookResponseDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @Setter
     public static class BookSearchDto { // 검색 결과 DTO
         private String isbn13;
         private String title;
