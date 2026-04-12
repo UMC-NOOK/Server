@@ -8,6 +8,7 @@ import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
 import app.nook.book.dto.BookRequestDto;
 import app.nook.book.dto.BookResponseDto;
+import app.nook.book.event.BookCoverImageCleanupEvent;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
@@ -23,6 +24,7 @@ import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +45,7 @@ public class BookService {
     private final AladinService aladinService;
     private final PersonalizedBestsellerCacheService personalizedBestsellerCacheService;
     private final PresignedUrlService presignedUrlService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ISBN 기반 상세조회: ALADIN 소스만 조회/저장 대상으로 사용
     @Transactional
@@ -59,7 +62,7 @@ public class BookService {
                 updateBookInfo(book, isbn13);
             }
             log.info("[DB_HIT] isbn={}, title='{}'", isbn13, book.getTitle());
-            return withResolvedCoverImage(user.getId(), BookConverter.toBookDetailDto(book, findLibraryId(user, book)));
+            return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibraryId(user, book)));
         }
 
         log.info("[API_FETCH] isbn={}, status='Not found in DB(ALADIN)'", isbn13);
@@ -67,7 +70,7 @@ public class BookService {
         Category category = findCategory(bookDetailDto);
         Book newBook = bookRepository.save(BookConverter.toBook(bookDetailDto, category, SourceType.ALADIN));
         log.info("[BOOK_SAVE] isbn={}, title='{}'", isbn13, bookDetailDto.getTitle());
-        return withResolvedCoverImage(user.getId(), BookConverter.toBookDetailDto(newBook, null));
+        return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(newBook, null));
     }
 
     // bookId 기반 상세조회: USER/ALADIN 공통 상세 진입점
@@ -82,7 +85,7 @@ public class BookService {
             updateBookInfo(book, book.getIsbn13());
         }
 
-        return withResolvedCoverImage(user.getId(), BookConverter.toBookDetailDto(book, findLibraryId(user, book)));
+        return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibraryId(user, book)));
     }
 
     @Transactional
@@ -155,6 +158,9 @@ public class BookService {
 
     // TODO: 응답 DTO 후처리 setter 의존을 제거하고, 최종 coverImageUrl이 계산된 뒤 DTO를 생성하도록 리팩터링
     private BookResponseDto.BookDetailDto withResolvedCoverImage(Long userId, BookResponseDto.BookDetailDto dto) {
+        if (userId == null) {
+            return dto;
+        }
         dto.setCoverImageUrl(presignedUrlService.resolveImageUrl(userId, dto.getCoverImageUrl()));
         return dto;
     }
@@ -163,11 +169,11 @@ public class BookService {
         if (oldCoverImageKey == null || oldCoverImageKey.isBlank() || oldCoverImageKey.equals(newCoverImageKey)) {
             return;
         }
-        try {
-            presignedUrlService.deleteFile(oldCoverImageKey);
-        } catch (RuntimeException e) {
-            log.warn("[BOOK_COVER_IMAGE_CLEANUP_FAILED] key={}", oldCoverImageKey, e);
-        }
+        eventPublisher.publishEvent(new BookCoverImageCleanupEvent(oldCoverImageKey));
+    }
+
+    private Long resolveUserId(User user) {
+        return user == null ? null : user.getId();
     }
 
     private int resolveRecommendationCategoryId(Long userId) {

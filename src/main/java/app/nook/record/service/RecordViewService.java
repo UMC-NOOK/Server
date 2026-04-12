@@ -11,6 +11,7 @@ import app.nook.record.dto.BookRecordDto;
 import app.nook.record.dto.RecordListCursor;
 import app.nook.record.repository.RecordRepository;
 import app.nook.record.util.RecordListCursorCodec;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class RecordViewService {
 
     private final RecordRepository recordRepository;
     private final RecordConverter recordConverter;
+    private final PresignedUrlService presignedUrlService;
 
     /**
      * 독서 기록 목록 조회
@@ -60,7 +62,19 @@ public class RecordViewService {
                 ? toNextCursor(pageContent.get(pageContent.size() - 1), sortType)
                 : null;
 
-        return CursorResponse.of(pageContent, RecordListCursorCodec.encode(nextCursor), hasNext);
+        List<BookRecordDto.BookRecordItemDto> resolvedPageContent = pageContent.stream()
+                .map(item -> new BookRecordDto.BookRecordItemDto(
+                        item.bookId(),
+                        item.title(),
+                        item.author(),
+                        item.recordContent(),
+                        presignedUrlService.resolveImageUrl(user.getId(), item.coverImageUrl()),
+                        item.recordCount(),
+                        item.lastCreatedDate()
+                ))
+                .toList();
+
+        return CursorResponse.of(resolvedPageContent, RecordListCursorCodec.encode(nextCursor), hasNext);
 
     }
 
