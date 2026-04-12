@@ -20,7 +20,7 @@
   import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
   import org.springframework.context.annotation.ComponentScan;
   import org.springframework.context.annotation.FilterType;
-  import org.springframework.http.MediaType;
+  import org.springframework.mock.web.MockMultipartFile;
   import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
   import java.util.Arrays;
@@ -30,13 +30,11 @@
   import static org.mockito.ArgumentMatchers.*;
   import static org.mockito.BDDMockito.given;
   import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-  import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
-  import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-  import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
   import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
   import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
   import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
   import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+  import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
   import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
   import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -250,21 +248,18 @@
           given(userBookFacade.createUserBook(any(), any(BookRequestDto.CreateUserBookRequest.class)))
                   .willReturn(response);
 
-          mockMvc.perform(post("/api/v1/books/user")
-                          .contentType(MediaType.APPLICATION_JSON)
-                          .content("""
-                                  {
-                                    "title":"혼모노",
-                                    "author":"성해은",
-                                    "categoryName":"소설/시/희곡",
-                                    "description":"소개",
-                                    "pages":348,
-                                    "publisher":"민음사",
-                                    "publicationDate":"2023-06-05",
-                                    "isbn13":"9788936439743",
-                                    "coverImageKey":"book/users/1/cover.png"
-                                  }
-                                  """)
+          MockMultipartFile cover = new MockMultipartFile("coverImage", "cover.png", "image/png", "fake".getBytes());
+
+          mockMvc.perform(multipart("/api/v1/books/user")
+                          .file(cover)
+                          .param("title", "혼모노")
+                          .param("author", "성해은")
+                          .param("categoryName", "소설/시/희곡")
+                          .param("description", "소개")
+                          .param("pages", "348")
+                          .param("publisher", "민음사")
+                          .param("publicationDate", "2023-06-05")
+                          .param("isbn13", "9788936439743")
                           .header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.code").value("SUCCESS-201"))
@@ -272,17 +267,6 @@
                   .andExpect(jsonPath("$.result.sourceType").value("USER"))
                   .andDo(documentWithAuth(
                           "{class-name}/{method-name}",
-                          requestFields(
-                                  fieldWithPath("title").description("도서 제목"),
-                                  fieldWithPath("author").description("저자"),
-                                  fieldWithPath("categoryName").description("카테고리명"),
-                                  fieldWithPath("description").description("도서 설명").optional(),
-                                  fieldWithPath("pages").description("페이지 수").optional(),
-                                  fieldWithPath("publisher").description("출판사").optional(),
-                                  fieldWithPath("publicationDate").description("출판일").optional(),
-                                  fieldWithPath("isbn13").description("ISBN13").optional(),
-                                  fieldWithPath("coverImageKey").description("표지 이미지 key").optional()
-                          ),
                           responseFields(ApiResponseSnippet.withResult(
                                   fieldWithPath("result.bookId").description("도서 ID"),
                                   fieldWithPath("result.isbn13").description("ISBN13").optional(),
@@ -325,40 +309,27 @@
           given(userBookFacade.updateUserBook(any(), anyLong(), any(BookRequestDto.UpdateUserBookRequest.class)))
                   .willReturn(response);
 
-          mockMvc.perform(patch("/api/v1/books/user/{bookId}", 101L)
-                          .contentType(MediaType.APPLICATION_JSON)
-                          .content("""
-                                  {
-                                    "title":"혼모노 수정",
-                                    "author":"성해은",
-                                    "categoryName":"소설/시/희곡",
-                                    "description":"소개수정",
-                                    "pages":360,
-                                    "publisher":"민음사",
-                                    "publicationDate":"2024-01-01",
-                                    "isbn13":"9788936439743",
-                                    "coverImageKey":"book/users/1/cover2.png"
-                                  }
-                                  """)
+          MockMultipartFile cover = new MockMultipartFile("coverImage", "cover2.png", "image/png", "fake2".getBytes());
+
+          mockMvc.perform(multipart("/api/v1/books/user/{bookId}", 101L)
+                          .file(cover)
+                          .param("title", "혼모노 수정")
+                          .param("author", "성해은")
+                          .param("categoryName", "소설/시/희곡")
+                          .param("description", "소개수정")
+                          .param("pages", "360")
+                          .param("publisher", "민음사")
+                          .param("publicationDate", "2024-01-01")
+                          .param("isbn13", "9788936439743")
+                          .with(request -> {
+                              request.setMethod("PATCH");
+                              return request;
+                          })
                           .header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.bookId").value(101L))
                   .andDo(documentWithAuth(
                           "{class-name}/{method-name}",
-                          pathParameters(
-                                  parameterWithName("bookId").description("수정할 사용자 도서 ID")
-                          ),
-                          requestFields(
-                                  fieldWithPath("title").description("도서 제목"),
-                                  fieldWithPath("author").description("저자"),
-                                  fieldWithPath("categoryName").description("카테고리명"),
-                                  fieldWithPath("description").description("도서 설명").optional(),
-                                  fieldWithPath("pages").description("페이지 수").optional(),
-                                  fieldWithPath("publisher").description("출판사").optional(),
-                                  fieldWithPath("publicationDate").description("출판일").optional(),
-                                  fieldWithPath("isbn13").description("ISBN13").optional(),
-                                  fieldWithPath("coverImageKey").description("표지 이미지 key").optional()
-                          ),
                           responseFields(ApiResponseSnippet.withResult(
                                   fieldWithPath("result.bookId").description("도서 ID"),
                                   fieldWithPath("result.isbn13").description("ISBN13").optional(),

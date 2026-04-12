@@ -4,12 +4,12 @@ import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.CategoryRepository;
+import app.nook.book.service.FileStorageService;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.global.response.CommonErrorCode;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.repository.LibraryRepository;
-import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.dto.OnboardingDto;
 import app.nook.user.event.ProfileImageCleanupEvent;
@@ -32,7 +32,7 @@ public class OnboardingService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final LibraryRepository libraryRepository;
-    private final PresignedUrlService presignedUrlService;
+    private final FileStorageService fileStorageService;
     private final ApplicationEventPublisher eventPublisher;
 
 
@@ -43,7 +43,7 @@ public class OnboardingService {
     ) {
         log.info("[ONBOARDING_COMPLETE_START] userId={}, hasProfileImage={}, categoryCount={}",
                 userId,
-                request.getProfileImageKey() != null && !request.getProfileImageKey().isBlank(),
+                request.getProfileImage() != null && !request.getProfileImage().isEmpty(),
                 request.getCategories() == null ? 0 : request.getCategories().size());
 
         User user = getUser(userId);
@@ -72,31 +72,28 @@ public class OnboardingService {
 
         Category preferred = choosePreferredCategory(user, selected);
 
-        String oldProfileImageKey = user.getProfileImageKey();
-        String profileImageKey = oldProfileImageKey;
-        boolean hasNewProfileImage = request.getProfileImageKey() != null && !request.getProfileImageKey().isBlank();
+        String oldProfileUrl = user.getProfileUrl();
+        String profileUrl = oldProfileUrl;
+        boolean hasNewProfileImage = request.getProfileImage() != null && !request.getProfileImage().isEmpty();
+        boolean uploadedNewProfileImage = false;
 
         try {
             if (hasNewProfileImage) {
-                profileImageKey = request.getProfileImageKey().trim();
-                presignedUrlService.validateOwnedImageKey(userId, profileImageKey, "profile");
+                profileUrl = fileStorageService.uploadProfile(request.getProfileImage());
+                uploadedNewProfileImage = true;
             }
 
             user.updateOnboarding(
                     request.getGoal(),
                     request.getNickname(),
-                    profileImageKey,
+                    profileUrl,
                     preferred
             );
 
-            publishProfileCleanupEventIfNeeded(hasNewProfileImage, oldProfileImageKey, profileImageKey);
+            publishProfileCleanupEventIfNeeded(hasNewProfileImage, oldProfileUrl, profileUrl);
         } catch (RuntimeException e) {
-            if (hasNewProfileImage && profileImageKey != null && !profileImageKey.isBlank() && !profileImageKey.equals(oldProfileImageKey)) {
-                try {
-                    presignedUrlService.deleteFile(profileImageKey);
-                } catch (RuntimeException deleteEx) {
-                    log.warn("[PROFILE_IMAGE_ROLLBACK_FAILED] key={}", profileImageKey, deleteEx);
-                }
+            if (uploadedNewProfileImage && profileUrl != null && !profileUrl.isBlank() && !profileUrl.equals(oldProfileUrl)) {
+                fileStorageService.deleteProfileByUrl(profileUrl);
             }
             throw e;
         }
@@ -145,11 +142,11 @@ public class OnboardingService {
         return new OnboardingDto.GoalUpdateResponse(user.getGoal());
     }
 
-    private void publishProfileCleanupEventIfNeeded(boolean hasNewProfileImage, String oldProfileImageKey, String newProfileImageKey) {
-        if (!hasNewProfileImage || oldProfileImageKey == null || oldProfileImageKey.isBlank() || oldProfileImageKey.equals(newProfileImageKey)) {
+    private void publishProfileCleanupEventIfNeeded(boolean hasNewProfileImage, String oldProfileUrl, String newProfileUrl) {
+        if (!hasNewProfileImage || oldProfileUrl == null || oldProfileUrl.isBlank() || oldProfileUrl.equals(newProfileUrl)) {
             return;
         }
-        eventPublisher.publishEvent(new ProfileImageCleanupEvent(oldProfileImageKey));
+        eventPublisher.publishEvent(new ProfileImageCleanupEvent(oldProfileUrl));
     }
 
     private Category choosePreferredCategory(User user, List<Category> selected) {

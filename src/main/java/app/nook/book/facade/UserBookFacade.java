@@ -4,8 +4,8 @@ import app.nook.book.domain.Book;
 import app.nook.book.dto.BookRequestDto;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.service.BookService;
+import app.nook.book.service.FileStorageService;
 import app.nook.library.service.LibraryService;
-import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,20 +20,17 @@ public class UserBookFacade {
 
     private final BookService bookService;
     private final LibraryService libraryService;
-    private final PresignedUrlService presignedUrlService;
+    private final FileStorageService fileStorageService;
 
-    // 표지 key 저장 + USER 도서 저장 + 서재 자동등록
+    // 표지 업로드 + USER 도서 저장 + 서재 자동등록
     @Transactional
     public BookResponseDto.BookDetailDto createUserBook(User user, BookRequestDto.CreateUserBookRequest request) {
-        boolean hasCover = request.coverImageKey() != null && !request.coverImageKey().isBlank();
+        boolean hasCover = request.coverImage() != null && !request.coverImage().isEmpty();
         log.info("[USER_BOOK_CREATE_START] userId={}, hasCover={}", user.getId(), hasCover);
 
-        String coverImageKey = hasCover ? request.coverImageKey().trim() : null;
-        if (coverImageKey != null) {
-            presignedUrlService.validateOwnedImageKey(user.getId(), coverImageKey, "book");
-        }
+        String coverImageUrl = hasCover ? fileStorageService.uploadCover(request.coverImage()) : null;
 
-        Book book = bookService.createUserBook(user, request, coverImageKey);
+        Book book = bookService.createUserBook(user, request, coverImageUrl);
         log.info("[USER_BOOK_CREATE_SAVED] userId={}, bookId={}", user.getId(), book.getId());
 
         // 신규 생성 도서는 생성 즉시 내 서재로 등록
@@ -46,16 +43,14 @@ public class UserBookFacade {
     @Transactional
     public BookResponseDto.BookDetailDto updateUserBook(
             User user, Long bookId, BookRequestDto.UpdateUserBookRequest request) {
-        boolean hasNewCover = request.coverImageKey() != null && !request.coverImageKey().isBlank();
+        boolean hasNewCover = request.coverImage() != null && !request.coverImage().isEmpty();
         log.info("[USER_BOOK_UPDATE_START] userId={}, bookId={}, hasNewCover={}", user.getId(), bookId, hasNewCover);
 
-        String newCoverKey = hasNewCover ? request.coverImageKey().trim() : null;
-        if (newCoverKey != null) {
-            presignedUrlService.validateOwnedImageKey(user.getId(), newCoverKey, "book");
-        }
-        bookService.updateUserBook(user, bookId, request, newCoverKey);
+        String newCoverUrl = hasNewCover ? fileStorageService.uploadCover(request.coverImage()) : null;
+        bookService.updateUserBook(user, bookId, request, newCoverUrl);
 
         log.info("[USER_BOOK_UPDATE_DONE] userId={}, bookId={}", user.getId(), bookId);
         return bookService.getBookDetailById(user, bookId);
     }
 }
+
