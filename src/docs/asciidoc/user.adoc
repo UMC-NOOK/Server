@@ -2,6 +2,9 @@
 
 === 소셜 로그인
 
+`GOOGLE`, `KAKAO` 두 가지 방법으로 소셜 로그인 요청을 보낼 수 있습니다.
+인가 코드를 발급받고 code에 담아서 요청을 보내면 됩니다.
+
 include::{snippets}/auth-controller-test/소셜로그인_성공/http-request.adoc[]
 include::{snippets}/auth-controller-test/소셜로그인_성공/request-fields.adoc[]
 include::{snippets}/auth-controller-test/소셜로그인_성공/http-response.adoc[]
@@ -13,6 +16,13 @@ include::{snippets}/auth-controller-test/dev로그인_성공/http-request.adoc[]
 include::{snippets}/auth-controller-test/dev로그인_성공/request-fields.adoc[]
 include::{snippets}/auth-controller-test/dev로그인_성공/http-response.adoc[]
 include::{snippets}/auth-controller-test/dev로그인_성공/response-fields.adoc[]
+
+=== DEV 회원가입
+
+include::{snippets}/auth-controller-test/dev회원가입_성공/http-request.adoc[]
+include::{snippets}/auth-controller-test/dev회원가입_성공/request-fields.adoc[]
+include::{snippets}/auth-controller-test/dev회원가입_성공/http-response.adoc[]
+include::{snippets}/auth-controller-test/dev회원가입_성공/response-fields.adoc[]
 
 == 온보딩
 

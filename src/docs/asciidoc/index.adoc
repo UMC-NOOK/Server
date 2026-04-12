@@ -16,12 +16,10 @@ include::library.adoc[]
 
 == 기록
 include::reading-record.adoc[]
+include::record-query.adoc[]
 
 == 포커스
 include::focus.adoc[]
-
-== 검색
-include::search.adoc[]
 
 == 사진
 include::image.adoc[]

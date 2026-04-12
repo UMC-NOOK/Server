@@ -60,4 +60,6 @@ public class CustomUserDetails implements UserDetails {
         // 계정 상태가 ACTIVE일 때만 인증 허용
         return user.getStatus() == UserStatus.ACTIVE;
     }
+
+
 }

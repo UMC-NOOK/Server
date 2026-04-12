@@ -5,7 +5,8 @@ import app.nook.book.domain.enums.MallType;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.global.exception.CustomException;
-import app.nook.global.response.ErrorCode;
+import app.nook.global.response.AuthErrorCode;
+import app.nook.global.response.CommonErrorCode;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.r2.service.PresignedUrlService;
@@ -191,7 +192,7 @@ class OnboardingServiceTest {
 
         CustomException ex = assertThrows(CustomException.class,
                 () -> onboardingService.completeOnboarding(1L, req));
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST);
+        assertThat(ex.getErrorCode()).isEqualTo(CommonErrorCode.INVALID_REQUEST);
     }
 
     @Test
@@ -206,7 +207,7 @@ class OnboardingServiceTest {
 
         CustomException ex = assertThrows(CustomException.class,
                 () -> onboardingService.completeOnboarding(1L, req));
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST);
+        assertThat(ex.getErrorCode()).isEqualTo(CommonErrorCode.INVALID_REQUEST);
     }
 
     @Test
@@ -294,6 +295,6 @@ class OnboardingServiceTest {
         CustomException ex = assertThrows(CustomException.class,
                 () -> onboardingService.getOnboardingStatus(999L));
 
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND);
+        assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.USER_NOT_FOUND);
     }
 }

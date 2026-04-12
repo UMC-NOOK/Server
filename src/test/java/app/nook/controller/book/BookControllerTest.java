@@ -85,7 +85,7 @@
 
           given(bookService.getBookDetailByIsbn(any(), eq(isbn13))).willReturn(response);
 
-          mockMvc.perform(get("/api/books/{isbn13}", isbn13).header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/{isbn13}", isbn13).header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.title").value("채식주의자"))
                   .andDo(documentWithAuth(
@@ -115,7 +115,7 @@
       @WithCustomUser
       @DisplayName("잘못된 ISBN 형식으로 조회 시 400 Bad Request")
       void 도서_상세조회_실패_잘못된_ISBN_형식() throws Exception {
-          mockMvc.perform(get("/api/books/{isbn13}", "123").header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/{isbn13}", "123").header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isBadRequest());
       }
 
@@ -127,7 +127,7 @@
           given(bookService.getBookDetailByIsbn(any(), eq(isbn13)))
                   .willThrow(new CustomException(BookErrorCode.BOOK_NOT_FOUND));
 
-          mockMvc.perform(get("/api/books/{isbn13}", isbn13).header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/{isbn13}", isbn13).header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isNotFound());
       }
 
@@ -154,7 +154,7 @@
 
           given(bookService.getBookDetailById(any(), eq(1L))).willReturn(response);
 
-          mockMvc.perform(get("/api/books/id/{bookId}", 1L).header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/id/{bookId}", 1L).header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.bookId").value(1L))
                   .andExpect(jsonPath("$.result.title").value("테스트책"))
@@ -192,7 +192,7 @@
 
           given(bookService.getWeeklyBestsellers()).willReturn(response);
 
-          mockMvc.perform(get("/api/books/bestsellers").header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/bestsellers").header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result[0].title").value("채식주의자"))
                   .andDo(documentWithAuth(
@@ -218,7 +218,7 @@
 
           given(bookService.getPersonalizedBestsellers(any())).willReturn(response);
 
-          mockMvc.perform(get("/api/books/recommendations").header(AUTH_HEADER, AUTH_TOKEN))
+          mockMvc.perform(get("/api/v1/books/recommendations").header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result[0].title").value("채식주의자"))
                   .andDo(documentWithAuth(
@@ -250,7 +250,7 @@
           given(userBookFacade.createUserBook(any(), any(BookRequestDto.CreateUserBookRequest.class)))
                   .willReturn(response);
 
-          mockMvc.perform(post("/api/books/user")
+          mockMvc.perform(post("/api/v1/books/user")
                           .contentType(MediaType.APPLICATION_JSON)
                           .content("""
                                   {
@@ -325,7 +325,7 @@
           given(userBookFacade.updateUserBook(any(), anyLong(), any(BookRequestDto.UpdateUserBookRequest.class)))
                   .willReturn(response);
 
-          mockMvc.perform(patch("/api/books/user/{bookId}", 101L)
+          mockMvc.perform(patch("/api/v1/books/user/{bookId}", 101L)
                           .contentType(MediaType.APPLICATION_JSON)
                           .content("""
                                   {
@@ -345,6 +345,9 @@
                   .andExpect(jsonPath("$.result.bookId").value(101L))
                   .andDo(documentWithAuth(
                           "{class-name}/{method-name}",
+                          pathParameters(
+                                  parameterWithName("bookId").description("수정할 사용자 도서 ID")
+                          ),
                           requestFields(
                                   fieldWithPath("title").description("도서 제목"),
                                   fieldWithPath("author").description("저자"),

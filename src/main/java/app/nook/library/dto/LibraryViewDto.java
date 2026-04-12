@@ -37,7 +37,7 @@ public class LibraryViewDto {
     public record StatusBookResponseDto(
             ReadingStatus readingStatus,
             int totalBookNum,
-            CursorResponse<? extends UserStatusBookItem> bookItems
+            CursorResponse<? extends UserStatusBookItem, Long> bookItems
     ) {}
 
 

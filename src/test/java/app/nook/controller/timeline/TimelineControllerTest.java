@@ -103,7 +103,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                         .willReturn(response);
 
                 mockMvc.perform(
-                                get("/api/library/{libraryId}/timeline/summary", 12L)
+                                get("/api/v1/library/{libraryId}/timeline/summary", 12L)
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )
                         .andExpect(status().isOk())
@@ -149,7 +149,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
             @DisplayName("인증 정보가 없으면 401")
             void getTimelineSummaryWithoutAuth() throws Exception {
                 mockMvc.perform(
-                                get("/api/library/{libraryId}/timeline/summary", 12L)
+                                get("/api/v1/library/{libraryId}/timeline/summary", 12L)
                         )
                         .andExpect(status().isUnauthorized());
             }
@@ -196,7 +196,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                         .willReturn(response);
 
                 mockMvc.perform(
-                                get("/api/library/{libraryId}/timeline", 12L)
+                                get("/api/v1/library/{libraryId}/timeline", 12L)
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )
                         .andExpect(status().isOk())
@@ -231,7 +231,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
             @DisplayName("인증 정보가 없으면 401")
             void invalidSize() throws Exception {
                 mockMvc.perform(
-                                get("/api/library/{libraryId}/timeline", 12L)
+                                get("/api/v1/library/{libraryId}/timeline", 12L)
                         )
                         .andExpect(status().isUnauthorized());
             }
@@ -262,7 +262,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                     .willReturn(response);
 
             mockMvc.perform(
-                            get("/api/library/{libraryId}/timeline/{timelineId}", 12L, 31L)
+                            get("/api/v1/library/{libraryId}/timeline/{timelineId}", 12L, 31L)
                                     .header(AUTH_HEADER, AUTH_TOKEN)
                     )
                     .andExpect(status().isOk())

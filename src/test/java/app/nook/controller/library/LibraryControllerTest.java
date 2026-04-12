@@ -74,7 +74,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        post("/api/library/{bookId}", 1L)
+                        post("/api/v1/library/{bookId}", 1L)
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                                 .with(csrf())
                 )
@@ -95,7 +95,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        delete("/api/library/{bookId}", 1L)
+                        delete("/api/v1/library/{bookId}", 1L)
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                                 .with(csrf())
                 )
@@ -118,7 +118,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        patch("/api/library/status")
+                        patch("/api/v1/library/status")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                                 .header(AUTH_HEADER, AUTH_TOKEN)
@@ -144,7 +144,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 .given(libraryService).changeStatus(any(), any());
 
         mockMvc.perform(
-                        patch("/api/library/status")
+                        patch("/api/v1/library/status")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                                 .header(AUTH_HEADER, AUTH_TOKEN)
@@ -167,7 +167,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         LocalDate.of(2025, 1, 1)
                 );
 
-        CursorResponse<LibraryViewDto.UserStatusBookItem> cursorResponse =
+        CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse =
                 CursorResponse.of(List.of(item), 10L, true);
 
         LibraryViewDto.StatusBookResponseDto response =
@@ -182,7 +182,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        get("/api/library/status")
+                        get("/api/v1/library/status")
                                 .param("status", "READING")
                                 .param("cursor", "10")
                                 .param("size", "2")
@@ -226,7 +226,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
         given(libraryService.viewBeforeReadingBooks(any())).willReturn(response);
 
         mockMvc.perform(
-                        get("/api/library/before-reading")
+                        get("/api/v1/library/before-reading")
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())
@@ -262,7 +262,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 given(libraryService.viewRecentFocus(any())).willReturn(response);
 
                 mockMvc.perform(
-                                get("/api/library/recent-focus")
+                                get("/api/v1/library/recent-focus")
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )
                         .andExpect(status().isOk())
@@ -278,16 +278,16 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
 
             @Test
             @WithCustomUser
-            void 최근_포커스_도서_조회_데이터없음_204() throws Exception {
+            void 최근_포커스_도서_조회_데이터없음_빈응답_200() throws Exception {
                 given(libraryService.viewRecentFocus(any())).willReturn(null);
 
                 mockMvc.perform(
-                                get("/api/library/recent-focus")
+                                get("/api/v1/library/recent-focus")
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )
                         .andExpect(status().isOk())
                         .andDo(documentWithAuth(
-                                "{class-name}/최근_포커스_도서_조회_데이터없음_204",
+                                "{class-name}/최근_포커스_도서_조회_데이터없음_빈응답_200",
                                 responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
                         ));
             }
@@ -310,7 +310,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         .willReturn(new LibraryViewDto.BookCountResponseDto(42));
 
                 mockMvc.perform(
-                                get("/api/library/count")
+                                get("/api/v1/library/count")
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )
                         .andExpect(status().isOk())
@@ -330,7 +330,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
             @Test
             @DisplayName("인증 정보가 없으면 401")
             void viewBookCountWithoutAuth() throws Exception {
-                mockMvc.perform(get("/api/library/count"))
+                mockMvc.perform(get("/api/v1/library/count"))
                         .andExpect(status().isUnauthorized());
             }
         }
@@ -356,14 +356,14 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         "https://example.com/cover.jpg"
                 );
 
-                CursorResponse<LibraryViewDto.UserBookResponseDto> response =
+                CursorResponse<LibraryViewDto.UserBookResponseDto, Long> response =
                         CursorResponse.of(List.of(item), 77L, true);
 
                 given(libraryService.viewFocusRecordByDate(any(), any(LocalDate.class), any(), anyInt()))
                         .willReturn(response);
 
                 mockMvc.perform(
-                                get("/api/library/focus-records")
+                                get("/api/v1/library/focus-records")
                                         .param("date", "2026-02-26")
                                         .param("cursor", "100")
                                         .param("size", "20")
@@ -400,7 +400,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
             @WithCustomUser
             void invalidDateFormat() throws Exception {
                 mockMvc.perform(
-                                get("/api/library/focus-records")
+                                get("/api/v1/library/focus-records")
                                         .param("date", "2026/02/26")
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )

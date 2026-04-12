@@ -65,7 +65,7 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        get("/api/books/search/{type}", "GLOBAL")
+                        get("/api/v1/books/search/{type}", "GLOBAL")
                                 .param("keyword", TEST_KEYWORD)
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                 )
@@ -117,7 +117,7 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        get("/api/books/search/{type}", "GLOBAL")
+                        get("/api/v1/books/search/{type}", "GLOBAL")
                                 .param("keyword", TEST_KEYWORD)
                                 .param("cursor", String.valueOf(cursor))
                                 .header(AUTH_HEADER, AUTH_TOKEN)
@@ -132,7 +132,7 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
     void 도서검색_빈검색어_실패() throws Exception {
         // when & then
         mockMvc.perform(
-                        get("/api/books/search/{type}", "GLOBAL")
+                        get("/api/v1/books/search/{type}", "GLOBAL")
                                 .param("keyword", "") // 빈 문자열
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                 )
@@ -145,7 +145,7 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
     void 도서검색_검색어누락_실패() throws Exception {
         // when & then
         mockMvc.perform(
-                        get("/api/books/search/{type}", "GLOBAL")
+                        get("/api/v1/books/search/{type}", "GLOBAL")
                                 // keyword 파라미터 없음
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                 )
@@ -158,7 +158,7 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
     void 도서검색_음수커서_실패() throws Exception {
         // when & then
         mockMvc.perform(
-                        get("/api/books/search/{type}", "GLOBAL")
+                        get("/api/v1/books/search/{type}", "GLOBAL")
                                 .param("keyword", TEST_KEYWORD)
                                 .param("cursor", "-1") // 음수
                                 .header(AUTH_HEADER, AUTH_TOKEN)
@@ -172,7 +172,7 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
     void 도서검색_잘못된타입_실패() throws Exception {
         // when & then
         mockMvc.perform(
-                        get("/api/books/search/{type}", "INVALID_TYPE")
+                        get("/api/v1/books/search/{type}", "INVALID_TYPE")
                                 .param("keyword", TEST_KEYWORD)
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                 )
@@ -191,7 +191,7 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        get("/api/books/search/{type}/histories", "GLOBAL")
+                        get("/api/v1/books/search/{type}/histories", "GLOBAL")
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())
@@ -221,7 +221,7 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        delete("/api/books/search/{type}/histories?keyword={keyword}", "GLOBAL", TEST_KEYWORD)
+                        delete("/api/v1/books/search/{type}/histories?keyword={keyword}", "GLOBAL", TEST_KEYWORD)
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())
@@ -247,7 +247,7 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
     void 검색기록삭제_검색어누락_실패() throws Exception {
         // when & then
         mockMvc.perform(
-                        delete("/api/books/search/{type}/histories", "GLOBAL")
+                        delete("/api/v1/books/search/{type}/histories", "GLOBAL")
                                 // keyword 파라미터 없음
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                 )
@@ -264,7 +264,7 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
 
         // when & then
         mockMvc.perform(
-                        delete("/api/books/search/{type}/histories/all", "GLOBAL")
+                        delete("/api/v1/books/search/{type}/histories/all", "GLOBAL")
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                 )
                 .andExpect(status().isOk())

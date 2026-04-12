@@ -1,21 +1,22 @@
 package app.nook.user.controller;
 
+import app.nook.global.api.Api1Version;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
+import app.nook.user.annotation.CurrentUser;
+import app.nook.user.domain.User;
 import app.nook.user.dto.OAuthDTO;
 import app.nook.user.dto.UserDTO;
 import app.nook.user.oauth.OAuthService;
-import app.nook.user.service.CustomUserDetails;
 import app.nook.user.service.UserService;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@Api1Version
 @RequiredArgsConstructor
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 public class AuthController {
 
     private final OAuthService oAuthService;
@@ -29,13 +30,11 @@ public class AuthController {
      */
     @PostMapping("/oauth")
     public ApiResponse<UserDTO.LoginResponse> oauthLogin(
-            @Valid @RequestBody OAuthDTO.OAuthLoginRequest request,
-            HttpServletResponse response
+            @Valid @RequestBody OAuthDTO.OAuthLoginRequest request
     ) {
         return ApiResponse.onSuccess(oAuthService.login(
                 request.getProvider(),
-                request.getCode(),
-                response
+                request.getCode()
         ), SuccessCode.OK);
     }
 
@@ -57,11 +56,26 @@ public class AuthController {
         );
     }
 
+    /**
+     * DEV 회원가입
+     * - email 기준 신규 생성
+     * - USER 권한으로 생성 후 로그인 토큰 발급
+     */
+    @PostMapping("/dev/signup")
+    public ApiResponse<UserDTO.LoginResponse> devSignUp(
+            @RequestBody UserDTO.DevSignUpRequest request
+    ) {
+        return ApiResponse.onSuccess(
+                userService.devSignUp(request),
+                SuccessCode.CREATED
+        );
+    }
+
     // 현재 로그인한 유저 확인
     @GetMapping("/me")
     public ApiResponse<UserDTO.LoginResponse> user(
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @CurrentUser User user
             ){
-        return ApiResponse.onSuccess(userService.getThisUser(userDetails.getUser()),SuccessCode.OK);
+        return ApiResponse.onSuccess(userService.getThisUser(user),SuccessCode.OK);
     }
 }

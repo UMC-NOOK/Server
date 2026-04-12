@@ -56,6 +56,13 @@ public class WebSecurityConfig {
                                 "/",
                                 "/docs/**",              // REST Docs
                                 "/index.html",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/actuator/health",
+                                "/actuator/health/**",
+                                "/actuator/info",
+                                "/api/v1/auth/**",
                                 "/api/auth/**",
                                 "/ws/**"
                         ).permitAll()
@@ -83,7 +90,7 @@ public class WebSecurityConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://localhost:8080",
-                "https://nook-app.shop",
+                "https://dev.reading-nook.site",
                 "https://readingnook.netlify.app"
         ));
         config.addAllowedHeader("*");
