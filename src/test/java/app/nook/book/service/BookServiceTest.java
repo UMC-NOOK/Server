@@ -12,6 +12,7 @@ import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.repository.UserRepository;
@@ -26,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -69,6 +71,12 @@ class BookServiceTest {
     @Mock
     private PersonalizedBestsellerCacheService personalizedBestsellerCacheService;
 
+    @Mock
+    private PresignedUrlService presignedUrlService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     @InjectMocks
     private BookService bookService;
 
@@ -92,6 +100,9 @@ class BookServiceTest {
                 .role(UserRole.USER)
                 .build();
         ReflectionTestUtils.setField(testUser, "id", TEST_USER_ID);
+
+        lenient().when(presignedUrlService.resolveImageUrl(anyLong(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
     }
 
     @Test
@@ -159,7 +170,7 @@ class BookServiceTest {
         assertThat(capturedBook.getPublisher()).isEqualTo(apiResponse.getPublisher());
         assertThat(capturedBook.getPages()).isEqualTo(apiResponse.getPages());
         assertThat(capturedBook.getDescription()).isEqualTo(apiResponse.getDescription());
-        assertThat(capturedBook.getCoverImageUrl()).isEqualTo(apiResponse.getCoverImageUrl());
+        assertThat(capturedBook.getCoverImageKey()).isEqualTo(apiResponse.getCoverImageUrl());
         assertThat(capturedBook.getAladinLink()).isEqualTo(apiResponse.getAladinLink());
 
         // SourceType이 ALADIN으로 잘 들어갔는지, 카테고리 연관관계가 잘 맺어졌는지 확인
@@ -385,7 +396,7 @@ class BookServiceTest {
                 .publicationDate("2007-10-30")
                 .pages(pages)
                 .description(TEST_AUTHOR + "의 소설")
-                .coverImageUrl("http://example.com/cover.jpg")
+                .coverImageKey("http://example.com/cover.jpg")
                 .aladinLink("http://aladin.com/book")
                 .sourceType(SourceType.ALADIN)
                 .category(category)

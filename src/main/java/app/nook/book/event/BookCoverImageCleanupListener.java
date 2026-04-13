@@ -1,4 +1,4 @@
-package app.nook.user.event;
+package app.nook.book.event;
 
 import app.nook.r2.service.PresignedUrlService;
 import lombok.RequiredArgsConstructor;
@@ -10,17 +10,17 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ProfileImageCleanupListener {
+public class BookCoverImageCleanupListener {
 
     private final PresignedUrlService presignedUrlService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handle(ProfileImageCleanupEvent event) {
+    public void handle(BookCoverImageCleanupEvent event) {
         try {
-            log.info("[PROFILE_IMAGE_CLEANUP] profileImageKey={}", event.profileImageKey());
-            presignedUrlService.deleteFile(event.profileImageKey());
+            log.info("[BOOK_COVER_IMAGE_CLEANUP] coverImageKey={}", event.coverImageKey());
+            presignedUrlService.deleteFile(event.coverImageKey());
         } catch (RuntimeException e) {
-            log.warn("[PROFILE_IMAGE_CLEANUP_FAILED] profileImageKey={}", event.profileImageKey(), e);
+            log.warn("[BOOK_COVER_IMAGE_CLEANUP_FAILED] coverImageKey={}", event.coverImageKey(), e);
         }
     }
 }

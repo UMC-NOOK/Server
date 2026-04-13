@@ -12,9 +12,11 @@ import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,8 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -69,8 +73,17 @@ class LibraryServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private PresignedUrlService presignedUrlService;
+
     @InjectMocks
     private LibraryService libraryService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(presignedUrlService.resolveImageUrl(anyLong(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+    }
 
     private User user() {
         return User.builder()
@@ -278,12 +291,13 @@ class LibraryServiceTest {
         @DisplayName("첫 조회면 전체 개수를 포함한다")
         void viewBooksByStatus_첫조회_전체개수포함() {
             User user = user();
+            ReflectionTestUtils.setField(user, "id", 1L);
 
             Book book1 = Book.builder()
                     .isbn13("1234567890123")
                     .title("테스트 도서1")
                     .author("작가1")
-                    .coverImageUrl("https://example.com/cover1.jpg")
+                    .coverImageKey("book/users/1/cover1.png")
                     .build();
             ReflectionTestUtils.setField(book1, "id", 1L);
 
@@ -291,7 +305,7 @@ class LibraryServiceTest {
                     .isbn13("1234567890124")
                     .title("테스트 도서2")
                     .author("작가2")
-                    .coverImageUrl("https://example.com/cover2.jpg")
+                    .coverImageKey("https://example.com/cover2.jpg")
                     .build();
             ReflectionTestUtils.setField(book2, "id", 2L);
 
@@ -310,6 +324,9 @@ class LibraryServiceTest {
 
             given(libraryRepository.findByStatusWithCursor(any(), any(), any(), any())).willReturn(slice);
             given(libraryRepository.countByUserAndReadingStatus(any(), any())).willReturn(10L);
+            willReturn("https://r2.example.com/cover1.png")
+                    .given(presignedUrlService)
+                    .resolveImageUrl(1L, "book/users/1/cover1.png");
 
             LibraryViewDto.StatusBookResponseDto response =
                     libraryService.viewBooksByStatus(user, ReadingStatus.READING, null, size);
@@ -317,7 +334,10 @@ class LibraryServiceTest {
             assertThat(response.readingStatus()).isEqualTo(ReadingStatus.READING);
             assertThat(response.totalBookNum()).isEqualTo(10);
             assertThat(response.bookItems().getItems()).hasSize(1);
+            assertThat(response.bookItems().getItems().get(0).coverUrl())
+                    .isEqualTo("https://r2.example.com/cover1.png");
             verify(libraryRepository).countByUserAndReadingStatus(user, ReadingStatus.READING);
+            verify(presignedUrlService).resolveImageUrl(1L, "book/users/1/cover1.png");
         }
 
         @Test
@@ -329,7 +349,7 @@ class LibraryServiceTest {
                     .isbn13("1234567890123")
                     .title("테스트 도서")
                     .author("작가")
-                    .coverImageUrl("https://example.com/cover.jpg")
+                    .coverImageKey("https://example.com/cover.jpg")
                     .build();
             ReflectionTestUtils.setField(book, "id", 1L);
 
@@ -421,14 +441,14 @@ class LibraryServiceTest {
                     .isbn13("1234567890123")
                     .title("도서1")
                     .author("작가1")
-                    .coverImageUrl("cover1")
+                    .coverImageKey("cover1")
                     .build();
             ReflectionTestUtils.setField(book1, "id", 1L);
             Book book2 = Book.builder()
                     .isbn13("1234567890124")
                     .title("도서2")
                     .author("작가2")
-                    .coverImageUrl("cover2")
+                    .coverImageKey("cover2")
                     .build();
             ReflectionTestUtils.setField(book2, "id", 2L);
 
@@ -468,7 +488,7 @@ class LibraryServiceTest {
                     .isbn13("1234567890123")
                     .title("도서1")
                     .author("작가1")
-                    .coverImageUrl("cover1")
+                    .coverImageKey("cover1")
                     .build();
             ReflectionTestUtils.setField(book, "id", 1L);
 
@@ -506,7 +526,7 @@ class LibraryServiceTest {
                     .isbn13("1234567890123")
                     .title("최근 도서")
                     .author("작가")
-                    .coverImageUrl("cover")
+                    .coverImageKey("cover")
                     .build();
             ReflectionTestUtils.setField(book, "id", 11L);
 
