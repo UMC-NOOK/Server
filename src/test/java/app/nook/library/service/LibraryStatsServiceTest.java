@@ -5,7 +5,9 @@ import app.nook.focus.repository.dto.FocusTimeStatsDto;
 import app.nook.focus.repository.dto.MonthlyFocusStatsDto;
 import app.nook.library.dto.FocusRankDto;
 import app.nook.library.dto.FocusTimeSlot;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.redis.service.RedisZSETService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,8 +23,10 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -36,8 +40,17 @@ class LibraryStatsServiceTest {
     @Mock
     private RedisZSETService redisZSETService;
 
+    @Mock
+    private PresignedUrlService presignedUrlService;
+
     @InjectMocks
     private LibraryStatsService libraryStatsService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(presignedUrlService.resolveImageUrl(anyLong(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+    }
 
     private FocusRankDto.MonthlyFocusRow row(
             LocalDate date,

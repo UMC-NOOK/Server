@@ -4,8 +4,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import org.springframework.web.multipart.MultipartFile;
-
 public class BookRequestDto {
 
     public record CreateUserBookRequest(
@@ -35,7 +33,7 @@ public class BookRequestDto {
             @Pattern(regexp = "^(|\\d{1,13})$", message = "ISBN은 숫자만 입력 가능하며 최대 13자리입니다.")
             String isbn13,
 
-            MultipartFile coverImage
+            String coverImageKey
     ) {}
 
         public record UpdateUserBookRequest(
@@ -65,7 +63,7 @@ public class BookRequestDto {
                 @Pattern(regexp = "^(|\\d{1,13})$", message = "ISBN은 숫자만 입력 가능하며 최대 13자리입니다.")
                 String isbn13,
 
-                MultipartFile coverImage
+                String coverImageKey
         ) {}
 
 }

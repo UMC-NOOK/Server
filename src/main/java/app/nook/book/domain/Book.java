@@ -40,8 +40,8 @@ public class Book extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(length = 2000)
-    private String coverImageUrl;
+    @Column(name = "cover_image_key", length = 2000)
+    private String coverImageKey;
 
     @Column(columnDefinition = "TEXT")
     private String aladinLink;
@@ -66,7 +66,7 @@ public class Book extends BaseEntity {
             String publicationDate,
             Integer pages,
             String description,
-            String coverImageUrl,
+            String coverImageKey,
             String aladinLink,
             SourceType sourceType,
             Long createdByUserId,
@@ -79,7 +79,7 @@ public class Book extends BaseEntity {
         this.publicationDate = publicationDate;
         this.pages = pages;
         this.description = description;
-        this.coverImageUrl = coverImageUrl;
+        this.coverImageKey = coverImageKey;
         this.aladinLink = aladinLink;
         this.sourceType = sourceType;
         this.createdByUserId = createdByUserId;
@@ -94,12 +94,12 @@ public class Book extends BaseEntity {
         this.pages = info.getPages();
         this.category = category;
         this.description = info.getDescription();
-        this.coverImageUrl = info.getCoverImageUrl();
+        this.coverImageKey = info.getCoverImageUrl();
         this.aladinLink = info.getAladinLink();
     }
 
     public void updateUserBookInfo(
-            BookRequestDto.UpdateUserBookRequest request, String coverImageUrl, Category category) {
+            BookRequestDto.UpdateUserBookRequest request, String coverImageKey, Category category) {
         this.isbn13 = BookUtils.normalizeIsbn(request.isbn13());
         this.title = request.title();
         this.author = request.author();
@@ -108,8 +108,8 @@ public class Book extends BaseEntity {
         this.pages = request.pages();
         this.description = request.description();
         this.category = category;
-        if (coverImageUrl != null && !coverImageUrl.isBlank()) {
-            this.coverImageUrl = coverImageUrl;
+        if (coverImageKey != null && !coverImageKey.isBlank()) {
+            this.coverImageKey = coverImageKey;
         }
     }
 }

@@ -60,7 +60,7 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
                                 )
                                 .orderBy(subRecord.createdDate.desc())
                                 .limit(1),
-                        record.library.book.coverImageUrl,
+                        record.library.book.coverImageKey,
                         recordCount,
                         lastCreatedDate
                 ))
@@ -74,7 +74,7 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
                         record.library.book.id,
                         record.library.book.title,
                         record.library.book.author,
-                        record.library.book.coverImageUrl
+                        record.library.book.coverImageKey
                 )
                 .having(havingCondition(cursor, sortType, recordCount, book.id, lastCreatedDate))
                 .orderBy(orderByConditions(sortType, recordCount, book.id, lastCreatedDate))

@@ -46,7 +46,7 @@ public class QUser extends EntityPathBase<User> {
 
     public final app.nook.book.domain.QCategory preferredCategory;
 
-    public final StringPath profileUrl = createString("profileUrl");
+    public final StringPath profileImageKey = createString("profileImageKey");
 
     public final StringPath provider = createString("provider");
 

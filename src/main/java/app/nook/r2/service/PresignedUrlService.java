@@ -62,6 +62,7 @@ public class PresignedUrlService {
 
     // 업로드 - 단건
     public ImageUrlResponseDto generateUploadUrl(Long userId, ImageUploadRequestDto requestDto){
+        validateUserId(userId);
         NormalizedUpload normalized = validateAndNormalizeUploadRequest(requestDto);
         String key = buildObjectKey(userId, normalized.contentType(), normalized.extension());
         return generateUploadUrl(key);
@@ -86,18 +87,38 @@ public class PresignedUrlService {
 
     // 조회
     public String getImageUrl(Long userId, String key) {
+        validateOwnedImageKey(userId, key, null);
+        return getPresignedUrl(key).imageUrl();
+    }
+
+    public String resolveImageUrl(Long userId, String keyOrUrl) {
+        if (keyOrUrl == null || keyOrUrl.isBlank()) {
+            return keyOrUrl;
+        }
+        try {
+            return getImageUrl(userId, keyOrUrl);
+        } catch (CustomException e) {
+            if (e.getErrorCode() == FileErrorCode.INVALID_FILE_TYPE) {
+                return keyOrUrl;
+            }
+            throw e;
+        }
+    }
+
+    public void validateOwnedImageKey(Long userId, String key, String expectedContentType) {
+        validateUserId(userId);
         ParsedKey parsedKey = parseKey(key);
+
+        if (expectedContentType != null && !expectedContentType.equals(parsedKey.contentType())) {
+            throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
+        }
         if (!exists(key)) {
             throw new CustomException(FileErrorCode.FILE_NOT_FOUND);
         }
         validateFileSizeByMetadata(key);
-
-        if ("record".equals(parsedKey.contentType())) {
-            if (!isRecordOwner(userId, parsedKey.ownerUserId())) {
-                throw new CustomException(FileErrorCode.FILE_NOT_FOUND);
-            }
+        if (!isOwnedByUser(userId, parsedKey.ownerUserId())) {
+            throw new CustomException(FileErrorCode.FILE_NOT_FOUND);
         }
-        return getPresignedUrl(key).imageUrl();
     }
 
 
@@ -118,6 +139,7 @@ public class PresignedUrlService {
 
      // 파일 수정 - 업로드된 기존 이미지를 삭제하고 새 이미지 업로드
      public ImageUrlResponseDto updateFile(Long userId, String key, ImageUploadRequestDto requestDto) {
+         validateUserId(userId);
          deleteFile(key);
          return generateUploadUrl(userId, requestDto);
      }
@@ -182,13 +204,10 @@ public class PresignedUrlService {
         return normalized;
     }
 
-    // 고유 키 생성
+     // 고유 키 생성
      private String buildObjectKey(Long userId, String contentType, String extension) {
          String uuid = UUID.randomUUID().toString();
-         if ("record".equals(contentType) && userId != null) {
-             return "record/users/" + userId + "/" + uuid + extension;
-         }
-         return contentType + "/" + uuid + extension;
+         return contentType + "/users/" + userId + "/" + uuid + extension;
      }
 
     // 파일 존재 여부 확인 - 메타데이터 확인
@@ -227,29 +246,20 @@ public class PresignedUrlService {
         }
 
         String[] parts = key.split("/");
-        if (parts.length == 2) {
-            String type = parts[0];
-            if (!ALLOWED.contains(type) || "record".equals(type)) {
-                throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
-            }
-            return new ParsedKey(type, null);
-        }
-
-        // record/users/{userId}/{uuid}.png
-        if (parts.length == 4 && "record".equals(parts[0]) && "users".equals(parts[1])) {
+        if (parts.length == 4 && ALLOWED.contains(parts[0]) && "users".equals(parts[1])) {
             Long ownerUserId;
             try {
                 ownerUserId = Long.parseLong(parts[2]);
             } catch (NumberFormatException e) {
                 throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
             }
-            return new ParsedKey("record", ownerUserId);
+            return new ParsedKey(parts[0], ownerUserId);
         }
 
         throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
     }
 
-    private boolean isRecordOwner(Long userId, Long ownerUserId) {
+    private boolean isOwnedByUser(Long userId, Long ownerUserId) {
         if (userId == null || ownerUserId == null) {
             return false;
         }
