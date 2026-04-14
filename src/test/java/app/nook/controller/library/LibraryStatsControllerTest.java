@@ -1,6 +1,5 @@
 package app.nook.controller.library;
 
-import app.nook.focus.repository.FocusRepository;
 import app.nook.global.common.AbstractWebMvcRestDocsTests;
 import app.nook.global.common.security.WithCustomUser;
 import app.nook.global.config.WebSecurityConfig;
@@ -48,9 +47,6 @@ class LibraryStatsControllerTest extends AbstractWebMvcRestDocsTests {
 
     @MockitoBean
     private LibraryStatsService libraryStatsService;
-
-    @MockitoBean
-    private FocusRepository focusRepository;
 
     @DisplayName("월별 포커스 통계 조회")
     @Nested

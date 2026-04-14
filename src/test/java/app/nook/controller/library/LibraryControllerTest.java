@@ -47,6 +47,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.restdocs.payload.JsonFieldType.*;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @WebMvcTest(
         controllers = LibraryController.class,
@@ -215,6 +216,80 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
 
     @Test
     @WithCustomUser
+    void 서재_상태별_책_조회_실패_status_누락() throws Exception {
+        mockMvc.perform(
+                        get("/api/v1/library/status")
+                                .param("size", "20")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isBadRequest())
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}"
+                ));
+
+        verifyNoInteractions(libraryService);
+    }
+
+    @Test
+    @WithCustomUser
+    void 서재_상태별_책_조회_실패_cursor_음수() throws Exception {
+        mockMvc.perform(
+                        get("/api/v1/library/status")
+                                .param("status", "READING")
+                                .param("cursor", "-1")
+                                .param("size", "20")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isBadRequest())
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}"
+                ));
+
+        verifyNoInteractions(libraryService);
+    }
+
+    @Test
+    @WithCustomUser
+    void 서재_상태별_책_조회_실패_size_최소값미만() throws Exception {
+        mockMvc.perform(
+                        get("/api/v1/library/status")
+                                .param("status", "READING")
+                                .param("size", "0")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isBadRequest())
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}"
+                ));
+
+        verifyNoInteractions(libraryService);
+    }
+
+    @Test
+    @WithCustomUser
+    void 서재_상태별_책_조회_실패_size_최대값초과() throws Exception {
+        mockMvc.perform(
+                        get("/api/v1/library/status")
+                                .param("status", "READING")
+                                .param("size", "101")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(libraryService);
+    }
+
+    @Test
+    void 서재_상태별_책_조회_실패_인증없음() throws Exception {
+        mockMvc.perform(
+                        get("/api/v1/library/status")
+                                .param("status", "READING")
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithCustomUser
     void 읽기전_상태_책_5권_조회_성공() throws Exception {
         LibraryViewDto.BeforeReadingResponseDto response = new LibraryViewDto.BeforeReadingResponseDto(
                 List.of(
@@ -255,8 +330,10 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
             void 최근_포커스_도서_조회_데이터있음_200() throws Exception {
                 LibraryViewDto.RecentFocusResponseDto response = new LibraryViewDto.RecentFocusResponseDto(
                         1L,
+                        "https://example.com/cover.jpg",
                         "타이틀",
-                        12
+                        12,
+                        "01:30:00"
                 );
 
                 given(libraryService.viewRecentFocus(any())).willReturn(response);
@@ -270,8 +347,10 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                 "{class-name}/최근_포커스_도서_조회_성공",
                                 responseFields(ApiResponseSnippet.withResult(
                                         fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
+                                        fieldWithPath("result.coverUrl").type(STRING).description("도서 커버 이미지 URL"),
                                         fieldWithPath("result.title").type(STRING).description("도서 제목"),
-                                        fieldWithPath("result.page").type(NUMBER).optional().description("최근 포커스 시 기록된 페이지 (없으면 null)")
+                                        fieldWithPath("result.page").type(NUMBER).optional().description("최근 포커스 시 기록된 페이지 (없으면 null)"),
+                                        fieldWithPath("result.focusTime").type(STRING).description("누적 포커스 시간 (HH:mm:ss 형식)")
                                 ))
                         ));
             }
@@ -336,6 +415,54 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
         }
     }
 
+    @DisplayName("독서 연도 조회")
+    @Nested
+    class ViewReadingYears {
+
+        @DisplayName("성공")
+        @Nested
+        class Success {
+
+            @Test
+            @DisplayName("가입 연도부터 현재 연도까지 연도 목록 반환")
+            @WithCustomUser
+            void viewReadingYears() throws Exception {
+                // given
+                LibraryViewDto.YearResponseDto response =
+                        new LibraryViewDto.YearResponseDto(List.of(2024, 2025, 2026));
+
+                given(libraryService.viewReadingYears(any())).willReturn(response);
+
+                // when & then
+                mockMvc.perform(
+                                get("/api/v1/library/years")
+                                        .header(AUTH_HEADER, AUTH_TOKEN)
+                        )
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.result.years").isArray())
+                        .andDo(documentWithAuth(
+                                "{class-name}/{method-name}",
+                                responseFields(ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.years").type(ARRAY).description("가입 연도부터 현재까지의 연도 목록 (오름차순)")
+                                ))
+                        ));
+            }
+        }
+
+        @DisplayName("실패")
+        @Nested
+        class Failure {
+
+            @Test
+            @DisplayName("인증 정보가 없으면 401")
+            void viewReadingYearsWithoutAuth() throws Exception {
+                mockMvc.perform(get("/api/v1/library/years"))
+                        .andExpect(status().isUnauthorized());
+            }
+        }
+    }
+
     @DisplayName("날짜별 포커스 기록 조회")
     @Nested
     class ViewFocusRecordByDate {
@@ -352,7 +479,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         1L,
                         "타이틀",
                         "작가",
-                        1800,
+                        "00:30:00",
                         "https://example.com/cover.jpg"
                 );
 
@@ -382,7 +509,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.items[].bookId").type(NUMBER).description("도서 ID"),
                                         fieldWithPath("result.items[].title").type(STRING).description("도서 제목"),
                                         fieldWithPath("result.items[].author").type(STRING).description("도서 저자"),
-                                        fieldWithPath("result.items[].focusSec").type(NUMBER).description("해당 포커스 시간(초)"),
+                                        fieldWithPath("result.items[].focusTime").type(STRING).description("해당 포커스 시간 (HH:mm:ss 형식)"),
                                         fieldWithPath("result.items[].coverUrl").type(STRING).description("도서 커버 URL"),
                                         fieldWithPath("result.nextCursor").type(NUMBER).description("다음 커서"),
                                         fieldWithPath("result.hasNext").type(BOOLEAN).description("다음 페이지 존재 여부")

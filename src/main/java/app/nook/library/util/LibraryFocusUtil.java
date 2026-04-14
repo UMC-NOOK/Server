@@ -1,4 +1,4 @@
-package app.nook.library.service;
+package app.nook.library.util;
 
 import app.nook.library.dto.FocusTimeSlot;
 
