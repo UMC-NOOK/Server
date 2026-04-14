@@ -108,7 +108,7 @@ public class LibraryController {
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
-    // 가장 최근에 포커스한 책, page 조회
+    // 가장 최근에 포커스한 책, page, 포커스 시간, 제목 조회
     @GetMapping("/recent-focus")
     public ApiResponse<LibraryViewDto.RecentFocusResponseDto> viewRecentFocus(
             @CurrentUser User user
@@ -118,4 +118,13 @@ public class LibraryController {
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
+    // 독서 연도 표시  API
+    // 사용자 최초 사용 시점부터 현재까지 연도 반환
+    @GetMapping("/years")
+    public ApiResponse<LibraryViewDto.YearResponseDto> viewReadingYears(
+            @CurrentUser User user
+    ) {
+        LibraryViewDto.YearResponseDto response = libraryService.viewReadingYears(user);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
+    }
 }

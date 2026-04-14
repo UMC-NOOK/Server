@@ -31,7 +31,7 @@ public class LibraryViewDto {
             Long bookId,
             String title,
             String author,
-            int focusSec,
+            String focusTime,
             String coverUrl
     ){}
     public record StatusBookResponseDto(
@@ -84,7 +84,13 @@ public class LibraryViewDto {
 
     public record RecentFocusResponseDto(
             Long bookId,
+            String coverUrl,
             String title,
-            Integer page
+            Integer page,
+            String focusTime
     ) {}
+
+    public record YearResponseDto(
+            List<Integer> years
+    ){}
 }

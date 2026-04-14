@@ -14,10 +14,12 @@ import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
+import app.nook.library.util.FocusTimeUtil;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
+import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
@@ -31,9 +33,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +50,7 @@ public class LibraryService {
     private final TimelineCommandService timelineCommandService;
     private final ApplicationEventPublisher eventPublisher;
     private final PresignedUrlService presignedUrlService;
+    private final UserRepository userRepository;
 
 
     // 서재 책 개수 조회
@@ -196,7 +201,7 @@ public class LibraryService {
                             focus.getLibrary().getBook().getId(),
                             focus.getLibrary().getBook().getTitle(),
                             focus.getLibrary().getBook().getAuthor(),
-                            focus.getDurationSec() == null ? 0 : focus.getDurationSec(),
+                            FocusTimeUtil.formatFocusTime(focus.getDurationSec() == null ? 0 : focus.getDurationSec()),
                             presignedUrlService.resolveImageUrl(user.getId(), focus.getLibrary().getBook().getCoverImageKey())
                     ))
                     .toList();
@@ -232,8 +237,10 @@ public class LibraryService {
                     Integer page = currentPage == 0 ? null : currentPage;
                     return new LibraryViewDto.RecentFocusResponseDto(
                             focus.getLibrary().getBook().getId(),
+                            presignedUrlService.resolveImageUrl(user.getId(), focus.getLibrary().getBook().getCoverImageKey()),
                             focus.getLibrary().getBook().getTitle(),
-                            page
+                            page,
+                            FocusTimeUtil.formatFocusTime(focus.getDurationSec() == null ? 0 : focus.getDurationSec())
                     );
                 })
                 .orElse(null);
@@ -264,6 +271,15 @@ public class LibraryService {
                 finished.startedAt(),
                 finished.endedAt()
         );
+    }
+
+    public LibraryViewDto.YearResponseDto viewReadingYears(User user) {
+        int startYear = user.getCreatedDate().getYear();
+        int currentYear = LocalDateTime.now().getYear();
+        List<Integer> years = IntStream.rangeClosed(startYear, currentYear)
+                .boxed()
+                .collect(Collectors.toCollection(ArrayList::new));
+        return new LibraryViewDto.YearResponseDto(years);
     }
 
 }
