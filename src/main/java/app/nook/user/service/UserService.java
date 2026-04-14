@@ -84,8 +84,9 @@ public class UserService {
     }
 
     private void validateDevUserRole(User user) {
+        // DEV 로그인은 USER 권한만 허용 — 다른 역할은 존재하지 않는 것과 동일하게 처리
         if (user.getRole() != UserRole.USER) {
-            throw new CustomException(AuthErrorCode.PERMISSION_DENIED);
+            throw new CustomException(AuthErrorCode.USER_NOT_FOUND);
         }
     }
 

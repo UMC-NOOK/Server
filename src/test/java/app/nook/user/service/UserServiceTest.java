@@ -102,7 +102,7 @@ class UserServiceTest {
                 () -> userService.devLogin("admin@test.com")
         );
 
-        assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.PERMISSION_DENIED);
+        assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.USER_NOT_FOUND);
     }
 
     @Test
