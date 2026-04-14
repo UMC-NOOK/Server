@@ -29,6 +29,26 @@ include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/r
 include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/http-response.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/response-fields.adoc[]
 
+==== 실패 케이스
+
+===== status 누락 (400)
+
+include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_status_누락/http-request.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_status_누락/request-headers.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_status_누락/http-response.adoc[]
+
+===== cursor 음수 (400)
+
+include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_cursor_음수/http-request.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_cursor_음수/request-headers.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_cursor_음수/http-response.adoc[]
+
+===== size 최소값 미만 (400)
+
+include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_size_최소값미만/http-request.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_size_최소값미만/request-headers.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_size_최소값미만/http-response.adoc[]
+
 === 읽기 전 상태의 책 5권 조회
 
 include::{snippets}/library-controller-test/읽기전_상태_책_5권_조회_성공/http-request.adoc[]
@@ -48,17 +68,24 @@ include::{snippets}/success/view-book-count/response-fields.adoc[]
 
 ==== 데이터 있음 (200)
 
-include::{snippets}/library-controller-test/최근_포커스_도서_조회_성공/http-request.adoc[]
-include::{snippets}/library-controller-test/최근_포커스_도서_조회_성공/request-headers.adoc[]
-include::{snippets}/library-controller-test/최근_포커스_도서_조회_성공/http-response.adoc[]
-include::{snippets}/library-controller-test/최근_포커스_도서_조회_성공/response-fields.adoc[]
+include::{snippets}/success/최근_포커스_도서_조회_성공/http-request.adoc[]
+include::{snippets}/success/최근_포커스_도서_조회_성공/request-headers.adoc[]
+include::{snippets}/success/최근_포커스_도서_조회_성공/http-response.adoc[]
+include::{snippets}/success/최근_포커스_도서_조회_성공/response-fields.adoc[]
 
 ==== 데이터 없음 (빈 응답)
 
-include::{snippets}/library-controller-test/최근_포커스_도서_조회_데이터없음_빈응답_200/http-request.adoc[opts=optional]
-include::{snippets}/library-controller-test/최근_포커스_도서_조회_데이터없음_빈응답_200/request-headers.adoc[opts=optional]
-include::{snippets}/library-controller-test/최근_포커스_도서_조회_데이터없음_빈응답_200/http-response.adoc[opts=optional]
-include::{snippets}/library-controller-test/최근_포커스_도서_조회_데이터없음_빈응답_200/response-fields.adoc[opts=optional]
+include::{snippets}/success/최근_포커스_도서_조회_데이터없음_빈응답_200/http-request.adoc[opts=optional]
+include::{snippets}/success/최근_포커스_도서_조회_데이터없음_빈응답_200/request-headers.adoc[opts=optional]
+include::{snippets}/success/최근_포커스_도서_조회_데이터없음_빈응답_200/http-response.adoc[opts=optional]
+include::{snippets}/success/최근_포커스_도서_조회_데이터없음_빈응답_200/response-fields.adoc[opts=optional]
+
+=== 독서 연도 조회 (사용자 가입 연도 ~ 현재)
+
+include::{snippets}/success/view-reading-years/http-request.adoc[]
+include::{snippets}/success/view-reading-years/request-headers.adoc[]
+include::{snippets}/success/view-reading-years/http-response.adoc[]
+include::{snippets}/success/view-reading-years/response-fields.adoc[]
 
 === 서재 월별 포커스 통계 조회(홈)
 
