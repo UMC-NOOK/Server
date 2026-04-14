@@ -15,6 +15,7 @@ public enum CommonErrorCode implements BaseCode {
     INVALID_FORMAT(HttpStatus.BAD_REQUEST, "FORMAT-001", "형식이 올바르지 않습니다."),
     JSON_PARSE_ERROR(HttpStatus.BAD_REQUEST, "COMMON-003", "JSON 파싱에 실패했습니다."),
     CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "COMMON-004", "동시 수정 충돌이 발생했습니다. 잠시 후 다시 시도해주세요."),
+    DUPLICATE_RESOURCE(HttpStatus.CONFLICT, "COMMON-005", "이미 존재하는 데이터입니다."),
 
     // 사용자
     DUPLICATE_NAME(HttpStatus.CONFLICT, "ACCOUNT-002", "중복된 닉네임입니다."),
