@@ -278,8 +278,21 @@ class OnboardingServiceTest {
     }
 
     @Test
-    @DisplayName("getGoal: goal이 0이면 progressPercent는 0")
-    void getGoal_zeroGoal_progressPercentZero() {
+    @DisplayName("getGoal: goal이 0 이하이면 progressPercent는 0")
+    void getGoal_goalLessThanOrEqualToZero_progressPercentZero() {
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(libraryRepository.countByUserAndReadingStatus(user, ReadingStatus.FINISHED)).willReturn(3L);
+
+        OnboardingDto.GoalResponse res = onboardingService.getGoal(1L);
+
+        assertThat(res.remainingCount()).isEqualTo(0);
+        assertThat(res.progressPercent()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("getGoal: goal이 음수이면 progressPercent는 0")
+    void getGoal_negativeGoal_progressPercentZero() {
+        user.updateGoal((short) -1);
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(libraryRepository.countByUserAndReadingStatus(user, ReadingStatus.FINISHED)).willReturn(3L);
 
