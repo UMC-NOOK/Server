@@ -26,29 +26,6 @@ include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/htt
 include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/http-response.adoc[]
 include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/response-fields.adoc[]
 
-=== 내 서재 검색 홈 조회
-
-==== 최근 포커스와 읽기 전이 모두 있는 경우
-
-include::{snippets}/book-search-controller-test/내서재검색홈_조회_성공/http-request.adoc[]
-include::{snippets}/book-search-controller-test/내서재검색홈_조회_성공/http-response.adoc[]
-include::{snippets}/book-search-controller-test/내서재검색홈_조회_성공/response-fields.adoc[]
-
-==== 최근 포커스만 있는 경우
-
-include::{snippets}/book-search-controller-test/내서재검색홈_조회_최근포커스만_성공/http-request.adoc[]
-include::{snippets}/book-search-controller-test/내서재검색홈_조회_최근포커스만_성공/http-response.adoc[]
-
-==== 읽기 전만 있는 경우
-
-include::{snippets}/book-search-controller-test/내서재검색홈_조회_읽기전만_성공/http-request.adoc[]
-include::{snippets}/book-search-controller-test/내서재검색홈_조회_읽기전만_성공/http-response.adoc[]
-
-==== 추천만 있는 경우
-
-include::{snippets}/book-search-controller-test/내서재검색홈_조회_추천만_성공/http-request.adoc[]
-include::{snippets}/book-search-controller-test/내서재검색홈_조회_추천만_성공/http-response.adoc[]
-
 === 도서 카테고리 조회
 
 include::{snippets}/category-controller-test/도서카테고리_조회_성공/http-request.adoc[]
