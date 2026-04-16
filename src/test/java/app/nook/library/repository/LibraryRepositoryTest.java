@@ -1,8 +1,11 @@
 package app.nook.library.repository;
 
 import app.nook.book.domain.Book;
+import app.nook.book.domain.Category;
+import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
 import app.nook.book.repository.BookRepository;
+import app.nook.book.repository.CategoryRepository;
 import app.nook.global.config.QueryDslConfig;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
@@ -34,6 +37,9 @@ class LibraryRepositoryTest {
 
     @Autowired
     private BookRepository bookRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
 
     @Test
     void findByUserAndBook_존재() {
@@ -159,5 +165,305 @@ class LibraryRepositoryTest {
 
         assertThat(nextPage.getContent()).hasSize(1);
         assertThat(nextPage.getContent().get(0).getId()).isEqualTo(oldestId);
+    }
+
+    @Test
+    void findByIdAndUserIdForUpdate_존재하면조회된다() {
+        User user = User.builder()
+                .email("lock@library.com")
+                .nickName("lock")
+                .provider("GOOGLE")
+                .providerId("provider-lock")
+                .build();
+        userRepository.save(user);
+
+        Book book = Book.builder()
+                .isbn13("4444444444444")
+                .title("락 테스트 도서")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        bookRepository.save(book);
+
+        Library library = libraryRepository.save(Library.builder().user(user).book(book).build());
+
+        var found = libraryRepository.findByIdAndUserIdForUpdate(library.getId(), user.getId());
+
+        assertThat(found).isPresent();
+        assertThat(found.get().getId()).isEqualTo(library.getId());
+    }
+
+    @Test
+    void findByIdAndUserId_존재하면조회된다() {
+        User user = User.builder()
+                .email("findbyid@library.com")
+                .nickName("findbyid")
+                .provider("GOOGLE")
+                .providerId("provider-find")
+                .build();
+        userRepository.save(user);
+
+        Book book = Book.builder()
+                .isbn13("5555555555555")
+                .title("일반 조회 도서")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        bookRepository.save(book);
+
+        Library saved = libraryRepository.save(Library.builder().user(user).book(book).build());
+
+        var found = libraryRepository.findByIdAndUserId(saved.getId(), user.getId());
+
+        assertThat(found).isPresent();
+        assertThat(found.get().getId()).isEqualTo(saved.getId());
+    }
+
+    @Test
+    void countByUserAndReadingStatus_상태별개수를반환한다() {
+        User user = User.builder()
+                .email("count-status@library.com")
+                .nickName("count-status")
+                .provider("GOOGLE")
+                .providerId("provider-count-status")
+                .build();
+        userRepository.save(user);
+
+        Book beforeBook = Book.builder()
+                .isbn13("6666666666661")
+                .title("before")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        Book readingBook = Book.builder()
+                .isbn13("6666666666662")
+                .title("reading")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        bookRepository.save(beforeBook);
+        bookRepository.save(readingBook);
+
+        Library beforeLibrary = Library.builder().user(user).book(beforeBook).build();
+        ReflectionTestUtils.setField(beforeLibrary, "readingStatus", ReadingStatus.BEFORE);
+        libraryRepository.save(beforeLibrary);
+
+        Library readingLibrary = Library.builder().user(user).book(readingBook).build();
+        ReflectionTestUtils.setField(readingLibrary, "readingStatus", ReadingStatus.READING);
+        libraryRepository.save(readingLibrary);
+
+        long readingCount = libraryRepository.countByUserAndReadingStatus(user, ReadingStatus.READING);
+        long beforeCount = libraryRepository.countByUserAndReadingStatus(user, ReadingStatus.BEFORE);
+
+        assertThat(readingCount).isEqualTo(1);
+        assertThat(beforeCount).isEqualTo(1);
+    }
+
+    @Test
+    void findIsbnsByUserIdAndIsbnIn_서재보유ISBN만반환한다() {
+        User user = User.builder()
+                .email("isbn@library.com")
+                .nickName("isbn")
+                .provider("GOOGLE")
+                .providerId("provider-isbn")
+                .build();
+        userRepository.save(user);
+
+        Book ownedBook = Book.builder()
+                .isbn13("7777777777777")
+                .title("보유 도서")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        bookRepository.save(ownedBook);
+        libraryRepository.save(Library.builder().user(user).book(ownedBook).build());
+
+        var result = libraryRepository.findIsbnsByUserIdAndIsbnIn(
+                user.getId(),
+                java.util.List.of("7777777777777", "8888888888888")
+        );
+
+        assertThat(result).containsExactly("7777777777777");
+    }
+
+    @Test
+    void searchByUserIdAndKeyword_제목저자ISBN으로검색된다() {
+        User user = User.builder()
+                .email("search@library.com")
+                .nickName("search")
+                .provider("GOOGLE")
+                .providerId("provider-search")
+                .build();
+        userRepository.save(user);
+
+        Category category = categoryRepository.save(
+                Category.of(MallType.BOOK, "소설", 100)
+        );
+
+        Book titleBook = Book.builder()
+                .isbn13("9999999999991")
+                .title("자바의 정석")
+                .author("남궁성")
+                .sourceType(SourceType.ALADIN)
+                .category(category)
+                .build();
+        Book authorBook = Book.builder()
+                .isbn13("9999999999992")
+                .title("스프링 입문")
+                .author("김영한")
+                .sourceType(SourceType.ALADIN)
+                .category(category)
+                .build();
+        Book isbnBook = Book.builder()
+                .isbn13("1231231231231")
+                .title("테스트")
+                .author("익명")
+                .sourceType(SourceType.ALADIN)
+                .category(category)
+                .build();
+        bookRepository.save(titleBook);
+        bookRepository.save(authorBook);
+        bookRepository.save(isbnBook);
+        libraryRepository.save(Library.builder().user(user).book(titleBook).build());
+        libraryRepository.save(Library.builder().user(user).book(authorBook).build());
+        libraryRepository.save(Library.builder().user(user).book(isbnBook).build());
+
+        var titleResult = libraryRepository.searchByUserIdAndKeyword(user.getId(), "자바", PageRequest.of(0, 10));
+        var authorResult = libraryRepository.searchByUserIdAndKeyword(user.getId(), "김영한", PageRequest.of(0, 10));
+        var isbnResult = libraryRepository.searchByUserIdAndKeyword(user.getId(), "1231231231231", PageRequest.of(0, 10));
+
+        assertThat(titleResult.getContent()).hasSize(1);
+        assertThat(titleResult.getContent().get(0).getBook().getTitle()).isEqualTo("자바의 정석");
+        assertThat(authorResult.getContent()).hasSize(1);
+        assertThat(authorResult.getContent().get(0).getBook().getAuthor()).isEqualTo("김영한");
+        assertThat(isbnResult.getContent()).hasSize(1);
+        assertThat(isbnResult.getContent().get(0).getBook().getIsbn13()).isEqualTo("1231231231231");
+    }
+
+    @Test
+    void countByUser_사용자서재총개수를반환한다() {
+        User user = User.builder()
+                .email("count@library.com")
+                .nickName("count")
+                .provider("GOOGLE")
+                .providerId("provider-count")
+                .build();
+        userRepository.save(user);
+
+        Book firstBook = Book.builder()
+                .isbn13("1010101010101")
+                .title("첫 번째")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        Book secondBook = Book.builder()
+                .isbn13("1010101010102")
+                .title("두 번째")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        bookRepository.save(firstBook);
+        bookRepository.save(secondBook);
+        libraryRepository.save(Library.builder().user(user).book(firstBook).build());
+        libraryRepository.save(Library.builder().user(user).book(secondBook).build());
+
+        int count = libraryRepository.countByUser(user);
+
+        assertThat(count).isEqualTo(2);
+    }
+
+    @Test
+    void findByUserIdAndReadingStatusOrderByIdDesc_최신순으로반환한다() {
+        User user = User.builder()
+                .email("before@library.com")
+                .nickName("before")
+                .provider("GOOGLE")
+                .providerId("provider-before")
+                .build();
+        userRepository.save(user);
+
+        Book oldBook = Book.builder()
+                .isbn13("2020202020201")
+                .title("오래된 도서")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        Book newBook = Book.builder()
+                .isbn13("2020202020202")
+                .title("최신 도서")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        bookRepository.save(oldBook);
+        bookRepository.save(newBook);
+
+        Library oldLibrary = Library.builder().user(user).book(oldBook).build();
+        ReflectionTestUtils.setField(oldLibrary, "readingStatus", ReadingStatus.BEFORE);
+        libraryRepository.save(oldLibrary);
+
+        Library newLibrary = Library.builder().user(user).book(newBook).build();
+        ReflectionTestUtils.setField(newLibrary, "readingStatus", ReadingStatus.BEFORE);
+        libraryRepository.save(newLibrary);
+
+        var result = libraryRepository.findByUserIdAndReadingStatusOrderByIdDesc(
+                user.getId(),
+                ReadingStatus.BEFORE,
+                PageRequest.of(0, 5)
+        );
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getId()).isEqualTo(newLibrary.getId());
+        assertThat(result.get(1).getId()).isEqualTo(oldLibrary.getId());
+    }
+
+    @Test
+    void findTopAladinCategoryIdsByUserId_카테고리별집계내림차순반환() {
+        User user = User.builder()
+                .email("topcat@library.com")
+                .nickName("topcat")
+                .provider("GOOGLE")
+                .providerId("provider-topcat")
+                .build();
+        userRepository.save(user);
+
+        Category novel = categoryRepository.save(Category.of(MallType.BOOK, "소설", 1001));
+        Category essay = categoryRepository.save(Category.of(MallType.BOOK, "에세이", 1002));
+
+        Book novelBook1 = Book.builder()
+                .isbn13("3030303030301")
+                .title("소설1")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .category(novel)
+                .build();
+        Book novelBook2 = Book.builder()
+                .isbn13("3030303030302")
+                .title("소설2")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .category(novel)
+                .build();
+        Book essayBook = Book.builder()
+                .isbn13("3030303030303")
+                .title("에세이")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .category(essay)
+                .build();
+        bookRepository.save(novelBook1);
+        bookRepository.save(novelBook2);
+        bookRepository.save(essayBook);
+
+        libraryRepository.save(Library.builder().user(user).book(novelBook1).build());
+        libraryRepository.save(Library.builder().user(user).book(novelBook2).build());
+        libraryRepository.save(Library.builder().user(user).book(essayBook).build());
+
+        var result = libraryRepository.findTopAladinCategoryIdsByUserId(
+                user.getId(),
+                MallType.BOOK,
+                PageRequest.of(0, 3)
+        );
+
+        assertThat(result).containsExactly(1001, 1002);
     }
 }

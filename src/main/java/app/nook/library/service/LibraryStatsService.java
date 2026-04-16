@@ -5,6 +5,8 @@ import app.nook.library.converter.MonthlyBooksStatsMapper;
 import app.nook.library.dto.DailyBookAggregateDto;
 import app.nook.library.dto.FocusRankDto;
 import app.nook.library.dto.MonthlyBooksQueryResultDto;
+import app.nook.library.util.LibraryFocusUtil;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.redis.dto.MonthlyBookCacheRow;
 import app.nook.redis.exception.RedisOperationException;
 import app.nook.redis.service.RedisZSETService;
@@ -28,13 +30,14 @@ public class LibraryStatsService {
 
     private final FocusRepository focusRepository;
     private final RedisZSETService redisZSETService;
+    private final PresignedUrlService presignedUrlService;
 
     // 서재 월별 책 조회 Redis ZSET 캐시 확인, 미스 시 DB 조회
     public FocusRankDto.MonthlyBooksResponseDto viewMonthly(Long userId, YearMonth yearMonth) {
         // Redis ZSET 캐시 확인
         FocusRankDto.MonthlyBooksResponseDto cached = safeLoadMonthlyBooks(userId, yearMonth);
         if (cached != null) {
-            return cached;
+            return resolveMonthlyBookImageUrls(userId, cached);
         }
 
         // 캐시 미스 시 DB 조회
@@ -48,7 +51,7 @@ public class LibraryStatsService {
                 queryResult.cacheRows()
         );
 
-        return queryResult.response();
+        return resolveMonthlyBookImageUrls(userId, queryResult.response());
     }
 
     // 캐시 미스 시 DB에서 조회하는 메서드
@@ -162,6 +165,37 @@ public class LibraryStatsService {
         } catch (RedisOperationException e) {
             log.warn("Redis saveMonthlyFocusTime failed. userId={}, yearMonth={}", userId, yearMonth, e);
         }
+    }
+
+    private FocusRankDto.MonthlyBooksResponseDto resolveMonthlyBookImageUrls(
+            Long userId,
+            FocusRankDto.MonthlyBooksResponseDto response
+    ) {
+        List<FocusRankDto.DailyBookItem> resolvedDays = response.days().stream()
+                .map(day -> {
+                    FocusRankDto.BookCalendarInfo topBook = day.topBook();
+                    if (topBook == null) {
+                        return day;
+                    }
+
+                    String resolvedCoverUrl = presignedUrlService.resolveImageUrl(userId, topBook.coverUrl());
+
+                    return new FocusRankDto.DailyBookItem(
+                            day.date(),
+                            day.bookCount(),
+                            new FocusRankDto.BookCalendarInfo(
+                                    topBook.bookId(),
+                                    resolvedCoverUrl
+                            )
+                    );
+                })
+                .toList();
+
+        return new FocusRankDto.MonthlyBooksResponseDto(
+                response.yearMonth(),
+                response.totalBookCount(),
+                resolvedDays
+        );
     }
 
 }

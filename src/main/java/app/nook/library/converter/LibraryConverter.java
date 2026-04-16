@@ -21,20 +21,20 @@ public class LibraryConverter {
                     library.getBook().getId(),
                     library.getBook().getTitle(),
                     library.getBook().getAuthor(),
-                    library.getBook().getCoverImageUrl()
+                    library.getBook().getCoverImageKey()
             );
             case READING -> new LibraryViewDto.ReadingBookItem(
                     library.getBook().getId(),
                     library.getBook().getTitle(),
                     library.getBook().getAuthor(),
-                    library.getBook().getCoverImageUrl(),
+                    library.getBook().getCoverImageKey(),
                     library.getStartedAt()
             );
             case FINISHED -> new LibraryViewDto.FinishedBookItem(
                     library.getBook().getId(),
                     library.getBook().getTitle(),
                     library.getBook().getAuthor(),
-                    library.getBook().getCoverImageUrl(),
+                    library.getBook().getCoverImageKey(),
                     library.getStartedAt(),
                     library.getEndedAt()
             );
@@ -57,7 +57,7 @@ public class LibraryConverter {
      * 커서 응답 생성
      * ========================= */
 
-    public static CursorResponse<LibraryViewDto.UserStatusBookItem> toCursorResponse(
+    public static CursorResponse<LibraryViewDto.UserStatusBookItem, Long> toCursorResponse(
             List<Library> libraries,
             int size
     ) {
@@ -85,7 +85,7 @@ public class LibraryConverter {
     public static LibraryViewDto.StatusBookResponseDto toStatusBookResponse(
             ReadingStatus readingStatus,
             int totalBookNum,
-            CursorResponse<LibraryViewDto.UserStatusBookItem> cursorResponse
+            CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse
     ) {
         return new LibraryViewDto.StatusBookResponseDto(
                 readingStatus,

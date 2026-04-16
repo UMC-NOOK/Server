@@ -46,7 +46,7 @@ public class LibraryController {
             @PathVariable Long bookId
     ) {
         libraryService.deleteById(user, bookId);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
+        return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
     }
 
     // 서재 책 상태 변경
@@ -84,7 +84,7 @@ public class LibraryController {
 
     // 해당 날짜의 포커스 기록 반환
     @GetMapping("/focus-records")
-    public ApiResponse<CursorResponse<LibraryViewDto.UserBookResponseDto>> viewFocusRecordByDate(
+    public ApiResponse<CursorResponse<LibraryViewDto.UserBookResponseDto, Long>> viewFocusRecordByDate(
             @CurrentUser User user,
             @RequestParam
             @NotNull
@@ -93,7 +93,7 @@ public class LibraryController {
             @RequestParam(required = false) @Min(0) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
-        CursorResponse<LibraryViewDto.UserBookResponseDto> response =
+        CursorResponse<LibraryViewDto.UserBookResponseDto, Long> response =
                 libraryService.viewFocusRecordByDate(user, date, cursor, size);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
@@ -108,16 +108,23 @@ public class LibraryController {
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
-    // 가장 최근에 포커스한 책, page 조회
+    // 가장 최근에 포커스한 책, page, 포커스 시간, 제목 조회
     @GetMapping("/recent-focus")
     public ApiResponse<LibraryViewDto.RecentFocusResponseDto> viewRecentFocus(
             @CurrentUser User user
     ) {
         LibraryViewDto.RecentFocusResponseDto response =
                 libraryService.viewRecentFocus(user);
-        if(response == null)
-            return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
+    // 독서 연도 표시  API
+    // 사용자 최초 사용 시점부터 현재까지 연도 반환
+    @GetMapping("/years")
+    public ApiResponse<LibraryViewDto.YearResponseDto> viewReadingYears(
+            @CurrentUser User user
+    ) {
+        LibraryViewDto.YearResponseDto response = libraryService.viewReadingYears(user);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
+    }
 }

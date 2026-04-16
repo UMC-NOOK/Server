@@ -61,23 +61,23 @@ public class BookController {
                 bookService.getBookDetailById(user, bookId), SuccessCode.OK);
     }
 
-    // 사용자 도서 등록 (multipart/form-data)
-    @PostMapping(value = "/user", consumes = "multipart/form-data")
+    // 사용자 도서 등록
+    @PostMapping("/user")
     public ApiResponse<BookResponseDto.BookDetailDto> createUserBook(
             @CurrentUser User user,
-            @Valid @ModelAttribute BookRequestDto.CreateUserBookRequest request
+            @Valid @RequestBody BookRequestDto.CreateUserBookRequest request
     ) {
         return ApiResponse.onSuccess(
                 userBookFacade.createUserBook(user, request), SuccessCode.CREATED);
     }
 
     // 사용자 도서 수정 (본인 생성 USER 도서만 허용)
-    // coverImage 미전송/null이면 기존 표지 유지, 삭제는 별도 API로 처리
-    @PatchMapping(value = "/user/{bookId}", consumes = "multipart/form-data")
+    // coverImageKey 미전송/null이면 기존 표지 유지, 삭제는 별도 API로 처리
+    @PatchMapping("/user/{bookId}")
     public ApiResponse<BookResponseDto.BookDetailDto> updateUserBook(
             @CurrentUser User user,
             @PathVariable @Positive(message = "bookId는 1 이상이어야 합니다.") Long bookId,
-            @Valid @ModelAttribute BookRequestDto.UpdateUserBookRequest request
+            @Valid @RequestBody BookRequestDto.UpdateUserBookRequest request
     ) {
         return ApiResponse.onSuccess(
                 userBookFacade.updateUserBook(user, bookId, request), SuccessCode.OK

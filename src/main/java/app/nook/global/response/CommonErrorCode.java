@@ -15,14 +15,14 @@ public enum CommonErrorCode implements BaseCode {
     INVALID_FORMAT(HttpStatus.BAD_REQUEST, "FORMAT-001", "형식이 올바르지 않습니다."),
     JSON_PARSE_ERROR(HttpStatus.BAD_REQUEST, "COMMON-003", "JSON 파싱에 실패했습니다."),
     CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "COMMON-004", "동시 수정 충돌이 발생했습니다. 잠시 후 다시 시도해주세요."),
+    DUPLICATE_RESOURCE(HttpStatus.CONFLICT, "COMMON-005", "이미 존재하는 데이터입니다."),
 
     // 사용자
     DUPLICATE_NAME(HttpStatus.CONFLICT, "ACCOUNT-002", "중복된 닉네임입니다."),
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "ACCOUNT-003", "비밀번호가 유효하지 않습니다."),
-    INVALID_REFRESH_TOKEN(HttpStatus.BAD_REQUEST, "ACCOUNT-004", "유효하지 않는 리프레시 토큰입니다."),
+    INVALID_REFRESH_TOKEN(HttpStatus.BAD_REQUEST, "ACCOUNT-004", "유효하지 않은 리프레시 토큰입니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT-011", "리프레시 토큰을 찾을 수 없습니다."),
-    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "ACCOUNT-012", "리프레시 토큰이 만료되었습니다."),
-    REFRESH_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "ACCOUNT-013", "리프레시 토큰이 유효하지 않습니다.");
+    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "ACCOUNT-012", "리프레시 토큰이 만료되었습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

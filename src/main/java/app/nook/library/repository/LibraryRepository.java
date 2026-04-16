@@ -29,7 +29,7 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
         where l.id = :libraryId
           and l.user.id = :userId
     """)
-    java.util.Optional<Library> findByIdAndUserIdForUpdate(
+    Optional<Library> findByIdAndUserIdForUpdate(
             @Param("libraryId") Long libraryId,
             @Param("userId") Long userId
     );

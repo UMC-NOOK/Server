@@ -10,11 +10,15 @@ import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
+import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
+import app.nook.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -41,9 +45,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -69,8 +76,20 @@ class LibraryServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private PresignedUrlService presignedUrlService;
+
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private LibraryService libraryService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(presignedUrlService.resolveImageUrl(anyLong(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+    }
 
     private User user() {
         return User.builder()
@@ -191,6 +210,55 @@ class LibraryServiceTest {
 
             assertThat(ex.getErrorCode()).isEqualTo(LibraryErrorCode.BOOK_NOT_EXIST);
         }
+
+        @Test
+        @DisplayName("도서가 없으면 예외를 던진다")
+        void deleteById_도서없음_예외() {
+            User user = user();
+            given(bookRepository.findById(1L)).willReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class, () -> libraryService.deleteById(user, 1L));
+
+            assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("삭제 시 영향 연월을 중복 제거해 캐시 무효화 이벤트를 발행한다")
+        void deleteById_캐시무효화_이벤트발행() {
+            User user = user();
+            ReflectionTestUtils.setField(user, "id", 1L);
+
+            Book book = Book.builder()
+                    .isbn13("1234567890123")
+                    .title("테스트 도서")
+                    .build();
+            ReflectionTestUtils.setField(book, "id", 1L);
+
+            Library library = Library.builder().user(user).book(book).build();
+            ReflectionTestUtils.setField(library, "id", 10L);
+
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+            given(focusRepository.findDistinctFocusDatesByLibraryAndUser(10L, 1L))
+                    .willReturn(List.of(
+                            LocalDate.of(2026, 2, 1),
+                            LocalDate.of(2026, 2, 5),
+                            LocalDate.of(2026, 3, 1)
+                    ));
+
+            libraryService.deleteById(user, 1L);
+
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.userId().equals(1L)
+                            && cacheEvent.evictStatusFirstPage()
+                            && cacheEvent.affectedYearMonths().containsAll(List.of(
+                            java.time.YearMonth.of(2026, 2),
+                            java.time.YearMonth.of(2026, 3)
+                    ))
+                            && cacheEvent.affectedYearMonths().size() == 2
+            ));
+        }
     }
 
     @Nested
@@ -268,6 +336,45 @@ class LibraryServiceTest {
 
             assertThat(ex.getErrorCode()).isEqualTo(LibraryErrorCode.BOOK_NOT_EXIST);
         }
+
+        @Test
+        @DisplayName("도서가 없으면 예외를 던진다")
+        void changeStatus_도서없음_예외() {
+            User user = user();
+            ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
+            given(bookRepository.findById(1L)).willReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class, () -> libraryService.changeStatus(user, request));
+
+            assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("상태 변경 성공 시 캐시 무효화 이벤트를 발행한다")
+        void changeStatus_성공_이벤트발행() {
+            User user = user();
+            ReflectionTestUtils.setField(user, "id", 1L);
+
+            Book book = Book.builder()
+                    .isbn13("1234567890123")
+                    .title("테스트 도서")
+                    .build();
+
+            Library library = Library.builder().user(user).book(book).build();
+            ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
+
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+
+            libraryService.changeStatus(user, request);
+
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.userId().equals(1L)
+                            && cacheEvent.evictStatusFirstPage()
+                            && cacheEvent.affectedYearMonths().isEmpty()
+            ));
+        }
     }
 
     @Nested
@@ -278,12 +385,13 @@ class LibraryServiceTest {
         @DisplayName("첫 조회면 전체 개수를 포함한다")
         void viewBooksByStatus_첫조회_전체개수포함() {
             User user = user();
+            ReflectionTestUtils.setField(user, "id", 1L);
 
             Book book1 = Book.builder()
                     .isbn13("1234567890123")
                     .title("테스트 도서1")
                     .author("작가1")
-                    .coverImageUrl("https://example.com/cover1.jpg")
+                    .coverImageKey("book/users/1/cover1.png")
                     .build();
             ReflectionTestUtils.setField(book1, "id", 1L);
 
@@ -291,7 +399,7 @@ class LibraryServiceTest {
                     .isbn13("1234567890124")
                     .title("테스트 도서2")
                     .author("작가2")
-                    .coverImageUrl("https://example.com/cover2.jpg")
+                    .coverImageKey("https://example.com/cover2.jpg")
                     .build();
             ReflectionTestUtils.setField(book2, "id", 2L);
 
@@ -310,6 +418,9 @@ class LibraryServiceTest {
 
             given(libraryRepository.findByStatusWithCursor(any(), any(), any(), any())).willReturn(slice);
             given(libraryRepository.countByUserAndReadingStatus(any(), any())).willReturn(10L);
+            willReturn("https://r2.example.com/cover1.png")
+                    .given(presignedUrlService)
+                    .resolveImageUrl(1L, "book/users/1/cover1.png");
 
             LibraryViewDto.StatusBookResponseDto response =
                     libraryService.viewBooksByStatus(user, ReadingStatus.READING, null, size);
@@ -317,7 +428,10 @@ class LibraryServiceTest {
             assertThat(response.readingStatus()).isEqualTo(ReadingStatus.READING);
             assertThat(response.totalBookNum()).isEqualTo(10);
             assertThat(response.bookItems().getItems()).hasSize(1);
+            assertThat(response.bookItems().getItems().get(0).coverUrl())
+                    .isEqualTo("https://r2.example.com/cover1.png");
             verify(libraryRepository).countByUserAndReadingStatus(user, ReadingStatus.READING);
+            verify(presignedUrlService).resolveImageUrl(1L, "book/users/1/cover1.png");
         }
 
         @Test
@@ -329,7 +443,7 @@ class LibraryServiceTest {
                     .isbn13("1234567890123")
                     .title("테스트 도서")
                     .author("작가")
-                    .coverImageUrl("https://example.com/cover.jpg")
+                    .coverImageKey("https://example.com/cover.jpg")
                     .build();
             ReflectionTestUtils.setField(book, "id", 1L);
 
@@ -421,14 +535,14 @@ class LibraryServiceTest {
                     .isbn13("1234567890123")
                     .title("도서1")
                     .author("작가1")
-                    .coverImageUrl("cover1")
+                    .coverImageKey("cover1")
                     .build();
             ReflectionTestUtils.setField(book1, "id", 1L);
             Book book2 = Book.builder()
                     .isbn13("1234567890124")
                     .title("도서2")
                     .author("작가2")
-                    .coverImageUrl("cover2")
+                    .coverImageKey("cover2")
                     .build();
             ReflectionTestUtils.setField(book2, "id", 2L);
 
@@ -455,7 +569,7 @@ class LibraryServiceTest {
             assertThat(result.isHasNext()).isTrue();
             assertThat(result.getNextCursor()).isEqualTo(30L);
             assertThat(result.getItems()).hasSize(1);
-            assertThat(result.getItems().get(0).focusSec()).isEqualTo(120);
+            assertThat(result.getItems().get(0).focusTime()).isEqualTo("00:02:00");
         }
 
         @Test
@@ -468,7 +582,7 @@ class LibraryServiceTest {
                     .isbn13("1234567890123")
                     .title("도서1")
                     .author("작가1")
-                    .coverImageUrl("cover1")
+                    .coverImageKey("cover1")
                     .build();
             ReflectionTestUtils.setField(book, "id", 1L);
 
@@ -489,7 +603,7 @@ class LibraryServiceTest {
             assertThat(result.isHasNext()).isFalse();
             assertThat(result.getNextCursor()).isNull();
             assertThat(result.getItems()).hasSize(1);
-            assertThat(result.getItems().get(0).focusSec()).isZero();
+            assertThat(result.getItems().get(0).focusTime()).isEqualTo("00:00:00");
         }
     }
 
@@ -506,7 +620,7 @@ class LibraryServiceTest {
                     .isbn13("1234567890123")
                     .title("최근 도서")
                     .author("작가")
-                    .coverImageUrl("cover")
+                    .coverImageKey("cover")
                     .build();
             ReflectionTestUtils.setField(book, "id", 11L);
 
@@ -569,6 +683,70 @@ class LibraryServiceTest {
             assertThat(result.get(0).title()).isEqualTo("최근 도서");
             assertThat(result.get(0).author()).isEqualTo("작가");
             assertThat(result.get(0).coverUrl()).isEqualTo("cover");
+        }
+    }
+
+    @Nested
+    @DisplayName("읽기 전 도서 5권 조회")
+    class ViewBeforeReadingBooks {
+
+        @Test
+        @DisplayName("읽기 전 상태 도서 목록을 최대 5건 변환해 반환한다")
+        void viewBeforeReadingBooks_성공() {
+            User user = user();
+            ReflectionTestUtils.setField(user, "id", 1L);
+
+            Book firstBook = Book.builder()
+                    .isbn13("1111111111111")
+                    .title("첫 번째")
+                    .author("저자1")
+                    .coverImageKey("book/users/1/first.png")
+                    .build();
+            ReflectionTestUtils.setField(firstBook, "id", 1L);
+
+            Book secondBook = Book.builder()
+                    .isbn13("2222222222222")
+                    .title("두 번째")
+                    .author("저자2")
+                    .coverImageKey("book/users/1/second.png")
+                    .build();
+            ReflectionTestUtils.setField(secondBook, "id", 2L);
+
+            Library firstLibrary = Library.builder().user(user).book(firstBook).build();
+            Library secondLibrary = Library.builder().user(user).book(secondBook).build();
+
+            given(libraryRepository.findByUserIdAndReadingStatusOrderByIdDesc(
+                    1L, ReadingStatus.BEFORE, PageRequest.of(0, 5)))
+                    .willReturn(List.of(firstLibrary, secondLibrary));
+            given(presignedUrlService.resolveImageUrl(1L, "book/users/1/first.png"))
+                    .willReturn("https://cdn.example.com/first.png");
+            given(presignedUrlService.resolveImageUrl(1L, "book/users/1/second.png"))
+                    .willReturn("https://cdn.example.com/second.png");
+
+            LibraryViewDto.BeforeReadingResponseDto result = libraryService.viewBeforeReadingBooks(user);
+
+            assertThat(result.books()).hasSize(2);
+            assertThat(result.books().get(0).coverUrl()).isEqualTo("https://cdn.example.com/first.png");
+            assertThat(result.books().get(1).coverUrl()).isEqualTo("https://cdn.example.com/second.png");
+        }
+    }
+
+    @Nested
+    @DisplayName("독서 연도 조회")
+    class ViewReadingYears {
+
+        @Test
+        @DisplayName("가입 연도부터 현재 연도까지 오름차순으로 반환한다")
+        void viewReadingYears_성공() {
+            User user = user();
+            ReflectionTestUtils.setField(user, "createdDate", LocalDateTime.of(2024, 1, 1, 0, 0));
+
+            LibraryViewDto.YearResponseDto result = libraryService.viewReadingYears(user);
+
+            int currentYear = LocalDateTime.now().getYear();
+            assertThat(result.years().get(0)).isEqualTo(2024);
+            assertThat(result.years().get(result.years().size() - 1)).isEqualTo(currentYear);
+            assertThat(result.years()).contains(2025);
         }
     }
 }

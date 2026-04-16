@@ -14,9 +14,12 @@ import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
+import app.nook.library.util.FocusTimeUtil;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
+import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
@@ -30,9 +33,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +49,8 @@ public class LibraryService {
     private final FocusRepository focusRepository;
     private final TimelineCommandService timelineCommandService;
     private final ApplicationEventPublisher eventPublisher;
+    private final PresignedUrlService presignedUrlService;
+    private final UserRepository userRepository;
 
 
     // 서재 책 개수 조회
@@ -138,8 +145,8 @@ public class LibraryService {
                         pageable
                 );
 
-        CursorResponse<LibraryViewDto.UserStatusBookItem> cursorResponse =
-                LibraryConverter.toCursorResponse(libraries.getContent(), size);
+        CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse =
+                toResolvedCursorResponse(user.getId(), libraries.getContent(), size);
 
         int totalCount = 0;
         if (cursor == null) {
@@ -169,7 +176,7 @@ public class LibraryService {
 
 
     // 날짜별 포커스 기록 조회 커서 페이징
-    public CursorResponse<LibraryViewDto.UserBookResponseDto> viewFocusRecordByDate(
+    public CursorResponse<LibraryViewDto.UserBookResponseDto, Long> viewFocusRecordByDate(
             User user,
             LocalDate date,
             Long cursor,
@@ -194,8 +201,8 @@ public class LibraryService {
                             focus.getLibrary().getBook().getId(),
                             focus.getLibrary().getBook().getTitle(),
                             focus.getLibrary().getBook().getAuthor(),
-                            focus.getDurationSec() == null ? 0 : focus.getDurationSec(),
-                            focus.getLibrary().getBook().getCoverImageUrl()
+                            FocusTimeUtil.formatFocusTime(focus.getDurationSec() == null ? 0 : focus.getDurationSec()),
+                            presignedUrlService.resolveImageUrl(user.getId(), focus.getLibrary().getBook().getCoverImageKey())
                     ))
                     .toList();
 
@@ -216,7 +223,7 @@ public class LibraryService {
                         library.getBook().getId(),
                         library.getBook().getTitle(),
                         library.getBook().getAuthor(),
-                        library.getBook().getCoverImageUrl()
+                        presignedUrlService.resolveImageUrl(user.getId(), library.getBook().getCoverImageKey())
                 ))
                 .toList();
 
@@ -230,8 +237,10 @@ public class LibraryService {
                     Integer page = currentPage == 0 ? null : currentPage;
                     return new LibraryViewDto.RecentFocusResponseDto(
                             focus.getLibrary().getBook().getId(),
+                            presignedUrlService.resolveImageUrl(user.getId(), focus.getLibrary().getBook().getCoverImageKey()),
                             focus.getLibrary().getBook().getTitle(),
-                            page
+                            page,
+                            FocusTimeUtil.formatFocusTime(focus.getDurationSec() == null ? 0 : focus.getDurationSec())
                     );
                 })
                 .orElse(null);
@@ -243,9 +252,45 @@ public class LibraryService {
                         focus.getLibrary().getBook().getId(),
                         focus.getLibrary().getBook().getTitle(),
                         focus.getLibrary().getBook().getAuthor(),
-                        focus.getLibrary().getBook().getCoverImageUrl()
+                        presignedUrlService.resolveImageUrl(user.getId(), focus.getLibrary().getBook().getCoverImageKey())
                 ))
                 .toList();
+    }
+
+    private CursorResponse<LibraryViewDto.UserStatusBookItem, Long> toResolvedCursorResponse(Long userId, List<Library> libraries, int size) {
+        CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse = LibraryConverter.toCursorResponse(libraries, size);
+        List<LibraryViewDto.UserStatusBookItem> resolvedItems = cursorResponse.getItems().stream()
+                .map(item -> resolveStatusBookItem(userId, item))
+                .toList();
+        return CursorResponse.of(resolvedItems, cursorResponse.getNextCursor(), cursorResponse.isHasNext());
+    }
+
+    private LibraryViewDto.UserStatusBookItem resolveStatusBookItem(Long userId, LibraryViewDto.UserStatusBookItem item) {
+        String resolvedCoverUrl = presignedUrlService.resolveImageUrl(userId, item.coverUrl());
+        if (item instanceof LibraryViewDto.BeforeBookItem before) {
+            return new LibraryViewDto.BeforeBookItem(before.bookId(), before.title(), before.author(), resolvedCoverUrl);
+        }
+        if (item instanceof LibraryViewDto.ReadingBookItem reading) {
+            return new LibraryViewDto.ReadingBookItem(reading.bookId(), reading.title(), reading.author(), resolvedCoverUrl, reading.startedAt());
+        }
+        LibraryViewDto.FinishedBookItem finished = (LibraryViewDto.FinishedBookItem) item;
+        return new LibraryViewDto.FinishedBookItem(
+                finished.bookId(),
+                finished.title(),
+                finished.author(),
+                resolvedCoverUrl,
+                finished.startedAt(),
+                finished.endedAt()
+        );
+    }
+
+    public LibraryViewDto.YearResponseDto viewReadingYears(User user) {
+        int startYear = user.getCreatedDate().getYear();
+        int currentYear = LocalDateTime.now().getYear();
+        List<Integer> years = IntStream.rangeClosed(startYear, currentYear)
+                .boxed()
+                .collect(Collectors.toCollection(ArrayList::new));
+        return new LibraryViewDto.YearResponseDto(years);
     }
 
 }
