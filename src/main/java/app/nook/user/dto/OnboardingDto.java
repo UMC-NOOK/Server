@@ -45,6 +45,7 @@ public class OnboardingDto {
 
     public record GoalResponse(
             short goal,
-            int remainingCount
+            int remainingCount,
+            int progressPercent
     ) {}
 }

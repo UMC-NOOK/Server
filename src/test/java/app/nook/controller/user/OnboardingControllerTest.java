@@ -149,7 +149,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
     @WithCustomUser
     @DisplayName("독서 목표 조회 성공")
     void 독서목표_조회_성공() throws Exception {
-        OnboardingDto.GoalResponse response = new OnboardingDto.GoalResponse((short) 100, 73);
+        OnboardingDto.GoalResponse response = new OnboardingDto.GoalResponse((short) 100, 73, 27);
         given(onboardingService.getGoal(anyLong())).willReturn(response);
 
         mockMvc.perform(get("/api/v1/users/me/onboarding/goal")
@@ -157,12 +157,14 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.goal").value(100))
                 .andExpect(jsonPath("$.result.remainingCount").value(73))
+                .andExpect(jsonPath("$.result.progressPercent").value(27))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         responseFields(
                                 ApiResponseSnippet.withResult(
                                         fieldWithPath("result.goal").description("독서 목표 권수"),
-                                        fieldWithPath("result.remainingCount").description("남은 권수")
+                                        fieldWithPath("result.remainingCount").description("남은 권수"),
+                                        fieldWithPath("result.progressPercent").description("독서 목표 진행률(0~100)")
                                 )
                         )
                 ));

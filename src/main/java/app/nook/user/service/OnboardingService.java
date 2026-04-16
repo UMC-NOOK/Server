@@ -123,12 +123,13 @@ public class OnboardingService {
     public OnboardingDto.GoalResponse getGoal(Long userId) {
         User user = getUser(userId);
         long finishedCount = libraryRepository.countByUserAndReadingStatus(user, ReadingStatus.FINISHED);
-        int remaining = Math.max(0, user.getGoal() - (int) finishedCount);
+        int remaining = calculateRemainingCount(user.getGoal(), finishedCount);
+        int progressPercent = calculateProgressPercent(user.getGoal(), finishedCount);
 
-        log.info("[GOAL_STATUS] userId={}, goal={}, finishedCount={}, remaining={}",
-                userId, user.getGoal(), finishedCount, remaining);
+        log.info("[GOAL_STATUS] userId={}, goal={}, finishedCount={}, remaining={}, progressPercent={}",
+                userId, user.getGoal(), finishedCount, remaining, progressPercent);
 
-        return new OnboardingDto.GoalResponse(user.getGoal(), remaining);
+        return new OnboardingDto.GoalResponse(user.getGoal(), remaining, progressPercent);
     }
 
     @Transactional
@@ -165,6 +166,23 @@ public class OnboardingService {
             return selected.get(0);
         }
         return selected.get(ThreadLocalRandom.current().nextInt(selected.size()));
+    }
+
+    private int calculateRemainingCount(short goal, long finishedCount) {
+        if (finishedCount >= goal) {
+            return 0;
+        }
+        return goal - (int) finishedCount;
+    }
+
+    private int calculateProgressPercent(short goal, long finishedCount) {
+        if (goal <= 0) {
+            return 0;
+        }
+        if (finishedCount >= goal) {
+            return 100;
+        }
+        return (int) (finishedCount * 100 / goal);
     }
 
     private User getUser(Long userId) {
