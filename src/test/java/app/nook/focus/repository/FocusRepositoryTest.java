@@ -273,14 +273,14 @@ public class FocusRepositoryTest {
         Book bookA = Book.builder()
                 .title("A 책")
                 .author("작가A")
-                .coverImageUrl("a.jpg")
+                .coverImageKey("book/users/1/a.jpg")
                 .build();
         em.persist(bookA);
 
         Book bookB = Book.builder()
                 .title("B 책")
                 .author("작가B")
-                .coverImageUrl("b.jpg")
+                .coverImageKey("book/users/1/b.jpg")
                 .build();
         em.persist(bookB);
 
