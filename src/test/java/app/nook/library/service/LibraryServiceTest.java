@@ -674,7 +674,7 @@ class LibraryServiceTest {
             ReflectionTestUtils.setField(focus, "id", 99L);
             ReflectionTestUtils.setField(focus, "library", library);
 
-            given(focusRepository.findRecentDistinctBooksByUser(eq(user), any(PageRequest.class)))
+            given(focusRepository.findRecentDistinctBooksByUser(eq(user), eq(PageRequest.of(0, 5))))
                     .willReturn(List.of(focus));
             given(presignedUrlService.resolveImageUrl(1L, "book/users/1/recent-cover.png"))
                     .willReturn("https://cdn.example.com/recent-cover.png");

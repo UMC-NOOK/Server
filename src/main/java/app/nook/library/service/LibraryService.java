@@ -44,6 +44,8 @@ import java.util.stream.IntStream;
 @Transactional(readOnly = true)
 public class LibraryService {
 
+    private static final int LIBRARY_SEARCH_HOME_MAX_SIZE = 5;
+
     private final LibraryRepository libraryRepository;
     private final BookRepository bookRepository;
     private final FocusRepository focusRepository;
@@ -247,7 +249,9 @@ public class LibraryService {
     }
 
     public List<LibraryViewDto.RecentFocusBookItem> viewRecentFocusBooks(User user, int size) {
-        return focusRepository.findRecentDistinctBooksByUser(user, PageRequest.of(0, size)).stream()
+        int pageSize = Math.min(Math.max(size, 1), LIBRARY_SEARCH_HOME_MAX_SIZE);
+
+        return focusRepository.findRecentDistinctBooksByUser(user, PageRequest.of(0, pageSize)).stream()
                 .map(focus -> new LibraryViewDto.RecentFocusBookItem(
                         focus.getLibrary().getBook().getId(),
                         focus.getLibrary().getBook().getTitle(),
