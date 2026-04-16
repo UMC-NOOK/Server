@@ -43,4 +43,9 @@ public interface FocusRepositoryCustom {
             Long cursor,
             Pageable pageable
     );
+
+    List<Focus> findRecentDistinctBooksByUser(
+            User user,
+            Pageable pageable
+    );
 }

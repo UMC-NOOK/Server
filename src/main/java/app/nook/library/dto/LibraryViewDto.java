@@ -82,6 +82,13 @@ public class LibraryViewDto {
             List<BeforeBookItem> books
     ) {}
 
+    public record RecentFocusBookItem(
+            Long bookId,
+            String title,
+            String author,
+            String coverUrl
+    ) {}
+
     public record RecentFocusResponseDto(
             Long bookId,
             String title,

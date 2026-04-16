@@ -13,6 +13,7 @@ import app.nook.library.domain.QLibrary;
 import app.nook.user.domain.User;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.NumberExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -162,5 +163,34 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
                 : fetched;
 
         return new SliceImpl<>(content, pageable, hasNext);
+    }
+
+    @Override
+    public List<Focus> findRecentDistinctBooksByUser(User user, Pageable pageable) {
+        QFocus newerFocus = new QFocus("newerFocus");
+        QLibrary newerLibrary = new QLibrary("newerLibrary");
+
+        return queryFactory
+                .selectFrom(focus)
+                .join(focus.library, library).fetchJoin()
+                .join(library.book, book).fetchJoin()
+                .where(
+                        library.user.eq(user),
+                        JPAExpressions
+                                .selectOne()
+                                .from(newerFocus)
+                                .join(newerFocus.library, newerLibrary)
+                                .where(
+                                        newerLibrary.user.eq(user),
+                                        newerLibrary.book.id.eq(book.id),
+                                        newerFocus.startedAt.gt(focus.startedAt)
+                                                .or(newerFocus.startedAt.eq(focus.startedAt)
+                                                        .and(newerFocus.id.gt(focus.id)))
+                                )
+                                .notExists()
+                )
+                .orderBy(focus.startedAt.desc(), focus.id.desc())
+                .limit(pageable.getPageSize())
+                .fetch();
     }
 }

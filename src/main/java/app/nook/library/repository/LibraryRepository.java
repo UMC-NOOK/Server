@@ -85,8 +85,8 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
         order by l.id desc
     """)
     List<Library> findByUserIdAndReadingStatusOrderByIdDesc(
-            Long userId,
-            ReadingStatus readingStatus,
+            @Param("userId") Long userId,
+            @Param("status") ReadingStatus readingStatus,
             Pageable pageable);
     @Query("""
       select c.aladinCategoryId

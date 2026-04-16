@@ -3,9 +3,15 @@ package app.nook.book.facade;
 import app.nook.aladin.service.AladinService;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.dto.BookResponseDto;
+import app.nook.book.dto.LibrarySearchHomeResponseDto;
+import app.nook.book.service.BookService;
 import app.nook.book.service.SearchHistoryService;
+import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.service.LibraryService;
+import app.nook.user.domain.User;
+import app.nook.user.domain.enums.UserRole;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -40,6 +46,9 @@ class BookSearchFacadeTest {
 
     @Mock
     private LibraryService libraryService;
+
+    @Mock
+    private BookService bookService;
 
     @InjectMocks
     private BookSearchFacade bookSearchFacade;
@@ -195,7 +204,113 @@ class BookSearchFacadeTest {
                 .deleteAllHistories(TEST_USER_ID, SearchType.GLOBAL);
     }
 
+    @Nested
+    @DisplayName("내 서재 검색 홈 조회")
+    class GetLibrarySearchHome {
+
+        @Test
+        @DisplayName("최근 포커스와 읽기 전이 모두 있으면 해당 순서대로 섹션을 반환한다")
+        void 최근포커스와_읽기전이_모두있음() {
+            User user = user();
+
+            given(libraryService.viewRecentFocusBooks(eq(user), anyInt()))
+                    .willReturn(List.of(
+                            new LibraryViewDto.RecentFocusBookItem(10L, "포커스 책", "작가A", "focus.jpg")
+                    ));
+            given(libraryService.viewBeforeReadingBooks(eq(user)))
+                    .willReturn(new LibraryViewDto.BeforeReadingResponseDto(List.of(
+                            new LibraryViewDto.BeforeBookItem(20L, "읽기 전 책", "작가B", "before.jpg")
+                    )));
+
+            LibrarySearchHomeResponseDto.Result result = bookSearchFacade.getLibrarySearchHome(user);
+
+            assertThat(result.sections()).hasSize(2);
+            assertThat(result.sections().get(0)).isInstanceOf(LibrarySearchHomeResponseDto.RecentFocusSection.class);
+            assertThat(result.sections().get(1)).isInstanceOf(LibrarySearchHomeResponseDto.BeforeReadingSection.class);
+            verify(bookService, never()).getPersonalizedBestsellers(any());
+        }
+
+        @Test
+        @DisplayName("최근 포커스만 있으면 최근 포커스 섹션만 반환한다")
+        void 최근포커스만_있음() {
+            User user = user();
+
+            given(libraryService.viewRecentFocusBooks(eq(user), anyInt()))
+                    .willReturn(List.of(
+                            new LibraryViewDto.RecentFocusBookItem(10L, "포커스 책", "작가A", "focus.jpg")
+                    ));
+            given(libraryService.viewBeforeReadingBooks(eq(user)))
+                    .willReturn(new LibraryViewDto.BeforeReadingResponseDto(List.of()));
+
+            LibrarySearchHomeResponseDto.Result result = bookSearchFacade.getLibrarySearchHome(user);
+
+            assertThat(result.sections()).hasSize(1);
+            assertThat(result.sections().get(0)).isInstanceOf(LibrarySearchHomeResponseDto.RecentFocusSection.class);
+            verify(bookService, never()).getPersonalizedBestsellers(any());
+        }
+
+        @Test
+        @DisplayName("읽기 전만 있으면 읽기 전 섹션만 반환한다")
+        void 읽기전만_있음() {
+            User user = user();
+
+            given(libraryService.viewRecentFocusBooks(eq(user), anyInt()))
+                    .willReturn(List.of());
+            given(libraryService.viewBeforeReadingBooks(eq(user)))
+                    .willReturn(new LibraryViewDto.BeforeReadingResponseDto(List.of(
+                            new LibraryViewDto.BeforeBookItem(20L, "읽기 전 책", "작가B", "before.jpg")
+                    )));
+
+            LibrarySearchHomeResponseDto.Result result = bookSearchFacade.getLibrarySearchHome(user);
+
+            assertThat(result.sections()).hasSize(1);
+            assertThat(result.sections().get(0)).isInstanceOf(LibrarySearchHomeResponseDto.BeforeReadingSection.class);
+            verify(bookService, never()).getPersonalizedBestsellers(any());
+        }
+
+        @Test
+        @DisplayName("최근 포커스와 읽기 전이 모두 없으면 추천 섹션만 반환한다")
+        void 둘다없으면_추천만_반환() {
+            User user = user();
+
+            given(libraryService.viewRecentFocusBooks(eq(user), anyInt()))
+                    .willReturn(List.of());
+            given(libraryService.viewBeforeReadingBooks(eq(user)))
+                    .willReturn(new LibraryViewDto.BeforeReadingResponseDto(List.of()));
+            given(bookService.getPersonalizedBestsellers(eq(user)))
+                    .willReturn(List.of(
+                            new BookResponseDto.BookPreviewDto("9780000000001", "추천 책1", "작가C", "recommend1.jpg", "출판사", 1),
+                            new BookResponseDto.BookPreviewDto("9780000000002", "추천 책2", "작가C", "recommend2.jpg", "출판사", 1),
+                            new BookResponseDto.BookPreviewDto("9780000000003", "추천 책3", "작가C", "recommend3.jpg", "출판사", 1),
+                            new BookResponseDto.BookPreviewDto("9780000000004", "추천 책4", "작가C", "recommend4.jpg", "출판사", 1),
+                            new BookResponseDto.BookPreviewDto("9780000000005", "추천 책5", "작가C", "recommend5.jpg", "출판사", 1),
+                            new BookResponseDto.BookPreviewDto("9780000000006", "추천 책6", "작가C", "recommend6.jpg", "출판사", 1)
+                    ));
+
+            LibrarySearchHomeResponseDto.Result result = bookSearchFacade.getLibrarySearchHome(user);
+
+            assertThat(result.sections()).hasSize(1);
+            assertThat(result.sections().get(0)).isInstanceOf(LibrarySearchHomeResponseDto.RecommendationSection.class);
+            LibrarySearchHomeResponseDto.RecommendationSection section =
+                    (LibrarySearchHomeResponseDto.RecommendationSection) result.sections().get(0);
+            assertThat(section.items()).hasSize(5);
+            assertThat(section.items()).extracting(LibrarySearchHomeResponseDto.RecommendationItem::isbn13)
+                    .doesNotContain("9780000000006");
+            verify(bookService).getPersonalizedBestsellers(user);
+        }
+    }
+
     // === 헬퍼 메서드 ===
+
+    private User user() {
+        return User.builder()
+                .email("user@test.com")
+                .nickName("user")
+                .provider("google")
+                .providerId("provider-id")
+                .role(UserRole.USER)
+                .build();
+    }
 
     /**
      * 검색 결과 더미 데이터 생성

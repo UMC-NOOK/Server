@@ -3,6 +3,7 @@ package app.nook.controller.book;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.controller.BookSearchController;
 import app.nook.book.dto.BookResponseDto;
+import app.nook.book.dto.LibrarySearchHomeResponseDto;
 import app.nook.book.facade.BookSearchFacade;
 import app.nook.global.common.AbstractWebMvcRestDocsTests;
 import app.nook.global.common.security.WithCustomUser;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.restdocs.payload.ResponseFieldsSnippet;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.ArrayList;
@@ -29,6 +31,9 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.*;
+import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
+import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -52,6 +57,105 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
 
     @MockitoBean
     private BookSearchFacade bookSearchFacade;
+
+    @Test
+    @WithCustomUser
+    @DisplayName("내 서재 검색 홈 조회 성공")
+    void 내서재검색홈_조회_성공() throws Exception {
+        LibrarySearchHomeResponseDto.Result response = new LibrarySearchHomeResponseDto.Result(List.of(
+                LibrarySearchHomeResponseDto.RecentFocusSection.of(List.of(
+                        new LibrarySearchHomeResponseDto.RecentFocusItem(1L, "포커스 책", "저자1", "https://example.com/focus.jpg")
+                )),
+                LibrarySearchHomeResponseDto.BeforeReadingSection.of(List.of(
+                        new LibrarySearchHomeResponseDto.BeforeReadingItem(2L, "읽기 전 책", "저자2", "https://example.com/before.jpg")
+                ))
+        ));
+
+        given(bookSearchFacade.getLibrarySearchHome(any())).willReturn(response);
+
+        mockMvc.perform(
+                        get("/api/v1/books/search/library/home")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.sections[0].type").value("RECENT_FOCUS"))
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        librarySearchHomeResponseFields()
+                ));
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("내 서재 검색 홈 조회 성공 - 읽기 전만")
+    void 내서재검색홈_조회_읽기전만_성공() throws Exception {
+        LibrarySearchHomeResponseDto.Result response = new LibrarySearchHomeResponseDto.Result(List.of(
+                LibrarySearchHomeResponseDto.BeforeReadingSection.of(List.of(
+                        new LibrarySearchHomeResponseDto.BeforeReadingItem(2L, "읽기 전 책", "저자2", "https://example.com/before.jpg")
+                ))
+        ));
+
+        given(bookSearchFacade.getLibrarySearchHome(any())).willReturn(response);
+
+        mockMvc.perform(
+                        get("/api/v1/books/search/library/home")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.sections[0].type").value("BEFORE_READING"))
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        librarySearchHomeResponseFields()
+                ));
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("내 서재 검색 홈 조회 성공 - 최근 포커스만")
+    void 내서재검색홈_조회_최근포커스만_성공() throws Exception {
+        LibrarySearchHomeResponseDto.Result response = new LibrarySearchHomeResponseDto.Result(List.of(
+                LibrarySearchHomeResponseDto.RecentFocusSection.of(List.of(
+                        new LibrarySearchHomeResponseDto.RecentFocusItem(1L, "포커스 책", "저자1", "https://example.com/focus.jpg")
+                ))
+        ));
+
+        given(bookSearchFacade.getLibrarySearchHome(any())).willReturn(response);
+
+        mockMvc.perform(
+                        get("/api/v1/books/search/library/home")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.sections[0].type").value("RECENT_FOCUS"))
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        librarySearchHomeResponseFields()
+                ));
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("내 서재 검색 홈 조회 성공 - 추천만")
+    void 내서재검색홈_조회_추천만_성공() throws Exception {
+        LibrarySearchHomeResponseDto.Result response = new LibrarySearchHomeResponseDto.Result(List.of(
+                LibrarySearchHomeResponseDto.RecommendationSection.of(List.of(
+                        new LibrarySearchHomeResponseDto.RecommendationItem(TEST_ISBN_1, "추천 책", "저자3", "https://example.com/recommend.jpg")
+                ))
+        ));
+
+        given(bookSearchFacade.getLibrarySearchHome(any())).willReturn(response);
+
+        mockMvc.perform(
+                        get("/api/v1/books/search/library/home")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.sections[0].type").value("RECOMMENDATION"))
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        librarySearchHomeResponseFields()
+                ));
+    }
 
     @Test
     @WithCustomUser
@@ -313,5 +417,21 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
                     .build());
         }
         return books;
+    }
+
+    private static ResponseFieldsSnippet librarySearchHomeResponseFields() {
+        return responseFields(
+                ApiResponseSnippet.withResult(
+                        fieldWithPath("result.sections").type(ARRAY).description("검색 홈 섹션 목록"),
+                        fieldWithPath("result.sections[].type").type(STRING).description("섹션 타입 (RECENT_FOCUS, BEFORE_READING, RECOMMENDATION)"),
+                        fieldWithPath("result.sections[].title").type(STRING).description("섹션 제목"),
+                        fieldWithPath("result.sections[].items").type(ARRAY).description("섹션별 도서 아이템 목록"),
+                        fieldWithPath("result.sections[].items[].bookId").type(NUMBER).optional().description("서재 도서 ID (최근 포커스/읽기 전 섹션)"),
+                        fieldWithPath("result.sections[].items[].isbn13").type(STRING).optional().description("추천 도서 ISBN13 (추천 섹션)"),
+                        fieldWithPath("result.sections[].items[].title").type(STRING).description("도서 제목"),
+                        fieldWithPath("result.sections[].items[].author").type(STRING).description("도서 저자"),
+                        fieldWithPath("result.sections[].items[].coverUrl").type(STRING).description("도서 커버 URL")
+                )
+        );
     }
 }

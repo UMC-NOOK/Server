@@ -237,4 +237,15 @@ public class LibraryService {
                 .orElse(null);
     }
 
+    public List<LibraryViewDto.RecentFocusBookItem> viewRecentFocusBooks(User user, int size) {
+        return focusRepository.findRecentDistinctBooksByUser(user, PageRequest.of(0, size)).stream()
+                .map(focus -> new LibraryViewDto.RecentFocusBookItem(
+                        focus.getLibrary().getBook().getId(),
+                        focus.getLibrary().getBook().getTitle(),
+                        focus.getLibrary().getBook().getAuthor(),
+                        focus.getLibrary().getBook().getCoverImageUrl()
+                ))
+                .toList();
+    }
+
 }
