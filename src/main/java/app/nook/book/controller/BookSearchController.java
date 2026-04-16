@@ -3,6 +3,7 @@ package app.nook.book.controller;
 import app.nook.global.api.Api1Version;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.dto.BookResponseDto;
+import app.nook.book.dto.LibrarySearchHomeResponseDto;
 import app.nook.book.facade.BookSearchFacade;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
@@ -42,6 +43,14 @@ public class BookSearchController {
     ) {
         BookResponseDto.SearchResultDto response = bookSearchFacade.searchBooks(
                 user.getId(), keyword, cursor, type);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
+    }
+
+    @GetMapping("/library/home")
+    public ApiResponse<LibrarySearchHomeResponseDto.Result> getLibrarySearchHome(
+            @CurrentUser User user
+    ) {
+        LibrarySearchHomeResponseDto.Result response = bookSearchFacade.getLibrarySearchHome(user);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 

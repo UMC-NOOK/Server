@@ -653,6 +653,41 @@ class LibraryServiceTest {
 
             assertThat(result).isNull();
         }
+
+        @Test
+        @DisplayName("검색 홈용 최근 포커스 목록을 반환한다")
+        void viewRecentFocusBooks_성공() {
+            User user = user();
+            ReflectionTestUtils.setField(user, "id", 1L);
+
+            Book book = Book.builder()
+                    .isbn13("1234567890123")
+                    .title("최근 도서")
+                    .author("작가")
+                    .coverImageKey("book/users/1/recent-cover.png")
+                    .build();
+            ReflectionTestUtils.setField(book, "id", 11L);
+
+            Library library = Library.builder().user(user).book(book).build();
+
+            Focus focus = new Focus();
+            ReflectionTestUtils.setField(focus, "id", 99L);
+            ReflectionTestUtils.setField(focus, "library", library);
+
+            given(focusRepository.findRecentDistinctBooksByUser(eq(user), eq(PageRequest.of(0, 5))))
+                    .willReturn(List.of(focus));
+            given(presignedUrlService.resolveImageUrl(1L, "book/users/1/recent-cover.png"))
+                    .willReturn("https://cdn.example.com/recent-cover.png");
+
+            List<LibraryViewDto.RecentFocusBookItem> result = libraryService.viewRecentFocusBooks(user, 5);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).bookId()).isEqualTo(11L);
+            assertThat(result.get(0).title()).isEqualTo("최근 도서");
+            assertThat(result.get(0).author()).isEqualTo("작가");
+            assertThat(result.get(0).coverUrl()).isEqualTo("https://cdn.example.com/recent-cover.png");
+            verify(presignedUrlService).resolveImageUrl(1L, "book/users/1/recent-cover.png");
+        }
     }
 
     @Nested

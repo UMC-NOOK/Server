@@ -5,18 +5,22 @@ import app.nook.aladin.service.AladinService;
 import app.nook.book.converter.BookConverter;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.dto.BookResponseDto;
+import app.nook.book.dto.LibrarySearchHomeResponseDto;
 import app.nook.book.exception.SearchErrorCode;
+import app.nook.book.service.BookService;
 import app.nook.book.service.SearchHistoryService;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import app.nook.library.service.LibraryService;
 import app.nook.r2.service.PresignedUrlService;
+import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -29,9 +33,11 @@ public class BookSearchFacade {
     private final AladinService aladinService;
     private final SearchHistoryService searchHistoryService;
     private final LibraryService libraryService;
+    private final BookService bookService;
     private final PresignedUrlService presignedUrlService;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final int LIBRARY_SEARCH_HOME_SECTION_SIZE = 5;
     /**
      * [Global] 전체 도서 검색 (알라딘 API + 서재 보유 여부 매핑)
      */
@@ -135,6 +141,60 @@ public class BookSearchFacade {
     public void deleteAllSearchHistories(Long userId, SearchType searchType) {
         log.info("[HISTORY_DELETE_ALL] userId={}, type={}", userId, searchType);
         searchHistoryService.deleteAllHistories(userId, searchType);
+    }
+
+    public LibrarySearchHomeResponseDto.Result getLibrarySearchHome(User user) {
+        List<LibrarySearchHomeResponseDto.Section> sections = new ArrayList<>();
+
+        List<LibrarySearchHomeResponseDto.RecentFocusItem> recentFocusItems = libraryService
+                .viewRecentFocusBooks(user, LIBRARY_SEARCH_HOME_SECTION_SIZE)
+                .stream()
+                .map(item -> new LibrarySearchHomeResponseDto.RecentFocusItem(
+                        item.bookId(),
+                        item.title(),
+                        item.author(),
+                        item.coverUrl()
+                ))
+                .toList();
+
+        if (!recentFocusItems.isEmpty()) {
+            sections.add(LibrarySearchHomeResponseDto.RecentFocusSection.of(recentFocusItems));
+        }
+
+        List<LibrarySearchHomeResponseDto.BeforeReadingItem> beforeReadingItems = libraryService
+                .viewBeforeReadingBooks(user)
+                .books()
+                .stream()
+                .map(item -> new LibrarySearchHomeResponseDto.BeforeReadingItem(
+                        item.bookId(),
+                        item.title(),
+                        item.author(),
+                        item.coverUrl()
+                ))
+                .toList();
+
+        if (!beforeReadingItems.isEmpty()) {
+            sections.add(LibrarySearchHomeResponseDto.BeforeReadingSection.of(beforeReadingItems));
+        }
+
+        if (sections.isEmpty()) {
+            List<LibrarySearchHomeResponseDto.RecommendationItem> recommendationItems = bookService
+                    .getPersonalizedBestsellers(user)
+                    .stream()
+                    .limit(LIBRARY_SEARCH_HOME_SECTION_SIZE)
+                    .map(item -> new LibrarySearchHomeResponseDto.RecommendationItem(
+                            item.isbn13(),
+                            item.title(),
+                            item.author(),
+                            item.coverImageUrl()
+                    ))
+                    .toList();
+            if (!recommendationItems.isEmpty()) {
+                sections.add(LibrarySearchHomeResponseDto.RecommendationSection.of(recommendationItems));
+            }
+        }
+
+        return new LibrarySearchHomeResponseDto.Result(sections);
     }
 
 }
