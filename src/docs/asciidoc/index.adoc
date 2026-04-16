@@ -8,6 +8,9 @@
 == 사용자
 include::user.adoc[]
 
+== 검색
+include::search.adoc[]
+
 == 도서
 include::book.adoc[]
 
