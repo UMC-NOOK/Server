@@ -1,7 +1,7 @@
 === 도서 상세 조회 (ISBN)
 ISBN13으로 도서 상세 정보를 조회합니다.
  +
-서재 도서 ID인 `bookId`를 알고 있는 경우에는 `bookId` 조회 API를 우선 사용하고, `bookId`를 모르는 경우에만 ISBN 조회 API를 사용합니다.
+도서 ID(``bookId``)를 알고 있는 경우에는 ``bookId`` 조회 API를 우선 사용하고, ``bookId``를 모르는 경우에만 ISBN 조회 API를 사용합니다.
  +
 알라딘 도서와 사용자 등록 도서 모두 동일한 응답 형식으로 반환합니다.
 
@@ -11,11 +11,11 @@ include::{snippets}/book-controller-test/도서_상세조회_성공/http-respons
 include::{snippets}/book-controller-test/도서_상세조회_성공/response-fields.adoc[]
 
 === 도서 상세 조회 (bookId)
-도서 ID로 도서 상세 정보를 조회합니다.
+도서 ID(``bookId``)로 도서 상세 정보를 조회합니다.
  +
-내부 식별자인 `bookId`를 알고 있는 경우에는 이 API를 우선 사용합니다.
+도서 ID(``bookId``)를 알고 있는 경우에는 이 API를 우선 사용합니다.
  +
-서재에 담긴 도서나 사용자 등록 도서처럼 내부 식별자가 필요한 경우에 사용합니다.
+서재에 담긴 도서나 사용자 등록 도서 조회에 사용합니다.
 
 include::{snippets}/book-controller-test/도서_상세조회_book-id_성공/http-request.adoc[]
 include::{snippets}/book-controller-test/도서_상세조회_book-id_성공/path-parameters.adoc[]
