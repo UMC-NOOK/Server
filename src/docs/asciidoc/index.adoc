@@ -8,6 +8,9 @@
 == 사용자
 include::user.adoc[]
 
+== 온보딩
+include::onboarding.adoc[]
+
 == 검색
 include::search.adoc[]
 

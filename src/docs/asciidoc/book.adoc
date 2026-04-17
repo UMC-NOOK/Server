@@ -1,6 +1,9 @@
-== 도서 조회
-
 === 도서 상세 조회 (ISBN)
+ISBN13으로 도서 상세 정보를 조회합니다.
+ +
+서재 도서 ID인 `bookId`를 알고 있는 경우에는 `bookId` 조회 API를 우선 사용하고, `bookId`를 모르는 경우에만 ISBN 조회 API를 사용합니다.
+ +
+알라딘 도서와 사용자 등록 도서 모두 동일한 응답 형식으로 반환합니다.
 
 include::{snippets}/book-controller-test/도서_상세조회_성공/http-request.adoc[]
 include::{snippets}/book-controller-test/도서_상세조회_성공/path-parameters.adoc[]
@@ -8,6 +11,11 @@ include::{snippets}/book-controller-test/도서_상세조회_성공/http-respons
 include::{snippets}/book-controller-test/도서_상세조회_성공/response-fields.adoc[]
 
 === 도서 상세 조회 (bookId)
+도서 ID로 도서 상세 정보를 조회합니다.
+ +
+내부 식별자인 `bookId`를 알고 있는 경우에는 이 API를 우선 사용합니다.
+ +
+서재에 담긴 도서나 사용자 등록 도서처럼 내부 식별자가 필요한 경우에 사용합니다.
 
 include::{snippets}/book-controller-test/도서_상세조회_book-id_성공/http-request.adoc[]
 include::{snippets}/book-controller-test/도서_상세조회_book-id_성공/path-parameters.adoc[]
@@ -15,30 +23,45 @@ include::{snippets}/book-controller-test/도서_상세조회_book-id_성공/http
 include::{snippets}/book-controller-test/도서_상세조회_book-id_성공/response-fields.adoc[]
 
 === 주간 베스트셀러 조회
+주간 베스트셀러 목록을 조회합니다.
+ +
+응답은 도서 미리보기 목록이며, 순위 정보가 함께 포함됩니다.
 
 include::{snippets}/book-controller-test/주간베스트셀러_조회_성공/http-request.adoc[]
 include::{snippets}/book-controller-test/주간베스트셀러_조회_성공/http-response.adoc[]
 include::{snippets}/book-controller-test/주간베스트셀러_조회_성공/response-fields.adoc[]
 
 === 맞춤 추천 베스트셀러 조회
+사용자 맞춤 추천 베스트셀러 목록을 조회합니다.
+ +
+추천 카테고리는 사용자의 서재 데이터와 온보딩 선호 카테고리를 바탕으로 결정됩니다.
 
 include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/http-request.adoc[]
 include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/http-response.adoc[]
 include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/response-fields.adoc[]
 
 === 도서 카테고리 조회
+도서 등록과 조회에 사용하는 카테고리 목록을 조회합니다.
+ +
+각 항목에는 서비스 카테고리 ID와 알라딘 카테고리 ID가 함께 포함됩니다.
 
 include::{snippets}/category-controller-test/도서카테고리_조회_성공/http-request.adoc[]
 include::{snippets}/category-controller-test/도서카테고리_조회_성공/http-response.adoc[]
 include::{snippets}/category-controller-test/도서카테고리_조회_성공/response-fields.adoc[]
 
 === 사용자 도서 등록
+사용자가 직접 도서를 등록합니다.
+ +
+표지 이미지는 별도 업로드 API를 통해 업로드한 뒤 `coverImageKey`만 전달합니다.
 
 include::{snippets}/book-controller-test/사용자_도서_등록_성공/http-request.adoc[]
 include::{snippets}/book-controller-test/사용자_도서_등록_성공/http-response.adoc[]
 include::{snippets}/book-controller-test/사용자_도서_등록_성공/response-fields.adoc[]
 
 === 사용자 도서 수정
+사용자가 직접 등록한 도서 정보를 수정합니다.
+ +
+`coverImageKey`를 생략하면 기존 표지 이미지를 유지합니다.
 
 include::{snippets}/book-controller-test/사용자_도서_수정_성공/http-request.adoc[]
 include::{snippets}/book-controller-test/사용자_도서_수정_성공/http-response.adoc[]
