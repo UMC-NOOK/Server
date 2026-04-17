@@ -1,5 +1,3 @@
-== 포커스
-
 === 테마 목록 조회
 
 include::{snippets}/focus-theme-controller-test/포커스_테마목록_조회_성공/http-request.adoc[]
