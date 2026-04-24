@@ -174,8 +174,7 @@ jacocoTestReport {
 							'**/user/handler/CustomAuthenticationEntryPoint*',
 							'**/user/handler/CustomAccessDeniedHandler*',
 							'**/user/handler/SecurityErrorResponseWriter*',
-							'**/user/filter/JwtExceptionFilter*',
-							'**/user/jwt/JwtProvider*'
+							'**/user/filter/JwtExceptionFilter*'
 					])
 				})
 		)
