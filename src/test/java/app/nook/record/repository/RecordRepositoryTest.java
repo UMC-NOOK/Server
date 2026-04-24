@@ -170,8 +170,9 @@ class RecordRepositoryTest {
     }
 
     private Book persistBook(String title, String author) {
+        String isbn13 = String.format("%013d", Math.floorMod(System.nanoTime(), 1_000_000_000_000L));
         Book book = Book.builder()
-                .isbn13(String.valueOf(System.nanoTime()).substring(0, 13))
+                .isbn13(isbn13)
                 .title(title)
                 .author(author)
                 .coverImageKey("book/cover.png")
