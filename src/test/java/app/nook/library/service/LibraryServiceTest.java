@@ -106,7 +106,7 @@ class LibraryServiceTest {
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.empty());
-            given(libraryRepository.save(any(Library.class))).willAnswer(invocation -> {
+            given(libraryRepository.saveAndFlush(any(Library.class))).willAnswer(invocation -> {
                 Library saved = invocation.getArgument(0);
                 ReflectionTestUtils.setField(saved, "id", 1L);
                 ReflectionTestUtils.setField(saved, "createdDate", LocalDateTime.now());
