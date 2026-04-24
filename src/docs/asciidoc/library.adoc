@@ -75,19 +75,19 @@ include::{snippets}/success/view-book-count/response-fields.adoc[]
 
 ==== 성공
 
-include::{snippets}/library-controller-test/focus-record-by-date/http-request.adoc[]
-include::{snippets}/library-controller-test/focus-record-by-date/request-headers.adoc[]
-include::{snippets}/library-controller-test/focus-record-by-date/query-parameters.adoc[]
-include::{snippets}/library-controller-test/focus-record-by-date/http-response.adoc[]
-include::{snippets}/library-controller-test/focus-record-by-date/response-fields.adoc[]
+include::{snippets}/success/focus-record-by-date/http-request.adoc[]
+include::{snippets}/success/focus-record-by-date/request-headers.adoc[]
+include::{snippets}/success/focus-record-by-date/query-parameters.adoc[]
+include::{snippets}/success/focus-record-by-date/http-response.adoc[]
+include::{snippets}/success/focus-record-by-date/response-fields.adoc[]
 
 ==== 실패 케이스
 
 ===== date 형식 오류 (400)
 
-include::{snippets}/library-controller-test/invalid-date-format/http-request.adoc[]
-include::{snippets}/library-controller-test/invalid-date-format/request-headers.adoc[]
-include::{snippets}/library-controller-test/invalid-date-format/http-response.adoc[]
+include::{snippets}/failure/invalid-date-format/http-request.adoc[]
+include::{snippets}/failure/invalid-date-format/request-headers.adoc[]
+include::{snippets}/failure/invalid-date-format/http-response.adoc[]
 
 === 최근 포커스 기록 조회 (홈-이어서 포커스하기)
 
