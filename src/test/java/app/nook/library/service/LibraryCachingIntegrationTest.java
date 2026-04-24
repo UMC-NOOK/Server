@@ -42,7 +42,7 @@ class LibraryCachingIntegrationTest {
     private LibraryStatsService libraryStatsService;
 
     @Autowired
-    private LibraryService libraryService;
+    private LibraryCommandService libraryCommandService;
 
     @MockitoBean
     private RedisZSETService redisZSETService;
@@ -98,7 +98,7 @@ class LibraryCachingIntegrationTest {
     }
 
     @Test
-    void deleteById_후_월별_zset_무효화가_호출된다() {
+    void deleteByBookId_후_월별_zset_무효화가_호출된다() {
         Long userId = currentUserId();
         Long bookId = 100L;
         User user = currentUser();
@@ -113,11 +113,11 @@ class LibraryCachingIntegrationTest {
         ReflectionTestUtils.setField(library, "id", 999L);
 
         given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
-        given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+        given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(library);
         given(focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId))
                 .willReturn(List.of(LocalDate.of(2026, 2, 1)));
 
-        libraryService.deleteById(user, bookId);
+        libraryCommandService.deleteByBookId(userId, bookId);
 
         verify(redisZSETService, times(1)).evictMonthlyBooks(userId, YearMonth.of(2026, 2));
         verify(redisZSETService, times(1)).evictMonthlyFocusTime(userId, YearMonth.of(2026, 2));

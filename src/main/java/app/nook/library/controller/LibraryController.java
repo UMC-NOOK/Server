@@ -7,7 +7,8 @@ import app.nook.global.dto.CursorResponse;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.dto.LibraryViewDto;
-import app.nook.library.service.LibraryService;
+import app.nook.library.service.LibraryCommandService;
+import app.nook.library.service.LibraryQueryService;
 import app.nook.user.annotation.CurrentUser;
 import app.nook.user.domain.User;
 import jakarta.validation.constraints.Max;
@@ -27,7 +28,8 @@ import java.time.LocalDate;
 @Validated
 public class LibraryController {
 
-    private final LibraryService libraryService;
+    private final LibraryCommandService libraryCommandService;
+    private final LibraryQueryService libraryQueryService;
 
     // 서재 책 등록
     @PostMapping("/{bookId}")
@@ -35,7 +37,7 @@ public class LibraryController {
             @CurrentUser User user,
             @PathVariable Long bookId
     ) {
-        libraryService.save(user, bookId);
+        libraryCommandService.registerBook(user.getId(), bookId);
         return ApiResponse.onSuccess(null, SuccessCode.OK);
     }
 
@@ -45,7 +47,7 @@ public class LibraryController {
             @CurrentUser User user,
             @PathVariable Long bookId
     ) {
-        libraryService.deleteById(user, bookId);
+        libraryCommandService.deleteByBookId(user.getId(), bookId);
         return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
     }
 
@@ -55,7 +57,7 @@ public class LibraryController {
             @CurrentUser User user,
             @RequestBody ReadingStatusRequestDto requestDto
     ) {
-        libraryService.changeStatus(user, requestDto);
+        libraryCommandService.changeReadingStatus(user.getId(), requestDto);
         return ApiResponse.onSuccess(null, SuccessCode.OK);
     }
 
@@ -68,7 +70,7 @@ public class LibraryController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         LibraryViewDto.StatusBookResponseDto response =
-                libraryService.viewBooksByStatus(user, status, cursor, size);
+                libraryQueryService.getBooksByStatus(user.getId(), status, cursor, size);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
@@ -78,7 +80,7 @@ public class LibraryController {
             @CurrentUser User user
     ) {
         LibraryViewDto.BookCountResponseDto response =
-                libraryService.countBooks(user);
+                libraryQueryService.getBookCount(user.getId());
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
@@ -91,10 +93,10 @@ public class LibraryController {
             @DateTimeFormat(pattern = "yyyy-MM-dd")
             LocalDate date,
             @RequestParam(required = false) @Min(0) Long cursor,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
+            @RequestParam(defaultValue = "4") @Min(1) @Max(100) int size
     ) {
         CursorResponse<LibraryViewDto.UserBookResponseDto, Long> response =
-                libraryService.viewFocusRecordByDate(user, date, cursor, size);
+                libraryQueryService.getFocusRecordsByDate(user.getId(), date, cursor, size);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
@@ -104,7 +106,7 @@ public class LibraryController {
             @CurrentUser User user
     ) {
         LibraryViewDto.BeforeReadingResponseDto response =
-                libraryService.viewBeforeReadingBooks(user);
+                libraryQueryService.getBeforeReadingBooks(user.getId());
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
@@ -114,7 +116,7 @@ public class LibraryController {
             @CurrentUser User user
     ) {
         LibraryViewDto.RecentFocusResponseDto response =
-                libraryService.viewRecentFocus(user);
+                libraryQueryService.getRecentFocus(user.getId());
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
@@ -124,7 +126,7 @@ public class LibraryController {
     public ApiResponse<LibraryViewDto.YearResponseDto> viewReadingYears(
             @CurrentUser User user
     ) {
-        LibraryViewDto.YearResponseDto response = libraryService.viewReadingYears(user);
+        LibraryViewDto.YearResponseDto response = libraryQueryService.getReadingYears(user.getId());
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 }

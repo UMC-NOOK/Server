@@ -9,7 +9,8 @@ import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.controller.LibraryController;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
-import app.nook.library.service.LibraryService;
+import app.nook.library.service.LibraryCommandService;
+import app.nook.library.service.LibraryQueryService;
 import app.nook.user.filter.JwtExceptionFilter;
 import app.nook.user.filter.JwtFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,7 +64,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
 
     @MockitoBean
-    private LibraryService libraryService;
+    private LibraryCommandService libraryCommandService;
+
+    @MockitoBean
+    private LibraryQueryService libraryQueryService;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -71,7 +75,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     @Test
     @WithCustomUser
     void 서재_책_등록_성공() throws Exception {
-        willDoNothing().given(libraryService).save(any(), anyLong());
+        willDoNothing().given(libraryCommandService).registerBook(anyLong(), anyLong());
 
         // when & then
         mockMvc.perform(
@@ -92,7 +96,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     @Test
     @WithCustomUser
     void 서재_책_삭제_성공() throws Exception {
-        willDoNothing().given(libraryService).deleteById(any(), anyLong());
+        willDoNothing().given(libraryCommandService).deleteByBookId(anyLong(), anyLong());
 
         // when & then
         mockMvc.perform(
@@ -115,7 +119,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     void 서재_책_상태변경_성공() throws Exception {
         ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
-        willDoNothing().given(libraryService).changeStatus(any(), any());
+        willDoNothing().given(libraryCommandService).changeReadingStatus(anyLong(), any());
 
         // when & then
         mockMvc.perform(
@@ -142,7 +146,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
         ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
         willThrow(new ObjectOptimisticLockingFailureException("Library", 1L))
-                .given(libraryService).changeStatus(any(), any());
+                .given(libraryCommandService).changeReadingStatus(anyLong(), any());
 
         mockMvc.perform(
                         patch("/api/v1/library/status")
@@ -178,7 +182,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         cursorResponse
                 );
 
-        given(libraryService.viewBooksByStatus(any(), any(), any(), anyInt()))
+        given(libraryQueryService.getBooksByStatus(anyLong(), any(), any(), anyInt()))
                 .willReturn(response);
 
         // when & then
@@ -227,7 +231,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         "{class-name}/{method-name}"
                 ));
 
-        verifyNoInteractions(libraryService);
+        verifyNoInteractions(libraryCommandService, libraryQueryService);
     }
 
     @Test
@@ -245,7 +249,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         "{class-name}/{method-name}"
                 ));
 
-        verifyNoInteractions(libraryService);
+        verifyNoInteractions(libraryCommandService, libraryQueryService);
     }
 
     @Test
@@ -262,7 +266,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         "{class-name}/{method-name}"
                 ));
 
-        verifyNoInteractions(libraryService);
+        verifyNoInteractions(libraryCommandService, libraryQueryService);
     }
 
     @Test
@@ -274,9 +278,12 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                 .param("size", "101")
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                 )
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}"
+                ));
 
-        verifyNoInteractions(libraryService);
+        verifyNoInteractions(libraryCommandService, libraryQueryService);
     }
 
     @Test
@@ -298,7 +305,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 )
         );
 
-        given(libraryService.viewBeforeReadingBooks(any())).willReturn(response);
+        given(libraryQueryService.getBeforeReadingBooks(anyLong())).willReturn(response);
 
         mockMvc.perform(
                         get("/api/v1/library/before-reading")
@@ -336,7 +343,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         "01:30:00"
                 );
 
-                given(libraryService.viewRecentFocus(any())).willReturn(response);
+                given(libraryQueryService.getRecentFocus(anyLong())).willReturn(response);
 
                 mockMvc.perform(
                                 get("/api/v1/library/recent-focus")
@@ -358,7 +365,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
             @Test
             @WithCustomUser
             void 최근_포커스_도서_조회_데이터없음_빈응답_200() throws Exception {
-                given(libraryService.viewRecentFocus(any())).willReturn(null);
+                given(libraryQueryService.getRecentFocus(anyLong())).willReturn(null);
 
                 mockMvc.perform(
                                 get("/api/v1/library/recent-focus")
@@ -385,7 +392,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
             @DisplayName("서재 책 개수 조회")
             @WithCustomUser
             void viewBookCount() throws Exception {
-                given(libraryService.countBooks(any()))
+                given(libraryQueryService.getBookCount(anyLong()))
                         .willReturn(new LibraryViewDto.BookCountResponseDto(42));
 
                 mockMvc.perform(
@@ -431,7 +438,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 LibraryViewDto.YearResponseDto response =
                         new LibraryViewDto.YearResponseDto(List.of(2024, 2025, 2026));
 
-                given(libraryService.viewReadingYears(any())).willReturn(response);
+                given(libraryQueryService.getReadingYears(anyLong())).willReturn(response);
 
                 // when & then
                 mockMvc.perform(
@@ -486,7 +493,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 CursorResponse<LibraryViewDto.UserBookResponseDto, Long> response =
                         CursorResponse.of(List.of(item), 77L, true);
 
-                given(libraryService.viewFocusRecordByDate(any(), any(LocalDate.class), any(), anyInt()))
+                given(libraryQueryService.getFocusRecordsByDate(anyLong(), any(LocalDate.class), any(), anyInt()))
                         .willReturn(response);
 
                 mockMvc.perform(
@@ -531,7 +538,10 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                         .param("date", "2026/02/26")
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )
-                        .andExpect(status().isBadRequest());
+                        .andExpect(status().isBadRequest())
+                        .andDo(documentWithAuth(
+                                "{class-name}/{method-name}"
+                        ));
             }
         }
     }
