@@ -32,14 +32,18 @@ public class LibraryStatsService {
     private final RedisZSETService redisZSETService;
     private final PresignedUrlService presignedUrlService;
 
+    // 서재 월별 책 조회 Redis ZSET 캐시 확인, 미스 시 DB 조회
     public FocusRankDto.MonthlyBooksResponseDto viewMonthly(Long userId, YearMonth yearMonth) {
+        // Redis ZSET 캐시 확인
         FocusRankDto.MonthlyBooksResponseDto cached = safeLoadMonthlyBooks(userId, yearMonth);
         if (cached != null) {
             return resolveMonthlyBookImageUrls(userId, cached);
         }
 
+        // 캐시 미스 시 DB 조회
         MonthlyBooksQueryResultDto queryResult = loadMonthlyBooksFromDB(userId, yearMonth);
 
+        // Redis ZSET에 저장(score=topFocusSec)
         safeSaveMonthlyBooks(
                 userId,
                 yearMonth,
@@ -50,10 +54,13 @@ public class LibraryStatsService {
         return resolveMonthlyBookImageUrls(userId, queryResult.response());
     }
 
+    // 캐시 미스 시 DB에서 조회하는 메서드
     private MonthlyBooksQueryResultDto loadMonthlyBooksFromDB(Long userId, YearMonth yearMonth) {
+        // 월 범위 계산
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.plusMonths(1).atDay(1);
 
+        // 집계 결과 받아오기
         List<FocusRankDto.MonthlyFocusRow> rows = focusRepository.findMonthlyFocusStats(userId, startDate, endDate)
                 .stream()
                 .map(row -> new FocusRankDto.MonthlyFocusRow(
@@ -66,11 +73,13 @@ public class LibraryStatsService {
 
         int totalBookCount = rows.size();
 
+        // 날짜별로 다시 그룹화
         Map<LocalDate, List<FocusRankDto.MonthlyFocusRow>> groupedByDate = rows.stream()
                 .collect(
                         Collectors.groupingBy(FocusRankDto.MonthlyFocusRow::date)
                 );
 
+        // 날짜별 top focusSec를 같이 계산해 정렬 기준으로 사용
         List<DailyBookAggregateDto> aggregates = MonthlyBooksStatsMapper.toAggregates(groupedByDate);
 
         List<FocusRankDto.DailyBookItem> dailyBookItems = MonthlyBooksStatsMapper.toDailyBookItems(aggregates);
@@ -82,8 +91,10 @@ public class LibraryStatsService {
         return new MonthlyBooksQueryResultDto(totalBookCount, response, cacheRows);
     }
 
+    // 서재 월별 포커스 시간 통계 조회 (Redis ZSET 캐시 → 미스 시 DB 조회)
     public FocusRankDto.FocusBookResponseDto viewFocusTimeStats(Long userId, YearMonth yearMonth) {
         List<FocusRankDto.FocusTimeRow> rows = safeLoadMonthlyFocusTime(userId, yearMonth);
+        // 캐시 미스 시 DB 조회
         if (rows == null) {
             LocalDate startDate = yearMonth.atDay(1);
             LocalDate endDate = yearMonth.plusMonths(1).atDay(1);
