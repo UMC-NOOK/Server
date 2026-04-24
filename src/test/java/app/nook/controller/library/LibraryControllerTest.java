@@ -500,7 +500,6 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                 get("/api/v1/library/focus-records")
                                         .param("date", "2026-02-26")
                                         .param("cursor", "100")
-                                        .param("size", "20")
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )
                         .andExpect(status().isOk())
@@ -509,7 +508,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                 queryParameters(
                                         parameterWithName("date").description("조회 날짜 (yyyy-MM-dd)"),
                                         parameterWithName("cursor").optional().description("커서(마지막 focus ID). 최초 조회 시 미전달"),
-                                        parameterWithName("size").description("조회할 개수")
+                                        parameterWithName("size").optional().description("조회할 개수 (기본값: 4)")
                                 ),
                                 responseFields(ApiResponseSnippet.withResult(
                                         fieldWithPath("result.items").type(ARRAY).description("포커스 도서 목록"),

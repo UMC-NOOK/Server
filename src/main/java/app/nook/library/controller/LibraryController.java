@@ -93,7 +93,7 @@ public class LibraryController {
             @DateTimeFormat(pattern = "yyyy-MM-dd")
             LocalDate date,
             @RequestParam(required = false) @Min(0) Long cursor,
-            @RequestParam(defaultValue = "4") @Min(1) @Max(100) int size
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         CursorResponse<LibraryViewDto.UserBookResponseDto, Long> response =
                 libraryQueryService.getFocusRecordsByDate(user.getId(), date, cursor, size);
