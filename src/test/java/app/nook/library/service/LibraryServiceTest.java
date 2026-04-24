@@ -105,7 +105,7 @@ class LibraryServiceTest {
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
-            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(null);
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.empty());
             given(libraryRepository.save(any(Library.class))).willAnswer(invocation -> {
                 Library saved = invocation.getArgument(0);
                 ReflectionTestUtils.setField(saved, "id", 1L);
@@ -138,7 +138,7 @@ class LibraryServiceTest {
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
-            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(library);
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
 
             CustomException ex = assertThrows(CustomException.class, () -> libraryCommandService.registerBook(1L, 1L));
 
@@ -158,7 +158,7 @@ class LibraryServiceTest {
             Library library = LibraryFixture.library(user, book);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(library);
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
             given(focusRepository.findDistinctFocusDatesByLibraryAndUser(any(), any())).willReturn(List.of());
 
             libraryCommandService.deleteByBookId(1L, 1L);
@@ -173,7 +173,7 @@ class LibraryServiceTest {
             Book book = BookFixture.book();
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(null);
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class, () -> libraryCommandService.deleteByBookId(1L, 1L));
 
@@ -202,7 +202,7 @@ class LibraryServiceTest {
             ReflectionTestUtils.setField(library, "id", 10L);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(library);
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
             given(focusRepository.findDistinctFocusDatesByLibraryAndUser(10L, 1L))
                     .willReturn(List.of(
                             LocalDate.of(2026, 2, 1),
@@ -239,7 +239,7 @@ class LibraryServiceTest {
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(library);
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
 
             libraryCommandService.changeReadingStatus(1L, request);
 
@@ -258,7 +258,7 @@ class LibraryServiceTest {
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(library);
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
 
             CustomException ex = assertThrows(CustomException.class, () -> libraryCommandService.changeReadingStatus(1L, request));
 
@@ -273,7 +273,7 @@ class LibraryServiceTest {
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(null);
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class, () -> libraryCommandService.changeReadingStatus(1L, request));
 
@@ -301,7 +301,7 @@ class LibraryServiceTest {
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(library);
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
 
             libraryCommandService.changeReadingStatus(1L, request);
 

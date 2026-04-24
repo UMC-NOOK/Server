@@ -84,7 +84,7 @@ class RecordServiceTest {
             RecordRequestDto request = new RecordRequestDto("내용", Emotion.FUN, List.of());
 
             given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+            given(libraryRepository.findByUserAndBook(user, book)).willReturn(Optional.of(library));
             given(libraryRepository.findByIdAndUserIdForUpdate(20L, 1L)).willReturn(Optional.of(library));
             given(recordRepository.countByLibraryIdAndUserId(20L, 1L)).willReturn(0L);
 
@@ -108,7 +108,7 @@ class RecordServiceTest {
             RecordRequestDto request = new RecordRequestDto("내용", Emotion.USEFUL, imageKeys);
 
             given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+            given(libraryRepository.findByUserAndBook(user, book)).willReturn(Optional.of(library));
             given(libraryRepository.findByIdAndUserIdForUpdate(20L, 1L)).willReturn(Optional.of(library));
             given(recordRepository.countByLibraryIdAndUserId(20L, 1L)).willReturn(0L);
 
@@ -132,7 +132,7 @@ class RecordServiceTest {
             RecordRequestDto request = new RecordRequestDto("내용", Emotion.FUN, imageKeys);
 
             given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+            given(libraryRepository.findByUserAndBook(user, book)).willReturn(Optional.of(library));
             given(libraryRepository.findByIdAndUserIdForUpdate(20L, 1L)).willReturn(Optional.of(library));
             given(recordRepository.countByLibraryIdAndUserId(20L, 1L)).willReturn(0L);
 
@@ -171,7 +171,7 @@ class RecordServiceTest {
             RecordRequestDto request = new RecordRequestDto("내용", Emotion.FUN, List.of());
 
             given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserAndBook(user, book)).willReturn(null);
+            given(libraryRepository.findByUserAndBook(user, book)).willReturn(Optional.empty());
 
             // when
             CustomException ex = assertThrows(CustomException.class,
@@ -191,7 +191,7 @@ class RecordServiceTest {
             RecordRequestDto request = new RecordRequestDto("내용", Emotion.FUN, List.of());
 
             given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+            given(libraryRepository.findByUserAndBook(user, book)).willReturn(Optional.of(library));
             given(libraryRepository.findByIdAndUserIdForUpdate(20L, 1L)).willReturn(Optional.empty());
 
             // when
@@ -212,7 +212,7 @@ class RecordServiceTest {
             RecordRequestDto request = new RecordRequestDto("내용", Emotion.FUN, List.of());
 
             given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-            given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+            given(libraryRepository.findByUserAndBook(user, book)).willReturn(Optional.of(library));
             given(libraryRepository.findByIdAndUserIdForUpdate(20L, 1L)).willReturn(Optional.of(library));
             given(recordRepository.countByLibraryIdAndUserId(20L, 1L)).willReturn(1000L);
 

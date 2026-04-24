@@ -113,7 +113,7 @@ class LibraryCachingIntegrationTest {
         ReflectionTestUtils.setField(library, "id", 999L);
 
         given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
-        given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(library);
+        given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(Optional.of(library));
         given(focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId))
                 .willReturn(List.of(LocalDate.of(2026, 2, 1)));
 
