@@ -16,6 +16,7 @@ import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,7 +51,12 @@ public class LibraryCommandService {
 
         // 서재 등록 후 타임라인과 캐시를 함께 갱신
         Library library = new Library(user, book);
-        Library savedLibrary = libraryRepository.save(library);
+        Library savedLibrary;
+        try {
+            savedLibrary = libraryRepository.saveAndFlush(library);
+        } catch (DataIntegrityViolationException exception) {
+            throw new CustomException(LibraryErrorCode.BOOK_ALREADY_EXIST);
+        }
 
         timelineCommandService.appendRegister(savedLibrary);
         eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(userId));

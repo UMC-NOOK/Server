@@ -1,14 +1,10 @@
 package app.nook.record.service;
 
-import app.nook.book.domain.Book;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
-import app.nook.global.fixture.BookFixture;
-import app.nook.global.fixture.LibraryFixture;
 import app.nook.global.fixture.UserFixture;
-import app.nook.library.domain.Library;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.r2.service.PresignedUrlService;
@@ -33,7 +29,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -248,12 +243,10 @@ class RecordQueryServiceTest {
             void 도서별_기록조회_감정필터적용() {
                 // given
                 User user = UserFixture.user();
-                Book book = BookFixture.book();
-                Library library = LibraryFixture.library(user, book);
-                List<Record> records = createMockRecords(library, Emotion.FUN, Emotion.SAD);
+                List<Record> records = createMockRecords(Emotion.FUN, Emotion.SAD);
 
-                given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-                given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+                given(bookRepository.existsById(10L)).willReturn(true);
+                given(libraryRepository.existsByUserIdAndBookId(user.getId(), 10L)).willReturn(true);
                 given(recordRepository.findBookRecordsByCursor(1L, 10L, null, Emotion.FUN, 10))
                         .willReturn(List.of(records.get(0)));
                 given(recordConverter.toRecordItemDto(1L, records.get(0)))
@@ -281,11 +274,9 @@ class RecordQueryServiceTest {
             void 도서별_기록조회_ALL감정필터() {
                 // given
                 User user = UserFixture.user();
-                Book book = BookFixture.book();
-                Library library = LibraryFixture.library(user, book);
-                List<Record> records = createMockRecords(library, Emotion.FUN, Emotion.SAD);
-                given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-                given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+                List<Record> records = createMockRecords(Emotion.FUN, Emotion.SAD);
+                given(bookRepository.existsById(10L)).willReturn(true);
+                given(libraryRepository.existsByUserIdAndBookId(user.getId(), 10L)).willReturn(true);
                 given(recordRepository.findBookRecordsByCursor(1L, 10L, null, null, 10))
                         .willReturn(records);
                 given(recordConverter.toRecordItemDto(1L, records.get(0)))
@@ -322,12 +313,10 @@ class RecordQueryServiceTest {
             void 도서별_기록조회_다음페이지존재() {
                 // given
                 User user = UserFixture.user();
-                Book book = BookFixture.book();
-                Library library = LibraryFixture.library(user, book);
-                List<Record> records = createMockRecords(library, Emotion.FUN, Emotion.SAD);
+                List<Record> records = createMockRecords(Emotion.FUN, Emotion.SAD);
 
-                given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-                given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+                given(bookRepository.existsById(10L)).willReturn(true);
+                given(libraryRepository.existsByUserIdAndBookId(user.getId(), 10L)).willReturn(true);
                 given(recordRepository.findBookRecordsByCursor(1L, 10L, null, null, 1))
                         .willReturn(List.of(records.get(0), records.get(1)));
                 given(recordConverter.toRecordItemDto(1L, records.get(0)))
@@ -354,12 +343,10 @@ class RecordQueryServiceTest {
             void 도서별_기록조회_감정필터_null() {
                 // given
                 User user = UserFixture.user();
-                Book book = BookFixture.book();
-                Library library = LibraryFixture.library(user, book);
-                List<Record> records = createMockRecords(library, Emotion.FUN, Emotion.SAD);
+                List<Record> records = createMockRecords(Emotion.FUN, Emotion.SAD);
 
-                given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-                given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+                given(bookRepository.existsById(10L)).willReturn(true);
+                given(libraryRepository.existsByUserIdAndBookId(user.getId(), 10L)).willReturn(true);
                 given(recordRepository.findBookRecordsByCursor(1L, 10L, null, null, 10))
                         .willReturn(records);
                 given(recordConverter.toRecordItemDto(1L, records.get(0)))
@@ -396,12 +383,10 @@ class RecordQueryServiceTest {
             void 도서별_기록조회_감정필터_blank() {
                 // given
                 User user = UserFixture.user();
-                Book book = BookFixture.book();
-                Library library = LibraryFixture.library(user, book);
-                List<Record> records = createMockRecords(library, Emotion.FUN, Emotion.SAD);
+                List<Record> records = createMockRecords(Emotion.FUN, Emotion.SAD);
 
-                given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-                given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+                given(bookRepository.existsById(10L)).willReturn(true);
+                given(libraryRepository.existsByUserIdAndBookId(user.getId(), 10L)).willReturn(true);
                 given(recordRepository.findBookRecordsByCursor(1L, 10L, null, null, 10))
                         .willReturn(records);
                 given(recordConverter.toRecordItemDto(1L, records.get(0)))
@@ -443,7 +428,7 @@ class RecordQueryServiceTest {
             void 도서별_기록조회_실패_책없음() {
                 // given
                 User user = UserFixture.user();
-                given(bookRepository.findById(10L)).willReturn(Optional.empty());
+                given(bookRepository.existsById(10L)).willReturn(false);
 
                 // when
                 CustomException exception = assertThrows(
@@ -460,10 +445,8 @@ class RecordQueryServiceTest {
             void 도서별_기록조회_실패_서재없음() {
                 // given
                 User user = UserFixture.user();
-                Book book = BookFixture.book();
-
-                given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-                given(libraryRepository.findByUserAndBook(user, book)).willReturn(null);
+                given(bookRepository.existsById(10L)).willReturn(true);
+                given(libraryRepository.existsByUserIdAndBookId(user.getId(), 10L)).willReturn(false);
 
                 // when
                 CustomException exception = assertThrows(
@@ -480,11 +463,8 @@ class RecordQueryServiceTest {
             void 도서별_기록조회_실패_잘못된감정필터() {
                 // given
                 User user = UserFixture.user();
-                Book book = BookFixture.book();
-                Library library = LibraryFixture.library(user, book);
-
-                given(bookRepository.findById(10L)).willReturn(Optional.of(book));
-                given(libraryRepository.findByUserAndBook(user, book)).willReturn(library);
+                given(bookRepository.existsById(10L)).willReturn(true);
+                given(libraryRepository.existsByUserIdAndBookId(user.getId(), 10L)).willReturn(true);
 
                 // when
                 CustomException exception = assertThrows(
@@ -500,10 +480,10 @@ class RecordQueryServiceTest {
 
 
     // 기록 생성용 Fixture 클래스
-    private List<Record> createMockRecords(Library library, Emotion... emotions) {
+    private List<Record> createMockRecords(Emotion... emotions) {
         return IntStream.range(0, emotions.length)
                 .mapToObj(index -> {
-                    Record record = Record.create(library, emotions[index], "내용 " + index);
+                    Record record = Record.create(null, emotions[index], "내용 " + index);
                     ReflectionTestUtils.setField(record, "id", (long) (index + 1));
                     return record;
                 })

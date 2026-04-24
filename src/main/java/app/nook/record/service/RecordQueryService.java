@@ -1,6 +1,5 @@
 package app.nook.record.service;
 
-import app.nook.book.domain.Book;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.global.dto.CursorResponse;
@@ -91,10 +90,11 @@ public class RecordQueryService {
             Long cursor,
             String emotion
     ) {
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
+        if (!bookRepository.existsById(bookId)) {
+            throw new CustomException(BookErrorCode.BOOK_NOT_FOUND);
+        }
 
-        if (libraryRepository.findByUserAndBook(user, book) == null) {
+        if (!libraryRepository.existsByUserIdAndBookId(user.getId(), bookId)) {
             throw new CustomException(LibraryErrorCode.BOOK_NOT_EXIST);
         }
 
