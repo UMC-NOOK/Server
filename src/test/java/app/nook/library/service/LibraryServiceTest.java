@@ -6,6 +6,9 @@ import app.nook.book.repository.BookRepository;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.exception.CustomException;
+import app.nook.global.fixture.BookFixture;
+import app.nook.global.fixture.LibraryFixture;
+import app.nook.global.fixture.UserFixture;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.dto.LibraryViewDto;
@@ -16,7 +19,6 @@ import app.nook.library.repository.LibraryRepository;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
-import app.nook.user.domain.enums.UserRole;
 import app.nook.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -90,16 +92,6 @@ class LibraryServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(1));
     }
 
-    private User user() {
-        return User.builder()
-                .email("user@test.com")
-                .nickName("user")
-                .role(UserRole.USER)
-                .provider("GOOGLE")
-                .providerId("provider-1")
-                .build();
-    }
-
     @Nested
     @DisplayName("서재 책 등록")
     class Save {
@@ -107,14 +99,9 @@ class LibraryServiceTest {
         @Test
         @DisplayName("성공")
         void 책_등록_성공() {
-            User user = user();
-
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("테스트 도서")
-                    .build();
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
             ReflectionTestUtils.setField(book, "id", 1L);
-            ReflectionTestUtils.setField(user, "id", 1L);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
@@ -134,8 +121,7 @@ class LibraryServiceTest {
         @Test
         @DisplayName("도서가 없으면 예외를 던진다")
         void save_도서없음_예외() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
             given(bookRepository.findById(1L)).willReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class, () -> libraryCommandService.registerBook(1L, 1L));
@@ -146,18 +132,9 @@ class LibraryServiceTest {
         @Test
         @DisplayName("이미 등록된 도서면 예외를 던진다")
         void save_이미등록_예외() {
-            User user = user();
-
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("테스트 도서")
-                    .build();
-
-            Library library = Library.builder()
-                    .user(user)
-                    .book(book)
-                    .build();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            Library library = LibraryFixture.library(user, book);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
@@ -176,18 +153,9 @@ class LibraryServiceTest {
         @Test
         @DisplayName("성공")
         void deleteById_성공() {
-            User user = user();
-
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("테스트 도서")
-                    .build();
-
-            Library library = Library.builder()
-                    .user(user)
-                    .book(book)
-                    .build();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            Library library = LibraryFixture.library(user, book);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(library);
@@ -201,13 +169,8 @@ class LibraryServiceTest {
         @Test
         @DisplayName("서재에 책이 없으면 예외를 던진다")
         void deleteById_서재없음_예외() {
-            User user = user();
-
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("테스트 도서")
-                    .build();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(null);
@@ -220,8 +183,7 @@ class LibraryServiceTest {
         @Test
         @DisplayName("도서가 없으면 예외를 던진다")
         void deleteById_도서없음_예외() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
             given(bookRepository.findById(1L)).willReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class, () -> libraryCommandService.deleteByBookId(1L, 1L));
@@ -232,16 +194,11 @@ class LibraryServiceTest {
         @Test
         @DisplayName("삭제 시 영향 연월을 중복 제거해 캐시 무효화 이벤트를 발행한다")
         void deleteById_캐시무효화_이벤트발행() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
-
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("테스트 도서")
-                    .build();
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
             ReflectionTestUtils.setField(book, "id", 1L);
 
-            Library library = Library.builder().user(user).book(book).build();
+            Library library = LibraryFixture.library(user, book);
             ReflectionTestUtils.setField(library, "id", 10L);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
@@ -275,18 +232,9 @@ class LibraryServiceTest {
         @Test
         @DisplayName("성공")
         void changeStatus_성공() {
-            User user = user();
-
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("테스트 도서")
-                    .build();
-
-            Library library = Library.builder()
-                    .user(user)
-                    .book(book)
-                    .build();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            Library library = LibraryFixture.library(user, book);
 
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
@@ -302,19 +250,10 @@ class LibraryServiceTest {
         @Test
         @DisplayName("중복 상태 변경 요청이면 예외를 던진다")
         void changeStatus_중복상태_예외() {
-            User user = user();
-
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("테스트 도서")
-                    .build();
-
-            Library library = Library.builder()
-                    .user(user)
-                    .book(book)
-                    .build();
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            Library library = LibraryFixture.library(user, book);
             ReflectionTestUtils.setField(library, "readingStatus", ReadingStatus.READING);
-            ReflectionTestUtils.setField(user, "id", 1L);
 
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
@@ -329,15 +268,9 @@ class LibraryServiceTest {
         @Test
         @DisplayName("서재에 책이 없으면 예외를 던진다")
         void changeStatus_서재없음_예외() {
-            User user = user();
-
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("테스트 도서")
-                    .build();
-
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
-            ReflectionTestUtils.setField(user, "id", 1L);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(null);
@@ -350,9 +283,8 @@ class LibraryServiceTest {
         @Test
         @DisplayName("도서가 없으면 예외를 던진다")
         void changeStatus_도서없음_예외() {
-            User user = user();
+            User user = UserFixture.user();
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
-            ReflectionTestUtils.setField(user, "id", 1L);
             given(bookRepository.findById(1L)).willReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class, () -> libraryCommandService.changeReadingStatus(1L, request));
@@ -363,15 +295,9 @@ class LibraryServiceTest {
         @Test
         @DisplayName("상태 변경 성공 시 캐시 무효화 이벤트를 발행한다")
         void changeStatus_성공_이벤트발행() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
-
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("테스트 도서")
-                    .build();
-
-            Library library = Library.builder().user(user).book(book).build();
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            Library library = LibraryFixture.library(user, book);
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
@@ -395,31 +321,27 @@ class LibraryServiceTest {
         @Test
         @DisplayName("첫 조회면 전체 개수를 포함한다")
         void viewBooksByStatus_첫조회_전체개수포함() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
 
-            Book book1 = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("테스트 도서1")
-                    .author("작가1")
-                    .coverImageKey("book/users/1/cover1.png")
-                    .build();
+            Book book1 = BookFixture.book();
             ReflectionTestUtils.setField(book1, "id", 1L);
+            ReflectionTestUtils.setField(book1, "title", "테스트 도서1");
+            ReflectionTestUtils.setField(book1, "author", "작가1");
+            ReflectionTestUtils.setField(book1, "coverImageKey", "book/users/1/cover1.png");
 
-            Book book2 = Book.builder()
-                    .isbn13("1234567890124")
-                    .title("테스트 도서2")
-                    .author("작가2")
-                    .coverImageKey("https://example.com/cover2.jpg")
-                    .build();
+            Book book2 = BookFixture.book();
             ReflectionTestUtils.setField(book2, "id", 2L);
+            ReflectionTestUtils.setField(book2, "isbn13", "1234567890124");
+            ReflectionTestUtils.setField(book2, "title", "테스트 도서2");
+            ReflectionTestUtils.setField(book2, "author", "작가2");
+            ReflectionTestUtils.setField(book2, "coverImageKey", "https://example.com/cover2.jpg");
 
-            Library library1 = Library.builder().user(user).book(book1).build();
+            Library library1 = LibraryFixture.library(user, book1);
             ReflectionTestUtils.setField(library1, "id", 10L);
             ReflectionTestUtils.setField(library1, "readingStatus", ReadingStatus.READING);
             ReflectionTestUtils.setField(library1, "startedAt", LocalDate.of(2025, 1, 1));
 
-            Library library2 = Library.builder().user(user).book(book2).build();
+            Library library2 = LibraryFixture.library(user, book2);
             ReflectionTestUtils.setField(library2, "id", 9L);
             ReflectionTestUtils.setField(library2, "readingStatus", ReadingStatus.READING);
             ReflectionTestUtils.setField(library2, "startedAt", LocalDate.of(2025, 1, 2));
@@ -448,17 +370,13 @@ class LibraryServiceTest {
         @Test
         @DisplayName("커서 조회면 전체 개수를 포함하지 않는다")
         void viewBooksByStatus_커서조회_전체개수미포함() {
-            User user = user();
-
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("테스트 도서")
-                    .author("작가")
-                    .coverImageKey("https://example.com/cover.jpg")
-                    .build();
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
             ReflectionTestUtils.setField(book, "id", 1L);
+            ReflectionTestUtils.setField(book, "author", "작가");
+            ReflectionTestUtils.setField(book, "coverImageKey", "https://example.com/cover.jpg");
 
-            Library library = Library.builder().user(user).book(book).build();
+            Library library = LibraryFixture.library(user, book);
             ReflectionTestUtils.setField(library, "id", 8L);
             ReflectionTestUtils.setField(library, "readingStatus", ReadingStatus.READING);
             ReflectionTestUtils.setField(library, "startedAt", LocalDate.of(2025, 1, 1));
@@ -482,8 +400,7 @@ class LibraryServiceTest {
         @Test
         @DisplayName("정상")
         void countBooks_정상() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
             given(libraryRepository.countByUserId(1L)).willReturn(7);
 
             LibraryViewDto.BookCountResponseDto result = libraryQueryService.getBookCount(1L);
@@ -540,27 +457,23 @@ class LibraryServiceTest {
         @Test
         @DisplayName("다음 페이지가 있으면 hasNext=true와 nextCursor를 반환한다")
         void viewFocusRecordByDate_다음페이지_존재() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
             LocalDate date = LocalDate.of(2026, 3, 1);
 
-            Book book1 = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("도서1")
-                    .author("작가1")
-                    .coverImageKey("cover1")
-                    .build();
+            Book book1 = BookFixture.book();
             ReflectionTestUtils.setField(book1, "id", 1L);
-            Book book2 = Book.builder()
-                    .isbn13("1234567890124")
-                    .title("도서2")
-                    .author("작가2")
-                    .coverImageKey("cover2")
-                    .build();
+            ReflectionTestUtils.setField(book1, "title", "도서1");
+            ReflectionTestUtils.setField(book1, "author", "작가1");
+            ReflectionTestUtils.setField(book1, "coverImageKey", "cover1");
+            Book book2 = BookFixture.book();
             ReflectionTestUtils.setField(book2, "id", 2L);
+            ReflectionTestUtils.setField(book2, "isbn13", "1234567890124");
+            ReflectionTestUtils.setField(book2, "title", "도서2");
+            ReflectionTestUtils.setField(book2, "author", "작가2");
+            ReflectionTestUtils.setField(book2, "coverImageKey", "cover2");
 
-            Library library1 = Library.builder().user(user).book(book1).build();
-            Library library2 = Library.builder().user(user).book(book2).build();
+            Library library1 = LibraryFixture.library(user, book1);
+            Library library2 = LibraryFixture.library(user, book2);
 
             Focus focus1 = new Focus();
             ReflectionTestUtils.setField(focus1, "id", 30L);
@@ -590,19 +503,16 @@ class LibraryServiceTest {
         @Test
         @DisplayName("마지막 페이지면 hasNext=false이며 null duration은 0으로 반환한다")
         void viewFocusRecordByDate_마지막페이지_및_null_duration_처리() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
             LocalDate date = LocalDate.of(2026, 3, 1);
 
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("도서1")
-                    .author("작가1")
-                    .coverImageKey("cover1")
-                    .build();
+            Book book = BookFixture.book();
             ReflectionTestUtils.setField(book, "id", 1L);
+            ReflectionTestUtils.setField(book, "title", "도서1");
+            ReflectionTestUtils.setField(book, "author", "작가1");
+            ReflectionTestUtils.setField(book, "coverImageKey", "cover1");
 
-            Library library = Library.builder().user(user).book(book).build();
+            Library library = LibraryFixture.library(user, book);
 
             Focus focus = new Focus();
             ReflectionTestUtils.setField(focus, "id", 10L);
@@ -632,18 +542,15 @@ class LibraryServiceTest {
         @Test
         @DisplayName("최근 포커스가 있으면 bookId/title/page를 반환하고 page 0은 null 처리한다")
         void viewRecentFocus_성공_page_null_처리() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
 
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("최근 도서")
-                    .author("작가")
-                    .coverImageKey("cover")
-                    .build();
+            Book book = BookFixture.book();
             ReflectionTestUtils.setField(book, "id", 11L);
+            ReflectionTestUtils.setField(book, "title", "최근 도서");
+            ReflectionTestUtils.setField(book, "author", "작가");
+            ReflectionTestUtils.setField(book, "coverImageKey", "cover");
 
-            Library library = Library.builder().user(user).book(book).build();
+            Library library = LibraryFixture.library(user, book);
             ReflectionTestUtils.setField(library, "page", 0);
 
             Focus focus = new Focus();
@@ -665,8 +572,7 @@ class LibraryServiceTest {
         @Test
         @DisplayName("최근 포커스가 없으면 null을 반환한다")
         void viewRecentFocus_데이터없음_null반환() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
             given(focusRepository.findRecentByUser(eq(user), any(PageRequest.class)))
                     .willReturn(List.of());
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
@@ -679,18 +585,15 @@ class LibraryServiceTest {
         @Test
         @DisplayName("검색 홈용 최근 포커스 목록을 반환한다")
         void viewRecentFocusBooks_성공() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
 
-            Book book = Book.builder()
-                    .isbn13("1234567890123")
-                    .title("최근 도서")
-                    .author("작가")
-                    .coverImageKey("book/users/1/recent-cover.png")
-                    .build();
+            Book book = BookFixture.book();
             ReflectionTestUtils.setField(book, "id", 11L);
+            ReflectionTestUtils.setField(book, "title", "최근 도서");
+            ReflectionTestUtils.setField(book, "author", "작가");
+            ReflectionTestUtils.setField(book, "coverImageKey", "book/users/1/recent-cover.png");
 
-            Library library = Library.builder().user(user).book(book).build();
+            Library library = LibraryFixture.library(user, book);
 
             Focus focus = new Focus();
             ReflectionTestUtils.setField(focus, "id", 99L);
@@ -720,27 +623,24 @@ class LibraryServiceTest {
         @Test
         @DisplayName("읽기 전 상태 도서 목록을 최대 5건 변환해 반환한다")
         void viewBeforeReadingBooks_성공() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
 
-            Book firstBook = Book.builder()
-                    .isbn13("1111111111111")
-                    .title("첫 번째")
-                    .author("저자1")
-                    .coverImageKey("book/users/1/first.png")
-                    .build();
+            Book firstBook = BookFixture.book();
             ReflectionTestUtils.setField(firstBook, "id", 1L);
+            ReflectionTestUtils.setField(firstBook, "isbn13", "1111111111111");
+            ReflectionTestUtils.setField(firstBook, "title", "첫 번째");
+            ReflectionTestUtils.setField(firstBook, "author", "저자1");
+            ReflectionTestUtils.setField(firstBook, "coverImageKey", "book/users/1/first.png");
 
-            Book secondBook = Book.builder()
-                    .isbn13("2222222222222")
-                    .title("두 번째")
-                    .author("저자2")
-                    .coverImageKey("book/users/1/second.png")
-                    .build();
+            Book secondBook = BookFixture.book();
             ReflectionTestUtils.setField(secondBook, "id", 2L);
+            ReflectionTestUtils.setField(secondBook, "isbn13", "2222222222222");
+            ReflectionTestUtils.setField(secondBook, "title", "두 번째");
+            ReflectionTestUtils.setField(secondBook, "author", "저자2");
+            ReflectionTestUtils.setField(secondBook, "coverImageKey", "book/users/1/second.png");
 
-            Library firstLibrary = Library.builder().user(user).book(firstBook).build();
-            Library secondLibrary = Library.builder().user(user).book(secondBook).build();
+            Library firstLibrary = LibraryFixture.library(user, firstBook);
+            Library secondLibrary = LibraryFixture.library(user, secondBook);
 
             given(libraryRepository.findByUserIdAndReadingStatusOrderByIdDesc(
                     1L, ReadingStatus.BEFORE, PageRequest.of(0, 5)))
@@ -765,8 +665,7 @@ class LibraryServiceTest {
         @Test
         @DisplayName("가입 연도부터 현재 연도까지 오름차순으로 반환한다")
         void viewReadingYears_성공() {
-            User user = user();
-            ReflectionTestUtils.setField(user, "id", 1L);
+            User user = UserFixture.user();
             ReflectionTestUtils.setField(user, "createdDate", LocalDateTime.of(2024, 1, 1, 0, 0));
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
 
