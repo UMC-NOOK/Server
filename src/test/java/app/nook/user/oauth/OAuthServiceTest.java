@@ -124,7 +124,7 @@ class OAuthServiceTest {
         ArgumentCaptor<TokenRedis> tokenCaptor = ArgumentCaptor.forClass(TokenRedis.class);
         verify(tokenRedisRepository).save(tokenCaptor.capture());
         assertThat(tokenCaptor.getValue().getId()).isEqualTo(10L);
-        assertThat(tokenCaptor.getValue().getAccessToken()).isNull();
+        assertThat(tokenCaptor.getValue().getAccessToken()).isEqualTo("app-access");
         assertThat(tokenCaptor.getValue().getRefreshToken()).isEqualTo("app-refresh");
         server.verify();
     }
