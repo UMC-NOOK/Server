@@ -233,10 +233,7 @@ class TimelineCommandServiceTest {
     }
 
     private Record record(Long id, Library library, String content, LocalDateTime createdDate) {
-        Record record = Record.builder()
-                .library(library)
-                .content(content)
-                .build();
+        Record record = Record.create(library, null, content);
 
         ReflectionTestUtils.setField(record, "id", id);
         ReflectionTestUtils.setField(record, "createdDate", createdDate);
