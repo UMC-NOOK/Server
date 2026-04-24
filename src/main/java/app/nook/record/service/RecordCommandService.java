@@ -58,10 +58,8 @@ public class RecordCommandService {
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
 
         // 서재 등록 여부 확인
-        Library library = libraryRepository.findByUserAndBook(user, book);
-        if (library == null) {
-            throw new CustomException(LibraryErrorCode.BOOK_NOT_EXIST);
-        }
+        Library library = libraryRepository.findByUserAndBook(user, book)
+                .orElseThrow(() -> new CustomException(LibraryErrorCode.BOOK_NOT_EXIST));
 
         // 서재 최대 개수 초과를 막기 위해 for update 기반 비관적 락을 건다.
         libraryRepository.findByIdAndUserIdForUpdate(library.getId(), user.getId())

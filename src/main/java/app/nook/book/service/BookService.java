@@ -248,7 +248,8 @@ public class BookService {
         if (user == null) {
             return null;
         }
-        Library library = libraryRepository.findByUserAndBook(user, book);
-        return (library != null) ? library.getId() : null;
+        return libraryRepository.findByUserAndBook(user, book)
+                .map(Library::getId)
+                .orElse(null);
     }
 }

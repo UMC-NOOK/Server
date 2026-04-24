@@ -45,7 +45,7 @@ public class LibraryCommandService {
         User user = getUser(userId);
 
         // 이미 서재에 있는 도서는 중복 등록 차단
-        if (libraryRepository.findByUserIdAndBook(userId, book) != null) {
+        if (libraryRepository.findByUserIdAndBook(userId, book).isPresent()) {
             throw new CustomException(LibraryErrorCode.BOOK_ALREADY_EXIST);
         }
 
@@ -67,11 +67,8 @@ public class LibraryCommandService {
         // 삭제 대상 도서와 서재 등록 여부 확인
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
-        Library library = libraryRepository.findByUserIdAndBook(userId, book);
-
-        if (library == null) {
-            throw new CustomException(LibraryErrorCode.BOOK_NOT_EXIST);
-        }
+        Library library = libraryRepository.findByUserIdAndBook(userId, book)
+                .orElseThrow(() -> new CustomException(LibraryErrorCode.BOOK_NOT_EXIST));
 
         // 삭제로 영향받는 월별 통계 범위를 먼저 수집
         List<YearMonth> affectedYearMonths = focusRepository.findDistinctFocusDatesByLibraryAndUser(
@@ -95,11 +92,9 @@ public class LibraryCommandService {
         // 상태 변경 대상 도서와 서재 엔티티 조회
         Book book = bookRepository.findById(requestDto.bookId())
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
-        Library library = libraryRepository.findByUserIdAndBook(userId, book);
+        Library library = libraryRepository.findByUserIdAndBook(userId, book)
+                .orElseThrow(() -> new CustomException(LibraryErrorCode.BOOK_NOT_EXIST));
 
-        if (library == null) {
-            throw new CustomException(LibraryErrorCode.BOOK_NOT_EXIST);
-        }
         // 동일 상태 요청은 변경으로 보지 않고 에러 처리
         if (library.getReadingStatus() == requestDto.readingStatus()) {
             throw new CustomException(LibraryErrorCode.BOOK_STATUS_INVALID);

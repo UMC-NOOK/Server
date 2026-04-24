@@ -20,9 +20,9 @@ import java.util.Set;
 
 public interface LibraryRepository extends JpaRepository<Library,Long> {
 
-    Library findByUserAndBook(User user, Book book);
+    Optional<Library> findByUserAndBook(User user, Book book);
 
-    Library findByUserIdAndBook(Long userId, Book book);
+    Optional<Library> findByUserIdAndBook(Long userId, Book book);
 
     boolean existsByUserIdAndBookId(Long userId, Long bookId);
 
