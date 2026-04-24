@@ -5,9 +5,9 @@ import app.nook.library.domain.Library;
 import app.nook.record.domain.enums.Emotion;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,8 +22,7 @@ import java.util.List;
         }
 )
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public class Record extends BaseEntity {
 
     @Id
@@ -44,16 +43,18 @@ public class Record extends BaseEntity {
     @OrderBy("orderIndex ASC, createdDate ASC")
     private List<RecordImage> images = new ArrayList<>();
 
-    @Builder
-    public Record(Library library, Emotion emotion, String content) {
+    private Record(Library library, Emotion emotion, String content) {
         this.library = library;
         this.emotion = emotion;
         this.content = content;
     }
 
+    public static Record create(Library library, Emotion emotion, String content) {
+        return new Record(library, emotion, content);
+    }
+
     public void update(String content, Emotion emotion) {
         this.content = content;
         this.emotion = emotion;
-
     }
 }

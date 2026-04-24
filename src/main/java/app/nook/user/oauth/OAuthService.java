@@ -5,6 +5,7 @@ import app.nook.global.response.AuthErrorCode;
 import app.nook.global.response.OAuthErrorCode;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
+import app.nook.user.domain.enums.UserStatus;
 import app.nook.user.dto.OAuthDTO;
 import app.nook.user.dto.UserDTO;
 import app.nook.user.jwt.JwtProvider;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
@@ -56,6 +58,7 @@ public class OAuthService {
     @Value("${auth.kakao.user-info-uri}")
     private String kakaoUserInfoUri;
 
+    @Transactional
     public UserDTO.LoginResponse login(
             String provider,
             String code
@@ -70,6 +73,10 @@ public class OAuthService {
         User user = userRepository.findByEmail(oauthAttribute.getEmail())
                 .orElseGet(() -> createUser(provider, oauthAttribute));
 
+        if (user.getStatus() == UserStatus.DELETED) {
+            throw new CustomException(AuthErrorCode.USER_INACTIVE);
+        }
+
         String accessToken = jwtProvider.createAccessToken(user);
         String refreshToken = jwtProvider.createRefreshToken();
 
@@ -77,6 +84,7 @@ public class OAuthService {
                 TokenRedis.builder()
                         .id(user.getId())
                         .refreshToken(refreshToken)
+                        .accessToken(accessToken)
                         .build()
         );
 

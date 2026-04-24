@@ -67,7 +67,7 @@ class UserServiceTest {
         ArgumentCaptor<TokenRedis> tokenCaptor = ArgumentCaptor.forClass(TokenRedis.class);
         verify(tokenRedisRepository).save(tokenCaptor.capture());
         assertThat(tokenCaptor.getValue().getId()).isEqualTo(1L);
-        assertThat(tokenCaptor.getValue().getAccessToken()).isNull();
+        assertThat(tokenCaptor.getValue().getAccessToken()).isEqualTo("access-token");
         assertThat(tokenCaptor.getValue().getRefreshToken()).isEqualTo("refresh-token");
     }
 

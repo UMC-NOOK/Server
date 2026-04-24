@@ -118,7 +118,7 @@ class BookServiceTest {
         given(bookRepository.findById(1L))
                 .willReturn(Optional.of(book));
         given(libraryRepository.findByUserAndBook(testUser, book))
-                .willReturn(null); // 서재에 없는 경우
+                .willReturn(Optional.empty()); // 서재에 없는 경우
 
         // when
         BookResponseDto.BookDetailDto result = bookService.getBookDetailByIsbn(testUser, TEST_ISBN_1);
@@ -214,7 +214,7 @@ class BookServiceTest {
         ReflectionTestUtils.setField(book, "sourceType", SourceType.USER);
 
         given(bookRepository.findById(20L)).willReturn(Optional.of(book));
-        given(libraryRepository.findByUserAndBook(testUser, book)).willReturn(null);
+        given(libraryRepository.findByUserAndBook(testUser, book)).willReturn(Optional.empty());
 
         BookResponseDto.BookDetailDto result = bookService.getBookDetailById(testUser, 20L);
 

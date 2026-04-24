@@ -73,6 +73,15 @@ public class User extends BaseEntity {
         this.role = role;
     }
 
+    public static User fromToken(Long id, String email, UserRole role) {
+        User user = new User();
+        user.id = id;
+        user.email = email;
+        user.role = role;
+        user.status = UserStatus.ACTIVE;
+        return user;
+    }
+
     public void increaseChatUsage() {
         this.chatUsage++;
     }

@@ -9,6 +9,7 @@ import app.nook.book.repository.CategoryRepository;
 import app.nook.global.config.QueryDslConfig;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
+import java.util.Optional;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -65,7 +66,7 @@ class LibraryRepositoryTest {
                 .build();
         libraryRepository.save(library);
 
-        Library found = libraryRepository.findByUserAndBook(user, book);
+        Library found = libraryRepository.findByUserAndBook(user, book).orElse(null);
 
         assertThat(found).isNotNull();
         assertThat(found.getUser().getId()).isEqualTo(user.getId());
@@ -90,9 +91,9 @@ class LibraryRepositoryTest {
                 .build();
         bookRepository.save(book);
 
-        Library found = libraryRepository.findByUserAndBook(user, book);
+        Optional<Library> found = libraryRepository.findByUserAndBook(user, book);
 
-        assertThat(found).isNull();
+        assertThat(found).isEmpty();
     }
 
     @Test

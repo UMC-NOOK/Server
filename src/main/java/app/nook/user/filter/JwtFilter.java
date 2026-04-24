@@ -4,6 +4,7 @@ import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.user.domain.User;
 import app.nook.user.jwt.JwtProvider;
+import app.nook.user.redis.TokenRedis;
 import app.nook.user.redis.TokenRedisRepository;
 import app.nook.user.repository.UserRepository;
 import app.nook.user.service.CustomUserDetails;
@@ -62,7 +63,6 @@ public class JwtFilter extends OncePerRequestFilter {
         return null;
     }
 
-    // accessToken 유효 시 인증 객체 생성하여 SecurityContext 에 저장
     private void setAuthentication(String accessToken) {
         String email = jwtProvider.extractEmail(accessToken);
         User user = userRepository.findByEmail(email)
@@ -86,14 +86,8 @@ public class JwtFilter extends OncePerRequestFilter {
             Long userId = userIdClaim.longValue();
 
             tokenRedisRepository.findById(userId).ifPresentOrElse(tokenRedis -> {
-                String storedRefreshToken = tokenRedis.getRefreshToken();
-
-                if (!StringUtils.hasText(storedRefreshToken)) {
-                    log.warn("[TOKEN] 저장된 리프레시 토큰 누락. accessToken 재발급 실패");
-                    return;
-                }
-
-                if (!jwtProvider.validateToken(storedRefreshToken)) {
+                String refreshToken = tokenRedis.getRefreshToken();
+                if (!jwtProvider.validateToken(refreshToken)) {
                     log.warn("[TOKEN] 리프레시 토큰 무효. accessToken 재발급 실패");
                     return;
                 }
@@ -102,6 +96,13 @@ public class JwtFilter extends OncePerRequestFilter {
                         .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
                 String newAccessToken = jwtProvider.createAccessToken(user);
+
+                // 새로운 액세스 토큰 발급 시 리프레시 토큰도 함께 재발급
+                TokenRedis newTokenRedis = TokenRedis.builder()
+                        .id(user.getId())
+                        .refreshToken(refreshToken)
+                        .build();
+                tokenRedisRepository.save(newTokenRedis);
 
                 response.setHeader(HttpHeaders.AUTHORIZATION, JwtProvider.BEARER_PREFIX + newAccessToken);
                 log.info("[TOKEN] 토큰 만료, 새로운 토큰 발급 ={}", newAccessToken);

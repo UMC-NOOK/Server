@@ -98,6 +98,7 @@ public class UserService {
                 TokenRedis.builder()
                         .id(user.getId())
                         .refreshToken(refreshToken)
+                        .accessToken(accessToken)
                         .build()
         );
 

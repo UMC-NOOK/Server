@@ -20,7 +20,11 @@ import java.util.Set;
 
 public interface LibraryRepository extends JpaRepository<Library,Long> {
 
-    Library findByUserAndBook(User user, Book book);
+    Optional<Library> findByUserAndBook(User user, Book book);
+
+    Optional<Library> findByUserIdAndBook(Long userId, Book book);
+
+    boolean existsByUserIdAndBookId(Long userId, Long bookId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
@@ -51,7 +55,25 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
             Pageable pageable
     );
 
+    @Query("""
+        select l
+        from Library l
+        join fetch l.book b
+        where l.user.id = :userId
+          and l.readingStatus = :status
+          and (:cursor is null or l.id < :cursor)
+        order by l.id desc
+    """)
+    Slice<Library> findByUserIdAndStatusWithCursor(
+            @Param("userId") Long userId,
+            @Param("status") ReadingStatus status,
+            @Param("cursor") Long cursor,
+            Pageable pageable
+    );
+
     long countByUserAndReadingStatus(User user, ReadingStatus status);
+
+    long countByUserIdAndReadingStatus(Long userId, ReadingStatus status);
 
 
     // [전체 검색 - 서재 보유 여부 매핑용] ISBN 목록 중 서재에 있는 ISBN들 반환
@@ -75,6 +97,8 @@ public interface LibraryRepository extends JpaRepository<Library,Long> {
             Pageable pageable);
 
     int countByUser(User user);
+
+    int countByUserId(Long userId);
 
     @Query("""
         select l

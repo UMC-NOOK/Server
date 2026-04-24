@@ -15,8 +15,8 @@ import app.nook.record.dto.RecordRequestDto;
 import app.nook.record.dto.RecordResponseDto;
 import app.nook.record.dto.RecordUpdateRequestDto;
 import app.nook.record.exception.RecordErrorCode;
-import app.nook.record.service.RecordService;
-import app.nook.record.service.RecordViewService;
+import app.nook.record.service.RecordCommandService;
+import app.nook.record.service.RecordQueryService;
 import app.nook.record.util.RecordListCursorCodec;
 import app.nook.user.filter.JwtExceptionFilter;
 import app.nook.user.filter.JwtFilter;
@@ -67,10 +67,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RecordControllerTest extends AbstractWebMvcRestDocsTests {
 
     @MockitoBean
-    private RecordService recordService;
+    private RecordCommandService recordCommandService;
 
     @MockitoBean
-    private RecordViewService recordViewService;
+    private RecordQueryService recordQueryService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -110,7 +110,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     true
             );
 
-            given(recordViewService.getUserRecords(any(), anyInt(), any(), any()))
+            given(recordQueryService.getUserRecords(any(), anyInt(), any(), any()))
                     .willReturn(response);
 
             // when & then
@@ -155,7 +155,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     .andExpect(jsonPath("$.isSuccess").value(false))
                     .andExpect(jsonPath("$.code").value("COMMON-002"));
 
-            org.mockito.Mockito.verify(recordViewService, org.mockito.Mockito.never())
+            org.mockito.Mockito.verify(recordQueryService, org.mockito.Mockito.never())
                     .getUserRecords(any(), anyInt(), any(), any());
         }
 
@@ -168,7 +168,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                             .param("order", "BAD_ORDER"))
                     .andExpect(status().isBadRequest());
 
-            org.mockito.Mockito.verify(recordViewService, org.mockito.Mockito.never())
+            org.mockito.Mockito.verify(recordQueryService, org.mockito.Mockito.never())
                     .getUserRecords(any(), anyInt(), any(), any());
         }
 
@@ -182,7 +182,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     false
             );
 
-            given(recordViewService.getUserRecords(any(), anyInt(), any(), any()))
+            given(recordQueryService.getUserRecords(any(), anyInt(), any(), any()))
                     .willReturn(response);
 
             // when & then
@@ -234,7 +234,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     true
             );
 
-            given(recordViewService.getBookRecords(any(), anyLong(), anyInt(), any(), any()))
+            given(recordQueryService.getBookRecords(any(), anyLong(), anyInt(), any(), any()))
                     .willReturn(response);
 
             // when & then
@@ -280,7 +280,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     false
             );
 
-            given(recordViewService.getBookRecords(any(), anyLong(), anyInt(), any(), any()))
+            given(recordQueryService.getBookRecords(any(), anyLong(), anyInt(), any(), any()))
                     .willReturn(response);
 
             // when & then
@@ -321,7 +321,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     )
             );
 
-            given(recordViewService.getRecordEmotionCounts(any()))
+            given(recordQueryService.getRecordEmotionCounts(any()))
                     .willReturn(response);
 
             // when & then
@@ -361,7 +361,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                         List.of("record/users/1/first.png")
                 );
 
-                willDoNothing().given(recordService).createRecord(any(), anyLong(), any());
+                willDoNothing().given(recordCommandService).createRecord(any(), anyLong(), any());
 
                 // when & then
                 mockMvc.perform(post("/api/v1/records/books/{bookId}", 1L)
@@ -428,7 +428,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     )
             );
 
-            willDoNothing().given(recordService).updateRecord(any(), anyLong(), any());
+            willDoNothing().given(recordCommandService).updateRecord(any(), anyLong(), any());
 
             // when & then
             mockMvc.perform(put("/api/v1/records/{recordId}", 10L)
@@ -466,7 +466,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
             @WithCustomUser
             void 기록_삭제_성공() throws Exception {
                 // given
-                willDoNothing().given(recordService).deleteRecord(any(), anyLong());
+                willDoNothing().given(recordCommandService).deleteRecord(any(), anyLong());
 
                 // when & then
                 mockMvc.perform(delete("/api/v1/records/{recordId}", 10L)
@@ -491,7 +491,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
             void 기록_삭제_실패_기록없음() throws Exception {
                 // given
                 willThrow(new CustomException(RecordErrorCode.RECORD_NOT_FOUND))
-                        .given(recordService).deleteRecord(any(), anyLong());
+                        .given(recordCommandService).deleteRecord(any(), anyLong());
 
                 // when & then
                 mockMvc.perform(delete("/api/v1/records/{recordId}", 999L)
@@ -512,7 +512,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
         void 기록_전체개수_조회_성공() throws Exception {
             // given
             RecordResponseDto.RecordCountDto response = new RecordResponseDto.RecordCountDto(12);
-            given(recordService.countRecords(anyLong())).willReturn(response);
+            given(recordCommandService.countRecords(anyLong())).willReturn(response);
 
             // when & then
             mockMvc.perform(get("/api/v1/records/count")

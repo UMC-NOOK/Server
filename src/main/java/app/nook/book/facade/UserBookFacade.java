@@ -4,7 +4,7 @@ import app.nook.book.domain.Book;
 import app.nook.book.dto.BookRequestDto;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.service.BookService;
-import app.nook.library.service.LibraryService;
+import app.nook.library.service.LibraryCommandService;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserBookFacade {
 
     private final BookService bookService;
-    private final LibraryService libraryService;
+    private final LibraryCommandService libraryCommandService;
     private final PresignedUrlService presignedUrlService;
 
     // 표지 key 저장 + USER 도서 저장 + 서재 자동등록
@@ -37,7 +37,7 @@ public class UserBookFacade {
         log.info("[USER_BOOK_CREATE_SAVED] userId={}, bookId={}", user.getId(), book.getId());
 
         // 신규 생성 도서는 생성 즉시 내 서재로 등록
-        libraryService.save(user, book.getId());
+        libraryCommandService.registerBook(user.getId(), book.getId());
 
         return bookService.getBookDetailById(user, book.getId());
     }

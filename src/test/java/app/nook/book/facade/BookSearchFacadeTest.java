@@ -7,7 +7,7 @@ import app.nook.book.dto.LibrarySearchHomeResponseDto;
 import app.nook.book.service.BookService;
 import app.nook.book.service.SearchHistoryService;
 import app.nook.library.dto.LibraryViewDto;
-import app.nook.library.service.LibraryService;
+import app.nook.library.service.LibraryQueryService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +45,7 @@ class BookSearchFacadeTest {
     private SearchHistoryService searchHistoryService;
 
     @Mock
-    private LibraryService libraryService;
+    private LibraryQueryService libraryQueryService;
 
     @Mock
     private BookService bookService;
@@ -67,7 +67,7 @@ class BookSearchFacadeTest {
 
         given(aladinService.searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE))
                 .willReturn(mockResult);
-        given(libraryService.findOwnedIsbns(eq(TEST_USER_ID), anyList()))
+        given(libraryQueryService.getOwnedIsbns(eq(TEST_USER_ID), anyList()))
                 .willReturn(Collections.emptySet()); // 서재에 없는 경우
 
         // when
@@ -101,7 +101,7 @@ class BookSearchFacadeTest {
 
         given(aladinService.searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE))
                 .willReturn(mockResult);
-        given(libraryService.findOwnedIsbns(eq(TEST_USER_ID), anyList()))
+        given(libraryQueryService.getOwnedIsbns(eq(TEST_USER_ID), anyList()))
                 .willReturn(Collections.emptySet()); // 서재에 없는 경우
 
         // when
@@ -213,11 +213,11 @@ class BookSearchFacadeTest {
         void 최근포커스와_읽기전이_모두있음() {
             User user = user();
 
-            given(libraryService.viewRecentFocusBooks(eq(user), anyInt()))
+            given(libraryQueryService.getRecentFocusBooks(eq(user.getId()), anyInt()))
                     .willReturn(List.of(
                             new LibraryViewDto.RecentFocusBookItem(10L, "포커스 책", "작가A", "focus.jpg")
                     ));
-            given(libraryService.viewBeforeReadingBooks(eq(user)))
+            given(libraryQueryService.getBeforeReadingBooks(eq(user.getId())))
                     .willReturn(new LibraryViewDto.BeforeReadingResponseDto(List.of(
                             new LibraryViewDto.BeforeBookItem(20L, "읽기 전 책", "작가B", "before.jpg")
                     )));
@@ -235,11 +235,11 @@ class BookSearchFacadeTest {
         void 최근포커스만_있음() {
             User user = user();
 
-            given(libraryService.viewRecentFocusBooks(eq(user), anyInt()))
+            given(libraryQueryService.getRecentFocusBooks(eq(user.getId()), anyInt()))
                     .willReturn(List.of(
                             new LibraryViewDto.RecentFocusBookItem(10L, "포커스 책", "작가A", "focus.jpg")
                     ));
-            given(libraryService.viewBeforeReadingBooks(eq(user)))
+            given(libraryQueryService.getBeforeReadingBooks(eq(user.getId())))
                     .willReturn(new LibraryViewDto.BeforeReadingResponseDto(List.of()));
 
             LibrarySearchHomeResponseDto.Result result = bookSearchFacade.getLibrarySearchHome(user);
@@ -254,9 +254,9 @@ class BookSearchFacadeTest {
         void 읽기전만_있음() {
             User user = user();
 
-            given(libraryService.viewRecentFocusBooks(eq(user), anyInt()))
+            given(libraryQueryService.getRecentFocusBooks(eq(user.getId()), anyInt()))
                     .willReturn(List.of());
-            given(libraryService.viewBeforeReadingBooks(eq(user)))
+            given(libraryQueryService.getBeforeReadingBooks(eq(user.getId())))
                     .willReturn(new LibraryViewDto.BeforeReadingResponseDto(List.of(
                             new LibraryViewDto.BeforeBookItem(20L, "읽기 전 책", "작가B", "before.jpg")
                     )));
@@ -273,9 +273,9 @@ class BookSearchFacadeTest {
         void 둘다없으면_추천만_반환() {
             User user = user();
 
-            given(libraryService.viewRecentFocusBooks(eq(user), anyInt()))
+            given(libraryQueryService.getRecentFocusBooks(eq(user.getId()), anyInt()))
                     .willReturn(List.of());
-            given(libraryService.viewBeforeReadingBooks(eq(user)))
+            given(libraryQueryService.getBeforeReadingBooks(eq(user.getId())))
                     .willReturn(new LibraryViewDto.BeforeReadingResponseDto(List.of()));
             given(bookService.getPersonalizedBestsellers(eq(user)))
                     .willReturn(List.of(

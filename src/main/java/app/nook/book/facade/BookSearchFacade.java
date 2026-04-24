@@ -11,7 +11,7 @@ import app.nook.book.service.BookService;
 import app.nook.book.service.SearchHistoryService;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
-import app.nook.library.service.LibraryService;
+import app.nook.library.service.LibraryQueryService;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class BookSearchFacade {
 
     private final AladinService aladinService;
     private final SearchHistoryService searchHistoryService;
-    private final LibraryService libraryService;
+    private final LibraryQueryService libraryQueryService;
     private final BookService bookService;
     private final PresignedUrlService presignedUrlService;
 
@@ -82,7 +82,7 @@ public class BookSearchFacade {
                 .toList();
 
         // 서재 보유 여부 조회
-        Set<String> mybookIsbns = libraryService.findOwnedIsbns(userId, isbns);
+        Set<String> mybookIsbns = libraryQueryService.getOwnedIsbns(userId, isbns);
 
         books.forEach(book -> {
             boolean inLibrary = mybookIsbns.contains(book.getIsbn13());
@@ -96,7 +96,7 @@ public class BookSearchFacade {
         int offset = (cursor == null || cursor == 0) ? 0 : cursor;
         int page = offset / DEFAULT_PAGE_SIZE;
 
-        Page<Library> result = libraryService.searchBooksInLibrary(userId, keyword, page, DEFAULT_PAGE_SIZE);
+        Page<Library> result = libraryQueryService.searchBooksInLibrary(userId, keyword, page, DEFAULT_PAGE_SIZE);
         List<BookResponseDto.BookSearchDto> books = result.getContent().stream()
                 .map(BookConverter::toBookSearchDto)
                 // TODO: BookSearchDto를 mutable setter로 후처리하지 말고, 이미지 URL이 반영된 새 DTO를 생성하는 방식으로 정리
@@ -146,8 +146,8 @@ public class BookSearchFacade {
     public LibrarySearchHomeResponseDto.Result getLibrarySearchHome(User user) {
         List<LibrarySearchHomeResponseDto.Section> sections = new ArrayList<>();
 
-        List<LibrarySearchHomeResponseDto.RecentFocusItem> recentFocusItems = libraryService
-                .viewRecentFocusBooks(user, LIBRARY_SEARCH_HOME_SECTION_SIZE)
+        List<LibrarySearchHomeResponseDto.RecentFocusItem> recentFocusItems = libraryQueryService
+                .getRecentFocusBooks(user.getId(), LIBRARY_SEARCH_HOME_SECTION_SIZE)
                 .stream()
                 .map(item -> new LibrarySearchHomeResponseDto.RecentFocusItem(
                         item.bookId(),
@@ -161,8 +161,8 @@ public class BookSearchFacade {
             sections.add(LibrarySearchHomeResponseDto.RecentFocusSection.of(recentFocusItems));
         }
 
-        List<LibrarySearchHomeResponseDto.BeforeReadingItem> beforeReadingItems = libraryService
-                .viewBeforeReadingBooks(user)
+        List<LibrarySearchHomeResponseDto.BeforeReadingItem> beforeReadingItems = libraryQueryService
+                .getBeforeReadingBooks(user.getId())
                 .books()
                 .stream()
                 .map(item -> new LibrarySearchHomeResponseDto.BeforeReadingItem(

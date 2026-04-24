@@ -131,19 +131,13 @@ class TimelineQueryServiceTest {
     }
 
     private Record record(Long recordId, Library library, String content) {
-        Record record = Record.builder()
-                .library(library)
-                .content(content)
-                .build();
+        Record record = Record.create(library, null, content);
         ReflectionTestUtils.setField(record, "id", recordId);
         return record;
     }
 
     private Record recordWithImages(Long recordId, Library library, String content, String emotion, List<String> keys) {
-        Record record = Record.builder()
-                .library(library)
-                .content(content)
-                .build();
+        Record record = Record.create(library, null, content);
         ReflectionTestUtils.setField(record, "id", recordId);
         if (emotion != null) {
             ReflectionTestUtils.setField(record, "emotion", Emotion.valueOf(emotion));
