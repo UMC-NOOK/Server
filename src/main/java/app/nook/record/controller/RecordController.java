@@ -10,8 +10,8 @@ import app.nook.record.dto.BookRecordDto;
 import app.nook.record.dto.RecordRequestDto;
 import app.nook.record.dto.RecordResponseDto;
 import app.nook.record.dto.RecordUpdateRequestDto;
-import app.nook.record.service.RecordService;
-import app.nook.record.service.RecordViewService;
+import app.nook.record.service.RecordCommandService;
+import app.nook.record.service.RecordQueryService;
 import app.nook.record.util.RecordListCursorCodec;
 import app.nook.user.annotation.CurrentUser;
 import app.nook.user.domain.User;
@@ -29,18 +29,18 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class RecordController {
 
-    private final RecordService recordService;
-    private final RecordViewService recordViewService;
+    private final RecordCommandService recordCommandService;
+    private final RecordQueryService recordQueryService;
 
     @GetMapping
     public ApiResponse<CursorResponse<BookRecordDto.BookRecordItemDto, String>> getUserRecords(
             @CurrentUser User user,
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam(defaultValue = "5") @Min(1) @Max(100) int size,
             @RequestParam(defaultValue = "RECENT_RECORDED") SortType order
     ) {
         CursorResponse<BookRecordDto.BookRecordItemDto, String> response =
-                recordViewService.getUserRecords(
+                recordQueryService.getUserRecords(
                         user,
                         size,
                         RecordListCursorCodec.decode(cursor),
@@ -59,11 +59,11 @@ public class RecordController {
             @CurrentUser User user,
             @PathVariable Long bookId,
             @RequestParam(required = false) @Min(1) Long cursor,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam(defaultValue = "5") @Min(1) @Max(100) int size,
             @RequestParam(defaultValue = "ALL") String emotion
     ) {
         CursorResponse<BookRecordDto.RecordItemDto, Long> response =
-                recordViewService.getBookRecords(user, bookId, size, cursor, emotion);
+                recordQueryService.getBookRecords(user, bookId, size, cursor, emotion);
 
         if (response.getItems().isEmpty()) {
             return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
@@ -77,7 +77,7 @@ public class RecordController {
             @CurrentUser User user
     ) {
         return ApiResponse.onSuccess(
-                recordViewService.getRecordEmotionCounts(user),
+                recordQueryService.getRecordEmotionCounts(user),
                 SuccessCode.OK
         );
     }
@@ -88,7 +88,7 @@ public class RecordController {
             @PathVariable Long bookId,
             @Valid @RequestBody RecordRequestDto requestDto
             ) {
-        recordService.createRecord(user, bookId, requestDto);
+        recordCommandService.createRecord(user, bookId, requestDto);
         return ApiResponse.onSuccess(null, SuccessCode.CREATED);
     }
 
@@ -98,7 +98,7 @@ public class RecordController {
             @PathVariable Long recordId,
             @Valid @RequestBody RecordUpdateRequestDto requestDto
     ) {
-        recordService.updateRecord(user, recordId, requestDto);
+        recordCommandService.updateRecord(user, recordId, requestDto);
         return ApiResponse.onSuccess(null, SuccessCode.OK);
     }
 
@@ -107,7 +107,7 @@ public class RecordController {
             @CurrentUser User user,
             @PathVariable Long recordId
     ) {
-        recordService.deleteRecord(user, recordId);
+        recordCommandService.deleteRecord(user, recordId);
         return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
     }
 
@@ -116,7 +116,7 @@ public class RecordController {
             @CurrentUser User user
     ) {
         return ApiResponse.onSuccess(
-                recordService.countRecords(user.getId()),
+                recordCommandService.countRecords(user.getId()),
                 SuccessCode.OK
         );
     }

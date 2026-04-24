@@ -31,7 +31,7 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class RecordService {
+public class RecordCommandService {
 
     // TODO: 기록 최대개수 임의설정, 추후 변경
     private static final int MAX_RECORD_COUNT = 1000;
@@ -73,7 +73,7 @@ public class RecordService {
             throw new CustomException(FileErrorCode.FILE_NUM_EXCEEDED);
         }
 
-        Record newRecord = new Record(
+        Record newRecord = Record.create(
                 library,
                 requestDto.emotion(),
                 requestDto.content()
@@ -193,5 +193,6 @@ public class RecordService {
             eventPublisher.publishEvent(new RecordDeletedEvent(record.getId(), keysToDelete));
         }
     }
+
 
 }

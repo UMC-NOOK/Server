@@ -1,8 +1,13 @@
 package app.nook.record.service;
 
+import app.nook.book.domain.Book;
+import app.nook.book.exception.BookErrorCode;
+import app.nook.book.repository.BookRepository;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.CommonErrorCode;
+import app.nook.library.exception.LibraryErrorCode;
+import app.nook.library.repository.LibraryRepository;
 import app.nook.record.converter.RecordConverter;
 import app.nook.record.domain.Record;
 import app.nook.record.domain.enums.Emotion;
@@ -22,19 +27,14 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class RecordViewService {
+public class RecordQueryService {
 
     private final RecordRepository recordRepository;
     private final RecordConverter recordConverter;
     private final PresignedUrlService presignedUrlService;
+    private final BookRepository bookRepository;
+    private final LibraryRepository libraryRepository;
 
-    /**
-     * 독서 기록 목록 조회
-     *
-     * 독서 기록 감상별 개수 조회
-     *
-     * 특정 책 기록 감상/정렬 필터
-     */
 
     // 독서 기록 목록 조회
     // 최신 기록 순, 오래된 기록 순, 기록 많은 순, 기록 적은 순, 커서페이징. 첫번째 커서는 Null
@@ -83,6 +83,7 @@ public class RecordViewService {
         return recordRepository.countRecordsByEmotion(user.getId());
     }
 
+    // 해당 책의 독서 기록 목록 조회
     public CursorResponse<BookRecordDto.RecordItemDto, Long> getBookRecords(
             User user,
             Long bookId,
@@ -90,6 +91,13 @@ public class RecordViewService {
             Long cursor,
             String emotion
     ) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
+
+        if (libraryRepository.findByUserAndBook(user, book) == null) {
+            throw new CustomException(LibraryErrorCode.BOOK_NOT_EXIST);
+        }
+
         Emotion emotionFilter = parseEmotionFilter(emotion);
 
         List<Record> records = recordRepository.findBookRecordsByCursor(
