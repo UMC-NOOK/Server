@@ -144,10 +144,6 @@ tasks.named('bootJar') {
 	}
 }
 
-build {
-	dependsOn copyDocument
-}
-
 jacocoTestReport {
 	dependsOn test
 
@@ -164,13 +160,22 @@ jacocoTestReport {
 							'**/config/**',
 							'**/dto/**',
 							'**/exception/**',
+							'**/*ErrorCode*',
 							'**/*Application*',
 							'**/Q*',
 							'**/*RestDocs*',
 							'**/global/docs/**',
 							'**/*Test*',
 							'**/*Base*',
-							'**/*Abstract*'
+							'**/*Abstract*',
+							'**/user/resolver/CurrentUserArgumentResolver*',
+							'**/user/service/CustomUserDetailService*',
+							'**/user/service/CustomUserDetails*',
+							'**/user/handler/CustomAuthenticationEntryPoint*',
+							'**/user/handler/CustomAccessDeniedHandler*',
+							'**/user/handler/SecurityErrorResponseWriter*',
+							'**/user/filter/JwtExceptionFilter*',
+							'**/user/jwt/JwtProvider*'
 					])
 				})
 		)
