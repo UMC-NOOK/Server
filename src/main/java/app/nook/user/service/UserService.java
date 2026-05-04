@@ -83,6 +83,38 @@ public class UserService {
                     .build();
     }
 
+    @Transactional
+    public UserDTO.TokenReissueResponse reissueAccessToken(String refreshToken) {
+        if (!jwtProvider.validateToken(refreshToken)) {
+            if (jwtProvider.isExpiredToken(refreshToken)) {
+                throw new CustomException(AuthErrorCode.TOKEN_EXPIRED);
+            }
+            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+        }
+
+        TokenRedis tokenRedis = tokenRedisRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(() -> {
+                    log.warn("[TOKEN REISSUE REUSE DETECTED] refresh token was valid but not found in Redis. Possible rotated token reuse.");
+                    throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+                });
+
+        User user = userRepository.findById(tokenRedis.getId())
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+
+        String newAccessToken = jwtProvider.createAccessToken(user);
+        String newRefreshToken = jwtProvider.createRefreshToken();
+
+        tokenRedisRepository.save(
+                TokenRedis.builder()
+                        .id(user.getId())
+                        .refreshToken(newRefreshToken)
+                        .accessToken(newAccessToken)
+                        .build()
+        );
+
+        return new UserDTO.TokenReissueResponse(newAccessToken, newRefreshToken);
+    }
+
     private void validateDevUserRole(User user) {
         // DEV 로그인은 USER 권한만 허용 — 다른 역할은 존재하지 않는 것과 동일하게 처리
         if (user.getRole() != UserRole.USER) {
@@ -107,6 +139,7 @@ public class UserService {
                 .email(user.getEmail())
                 .nickName(user.getNickName())
                 .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 }

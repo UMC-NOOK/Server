@@ -43,4 +43,7 @@ public interface RecordRepository extends JpaRepository<Record, Long>, RecordQue
 
     @EntityGraph(attributePaths = "images")
     Optional<Record> findWithImagesById(Long id);
+
+    @EntityGraph(attributePaths = {"images", "library", "library.user"})
+    Optional<Record> findWithDetailById(Long id);
 }

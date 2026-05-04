@@ -10,6 +10,7 @@ import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.record.domain.Record;
 import app.nook.record.domain.RecordImage;
+import app.nook.record.domain.enums.Emotion;
 import app.nook.record.dto.RecordRequestDto;
 import app.nook.record.dto.RecordResponseDto;
 import app.nook.record.dto.RecordUpdateRequestDto;
@@ -73,7 +74,7 @@ public class RecordCommandService {
 
         Record newRecord = Record.create(
                 library,
-                requestDto.emotion(),
+                normalizeEmotion(requestDto.emotion()),
                 requestDto.content()
         );
 
@@ -104,7 +105,7 @@ public class RecordCommandService {
             throw new CustomException(RecordErrorCode.RECORD_NOT_AUTHORIZED);
         }
 
-        record.update(requestDto.content(), requestDto.emotion());
+        record.update(requestDto.content(), normalizeEmotion(requestDto.emotion()));
 
         // 이미지 업데이트 시에 동기화 처리
         syncRecordImages(record, requestedImageKeys);
@@ -148,6 +149,10 @@ public class RecordCommandService {
                 .map(String::trim)
                 .filter(key -> !key.isBlank())
                 .toList();
+    }
+
+    private Emotion normalizeEmotion(Emotion emotion) {
+        return emotion == null ? Emotion.EMPTY : emotion;
     }
 
     // 기록 이미지 저장

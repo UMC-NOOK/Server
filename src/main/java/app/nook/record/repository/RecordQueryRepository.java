@@ -15,5 +15,5 @@ public interface RecordQueryRepository {
     public List<Record> findBookRecordsByCursor(
             Long userId, Long bookId, Long cursor, Emotion emotion, int size
     );
-    public BookRecordDto.RecordEmotionCountResponse countRecordsByEmotion(Long userId);
+    public BookRecordDto.RecordEmotionCountResponse countRecordsByEmotion(Long userId, Long bookId);
 }
