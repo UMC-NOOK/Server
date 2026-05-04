@@ -1,21 +1,25 @@
 package app.nook.controller.focus;
 
+import app.nook.focus.controller.FocusController;
 import app.nook.focus.dto.FocusRequestDto;
 import app.nook.focus.dto.FocusResponseDto;
 import app.nook.focus.service.FocusService;
-import app.nook.global.common.AbstractRestDocsTests;
+import app.nook.global.common.AbstractWebMvcRestDocsTests;
+import app.nook.global.common.security.WithCustomUser;
+import app.nook.global.config.WebSecurityConfig;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.user.domain.User;
-import app.nook.user.domain.enums.UserRole;
-import app.nook.user.service.CustomUserDetails;
+import app.nook.user.filter.JwtExceptionFilter;
+import app.nook.user.filter.JwtFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 
@@ -26,35 +30,32 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class FocusControllerTest extends AbstractRestDocsTests {
+@WebMvcTest(
+        controllers = FocusController.class,
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.ASSIGNABLE_TYPE,
+                classes = {
+                        WebSecurityConfig.class,
+                        JwtFilter.class,
+                        JwtExceptionFilter.class
+                }
+        )
+)
+public class FocusControllerTest extends AbstractWebMvcRestDocsTests {
 
     @MockitoBean
     private FocusService focusService;
 
+    @MockitoBean
+    private app.nook.focus.service.ThemeService themeService;
+
     @Autowired
     private ObjectMapper objectMapper;
 
-    private CustomUserDetails userDetails;
-    private User user;
-
-    @BeforeEach
-    void setUpUser() {
-        user = User.builder()
-                .email("test@example.com")
-                .nickName("테스터")
-                .provider("google")
-                .providerId("provider-id")
-                .role(UserRole.USER)
-                .build();
-
-        ReflectionTestUtils.setField(user, "id", 1L);
-        userDetails = new CustomUserDetails(user);
-    }
-
     @Test
+    @WithCustomUser
     @DisplayName("포커스 시작 성공")
     void 포커스_시작_성공() throws Exception {
         // given
@@ -76,8 +77,7 @@ public class FocusControllerTest extends AbstractRestDocsTests {
         // when & then
         mockMvc.perform(
                         post("/api/v1/focuses/start")
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
@@ -104,6 +104,7 @@ public class FocusControllerTest extends AbstractRestDocsTests {
     }
 
     @Test
+    @WithCustomUser
     @DisplayName("포커스 종료 성공")
     void 포커스_종료_성공() throws Exception {
         // given
@@ -130,8 +131,7 @@ public class FocusControllerTest extends AbstractRestDocsTests {
         // when & then
         mockMvc.perform(
                         post("/api/v1/focuses/end")
-                                .header("Authorization", "Bearer test-access-token")
-                                .with(user(userDetails))
+                                .header(AUTH_HEADER, AUTH_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
