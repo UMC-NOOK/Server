@@ -212,22 +212,68 @@ class RecordQueryServiceTest {
         void 감상별_개수_조회() {
             // given
             User user = UserFixture.user();
+            Long bookId = 10L;
             List<BookRecordDto.RecordEmotionDto> emotionCounts = List.of(
                     new BookRecordDto.RecordEmotionDto(Emotion.FUN, 5L),
                     new BookRecordDto.RecordEmotionDto(Emotion.SAD, 3L)
             );
 
-            given(recordRepository.countRecordsByEmotion(1L))
+            given(bookRepository.existsById(bookId)).willReturn(true);
+            given(libraryRepository.existsByUserIdAndBookId(user.getId(), bookId)).willReturn(true);
+            given(recordRepository.countRecordsByEmotion(1L, bookId))
                     .willReturn(new BookRecordDto.RecordEmotionCountResponse(8L, emotionCounts));
 
             // when
-            BookRecordDto.RecordEmotionCountResponse result = recordQueryService.getRecordEmotionCounts(user);
+            BookRecordDto.RecordEmotionCountResponse result = recordQueryService.getRecordEmotionCounts(user, bookId);
 
             // then
             assertThat(result.totalCount()).isEqualTo(8L);
-            assertThat(result.emotionCounts()).hasSize(2);
+            assertThat(result.emotionCounts()).hasSize(Emotion.values().length - 1);
             assertThat(result.emotionCounts().get(0).emotion()).isEqualTo(Emotion.FUN);
-            assertThat(result.emotionCounts().get(1).emotion()).isEqualTo(Emotion.SAD);
+            assertThat(result.emotionCounts().get(0).recordCount()).isEqualTo(5L);
+            assertThat(result.emotionCounts().get(1).emotion()).isEqualTo(Emotion.EMPATHIZING);
+            assertThat(result.emotionCounts().get(1).recordCount()).isZero();
+            assertThat(result.emotionCounts().get(4).emotion()).isEqualTo(Emotion.SAD);
+            assertThat(result.emotionCounts().get(4).recordCount()).isEqualTo(3L);
+            assertThat(result.emotionCounts().get(5).emotion()).isEqualTo(Emotion.UNCOMFORTABLE);
+            assertThat(result.emotionCounts().get(5).recordCount()).isZero();
+            assertThat(result.emotionCounts()).noneMatch(item -> item.emotion() == Emotion.EMPTY);
+            verify(recordRepository).countRecordsByEmotion(1L, bookId);
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 책이면 예외를 던진다")
+        void 감상별_개수_조회_실패_책없음() {
+            // given
+            User user = UserFixture.user();
+            given(bookRepository.existsById(10L)).willReturn(false);
+
+            // when
+            CustomException exception = assertThrows(
+                    CustomException.class,
+                    () -> recordQueryService.getRecordEmotionCounts(user, 10L)
+            );
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(BookErrorCode.BOOK_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("실패 - 서재에 없는 책이면 예외를 던진다")
+        void 감상별_개수_조회_실패_서재없음() {
+            // given
+            User user = UserFixture.user();
+            given(bookRepository.existsById(10L)).willReturn(true);
+            given(libraryRepository.existsByUserIdAndBookId(user.getId(), 10L)).willReturn(false);
+
+            // when
+            CustomException exception = assertThrows(
+                    CustomException.class,
+                    () -> recordQueryService.getRecordEmotionCounts(user, 10L)
+            );
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(LibraryErrorCode.BOOK_NOT_EXIST);
         }
     }
 
@@ -470,6 +516,24 @@ class RecordQueryServiceTest {
                 CustomException exception = assertThrows(
                         CustomException.class,
                         () -> recordQueryService.getBookRecords(user, 10L, 10, null, "invalid-emotion")
+                );
+
+                // then
+                assertThat(exception.getErrorCode().getCode()).isEqualTo("COMMON-002");
+            }
+
+            @Test
+            @DisplayName("실패 - EMPTY 감정 필터면 예외를 던진다")
+            void 도서별_기록조회_실패_empty감정필터() {
+                // given
+                User user = UserFixture.user();
+                given(bookRepository.existsById(10L)).willReturn(true);
+                given(libraryRepository.existsByUserIdAndBookId(user.getId(), 10L)).willReturn(true);
+
+                // when
+                CustomException exception = assertThrows(
+                        CustomException.class,
+                        () -> recordQueryService.getBookRecords(user, 10L, 10, null, "EMPTY")
                 );
 
                 // then

@@ -146,6 +146,29 @@ class RecordServiceTest {
         }
 
         @Test
+        @DisplayName("성공 - emotion이 null이면 EMPTY로 저장한다")
+        void 기록_생성_성공_emotion_null이면_empty로저장() {
+            // given
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            Library library = LibraryFixture.library(user, book);
+            RecordRequestDto request = new RecordRequestDto("내용", null, List.of());
+            ArgumentCaptor<Record> recordCaptor = ArgumentCaptor.forClass(Record.class);
+
+            given(bookRepository.findById(10L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserAndBook(user, book)).willReturn(Optional.of(library));
+            given(libraryRepository.findByIdAndUserIdForUpdate(20L, 1L)).willReturn(Optional.of(library));
+            given(recordRepository.countByLibraryIdAndUserId(20L, 1L)).willReturn(0L);
+
+            // when
+            recordService.createRecord(user, 10L, request);
+
+            // then
+            verify(recordRepository).save(recordCaptor.capture());
+            assertThat(recordCaptor.getValue().getEmotion()).isEqualTo(Emotion.EMPTY);
+        }
+
+        @Test
         @DisplayName("실패 - 존재하지 않는 책이면 예외를 던진다")
         void 기록_생성_실패_책없음() {
             // given
@@ -377,6 +400,29 @@ class RecordServiceTest {
 
                 // 타임라인에는 수정이므로 새 이미지 개수는 0으로 전달
                 verify(timelineCommandService, never()).appendRecordCreated(any(), anyInt());
+            }
+
+            @Test
+            @DisplayName("성공 - emotion이 null이면 EMPTY로 수정한다")
+            void 기록_수정_성공_emotion_null이면_empty로수정() {
+                // given
+                User user = UserFixture.user();
+                Book book = BookFixture.book();
+                Library library = LibraryFixture.library(user, book);
+                Record record = record(library, Emotion.FUN, "재미있는 책이었다.");
+
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        "유용한 책이었다.", null, List.of()
+                );
+
+                given(recordRepository.findById(1L)).willReturn(Optional.of(record));
+
+                // when
+                recordService.updateRecord(user, 1L, request);
+
+                // then
+                assertThat(record.getContent()).isEqualTo("유용한 책이었다.");
+                assertThat(record.getEmotion()).isEqualTo(Emotion.EMPTY);
             }
         }
 

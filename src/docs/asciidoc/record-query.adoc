@@ -25,7 +25,7 @@ include::{snippets}/record-controller-test/특정_책_기록_감정_필터_조�
 include::{snippets}/record-controller-test/특정_책_기록_감정_필터_조회_성공/response-fields.adoc[opts=optional]
 
 === 독서 기록 감정별 개수 조회
-사용자가 작성한 전체 독서 기록 수와 감정별 기록 수를 함께 반환합니다.
+특정 책의 전체 기록 수와 감정별 기록 수를 함께 반환합니다.
 
 include::{snippets}/record-controller-test/독서_기록_감정별_개수_조회_성공/http-request.adoc[opts=optional]
 include::{snippets}/record-controller-test/독서_기록_감정별_개수_조회_성공/request-headers.adoc[opts=optional]

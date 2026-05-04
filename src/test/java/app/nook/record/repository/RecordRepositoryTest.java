@@ -135,12 +135,15 @@ class RecordRepositoryTest {
             persistRecord(library, Emotion.FUN, "재미1", LocalDateTime.of(2026, 4, 1, 10, 0));
             persistRecord(library, Emotion.FUN, "재미2", LocalDateTime.of(2026, 4, 2, 10, 0));
             persistRecord(library, Emotion.SAD, "슬픔", LocalDateTime.of(2026, 4, 3, 10, 0));
+            Book otherBook = persistBook("다른 책", "다른 작가");
+            Library otherBookLibrary = persistLibrary(user, otherBook);
+            persistRecord(otherBookLibrary, Emotion.FUN, "다른 책 기록", LocalDateTime.of(2026, 4, 3, 11, 0));
             persistRecord(otherLibrary, Emotion.USEFUL, "다른 사용자", LocalDateTime.of(2026, 4, 4, 10, 0));
             em.flush();
             em.clear();
 
             // when
-            BookRecordDto.RecordEmotionCountResponse result = recordRepository.countRecordsByEmotion(user.getId());
+            BookRecordDto.RecordEmotionCountResponse result = recordRepository.countRecordsByEmotion(user.getId(), book.getId());
 
             // then
             assertThat(result.totalCount()).isEqualTo(3L);

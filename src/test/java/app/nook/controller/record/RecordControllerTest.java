@@ -21,6 +21,7 @@ import app.nook.record.util.RecordListCursorCodec;
 import app.nook.user.filter.JwtExceptionFilter;
 import app.nook.user.filter.JwtFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -174,7 +175,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
 
         @Test
         @WithCustomUser
-        void 독서_기록_목록_조회_데이터없음_204() throws Exception {
+        void 독서_기록_목록_조회_빈응답() throws Exception {
             // given
             CursorResponse<BookRecordDto.BookRecordItemDto, String> response = CursorResponse.of(
                     List.of(),
@@ -190,15 +191,23 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                             .header(AUTH_HEADER, AUTH_TOKEN))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.isSuccess").value(true))
-                    .andExpect(jsonPath("$.code").value("SUCCESS-204"))
+                    .andExpect(jsonPath("$.code").value("SUCCESS-200"))
+                    .andExpect(jsonPath("$.result.items").isArray())
+                    .andExpect(jsonPath("$.result.items").isEmpty())
+                    .andExpect(jsonPath("$.result.nextCursor").value(Matchers.nullValue()))
+                    .andExpect(jsonPath("$.result.hasNext").value(false))
                     .andDo(documentWithAuth(
-                            "record-controller-test/독서_기록_목록_조회_데이터없음_204",
+                            "record-controller-test/독서_기록_목록_조회_빈응답",
                             queryParameters(
                                     parameterWithName("cursor").description("다음 페이지 조회에 사용할 단일 커서 문자열. 첫 요청이면 전달하지 않음").optional(),
                                     parameterWithName("size").description("한 번에 조회할 독서 기록 묶음 수. 기본값은 20").optional(),
                                     parameterWithName("order").description("정렬 기준. RECENT_RECORDED(최근 독서 기록 순), OLDEST_RECORDED(오래된 기록 순), RECORD_COUNT_ASC(기록 개수 적은 순), RECORD_COUNT_DESC(기록 개수 많은 순) 중 하나 사용").optional()
                             ),
-                            responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                            responseFields(ApiResponseSnippet.withResult(
+                                    fieldWithPath("result.items").type(JsonFieldType.ARRAY).description("조회된 독서 기록 목록. 빈 결과면 빈 배열"),
+                                    fieldWithPath("result.nextCursor").type(JsonFieldType.NULL).description("다음 페이지 조회 커서. 빈 결과면 null").optional(),
+                                    fieldWithPath("result.hasNext").type(JsonFieldType.BOOLEAN).description("다음 페이지 존재 여부")
+                            ))
                     ));
         }
     }
@@ -272,7 +281,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
 
         @Test
         @WithCustomUser
-        void 특정_책_기록_감정_필터_조회_데이터없음_204() throws Exception {
+        void 특정_책_기록_감정_필터_조회_빈응답() throws Exception {
             // given
             CursorResponse<BookRecordDto.RecordItemDto, Long> response = CursorResponse.of(
                     List.of(),
@@ -288,9 +297,13 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                             .header(AUTH_HEADER, AUTH_TOKEN)
                             .param("emotion", "ALL"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value("SUCCESS-204"))
+                    .andExpect(jsonPath("$.code").value("SUCCESS-200"))
+                    .andExpect(jsonPath("$.result.items").isArray())
+                    .andExpect(jsonPath("$.result.items").isEmpty())
+                    .andExpect(jsonPath("$.result.nextCursor").value(Matchers.nullValue()))
+                    .andExpect(jsonPath("$.result.hasNext").value(false))
                     .andDo(documentWithAuth(
-                            "record-controller-test/특정_책_기록_감정_필터_조회_데이터없음_204",
+                            "record-controller-test/특정_책_기록_감정_필터_조회_빈응답",
                             pathParameters(
                                     parameterWithName("bookId").description("기록을 조회할 도서 ID")
                             ),
@@ -299,7 +312,11 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                     parameterWithName("size").description("한 번에 조회할 기록 수. 기본값은 20").optional(),
                                     parameterWithName("emotion").description("감정 필터. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나 사용. ALL이면 전체 반환").optional()
                             ),
-                            responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                            responseFields(ApiResponseSnippet.withResult(
+                                    fieldWithPath("result.items").type(JsonFieldType.ARRAY).description("조회된 기록 목록. 빈 결과면 빈 배열"),
+                                    fieldWithPath("result.nextCursor").type(JsonFieldType.NULL).description("다음 페이지 조회 커서. 빈 결과면 null").optional(),
+                                    fieldWithPath("result.hasNext").type(JsonFieldType.BOOLEAN).description("다음 페이지 존재 여부")
+                            ))
                     ));
         }
     }
@@ -317,25 +334,32 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     List.of(
                             new BookRecordDto.RecordEmotionDto(Emotion.FUN, 3L),
                             new BookRecordDto.RecordEmotionDto(Emotion.EMPATHIZING, 2L),
-                            new BookRecordDto.RecordEmotionDto(Emotion.USEFUL, 2L)
+                            new BookRecordDto.RecordEmotionDto(Emotion.USEFUL, 2L),
+                            new BookRecordDto.RecordEmotionDto(Emotion.COMPLICATED, 0L),
+                            new BookRecordDto.RecordEmotionDto(Emotion.SAD, 0L),
+                            new BookRecordDto.RecordEmotionDto(Emotion.UNCOMFORTABLE, 0L)
                     )
             );
 
-            given(recordQueryService.getRecordEmotionCounts(any()))
+            given(recordQueryService.getRecordEmotionCounts(any(), anyLong()))
                     .willReturn(response);
 
             // when & then
-            mockMvc.perform(get("/api/v1/records/emotions")
+            mockMvc.perform(get("/api/v1/records/emotions/{bookId}", 101L)
                             .header(AUTH_HEADER, AUTH_TOKEN))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result.totalCount").value(7))
                     .andExpect(jsonPath("$.result.emotionCounts[0].emotion").value("FUN"))
                     .andExpect(jsonPath("$.result.emotionCounts[0].recordCount").value(3))
+                    .andExpect(jsonPath("$.result.emotionCounts.length()").value(6))
                     .andDo(documentWithAuth(
                             "record-controller-test/독서_기록_감정별_개수_조회_성공",
+                            pathParameters(
+                                    parameterWithName("bookId").description("감정별 기록 개수를 조회할 도서 ID")
+                            ),
                             responseFields(ApiResponseSnippet.withResult(
-                                    fieldWithPath("result.totalCount").type(JsonFieldType.NUMBER).description("사용자가 작성한 전체 독서 기록 수"),
-                                    fieldWithPath("result.emotionCounts").type(JsonFieldType.ARRAY).description("감정별로 집계한 독서 기록 개수 목록"),
+                                    fieldWithPath("result.totalCount").type(JsonFieldType.NUMBER).description("해당 도서에 대해 사용자가 작성한 전체 독서 기록 수"),
+                                    fieldWithPath("result.emotionCounts").type(JsonFieldType.ARRAY).description("해당 도서의 기록을 감정 enum 전체 기준으로 집계한 목록. 기록이 없는 감정도 0으로 포함"),
                                     fieldWithPath("result.emotionCounts[].emotion").type(JsonFieldType.STRING).description("기록에 저장된 감정 값. FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나"),
                                     fieldWithPath("result.emotionCounts[].recordCount").type(JsonFieldType.NUMBER).description("해당 감정으로 작성된 독서 기록 수")
                             ))
@@ -378,7 +402,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                 ),
                                 requestFields(
                                         fieldWithPath("content").type(JsonFieldType.STRING).description("기록 내용"),
-                                        fieldWithPath("emotion").type(JsonFieldType.STRING).description("기록 감정 값. FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나"),
+                                        fieldWithPath("emotion").type(JsonFieldType.STRING).description("기록 감정 값. FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE, EMPTY 중 하나. 미입력 시 EMPTY로 저장").optional(),
                                         fieldWithPath("imageKeys").type(JsonFieldType.ARRAY).description("업로드 완료된 이미지 key 목록").optional(),
                                         fieldWithPath("imageKeys[]").description("업로드 완료된 record 이미지 key")
                                 ),
@@ -415,42 +439,124 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
     @Nested
     class UpdateRecord {
 
-        @Test
-        @WithCustomUser
-        void 기록_수정_성공() throws Exception {
-            // given
-            RecordUpdateRequestDto request = new RecordUpdateRequestDto(
-                    "수정된 기록 내용입니다.",
-                    Emotion.EMPATHIZING,
-                    List.of(
-                            "record/users/1/first.png",
-                            "record/users/1/second.png"
-                    )
-            );
+        @DisplayName("성공")
+        @Nested
+        class Success {
 
-            willDoNothing().given(recordCommandService).updateRecord(any(), anyLong(), any());
+            @Test
+            @WithCustomUser
+            void 기록_수정_성공() throws Exception {
+                // given
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        "수정된 기록 내용입니다.",
+                        Emotion.EMPATHIZING,
+                        List.of(
+                                "record/users/1/first.png",
+                                "record/users/1/second.png"
+                        )
+                );
 
-            // when & then
-            mockMvc.perform(put("/api/v1/records/{recordId}", 10L)
-                            .header(AUTH_HEADER, AUTH_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.isSuccess").value(true))
-                    .andExpect(jsonPath("$.code").value("SUCCESS-200"))
-                    .andDo(documentWithAuth(
-                            "record-controller-test/기록_수정_성공",
-                            pathParameters(
-                                    parameterWithName("recordId").description("수정할 기록 ID")
-                            ),
-                            requestFields(
-                                    fieldWithPath("content").type(JsonFieldType.STRING).description("수정할 기록 내용"),
-                                    fieldWithPath("emotion").type(JsonFieldType.STRING).description("수정할 기록 감정 값. FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나"),
-                                    fieldWithPath("imageKeys").type(JsonFieldType.ARRAY).description("수정 후 최종 이미지 key 목록").optional(),
-                                    fieldWithPath("imageKeys[]").description("업로드 완료된 record 이미지 key")
-                            ),
-                            responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
-                    ));
+                willDoNothing().given(recordCommandService).updateRecord(any(), anyLong(), any());
+
+                // when & then
+                mockMvc.perform(put("/api/v1/records/{recordId}", 10L)
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.code").value("SUCCESS-200"))
+                        .andDo(documentWithAuth(
+                                "record-controller-test/기록_수정_성공",
+                                pathParameters(
+                                        parameterWithName("recordId").description("수정할 기록 ID")
+                                ),
+                                requestFields(
+                                        fieldWithPath("content").type(JsonFieldType.STRING).description("수정할 기록 내용"),
+                                        fieldWithPath("emotion").type(JsonFieldType.STRING).description("수정할 기록 감정 값. FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE, EMPTY 중 하나. 미입력 시 EMPTY로 저장").optional(),
+                                        fieldWithPath("imageKeys").type(JsonFieldType.ARRAY).description("수정 후 최종 이미지 key 목록").optional(),
+                                        fieldWithPath("imageKeys[]").description("업로드 완료된 record 이미지 key")
+                                ),
+                                responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                        ));
+            }
+        }
+
+        @DisplayName("실패")
+        @Nested
+        class Failure {
+
+            @Test
+            @WithCustomUser
+            void 기록_수정_실패_기록없음() throws Exception {
+                // given
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        "수정된 기록 내용입니다.",
+                        Emotion.EMPATHIZING,
+                        List.of()
+                );
+
+                willThrow(new CustomException(RecordErrorCode.RECORD_NOT_FOUND))
+                        .given(recordCommandService).updateRecord(any(), anyLong(), any());
+
+                // when & then
+                mockMvc.perform(put("/api/v1/records/{recordId}", 999L)
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isNotFound())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("RECORD-404"))
+                        .andDo(documentWithAuth(
+                                "record-controller-test/기록_수정_실패_기록없음",
+                                pathParameters(
+                                        parameterWithName("recordId").description("수정하려는 기록 ID. 존재하지 않으면 실패")
+                                ),
+                                requestFields(
+                                        fieldWithPath("content").type(JsonFieldType.STRING).description("수정할 기록 내용"),
+                                        fieldWithPath("emotion").type(JsonFieldType.STRING).description("수정할 기록 감정 값. FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE, EMPTY 중 하나. 미입력 시 EMPTY로 저장").optional(),
+                                        fieldWithPath("imageKeys").type(JsonFieldType.ARRAY).description("수정 후 최종 이미지 key 목록").optional(),
+                                        fieldWithPath("imageKeys[]").description("업로드 완료된 record 이미지 key").optional()
+                                ),
+                                responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                        ));
+            }
+
+            @Test
+            @WithCustomUser
+            void 기록_수정_실패_권한없음() throws Exception {
+                // given
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        "수정된 기록 내용입니다.",
+                        Emotion.EMPATHIZING,
+                        List.of()
+                );
+
+                willThrow(new CustomException(RecordErrorCode.RECORD_NOT_AUTHORIZED))
+                        .given(recordCommandService).updateRecord(any(), anyLong(), any());
+
+                // when & then
+                mockMvc.perform(put("/api/v1/records/{recordId}", 10L)
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isForbidden())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("RECORD-403"))
+                        .andDo(documentWithAuth(
+                                "record-controller-test/기록_수정_실패_권한없음",
+                                pathParameters(
+                                        parameterWithName("recordId").description("수정하려는 기록 ID. 본인 기록이 아니면 실패")
+                                ),
+                                requestFields(
+                                        fieldWithPath("content").type(JsonFieldType.STRING).description("수정할 기록 내용"),
+                                        fieldWithPath("emotion").type(JsonFieldType.STRING).description("수정할 기록 감정 값. FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE, EMPTY 중 하나. 미입력 시 EMPTY로 저장").optional(),
+                                        fieldWithPath("imageKeys").type(JsonFieldType.ARRAY).description("수정 후 최종 이미지 key 목록").optional(),
+                                        fieldWithPath("imageKeys[]").description("업로드 완료된 record 이미지 key").optional()
+                                ),
+                                responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                        ));
+            }
         }
     }
 

@@ -21,7 +21,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -78,8 +81,29 @@ public class RecordQueryService {
     }
 
     // 독서 기록 감상별 개수 조회
-    public BookRecordDto.RecordEmotionCountResponse getRecordEmotionCounts(User user) {
-        return recordRepository.countRecordsByEmotion(user.getId());
+    public BookRecordDto.RecordEmotionCountResponse getRecordEmotionCounts(User user, Long bookId) {
+        if (!bookRepository.existsById(bookId)) {
+            throw new CustomException(BookErrorCode.BOOK_NOT_FOUND);
+        }
+
+        if (!libraryRepository.existsByUserIdAndBookId(user.getId(), bookId)) {
+            throw new CustomException(LibraryErrorCode.BOOK_NOT_EXIST);
+        }
+
+        BookRecordDto.RecordEmotionCountResponse response = recordRepository.countRecordsByEmotion(user.getId(), bookId);
+
+        Map<Emotion, Long> emotionCountMap = new EnumMap<>(Emotion.class);
+        response.emotionCounts().forEach(item -> emotionCountMap.put(item.emotion(), item.recordCount()));
+
+        List<BookRecordDto.RecordEmotionDto> normalizedEmotionCounts = Arrays.stream(Emotion.values())
+                .filter(emotion -> emotion != Emotion.EMPTY)
+                .map(emotion -> new BookRecordDto.RecordEmotionDto(
+                        emotion,
+                        emotionCountMap.getOrDefault(emotion, 0L)
+                ))
+                .toList();
+
+        return new BookRecordDto.RecordEmotionCountResponse(response.totalCount(), normalizedEmotionCounts);
     }
 
     // 해당 책의 독서 기록 목록 조회
@@ -146,7 +170,11 @@ public class RecordQueryService {
         }
 
         try {
-            return Emotion.valueOf(emotion.trim().toUpperCase());
+            Emotion parsedEmotion = Emotion.valueOf(emotion.trim().toUpperCase());
+            if (parsedEmotion == Emotion.EMPTY) {
+                throw new CustomException(CommonErrorCode.INVALID_REQUEST);
+            }
+            return parsedEmotion;
         } catch (IllegalArgumentException exception) {
             throw new CustomException(CommonErrorCode.INVALID_REQUEST);
         }
