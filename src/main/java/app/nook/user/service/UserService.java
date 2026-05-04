@@ -93,7 +93,10 @@ public class UserService {
         }
 
         TokenRedis tokenRedis = tokenRedisRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.INVALID_TOKEN));
+                .orElseThrow(() -> {
+                    log.warn("[TOKEN REISSUE REUSE DETECTED] refresh token was valid but not found in Redis. Possible rotated token reuse.");
+                    throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+                });
 
         User user = userRepository.findById(tokenRedis.getId())
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
