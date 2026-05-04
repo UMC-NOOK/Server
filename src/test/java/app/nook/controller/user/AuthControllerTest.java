@@ -68,6 +68,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         .email("jiwon@kakao.com")
                         .nickName("jiwon")
                         .accessToken("test-access-token")
+                        .refreshToken("test-refresh-token")
                         .build();
 
         given(oAuthService.login(any(), any()))
@@ -92,7 +93,8 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.id").description("사용자ID"),
                                         fieldWithPath("result.email").description("이메일"),
                                         fieldWithPath("result.nickName").description("닉네임"),
-                                        fieldWithPath("result.accessToken").description("엑세스 토큰")
+                                        fieldWithPath("result.accessToken").description("엑세스 토큰"),
+                                        fieldWithPath("result.refreshToken").description("리프레시 토큰")
                                 )
                         )
                 ));
@@ -110,6 +112,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         .email("dev@test.com")
                         .nickName("DEV_USER")
                         .accessToken("test-access-token")
+                        .refreshToken("test-refresh-token")
                         .build();
 
         given(userService.devLogin(any()))
@@ -134,7 +137,8 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.id").description("사용자ID"),
                                         fieldWithPath("result.email").description("이메일"),
                                         fieldWithPath("result.nickName").description("닉네임"),
-                                        fieldWithPath("result.accessToken").description("엑세스 토큰")
+                                        fieldWithPath("result.accessToken").description("엑세스 토큰"),
+                                        fieldWithPath("result.refreshToken").description("리프레시 토큰")
                                 )
                         )
                 ));
@@ -222,6 +226,47 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void 토큰_재발급_성공() throws Exception {
+        UserDTO.TokenReissueRequest request = new UserDTO.TokenReissueRequest("valid-refresh-token");
+        UserDTO.TokenReissueResponse response = new UserDTO.TokenReissueResponse("new-access-token");
+
+        given(userService.reissueAccessToken(any()))
+                .willReturn(response);
+
+        mockMvc.perform(
+                        post("/api/v1/auth/reissue")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isOk())
+                .andDo(restDocs.document(
+                        requestFields(
+                                fieldWithPath("refreshToken").description("새 access token 발급에 사용할 refresh token")
+                        ),
+                        responseFields(
+                                ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.accessToken").description("재발급된 access token")
+                                )
+                        )
+                ));
+    }
+
+    @Test
+    void 토큰_재발급_실패_만료된_리프레시토큰() throws Exception {
+        UserDTO.TokenReissueRequest request = new UserDTO.TokenReissueRequest("expired-refresh-token");
+
+        given(userService.reissueAccessToken(any()))
+                .willThrow(new CustomException(AuthErrorCode.TOKEN_EXPIRED));
+
+        mockMvc.perform(
+                        post("/api/v1/auth/reissue")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

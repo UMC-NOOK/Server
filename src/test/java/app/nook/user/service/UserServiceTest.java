@@ -63,6 +63,7 @@ class UserServiceTest {
         assertThat(response.getEmail()).isEqualTo("dev@test.com");
         assertThat(response.getNickName()).isEqualTo("DEV_USER");
         assertThat(response.getAccessToken()).isEqualTo("access-token");
+        assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
 
         ArgumentCaptor<TokenRedis> tokenCaptor = ArgumentCaptor.forClass(TokenRedis.class);
         verify(tokenRedisRepository).save(tokenCaptor.capture());
@@ -140,5 +141,67 @@ class UserServiceTest {
         );
 
         assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.EMAIL_DUPLICATE);
+    }
+
+    @Test
+    void reissueAccessToken_성공() {
+        String refreshToken = "refresh-token";
+        String newAccessToken = "new-access-token";
+
+        User user = User.builder()
+                .email("dev@test.com")
+                .nickName("DEV_USER")
+                .role(UserRole.USER)
+                .provider("DEV")
+                .providerId("dev-1")
+                .build();
+        ReflectionTestUtils.setField(user, "id", 1L);
+
+        given(jwtProvider.validateToken(refreshToken)).willReturn(true);
+        given(tokenRedisRepository.findByRefreshToken(refreshToken))
+                .willReturn(Optional.of(TokenRedis.builder()
+                        .id(1L)
+                        .refreshToken(refreshToken)
+                        .accessToken("old-access-token")
+                        .build()));
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(jwtProvider.createAccessToken(user)).willReturn(newAccessToken);
+
+        UserDTO.TokenReissueResponse response = userService.reissueAccessToken(refreshToken);
+
+        assertThat(response.getAccessToken()).isEqualTo(newAccessToken);
+
+        ArgumentCaptor<TokenRedis> tokenCaptor = ArgumentCaptor.forClass(TokenRedis.class);
+        verify(tokenRedisRepository).save(tokenCaptor.capture());
+        assertThat(tokenCaptor.getValue().getRefreshToken()).isEqualTo(refreshToken);
+        assertThat(tokenCaptor.getValue().getAccessToken()).isEqualTo(newAccessToken);
+    }
+
+    @Test
+    void reissueAccessToken_만료된토큰_예외() {
+        String refreshToken = "expired-refresh-token";
+        given(jwtProvider.validateToken(refreshToken)).willReturn(false);
+        given(jwtProvider.isExpiredToken(refreshToken)).willReturn(true);
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> userService.reissueAccessToken(refreshToken)
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.TOKEN_EXPIRED);
+    }
+
+    @Test
+    void reissueAccessToken_레디스에없는토큰_예외() {
+        String refreshToken = "valid-refresh-token";
+        given(jwtProvider.validateToken(refreshToken)).willReturn(true);
+        given(tokenRedisRepository.findByRefreshToken(refreshToken)).willReturn(Optional.empty());
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> userService.reissueAccessToken(refreshToken)
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.INVALID_TOKEN);
     }
 }

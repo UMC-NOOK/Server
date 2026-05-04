@@ -38,7 +38,6 @@ public class JwtProvider {
     public String createAccessToken(User user) {
         Date now = new Date();
         return Jwts.builder()
-                .setSubject(user.getEmail())
                 .claim("userId", user.getId())
                 .claim("role", user.getRole().toString())
                 .setIssuedAt(now)
@@ -108,12 +107,5 @@ public class JwtProvider {
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         }
-    }
-
-    /**
-     * 토큰에서 이메일 추출
-     */
-    public String extractEmail(String token) {
-        return parseClaims(token).getSubject();
     }
 }

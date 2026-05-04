@@ -93,6 +93,7 @@ public class OAuthService {
                 .email(user.getEmail())
                 .nickName(user.getNickName())
                 .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 

@@ -1,6 +1,7 @@
 package app.nook.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,6 +18,7 @@ public class UserDTO {
         private String email;
         private String nickName;
         private String accessToken;
+        private String refreshToken;
     }
 
     @AllArgsConstructor
@@ -33,5 +35,20 @@ public class UserDTO {
     public static class DevSignUpRequest {
         private String email;
         private String nickName;
+    }
+
+    @AllArgsConstructor
+    @Getter
+    @NoArgsConstructor
+    public static class TokenReissueRequest {
+        @NotBlank
+        private String refreshToken;
+    }
+
+    @AllArgsConstructor
+    @Getter
+    @NoArgsConstructor
+    public static class TokenReissueResponse {
+        private String accessToken;
     }
 }

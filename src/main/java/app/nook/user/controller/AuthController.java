@@ -71,6 +71,16 @@ public class AuthController {
         );
     }
 
+    @PostMapping("/reissue")
+    public ApiResponse<UserDTO.TokenReissueResponse> reissueAccessToken(
+            @Valid @RequestBody UserDTO.TokenReissueRequest request
+    ) {
+        return ApiResponse.onSuccess(
+                userService.reissueAccessToken(request.getRefreshToken()),
+                SuccessCode.OK
+        );
+    }
+
     // 현재 로그인한 유저 확인
     @GetMapping("/me")
     public ApiResponse<UserDTO.LoginResponse> user(

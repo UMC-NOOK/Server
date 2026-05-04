@@ -18,6 +18,7 @@ public class TokenRedis {
     @Id
     private Long id;
 
+    @Indexed
     private String refreshToken;
 
     @Indexed
