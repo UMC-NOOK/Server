@@ -231,7 +231,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
     @Test
     void 토큰_재발급_성공() throws Exception {
         UserDTO.TokenReissueRequest request = new UserDTO.TokenReissueRequest("valid-refresh-token");
-        UserDTO.TokenReissueResponse response = new UserDTO.TokenReissueResponse("new-access-token");
+        UserDTO.TokenReissueResponse response = new UserDTO.TokenReissueResponse("new-access-token", "new-refresh-token");
 
         given(userService.reissueAccessToken(any()))
                 .willReturn(response);
@@ -248,7 +248,8 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         ),
                         responseFields(
                                 ApiResponseSnippet.withResult(
-                                        fieldWithPath("result.accessToken").description("재발급된 access token")
+                                        fieldWithPath("result.accessToken").description("재발급된 access token"),
+                                        fieldWithPath("result.refreshToken").description("재발급된 refresh token")
                                 )
                         )
                 ));

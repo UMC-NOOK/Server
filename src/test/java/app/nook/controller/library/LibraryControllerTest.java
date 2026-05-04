@@ -73,6 +73,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     ObjectMapper objectMapper;
 
     @Test
+    @DisplayName("서재에 책 등록 성공")
     @WithCustomUser
     void 서재_책_등록_성공() throws Exception {
         willDoNothing().given(libraryCommandService).registerBook(anyLong(), anyLong());
@@ -94,6 +95,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     }
 
     @Test
+    @DisplayName("서재에서 책 삭제 성공")
     @WithCustomUser
     void 서재_책_삭제_성공() throws Exception {
         willDoNothing().given(libraryCommandService).deleteByBookId(anyLong(), anyLong());
@@ -115,6 +117,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     }
 
     @Test
+    @DisplayName("서재 책 상태변경 성공")
     @WithCustomUser
     void 서재_책_상태변경_성공() throws Exception {
         ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
@@ -161,6 +164,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     }
 
     @Test
+    @DisplayName("서재 상태별 책 조회 성공")
     @WithCustomUser
     void 서재_상태별_책_조회_성공() throws Exception {
         LibraryViewDto.UserStatusBookItem item =

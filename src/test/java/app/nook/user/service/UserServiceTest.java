@@ -157,6 +157,8 @@ class UserServiceTest {
                 .build();
         ReflectionTestUtils.setField(user, "id", 1L);
 
+        String newRefreshToken = "new-refresh-token";
+
         given(jwtProvider.validateToken(refreshToken)).willReturn(true);
         given(tokenRedisRepository.findByRefreshToken(refreshToken))
                 .willReturn(Optional.of(TokenRedis.builder()
@@ -166,14 +168,16 @@ class UserServiceTest {
                         .build()));
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(jwtProvider.createAccessToken(user)).willReturn(newAccessToken);
+        given(jwtProvider.createRefreshToken()).willReturn(newRefreshToken);
 
         UserDTO.TokenReissueResponse response = userService.reissueAccessToken(refreshToken);
 
-        assertThat(response.getAccessToken()).isEqualTo(newAccessToken);
+        assertThat(response.accessToken()).isEqualTo(newAccessToken);
+        assertThat(response.refreshToken()).isEqualTo(newRefreshToken);
 
         ArgumentCaptor<TokenRedis> tokenCaptor = ArgumentCaptor.forClass(TokenRedis.class);
         verify(tokenRedisRepository).save(tokenCaptor.capture());
-        assertThat(tokenCaptor.getValue().getRefreshToken()).isEqualTo(refreshToken);
+        assertThat(tokenCaptor.getValue().getRefreshToken()).isEqualTo(newRefreshToken);
         assertThat(tokenCaptor.getValue().getAccessToken()).isEqualTo(newAccessToken);
     }
 
@@ -200,6 +204,20 @@ class UserServiceTest {
         CustomException ex = assertThrows(
                 CustomException.class,
                 () -> userService.reissueAccessToken(refreshToken)
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.INVALID_TOKEN);
+    }
+
+    @Test
+    void reissueAccessToken_유효하지않은토큰_예외() {
+        String invalidToken = "tampered-token";
+        given(jwtProvider.validateToken(invalidToken)).willReturn(false);
+        given(jwtProvider.isExpiredToken(invalidToken)).willReturn(false);
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> userService.reissueAccessToken(invalidToken)
         );
 
         assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.INVALID_TOKEN);

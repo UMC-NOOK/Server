@@ -6,6 +6,7 @@ import app.nook.user.domain.User;
 import app.nook.user.jwt.JwtProvider;
 import app.nook.user.repository.UserRepository;
 import app.nook.user.service.CustomUserDetails;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,6 +45,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 log.warn("[TOKEN] 만료된 access token. /auth/reissue API 사용 필요");
             } else {
                 log.warn("[TOKEN] 유효하지 않은 access token");
+                throw new JwtException("유효하지 않은 access token");
             }
         }
 

@@ -99,16 +99,17 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
         String newAccessToken = jwtProvider.createAccessToken(user);
+        String newRefreshToken = jwtProvider.createRefreshToken();
 
         tokenRedisRepository.save(
                 TokenRedis.builder()
                         .id(user.getId())
-                        .refreshToken(refreshToken)
+                        .refreshToken(newRefreshToken)
                         .accessToken(newAccessToken)
                         .build()
         );
 
-        return new UserDTO.TokenReissueResponse(newAccessToken);
+        return new UserDTO.TokenReissueResponse(newAccessToken, newRefreshToken);
     }
 
     private void validateDevUserRole(User user) {
