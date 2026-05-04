@@ -24,6 +24,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
@@ -126,7 +127,7 @@ public class FocusControllerTest extends AbstractWebMvcRestDocsTests {
                 "FINISHED"
         );
 
-        given(focusService.endFocus(eq(1L), eq(request))).willReturn(response);
+        given(focusService.endFocus(anyLong(), eq(request))).willReturn(response);
 
         // when & then
         mockMvc.perform(

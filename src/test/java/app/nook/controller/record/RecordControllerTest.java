@@ -361,9 +361,9 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                     parameterWithName("bookId").description("감정별 기록 개수를 조회할 도서 ID")
                             ),
                             responseFields(ApiResponseSnippet.withResult(
-                                    fieldWithPath("result.totalCount").type(JsonFieldType.NUMBER).description("해당 도서에 대해 사용자가 작성한 전체 독서 기록 수"),
+                                    fieldWithPath("result.totalCount").type(JsonFieldType.NUMBER).description("해당 도서에 대해 사용자가 작성한 전체 독서 기록 수. emotion 미입력으로 EMPTY 저장된 기록도 ALL(totalCount)에는 포함되지만 개별 감정 버킷에는 포함되지 않음"),
                                     fieldWithPath("result.emotionCounts").type(JsonFieldType.ARRAY).description("해당 도서의 기록을 집계한 목록. ALL은 전체 기록 수를 뜻하고, 나머지 감정은 기록이 없어도 0으로 포함"),
-                                    fieldWithPath("result.emotionCounts[].emotion").type(JsonFieldType.STRING).description("집계 기준 값. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나"),
+                                    fieldWithPath("result.emotionCounts[].emotion").type(JsonFieldType.STRING).description("집계 기준 값. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나. 요청에서 emotion 미입력 시 EMPTY로 저장되지만 EMPTY 값은 별도 집계 버킷으로 제공되지 않음"),
                                     fieldWithPath("result.emotionCounts[].recordCount").type(JsonFieldType.NUMBER).description("해당 기준으로 집계된 기록 수")
                             ))
                     ));
@@ -653,7 +653,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.recordId").type(JsonFieldType.NUMBER).description("기록 ID"),
                                         fieldWithPath("result.content").type(JsonFieldType.STRING).description("기록 내용"),
                                         fieldWithPath("result.imgUrls").type(JsonFieldType.ARRAY).description("기록에 연결된 이미지 조회 URL 목록. 저장된 key를 기준으로 조회 시점에 presigned GET URL로 변환"),
-                                        fieldWithPath("result.emotion").type(JsonFieldType.STRING).description("기록 감정 값. FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나"),
+                                        fieldWithPath("result.emotion").type(JsonFieldType.STRING).description("기록 감정 값. EMPTY, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나"),
                                         fieldWithPath("result.createdDate").type(JsonFieldType.STRING).description("기록 작성 날짜 (yyyy-MM-dd)")
                                 ))
                         ));

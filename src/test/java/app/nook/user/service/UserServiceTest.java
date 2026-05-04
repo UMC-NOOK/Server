@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -207,6 +208,7 @@ class UserServiceTest {
         );
 
         assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.INVALID_TOKEN);
+        verify(tokenRedisRepository, never()).save(any());
     }
 
     @Test
