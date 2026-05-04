@@ -13,6 +13,7 @@ import app.nook.record.domain.enums.Emotion;
 import app.nook.record.domain.enums.SortType;
 import app.nook.record.dto.BookRecordDto;
 import app.nook.record.dto.RecordListCursor;
+import app.nook.record.exception.RecordErrorCode;
 import app.nook.record.repository.RecordRepository;
 import app.nook.record.util.RecordListCursorCodec;
 import app.nook.r2.service.PresignedUrlService;
@@ -184,4 +185,14 @@ public class RecordQueryService {
         }
     }
 
+    public BookRecordDto.RecordItemDto getRecordDetail(User user, Long recordId) {
+        Record record = recordRepository.findWithDetailById(recordId)
+                .orElseThrow(() -> new CustomException(RecordErrorCode.RECORD_NOT_FOUND));
+
+        if (!record.getLibrary().getUser().getId().equals(user.getId())) {
+            throw new CustomException(RecordErrorCode.RECORD_NOT_AUTHORIZED);
+        }
+
+        return recordConverter.toRecordItemDto(user.getId(), record);
+    }
 }

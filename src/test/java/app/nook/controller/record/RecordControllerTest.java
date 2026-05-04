@@ -612,6 +612,90 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
         }
     }
 
+    @DisplayName("기록 개별 조회")
+    @Nested
+    class GetRecordDetail {
+
+        @DisplayName("성공")
+        @Nested
+        class Success {
+
+            @Test
+            @WithCustomUser
+            void 기록_개별_조회_성공() throws Exception {
+                // given
+                BookRecordDto.RecordItemDto response = new BookRecordDto.RecordItemDto(
+                        1L,
+                        "가장 인상 깊었던 구절을 적어둔 기록",
+                        List.of(
+                                "https://example.com/records/1-1.png",
+                                "https://example.com/records/1-2.png"
+                        ),
+                        Emotion.FUN,
+                        java.time.LocalDate.of(2026, 4, 10)
+                );
+
+                given(recordQueryService.getRecordDetail(any(), anyLong())).willReturn(response);
+
+                // when & then
+                mockMvc.perform(get("/api/v1/records/{recordId}", 1L)
+                                .header(AUTH_HEADER, AUTH_TOKEN))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.result.recordId").value(1))
+                        .andExpect(jsonPath("$.result.content").value("가장 인상 깊었던 구절을 적어둔 기록"))
+                        .andExpect(jsonPath("$.result.emotion").value("FUN"))
+                        .andDo(documentWithAuth(
+                                "record-controller-test/기록_개별_조회_성공",
+                                pathParameters(
+                                        parameterWithName("recordId").description("조회할 기록 ID")
+                                ),
+                                responseFields(ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.recordId").type(JsonFieldType.NUMBER).description("기록 ID"),
+                                        fieldWithPath("result.content").type(JsonFieldType.STRING).description("기록 내용"),
+                                        fieldWithPath("result.imgUrls").type(JsonFieldType.ARRAY).description("기록에 연결된 이미지 조회 URL 목록. 저장된 key를 기준으로 조회 시점에 presigned GET URL로 변환"),
+                                        fieldWithPath("result.emotion").type(JsonFieldType.STRING).description("기록 감정 값. FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나"),
+                                        fieldWithPath("result.createdDate").type(JsonFieldType.STRING).description("기록 작성 날짜 (yyyy-MM-dd)")
+                                ))
+                        ));
+            }
+        }
+
+        @DisplayName("실패")
+        @Nested
+        class Failure {
+
+            @Test
+            @WithCustomUser
+            void 기록_개별_조회_실패_기록없음() throws Exception {
+                // given
+                given(recordQueryService.getRecordDetail(any(), anyLong()))
+                        .willThrow(new CustomException(RecordErrorCode.RECORD_NOT_FOUND));
+
+                // when & then
+                mockMvc.perform(get("/api/v1/records/{recordId}", 999L)
+                                .header(AUTH_HEADER, AUTH_TOKEN))
+                        .andExpect(status().isNotFound())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("RECORD-404"));
+            }
+
+            @Test
+            @WithCustomUser
+            void 기록_개별_조회_실패_권한없음() throws Exception {
+                // given
+                given(recordQueryService.getRecordDetail(any(), anyLong()))
+                        .willThrow(new CustomException(RecordErrorCode.RECORD_NOT_AUTHORIZED));
+
+                // when & then
+                mockMvc.perform(get("/api/v1/records/{recordId}", 1L)
+                                .header(AUTH_HEADER, AUTH_TOKEN))
+                        .andExpect(status().isForbidden())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("RECORD-403"));
+            }
+        }
+    }
+
     @DisplayName("기록 전체 개수 조회")
     @Nested
     class CountRecords {

@@ -112,4 +112,16 @@ public class RecordController {
         );
     }
 
+    @GetMapping("/{recordId}")
+    public ApiResponse<BookRecordDto.RecordItemDto> getRecordDetail(
+            @CurrentUser User user,
+            @PathVariable Long recordId
+    ) {
+        return ApiResponse.onSuccess(
+                recordQueryService.getRecordDetail(user, recordId),
+                SuccessCode.OK
+        );
+    }
+
+
 }

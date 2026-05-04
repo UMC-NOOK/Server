@@ -24,6 +24,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -82,7 +83,7 @@ class JwtFilterTest {
         }
 
         @Test
-        void 유효하지않고_만료되지도_않은_토큰이면_인증정보를_저장하지_않는다() throws Exception {
+        void 유효하지않고_만료되지도_않은_토큰이면_JwtException을_던진다() throws Exception {
             String invalidAccessToken = "invalid-access-token";
 
             MockHttpServletRequest request = new MockHttpServletRequest();
@@ -92,10 +93,11 @@ class JwtFilterTest {
             given(jwtProvider.validateToken(invalidAccessToken)).willReturn(false);
             given(jwtProvider.isExpiredToken(invalidAccessToken)).willReturn(false);
 
-            jwtFilter.doFilter(request, response, filterChain);
+            assertThatThrownBy(() -> jwtFilter.doFilter(request, response, filterChain))
+                    .isInstanceOf(io.jsonwebtoken.JwtException.class);
 
             assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-            verify(filterChain).doFilter(request, response);
+            verify(filterChain, never()).doFilter(request, response);
         }
 
         @Test
