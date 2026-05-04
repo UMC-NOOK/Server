@@ -214,8 +214,8 @@ class RecordQueryServiceTest {
             User user = UserFixture.user();
             Long bookId = 10L;
             List<BookRecordDto.RecordEmotionDto> emotionCounts = List.of(
-                    new BookRecordDto.RecordEmotionDto(Emotion.FUN, 5L),
-                    new BookRecordDto.RecordEmotionDto(Emotion.SAD, 3L)
+                    new BookRecordDto.RecordEmotionDto("FUN", 5L),
+                    new BookRecordDto.RecordEmotionDto("SAD", 3L)
             );
 
             given(bookRepository.existsById(bookId)).willReturn(true);
@@ -228,16 +228,18 @@ class RecordQueryServiceTest {
 
             // then
             assertThat(result.totalCount()).isEqualTo(8L);
-            assertThat(result.emotionCounts()).hasSize(Emotion.values().length - 1);
-            assertThat(result.emotionCounts().get(0).emotion()).isEqualTo(Emotion.FUN);
-            assertThat(result.emotionCounts().get(0).recordCount()).isEqualTo(5L);
-            assertThat(result.emotionCounts().get(1).emotion()).isEqualTo(Emotion.EMPATHIZING);
-            assertThat(result.emotionCounts().get(1).recordCount()).isZero();
-            assertThat(result.emotionCounts().get(4).emotion()).isEqualTo(Emotion.SAD);
-            assertThat(result.emotionCounts().get(4).recordCount()).isEqualTo(3L);
-            assertThat(result.emotionCounts().get(5).emotion()).isEqualTo(Emotion.UNCOMFORTABLE);
-            assertThat(result.emotionCounts().get(5).recordCount()).isZero();
-            assertThat(result.emotionCounts()).noneMatch(item -> item.emotion() == Emotion.EMPTY);
+            assertThat(result.emotionCounts()).hasSize(Emotion.values().length);
+            assertThat(result.emotionCounts().get(0).emotion()).isEqualTo("ALL");
+            assertThat(result.emotionCounts().get(0).recordCount()).isEqualTo(8L);
+            assertThat(result.emotionCounts().get(1).emotion()).isEqualTo("FUN");
+            assertThat(result.emotionCounts().get(1).recordCount()).isEqualTo(5L);
+            assertThat(result.emotionCounts().get(2).emotion()).isEqualTo("EMPATHIZING");
+            assertThat(result.emotionCounts().get(2).recordCount()).isZero();
+            assertThat(result.emotionCounts().get(5).emotion()).isEqualTo("SAD");
+            assertThat(result.emotionCounts().get(5).recordCount()).isEqualTo(3L);
+            assertThat(result.emotionCounts().get(6).emotion()).isEqualTo("UNCOMFORTABLE");
+            assertThat(result.emotionCounts().get(6).recordCount()).isZero();
+            assertThat(result.emotionCounts()).noneMatch(item -> item.emotion().equals("EMPTY"));
             verify(recordRepository).countRecordsByEmotion(1L, bookId);
         }
 

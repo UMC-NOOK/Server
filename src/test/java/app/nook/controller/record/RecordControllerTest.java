@@ -332,12 +332,13 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
             BookRecordDto.RecordEmotionCountResponse response = new BookRecordDto.RecordEmotionCountResponse(
                     7L,
                     List.of(
-                            new BookRecordDto.RecordEmotionDto(Emotion.FUN, 3L),
-                            new BookRecordDto.RecordEmotionDto(Emotion.EMPATHIZING, 2L),
-                            new BookRecordDto.RecordEmotionDto(Emotion.USEFUL, 2L),
-                            new BookRecordDto.RecordEmotionDto(Emotion.COMPLICATED, 0L),
-                            new BookRecordDto.RecordEmotionDto(Emotion.SAD, 0L),
-                            new BookRecordDto.RecordEmotionDto(Emotion.UNCOMFORTABLE, 0L)
+                            new BookRecordDto.RecordEmotionDto("ALL", 7L),
+                            new BookRecordDto.RecordEmotionDto("FUN", 3L),
+                            new BookRecordDto.RecordEmotionDto("EMPATHIZING", 2L),
+                            new BookRecordDto.RecordEmotionDto("USEFUL", 2L),
+                            new BookRecordDto.RecordEmotionDto("COMPLICATED", 0L),
+                            new BookRecordDto.RecordEmotionDto("SAD", 0L),
+                            new BookRecordDto.RecordEmotionDto("UNCOMFORTABLE", 0L)
                     )
             );
 
@@ -349,9 +350,11 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                             .header(AUTH_HEADER, AUTH_TOKEN))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result.totalCount").value(7))
-                    .andExpect(jsonPath("$.result.emotionCounts[0].emotion").value("FUN"))
-                    .andExpect(jsonPath("$.result.emotionCounts[0].recordCount").value(3))
-                    .andExpect(jsonPath("$.result.emotionCounts.length()").value(6))
+                    .andExpect(jsonPath("$.result.emotionCounts[0].emotion").value("ALL"))
+                    .andExpect(jsonPath("$.result.emotionCounts[0].recordCount").value(7))
+                    .andExpect(jsonPath("$.result.emotionCounts[1].emotion").value("FUN"))
+                    .andExpect(jsonPath("$.result.emotionCounts[1].recordCount").value(3))
+                    .andExpect(jsonPath("$.result.emotionCounts.length()").value(7))
                     .andDo(documentWithAuth(
                             "record-controller-test/독서_기록_감정별_개수_조회_성공",
                             pathParameters(
@@ -359,9 +362,9 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                             ),
                             responseFields(ApiResponseSnippet.withResult(
                                     fieldWithPath("result.totalCount").type(JsonFieldType.NUMBER).description("해당 도서에 대해 사용자가 작성한 전체 독서 기록 수"),
-                                    fieldWithPath("result.emotionCounts").type(JsonFieldType.ARRAY).description("해당 도서의 기록을 감정 enum 전체 기준으로 집계한 목록. 기록이 없는 감정도 0으로 포함"),
-                                    fieldWithPath("result.emotionCounts[].emotion").type(JsonFieldType.STRING).description("기록에 저장된 감정 값. FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나"),
-                                    fieldWithPath("result.emotionCounts[].recordCount").type(JsonFieldType.NUMBER).description("해당 감정으로 작성된 독서 기록 수")
+                                    fieldWithPath("result.emotionCounts").type(JsonFieldType.ARRAY).description("해당 도서의 기록을 집계한 목록. ALL은 전체 기록 수를 뜻하고, 나머지 감정은 기록이 없어도 0으로 포함"),
+                                    fieldWithPath("result.emotionCounts[].emotion").type(JsonFieldType.STRING).description("집계 기준 값. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나"),
+                                    fieldWithPath("result.emotionCounts[].recordCount").type(JsonFieldType.NUMBER).description("해당 기준으로 집계된 기록 수")
                             ))
                     ));
         }

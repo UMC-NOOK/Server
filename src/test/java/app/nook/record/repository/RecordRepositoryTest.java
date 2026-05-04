@@ -150,11 +150,11 @@ class RecordRepositoryTest {
             assertThat(result.emotionCounts()).hasSize(2);
             assertThat(result.emotionCounts())
                     .anySatisfy(item -> {
-                        assertThat(item.emotion()).isEqualTo(Emotion.FUN);
+                        assertThat(item.emotion()).isEqualTo("FUN");
                         assertThat(item.recordCount()).isEqualTo(2L);
                     })
                     .anySatisfy(item -> {
-                        assertThat(item.emotion()).isEqualTo(Emotion.SAD);
+                        assertThat(item.emotion()).isEqualTo("SAD");
                         assertThat(item.recordCount()).isEqualTo(1L);
                     });
         }

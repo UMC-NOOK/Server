@@ -93,17 +93,21 @@ public class RecordQueryService {
         BookRecordDto.RecordEmotionCountResponse response = recordRepository.countRecordsByEmotion(user.getId(), bookId);
 
         Map<Emotion, Long> emotionCountMap = new EnumMap<>(Emotion.class);
-        response.emotionCounts().forEach(item -> emotionCountMap.put(item.emotion(), item.recordCount()));
+        response.emotionCounts().forEach(item -> emotionCountMap.put(Emotion.valueOf(item.emotion()), item.recordCount()));
 
         List<BookRecordDto.RecordEmotionDto> normalizedEmotionCounts = Arrays.stream(Emotion.values())
                 .filter(emotion -> emotion != Emotion.EMPTY)
                 .map(emotion -> new BookRecordDto.RecordEmotionDto(
-                        emotion,
+                        emotion.name(),
                         emotionCountMap.getOrDefault(emotion, 0L)
                 ))
                 .toList();
 
-        return new BookRecordDto.RecordEmotionCountResponse(response.totalCount(), normalizedEmotionCounts);
+        List<BookRecordDto.RecordEmotionDto> emotionCountsWithAll = new java.util.ArrayList<>();
+        emotionCountsWithAll.add(new BookRecordDto.RecordEmotionDto("ALL", response.totalCount()));
+        emotionCountsWithAll.addAll(normalizedEmotionCounts);
+
+        return new BookRecordDto.RecordEmotionCountResponse(response.totalCount(), emotionCountsWithAll);
     }
 
     // 해당 책의 독서 기록 목록 조회

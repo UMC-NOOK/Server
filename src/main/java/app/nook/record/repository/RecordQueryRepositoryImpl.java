@@ -298,7 +298,7 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
 
         List<BookRecordDto.RecordEmotionDto> emotionCounts = queryFactory
                 .select(Projections.constructor(BookRecordDto.RecordEmotionDto.class,
-                        record.emotion,
+                        record.emotion.stringValue(),
                         record.count()
                 ))
                 .from(record)
