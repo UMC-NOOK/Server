@@ -62,7 +62,7 @@ public class BookService {
                 updateBookInfo(book, isbn13);
             }
             log.info("[DB_HIT] isbn={}, title='{}'", isbn13, book.getTitle());
-            return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibraryId(user, book)));
+            return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibrary(user, book)));
         }
 
         log.info("[API_FETCH] isbn={}, status='Not found in DB(ALADIN)'", isbn13);
@@ -85,7 +85,7 @@ public class BookService {
             updateBookInfo(book, book.getIsbn13());
         }
 
-        return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibraryId(user, book)));
+        return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibrary(user, book)));
     }
 
     @Transactional
@@ -244,12 +244,11 @@ public class BookService {
         log.info("[BookService] Book info updated - ISBN: {}, title: {}", isbn13, book.getTitle());
     }
 
-    private Long findLibraryId(User user, Book book) {
+    private Library findLibrary(User user, Book book) {
         if (user == null) {
             return null;
         }
         return libraryRepository.findByUserAndBook(user, book)
-                .map(Library::getId)
                 .orElse(null);
     }
 }

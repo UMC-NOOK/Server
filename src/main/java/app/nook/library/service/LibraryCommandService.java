@@ -7,6 +7,7 @@ import app.nook.focus.repository.FocusRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.library.domain.Library;
+import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
@@ -38,7 +39,7 @@ public class LibraryCommandService {
     private final UserRepository userRepository;
 
     @Transactional
-    public void registerBook(Long userId, Long bookId) {
+    public LibraryViewDto.BookStatusResponseDto registerBook(Long userId, Long bookId) {
         // 등록 대상 도서와 사용자 조회
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
@@ -60,10 +61,11 @@ public class LibraryCommandService {
 
         timelineCommandService.appendRegister(savedLibrary);
         eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(userId));
+        return toBookStatusResponse(savedLibrary);
     }
 
     @Transactional
-    public void deleteByBookId(Long userId, Long bookId) {
+    public LibraryViewDto.BookStatusResponseDto deleteByBookId(Long userId, Long bookId) {
         // 삭제 대상 도서와 서재 등록 여부 확인
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
@@ -85,10 +87,11 @@ public class LibraryCommandService {
         eventPublisher.publishEvent(
                 LibraryCacheInvalidateEvent.statusAndMonthly(userId, affectedYearMonths)
         );
+        return new LibraryViewDto.BookStatusResponseDto(bookId, null, null);
     }
 
     @Transactional
-    public void changeReadingStatus(Long userId, ReadingStatusRequestDto requestDto) {
+    public LibraryViewDto.BookStatusResponseDto changeReadingStatus(Long userId, ReadingStatusRequestDto requestDto) {
         // 상태 변경 대상 도서와 서재 엔티티 조회
         Book book = bookRepository.findById(requestDto.bookId())
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
@@ -105,10 +108,19 @@ public class LibraryCommandService {
         library.updateStatus(requestDto.readingStatus());
         timelineCommandService.appendStatusChanged(library, occurredAt);
         eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(userId));
+        return toBookStatusResponse(library);
     }
 
     private User getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+    }
+
+    private LibraryViewDto.BookStatusResponseDto toBookStatusResponse(Library library) {
+        return new LibraryViewDto.BookStatusResponseDto(
+                library.getBook().getId(),
+                library.getId(),
+                library.getReadingStatus()
+        );
     }
 }

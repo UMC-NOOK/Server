@@ -33,32 +33,35 @@ public class LibraryController {
 
     // 서재 책 등록
     @PostMapping("/{bookId}")
-    public ApiResponse<Void> registerBook(
+    public ApiResponse<LibraryViewDto.BookStatusResponseDto> registerBook(
             @CurrentUser User user,
             @PathVariable Long bookId
     ) {
-        libraryCommandService.registerBook(user.getId(), bookId);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
+        LibraryViewDto.BookStatusResponseDto response =
+                libraryCommandService.registerBook(user.getId(), bookId);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
     // 서재 책 삭제
     @DeleteMapping("/{bookId}")
-    public ApiResponse<Void> deleteBook(
+    public ApiResponse<LibraryViewDto.BookStatusResponseDto> deleteBook(
             @CurrentUser User user,
             @PathVariable Long bookId
     ) {
-        libraryCommandService.deleteByBookId(user.getId(), bookId);
-        return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
+        LibraryViewDto.BookStatusResponseDto response =
+                libraryCommandService.deleteByBookId(user.getId(), bookId);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
     // 서재 책 상태 변경
     @PatchMapping("/status")
-    public ApiResponse<Void> changeStatus(
+    public ApiResponse<LibraryViewDto.BookStatusResponseDto> changeStatus(
             @CurrentUser User user,
             @RequestBody ReadingStatusRequestDto requestDto
     ) {
-        libraryCommandService.changeReadingStatus(user.getId(), requestDto);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
+        LibraryViewDto.BookStatusResponseDto response =
+                libraryCommandService.changeReadingStatus(user.getId(), requestDto);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
     // 서재 상태별 책 조회
