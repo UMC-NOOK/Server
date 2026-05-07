@@ -113,8 +113,12 @@ class LibraryServiceTest {
                 return saved;
             });
 
-            libraryCommandService.registerBook(1L, 1L);
+            LibraryViewDto.BookStatusResponseDto response =
+                    libraryCommandService.registerBook(1L, 1L);
 
+            assertThat(response.bookId()).isEqualTo(1L);
+            assertThat(response.bookShelfId()).isEqualTo(1L);
+            assertThat(response.readingStatus()).isEqualTo(ReadingStatus.BEFORE);
             verify(timelineCommandService).appendRegister(any());
         }
 
@@ -161,8 +165,12 @@ class LibraryServiceTest {
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
             given(focusRepository.findDistinctFocusDatesByLibraryAndUser(any(), any())).willReturn(List.of());
 
-            libraryCommandService.deleteByBookId(1L, 1L);
+            LibraryViewDto.BookStatusResponseDto response =
+                    libraryCommandService.deleteByBookId(1L, 1L);
 
+            assertThat(response.bookId()).isEqualTo(1L);
+            assertThat(response.bookShelfId()).isNull();
+            assertThat(response.readingStatus()).isNull();
             verify(libraryRepository).delete(library);
         }
 
@@ -234,15 +242,21 @@ class LibraryServiceTest {
         void changeStatus_성공() {
             User user = UserFixture.user();
             Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
             Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "id", 10L);
 
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
 
-            libraryCommandService.changeReadingStatus(1L, request);
+            LibraryViewDto.BookStatusResponseDto response =
+                    libraryCommandService.changeReadingStatus(1L, request);
 
+            assertThat(response.bookId()).isEqualTo(1L);
+            assertThat(response.bookShelfId()).isEqualTo(library.getId());
+            assertThat(response.readingStatus()).isEqualTo(ReadingStatus.READING);
             assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
             verify(timelineCommandService).appendStatusChanged(any(), any());
         }

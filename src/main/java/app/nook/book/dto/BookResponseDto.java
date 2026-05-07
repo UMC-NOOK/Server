@@ -30,6 +30,7 @@ public class BookResponseDto {
         private String aladinLink;
         private SourceType sourceType;
         private Long bookShelfId;
+        private ReadingStatus readingStatus;
     }
 
     public record BookPreviewDto( // 검색 베스트셀러 프리뷰 DTO
