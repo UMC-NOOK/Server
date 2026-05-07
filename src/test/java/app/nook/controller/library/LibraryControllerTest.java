@@ -193,6 +193,44 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     }
 
     @Test
+    @WithCustomUser
+    void 서재_책_상태변경_실패_bookId_누락() throws Exception {
+        mockMvc.perform(
+                        patch("/api/v1/library/status")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "readingStatus": "READING"
+                                        }
+                                        """)
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .with(csrf())
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON-002"));
+    }
+
+    @Test
+    @WithCustomUser
+    void 서재_책_상태변경_실패_readingStatus_누락() throws Exception {
+        mockMvc.perform(
+                        patch("/api/v1/library/status")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "bookId": 1
+                                        }
+                                        """)
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .with(csrf())
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON-002"));
+    }
+
+    @Test
     @DisplayName("서재 상태별 책 조회 성공")
     @WithCustomUser
     void 서재_상태별_책_조회_성공() throws Exception {

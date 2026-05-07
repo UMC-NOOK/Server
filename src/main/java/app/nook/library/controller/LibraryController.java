@@ -11,6 +11,7 @@ import app.nook.library.service.LibraryCommandService;
 import app.nook.library.service.LibraryQueryService;
 import app.nook.user.annotation.CurrentUser;
 import app.nook.user.domain.User;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -57,7 +58,7 @@ public class LibraryController {
     @PatchMapping("/status")
     public ApiResponse<LibraryViewDto.BookStatusResponseDto> changeStatus(
             @CurrentUser User user,
-            @RequestBody ReadingStatusRequestDto requestDto
+            @Valid @RequestBody ReadingStatusRequestDto requestDto
     ) {
         LibraryViewDto.BookStatusResponseDto response =
                 libraryCommandService.changeReadingStatus(user.getId(), requestDto);

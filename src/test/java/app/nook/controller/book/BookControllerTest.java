@@ -28,6 +28,7 @@
   import java.util.Collections;
   import java.util.List;
 
+  import static org.hamcrest.Matchers.nullValue;
   import static org.mockito.ArgumentMatchers.*;
   import static org.mockito.BDDMockito.given;
   import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
@@ -90,7 +91,8 @@
           mockMvc.perform(get("/api/v1/books/{isbn13}", isbn13).header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.title").value("채식주의자"))
-                  .andExpect(jsonPath("$.result.readingStatus").doesNotExist())
+                  .andExpect(jsonPath("$.result.bookShelfId").value(nullValue()))
+                  .andExpect(jsonPath("$.result.readingStatus").value(nullValue()))
                   .andDo(documentWithAuth(
                           "{class-name}/{method-name}",
                           pathParameters(parameterWithName("isbn13").description("도서 ISBN13 (13자리 숫자)")),
