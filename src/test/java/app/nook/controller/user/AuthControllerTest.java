@@ -32,6 +32,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWit
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
@@ -69,6 +70,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         .nickName("jiwon")
                         .accessToken("test-access-token")
                         .refreshToken("test-refresh-token")
+                        .onboardingCompleted(false)
                         .build();
 
         given(oAuthService.login(any(), any()))
@@ -81,6 +83,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.onboardingCompleted").value(false))
                 .andDo(restDocs.document(
                         requestFields(
                                 fieldWithPath("code")
@@ -94,7 +97,8 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.email").description("이메일"),
                                         fieldWithPath("result.nickName").description("닉네임"),
                                         fieldWithPath("result.accessToken").description("엑세스 토큰"),
-                                        fieldWithPath("result.refreshToken").description("리프레시 토큰")
+                                        fieldWithPath("result.refreshToken").description("리프레시 토큰"),
+                                        fieldWithPath("result.onboardingCompleted").description("온보딩 완료 여부")
                                 )
                         )
                 ));
@@ -113,6 +117,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         .nickName("DEV_USER")
                         .accessToken("test-access-token")
                         .refreshToken("test-refresh-token")
+                        .onboardingCompleted(false)
                         .build();
 
         given(userService.devLogin(any()))
@@ -125,6 +130,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.onboardingCompleted").value(false))
                 .andDo(restDocs.document(
                         requestFields(
                                 fieldWithPath("email")
@@ -138,7 +144,8 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.email").description("이메일"),
                                         fieldWithPath("result.nickName").description("닉네임"),
                                         fieldWithPath("result.accessToken").description("엑세스 토큰"),
-                                        fieldWithPath("result.refreshToken").description("리프레시 토큰")
+                                        fieldWithPath("result.refreshToken").description("리프레시 토큰"),
+                                        fieldWithPath("result.onboardingCompleted").description("온보딩 완료 여부")
                                 )
                         )
                 ));
@@ -154,6 +161,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         .id(3L)
                         .email("new@test.com")
                         .nickName("NEW_USER")
+                        .onboardingCompleted(false)
                         .build();
 
         given(userService.devSignUp(any()))
@@ -165,6 +173,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.onboardingCompleted").value(false))
                 .andDo(restDocs.document(
                         requestFields(
                                 fieldWithPath("email").description("DEV 유저 이메일"),
@@ -174,7 +183,8 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 ApiResponseSnippet.withResult(
                                         fieldWithPath("result.id").description("사용자ID"),
                                         fieldWithPath("result.email").description("이메일"),
-                                        fieldWithPath("result.nickName").description("닉네임")
+                                        fieldWithPath("result.nickName").description("닉네임"),
+                                        fieldWithPath("result.onboardingCompleted").description("온보딩 완료 여부")
                                 )
                         )
                 ));
@@ -288,6 +298,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         .id(2L)
                         .email("jiwon@kakao.com")
                         .nickName("jiwon")
+                        .onboardingCompleted(false)
                         .build();
 
         given(userService.getThisUser(any()))
@@ -300,13 +311,15 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 .with(user(userDetails))
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.onboardingCompleted").value(false))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         responseFields(
                                 ApiResponseSnippet.withResult(
                                         fieldWithPath("result.id").description("사용자ID"),
                                         fieldWithPath("result.email").description("이메일"),
-                                        fieldWithPath("result.nickName").description("닉네임")
+                                        fieldWithPath("result.nickName").description("닉네임"),
+                                        fieldWithPath("result.onboardingCompleted").description("온보딩 완료 여부")
                                 )
                         )
                 ));

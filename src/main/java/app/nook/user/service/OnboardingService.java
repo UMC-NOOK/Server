@@ -115,7 +115,7 @@ public class OnboardingService {
     public OnboardingDto.StatusResponse getOnboardingStatus(Long userId) {
         User user = getUser(userId);
         return new OnboardingDto.StatusResponse(
-                user.needsOnboarding(),
+                !user.isOnboardingCompleted(),
                 user.getOnboardingCompletedAt()
         );
     }
