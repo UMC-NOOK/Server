@@ -21,7 +21,7 @@ public class UserDTO {
         private String nickName;
         private String accessToken;
         private String refreshToken;
-        private Boolean onboardingCompleted;
+        private boolean onboardingCompleted;
     }
 
     @AllArgsConstructor
