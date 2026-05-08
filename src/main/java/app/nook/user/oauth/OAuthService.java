@@ -94,6 +94,7 @@ public class OAuthService {
                 .nickName(user.getNickName())
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .onboardingCompleted(user.isOnboardingCompleted())
                 .build();
     }
 
