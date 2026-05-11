@@ -91,7 +91,7 @@ public class WebSecurityConfig {
                 "http://localhost:5173",
                 "http://localhost:8080",
                 "https://dev.reading-nook.site",
-                "https://nook-rho-ruddy.vercel.app/"
+                "https://nook-rho-ruddy.vercel.app"
         ));
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
