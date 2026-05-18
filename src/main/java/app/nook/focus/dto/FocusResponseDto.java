@@ -41,14 +41,12 @@ public class FocusResponseDto {
 
     public record RecentFocusItem(
             Long focusId,
-            Long libraryId,
             Long bookId,
             String bookTitle,
             String author,
             String coverImageUrl,
             LocalDateTime startedAt,
             LocalDateTime endedAt,
-            Integer durationSec,
             String durationText
     ) {}
 }

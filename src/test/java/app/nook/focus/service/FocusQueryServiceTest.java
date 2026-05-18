@@ -80,10 +80,8 @@ class FocusQueryServiceTest {
 
             FocusResponseDto.RecentFocusItem item = result.getItems().get(0);
             assertThat(item.focusId()).isEqualTo(completedFocus.getId());
-            assertThat(item.libraryId()).isEqualTo(library.getId());
             assertThat(item.bookId()).isEqualTo(library.getBook().getId());
             assertThat(item.coverImageUrl()).isEqualTo("https://cdn.nook.com/covers/book.jpg");
-            assertThat(item.durationSec()).isEqualTo(2066);
             assertThat(item.durationText()).isEqualTo("00:34:26");
         }
 

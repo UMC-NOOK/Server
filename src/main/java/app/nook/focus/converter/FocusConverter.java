@@ -3,6 +3,7 @@ package app.nook.focus.converter;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.domain.Theme;
 import app.nook.focus.dto.FocusResponseDto;
+import app.nook.library.util.FocusTimeUtil;
 
 import java.util.List;
 
@@ -40,7 +41,7 @@ public class FocusConverter {
                 focus.getStartedAt(),
                 focus.getEndedAt(),
                 focus.getDurationSec(),
-                formatDuration(focus.getDurationSec()),
+                FocusTimeUtil.formatFocusTime(focus.getDurationSec() == null ? 0 : focus.getDurationSec()),
                 focus.getLibrary().getPage(),
                 focus.getLibrary().getFocusSec(),
                 focus.getLibrary().getReadingStatus().name()
@@ -50,27 +51,13 @@ public class FocusConverter {
     public static FocusResponseDto.RecentFocusItem toRecentFocusItem(Focus focus, String coverImageUrl) {
         return new FocusResponseDto.RecentFocusItem(
                 focus.getId(),
-                focus.getLibrary().getId(),
                 focus.getLibrary().getBook().getId(),
                 focus.getLibrary().getBook().getTitle(),
                 focus.getLibrary().getBook().getAuthor(),
                 coverImageUrl,
                 focus.getStartedAt(),
                 focus.getEndedAt(),
-                focus.getDurationSec(),
-                formatDuration(focus.getDurationSec())
+                FocusTimeUtil.formatFocusTime(focus.getDurationSec() == null ? 0 : focus.getDurationSec())
         );
-    }
-
-    private static String formatDuration(Integer totalSec) {
-        if (totalSec == null) {
-            return "00:00:00";
-        }
-
-        int hour = totalSec / 3600;
-        int minute = (totalSec % 3600) / 60;
-        int second = totalSec % 60;
-
-        return String.format("%02d:%02d:%02d", hour, minute, second);
     }
 }
