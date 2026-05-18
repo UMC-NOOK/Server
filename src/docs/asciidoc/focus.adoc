@@ -1,8 +1,8 @@
 === 테마 목록 조회
 
-include::{snippets}/focus-theme-controller-test/포커스_테마목록_조회_성공/http-request.adoc[]
-include::{snippets}/focus-theme-controller-test/포커스_테마목록_조회_성공/http-response.adoc[]
-include::{snippets}/focus-theme-controller-test/포커스_테마목록_조회_성공/response-fields.adoc[]
+include::{snippets}/focus-controller-test/테마_목록_조회_성공/http-request.adoc[]
+include::{snippets}/focus-controller-test/테마_목록_조회_성공/http-response.adoc[]
+include::{snippets}/focus-controller-test/테마_목록_조회_성공/response-fields.adoc[]
 
 === 포커스 시작
 
@@ -17,3 +17,10 @@ include::{snippets}/focus-controller-test/포커스_종료_성공/http-request.a
 include::{snippets}/focus-controller-test/포커스_종료_성공/request-fields.adoc[]
 include::{snippets}/focus-controller-test/포커스_종료_성공/http-response.adoc[]
 include::{snippets}/focus-controller-test/포커스_종료_성공/response-fields.adoc[]
+
+=== 최근 포커스 조회
+
+include::{snippets}/focus-controller-test/최근_포커스_조회_성공/http-request.adoc[]
+include::{snippets}/focus-controller-test/최근_포커스_조회_성공/query-parameters.adoc[]
+include::{snippets}/focus-controller-test/최근_포커스_조회_성공/http-response.adoc[]
+include::{snippets}/focus-controller-test/최근_포커스_조회_성공/response-fields.adoc[]

@@ -47,6 +47,21 @@ public class FocusConverter {
         );
     }
 
+    public static FocusResponseDto.RecentFocusItem toRecentFocusItem(Focus focus, String coverImageUrl) {
+        return new FocusResponseDto.RecentFocusItem(
+                focus.getId(),
+                focus.getLibrary().getId(),
+                focus.getLibrary().getBook().getId(),
+                focus.getLibrary().getBook().getTitle(),
+                focus.getLibrary().getBook().getAuthor(),
+                coverImageUrl,
+                focus.getStartedAt(),
+                focus.getEndedAt(),
+                focus.getDurationSec(),
+                formatDuration(focus.getDurationSec())
+        );
+    }
+
     private static String formatDuration(Integer totalSec) {
         if (totalSec == null) {
             return "00:00:00";
