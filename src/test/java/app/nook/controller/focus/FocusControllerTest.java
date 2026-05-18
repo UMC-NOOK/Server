@@ -228,14 +228,12 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
                     List.of(
                             new FocusResponseDto.RecentFocusItem(
                                     100L,
-                                    10L,
                                     20L,
                                     "첫사랑의 침공",
                                     "권혁일",
                                     "https://cdn.nook.com/covers/book.jpg",
                                     LocalDateTime.of(2026, 3, 22, 14, 0, 0),
                                     LocalDateTime.of(2026, 3, 22, 14, 34, 26),
-                                    2066,
                                     "00:34:26"
                             )
                     ),
@@ -262,14 +260,12 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
                                     ApiResponseSnippet.withResult(
                                             fieldWithPath("result.items[]").type(ARRAY).description("포커스 목록"),
                                             fieldWithPath("result.items[].focusId").type(NUMBER).description("포커스 ID"),
-                                            fieldWithPath("result.items[].libraryId").type(NUMBER).description("서재 ID"),
                                             fieldWithPath("result.items[].bookId").type(NUMBER).description("책 ID"),
                                             fieldWithPath("result.items[].bookTitle").type(STRING).description("책 제목"),
                                             fieldWithPath("result.items[].author").type(STRING).description("저자"),
                                             fieldWithPath("result.items[].coverImageUrl").type(STRING).description("책 커버 이미지 URL"),
                                             fieldWithPath("result.items[].startedAt").type(STRING).description("포커스 시작 시각"),
                                             fieldWithPath("result.items[].endedAt").type(STRING).description("포커스 종료 시각"),
-                                            fieldWithPath("result.items[].durationSec").type(NUMBER).description("집중 시간(초)"),
                                             fieldWithPath("result.items[].durationText").type(STRING).description("집중 시간(HH:mm:ss)"),
                                             fieldWithPath("result.nextCursor").type(NUMBER).optional().description("다음 커서 (다음 페이지 없으면 null)"),
                                             fieldWithPath("result.hasNext").type(BOOLEAN).description("다음 페이지 존재 여부")
