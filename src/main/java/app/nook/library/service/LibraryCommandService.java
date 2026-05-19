@@ -3,6 +3,7 @@ package app.nook.library.service;
 import app.nook.book.domain.Book;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
+import app.nook.book.service.BookAccessService;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
@@ -37,6 +38,7 @@ public class LibraryCommandService {
     private final TimelineCommandService timelineCommandService;
     private final ApplicationEventPublisher eventPublisher;
     private final UserRepository userRepository;
+    private final BookAccessService bookAccessService;
 
     @Transactional
     public LibraryViewDto.BookStatusResponseDto registerBook(Long userId, Long bookId) {
@@ -44,6 +46,7 @@ public class LibraryCommandService {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
         User user = getUser(userId);
+        bookAccessService.assertCanAddToLibrary(user, book);
 
         // 이미 서재에 있는 도서는 중복 등록 차단
         if (libraryRepository.findByUserIdAndBook(userId, book).isPresent()) {

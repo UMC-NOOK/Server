@@ -26,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -78,6 +79,9 @@ class BookServiceTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Spy
+    private BookAccessService bookAccessService = new BookAccessService();
 
     @InjectMocks
     private BookService bookService;
@@ -246,6 +250,7 @@ class BookServiceTest {
         Book book = createBook(TEST_ISBN_1, "제목", 184);
         ReflectionTestUtils.setField(book, "id", 20L);
         ReflectionTestUtils.setField(book, "sourceType", SourceType.USER);
+        ReflectionTestUtils.setField(book, "createdByUserId", TEST_USER_ID);
 
         given(bookRepository.findById(20L)).willReturn(Optional.of(book));
         given(libraryRepository.findByUserAndBook(testUser, book)).willReturn(Optional.empty());
@@ -264,6 +269,7 @@ class BookServiceTest {
         Book book = createBook(TEST_ISBN_1, "제목", 184);
         ReflectionTestUtils.setField(book, "id", 20L);
         ReflectionTestUtils.setField(book, "sourceType", SourceType.USER);
+        ReflectionTestUtils.setField(book, "createdByUserId", TEST_USER_ID);
 
         Library library = Library.builder()
                 .user(testUser)
@@ -280,6 +286,26 @@ class BookServiceTest {
         assertThat(result.getBookId()).isEqualTo(20L);
         assertThat(result.getBookShelfId()).isEqualTo(10L);
         assertThat(result.getReadingStatus()).isEqualTo(ReadingStatus.READING);
+    }
+
+    @Test
+    @DisplayName("bookId 기반 상세 조회 - 다른 사용자가 생성한 USER 도서면 실패")
+    void getBookDetailById_otherUserBook_fail() {
+        Book book = createBook(TEST_ISBN_1, "제목", 184);
+        ReflectionTestUtils.setField(book, "id", 20L);
+        ReflectionTestUtils.setField(book, "sourceType", SourceType.USER);
+        ReflectionTestUtils.setField(book, "createdByUserId", 999L);
+        ReflectionTestUtils.setField(book, "coverImageKey", "book/users/999/cover.png");
+
+        given(bookRepository.findById(20L)).willReturn(Optional.of(book));
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> bookService.getBookDetailById(testUser, 20L)
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_ACCESS_DENIED);
+        verify(presignedUrlService, never()).resolveImageUrl(anyLong(), any());
     }
 
     @Test
