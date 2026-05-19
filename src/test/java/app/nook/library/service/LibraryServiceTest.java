@@ -3,6 +3,7 @@ package app.nook.library.service;
 import app.nook.book.domain.Book;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
+import app.nook.book.service.BookAccessService;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.exception.CustomException;
@@ -51,6 +52,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -79,6 +81,9 @@ class LibraryServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private BookAccessService bookAccessService;
 
     @InjectMocks
     private LibraryCommandService libraryCommandService;
@@ -147,6 +152,23 @@ class LibraryServiceTest {
             CustomException ex = assertThrows(CustomException.class, () -> libraryCommandService.registerBook(1L, 1L));
 
             assertThat(ex.getErrorCode()).isEqualTo(LibraryErrorCode.BOOK_ALREADY_EXIST);
+        }
+
+        @Test
+        @DisplayName("접근 권한이 없는 도서면 예외를 던진다")
+        void save_도서접근권한없음_예외() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            willThrow(new CustomException(BookErrorCode.BOOK_ACCESS_DENIED))
+                    .given(bookAccessService).assertCanAddToLibrary(user, book);
+
+            CustomException ex = assertThrows(CustomException.class, () -> libraryCommandService.registerBook(1L, 1L));
+
+            assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_ACCESS_DENIED);
+            verify(libraryRepository, never()).saveAndFlush(any());
         }
     }
 

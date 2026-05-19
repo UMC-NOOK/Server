@@ -15,6 +15,7 @@ public enum BookErrorCode implements BaseCode {
     BOOK_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "BOOK-003", "서비스 정책에 의해 조회할 수 없는 도서입니다."),
     BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "BOOK-004", "존재하지 않는 책입니다."),
     BOOK_NOT_OWNED(HttpStatus.FORBIDDEN, "BOOK-005", "본인이 생성한 사용자 도서만 수정할 수 있습니다."),
+    BOOK_ACCESS_DENIED(HttpStatus.FORBIDDEN, "BOOK-006", "해당 도서에 접근할 권한이 없습니다."),
     CATEGORY_NOT_FOUND(HttpStatus.BAD_REQUEST, "BOOK-008", "유효하지 않은 카테고리입니다.");
 
     private final HttpStatus httpStatus;
