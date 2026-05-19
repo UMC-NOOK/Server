@@ -61,6 +61,16 @@ class BookAccessServiceTest {
     }
 
     @Test
+    @DisplayName("ALADIN 도서는 서재 등록 권한을 허용한다")
+    void assertCanAddToLibrary_aladinBook_success() {
+        User user = createUser(1L);
+        Book book = createBook(SourceType.ALADIN, null);
+
+        assertThatCode(() -> bookAccessService.assertCanAddToLibrary(user, book))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     @DisplayName("본인이 생성한 USER 도서는 서재 등록 권한을 허용한다")
     void assertCanAddToLibrary_ownedUserBook_success() {
         User user = createUser(1L);
@@ -83,6 +93,17 @@ class BookAccessServiceTest {
     }
 
     @Test
+    @DisplayName("로그인 사용자가 없으면 USER 도서 서재 등록 권한을 차단한다")
+    void assertCanAddToLibrary_anonymousUserBook_fail() {
+        Book book = createBook(SourceType.USER, 1L);
+
+        assertThatThrownBy(() -> bookAccessService.assertCanAddToLibrary(null, book))
+                .isInstanceOf(CustomException.class)
+                .extracting(exception -> ((CustomException) exception).getErrorCode())
+                .isEqualTo(BookErrorCode.BOOK_ACCESS_DENIED);
+    }
+
+    @Test
     @DisplayName("본인이 생성한 USER 도서는 수정 권한을 허용한다")
     void assertCanUpdate_ownedUserBook_success() {
         User user = createUser(1L);
@@ -99,6 +120,17 @@ class BookAccessServiceTest {
         Book book = createBook(SourceType.ALADIN, null);
 
         assertThatThrownBy(() -> bookAccessService.assertCanUpdate(user, book))
+                .isInstanceOf(CustomException.class)
+                .extracting(exception -> ((CustomException) exception).getErrorCode())
+                .isEqualTo(BookErrorCode.BOOK_NOT_OWNED);
+    }
+
+    @Test
+    @DisplayName("로그인 사용자가 없으면 USER 도서 수정 권한을 차단한다")
+    void assertCanUpdate_anonymousUserBook_fail() {
+        Book book = createBook(SourceType.USER, 1L);
+
+        assertThatThrownBy(() -> bookAccessService.assertCanUpdate(null, book))
                 .isInstanceOf(CustomException.class)
                 .extracting(exception -> ((CustomException) exception).getErrorCode())
                 .isEqualTo(BookErrorCode.BOOK_NOT_OWNED);
