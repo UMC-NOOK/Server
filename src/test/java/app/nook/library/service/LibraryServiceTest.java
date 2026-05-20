@@ -159,7 +159,6 @@ class LibraryServiceTest {
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
-            given(focusRepository.findDistinctFocusDatesByLibraryAndUser(any(), any())).willReturn(List.of());
 
             libraryCommandService.deleteByBookId(1L, 1L);
 
@@ -192,7 +191,7 @@ class LibraryServiceTest {
         }
 
         @Test
-        @DisplayName("삭제 시 영향 연월을 중복 제거해 캐시 무효화 이벤트를 발행한다")
+        @DisplayName("삭제 시 사용자 기준 월별 캐시 무효화 이벤트를 발행한다")
         void deleteById_캐시무효화_이벤트발행() {
             User user = UserFixture.user();
             Book book = BookFixture.book();
@@ -203,25 +202,31 @@ class LibraryServiceTest {
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
-            given(focusRepository.findDistinctFocusDatesByLibraryAndUser(10L, 1L))
-                    .willReturn(List.of(
-                            LocalDate.of(2026, 2, 1),
-                            LocalDate.of(2026, 2, 5),
-                            LocalDate.of(2026, 3, 1)
-                    ));
 
             libraryCommandService.deleteByBookId(1L, 1L);
 
             verify(eventPublisher).publishEvent(argThat((Object event) ->
                     event instanceof LibraryCacheInvalidateEvent cacheEvent
                             && cacheEvent.userId().equals(1L)
-                            && cacheEvent.evictStatusFirstPage()
-                            && cacheEvent.affectedYearMonths().containsAll(List.of(
-                            java.time.YearMonth.of(2026, 2),
-                            java.time.YearMonth.of(2026, 3)
-                    ))
-                            && cacheEvent.affectedYearMonths().size() == 2
             ));
+        }
+
+        @Test
+        @DisplayName("삭제 시 포커스 조회 없이 삭제를 수행한다")
+        void deleteById_포커스조회없이_삭제() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
+
+            Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "id", 10L);
+
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+
+            libraryCommandService.deleteByBookId(1L, 1L);
+
+            verify(focusRepository, never()).findDistinctFocusDatesByLibraryAndUser(any(), any());
         }
     }
 
@@ -293,8 +298,8 @@ class LibraryServiceTest {
         }
 
         @Test
-        @DisplayName("상태 변경 성공 시 캐시 무효화 이벤트를 발행한다")
-        void changeStatus_성공_이벤트발행() {
+        @DisplayName("상태 변경 성공 시 월별 캐시 무효화 이벤트는 발행하지 않는다")
+        void changeStatus_성공_이벤트미발행() {
             User user = UserFixture.user();
             Book book = BookFixture.book();
             Library library = LibraryFixture.library(user, book);
@@ -305,12 +310,7 @@ class LibraryServiceTest {
 
             libraryCommandService.changeReadingStatus(1L, request);
 
-            verify(eventPublisher).publishEvent(argThat((Object event) ->
-                    event instanceof LibraryCacheInvalidateEvent cacheEvent
-                            && cacheEvent.userId().equals(1L)
-                            && cacheEvent.evictStatusFirstPage()
-                            && cacheEvent.affectedYearMonths().isEmpty()
-            ));
+            verify(eventPublisher, never()).publishEvent(any());
         }
     }
 
@@ -360,8 +360,8 @@ class LibraryServiceTest {
 
             assertThat(response.readingStatus()).isEqualTo(ReadingStatus.READING);
             assertThat(response.totalBookNum()).isEqualTo(10);
-            assertThat(response.bookItems().getItems()).hasSize(1);
-            assertThat(response.bookItems().getItems().get(0).coverUrl())
+            assertThat(response.bookItems().items()).hasSize(1);
+            assertThat(response.bookItems().items().get(0).coverUrl())
                     .isEqualTo("https://r2.example.com/cover1.png");
             verify(libraryRepository).countByUserIdAndReadingStatus(1L, ReadingStatus.READING);
             verify(presignedUrlService).resolveImageUrl(1L, "book/users/1/cover1.png");
@@ -494,10 +494,10 @@ class LibraryServiceTest {
 
             var result = libraryQueryService.getFocusRecordsByDate(1L, date, null, size);
 
-            assertThat(result.isHasNext()).isTrue();
-            assertThat(result.getNextCursor()).isEqualTo(30L);
-            assertThat(result.getItems()).hasSize(1);
-            assertThat(result.getItems().get(0).focusTime()).isEqualTo("00:02:00");
+            assertThat(result.hasNext()).isTrue();
+            assertThat(result.nextCursor()).isEqualTo(30L);
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.items().get(0).focusTime()).isEqualTo("00:02:00");
         }
 
         @Test
@@ -528,10 +528,10 @@ class LibraryServiceTest {
 
             var result = libraryQueryService.getFocusRecordsByDate(1L, date, 100L, size);
 
-            assertThat(result.isHasNext()).isFalse();
-            assertThat(result.getNextCursor()).isNull();
-            assertThat(result.getItems()).hasSize(1);
-            assertThat(result.getItems().get(0).focusTime()).isEqualTo("00:00:00");
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.items().get(0).focusTime()).isEqualTo("00:00:00");
         }
     }
 

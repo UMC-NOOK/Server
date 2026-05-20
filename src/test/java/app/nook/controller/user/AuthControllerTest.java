@@ -283,12 +283,11 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
 
         CustomUserDetails userDetails = new CustomUserDetails(user);
 
-        UserDTO.LoginResponse response =
-                UserDTO.LoginResponse.builder()
-                        .id(2L)
-                        .email("jiwon@kakao.com")
-                        .nickName("jiwon")
-                        .build();
+        UserDTO.UserInfo response = new UserDTO.UserInfo(
+                2L,
+                "jiwon@kakao.com",
+                "jiwon"
+        );
 
         given(userService.getThisUser(any()))
                 .willReturn(response);
@@ -311,4 +310,5 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         )
                 ));
     }
+
 }

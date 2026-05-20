@@ -114,14 +114,13 @@ class LibraryCachingIntegrationTest {
 
         given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
         given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(Optional.of(library));
-        given(focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId))
-                .willReturn(List.of(LocalDate.of(2026, 2, 1)));
 
         libraryCommandService.deleteByBookId(userId, bookId);
 
-        verify(redisZSETService, times(1)).evictMonthlyBooks(userId, YearMonth.of(2026, 2));
-        verify(redisZSETService, times(1)).evictMonthlyFocusTime(userId, YearMonth.of(2026, 2));
-        verify(redisZSETService, times(1)).evictMonthlyHourlyFocus(userId, YearMonth.of(2026, 2));
+        YearMonth currentYearMonth = YearMonth.now();
+        verify(redisZSETService, times(1)).evictMonthlyBooks(userId, currentYearMonth);
+        verify(redisZSETService, times(1)).evictMonthlyFocusTime(userId, currentYearMonth);
+        verify(redisZSETService, times(1)).evictMonthlyHourlyFocus(userId, currentYearMonth);
     }
 
     private Long currentUserId() {

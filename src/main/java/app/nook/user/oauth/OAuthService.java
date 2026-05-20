@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.Map;
 
@@ -144,7 +145,7 @@ public class OAuthService {
             return OAuthDTO.TokenWrapper.fromGoogle(token);
 
         } catch (Exception e) {
-            log.error("Google token request failed", e);
+            logTokenRequestFailure("Google", e);
             throw new CustomException(OAuthErrorCode.INVALID_OAUTH_TOKEN);
         }
     }
@@ -182,7 +183,7 @@ public class OAuthService {
             return OAuthDTO.TokenWrapper.fromKakao(token);
 
         } catch (Exception e) {
-            log.error("Kakao token request failed", e);
+            logTokenRequestFailure("Kakao", e);
             throw new CustomException(OAuthErrorCode.INVALID_OAUTH_TOKEN);
         }
     }
@@ -224,6 +225,19 @@ public class OAuthService {
                 .build();
 
         return userRepository.save(user);
+    }
+
+    private void logTokenRequestFailure(String provider, Exception e) {
+        if (e instanceof RestClientResponseException responseException) {
+            log.error("{} token request failed. status={}, body={}",
+                    provider,
+                    responseException.getStatusCode(),
+                    responseException.getResponseBodyAsString(),
+                    e);
+            return;
+        }
+
+        log.error("{} token request failed.", provider, e);
     }
 
 }

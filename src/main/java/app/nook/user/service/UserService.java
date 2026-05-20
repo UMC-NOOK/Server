@@ -75,12 +75,12 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserDTO.LoginResponse getThisUser(User user) {
-            return UserDTO.LoginResponse.builder()
-                    .id(user.getId())
-                    .email(user.getEmail())
-                    .nickName(user.getNickName())
-                    .build();
+    public UserDTO.UserInfo getThisUser(User user) {
+            return new UserDTO.UserInfo(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getNickName()
+            );
     }
 
     @Transactional

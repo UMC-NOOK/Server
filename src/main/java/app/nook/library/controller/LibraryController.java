@@ -66,7 +66,7 @@ public class LibraryController {
     public ApiResponse<LibraryViewDto.StatusBookResponseDto> viewBooksByStatus(
             @CurrentUser User user,
             @RequestParam @NotNull ReadingStatus status,
-            @RequestParam(required = false) @Min(0) Long cursor,
+            @RequestParam(required = false) @Min(1) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         LibraryViewDto.StatusBookResponseDto response =
@@ -92,7 +92,7 @@ public class LibraryController {
             @NotNull
             @DateTimeFormat(pattern = "yyyy-MM-dd")
             LocalDate date,
-            @RequestParam(required = false) @Min(0) Long cursor,
+            @RequestParam(required = false) @Min(1) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         CursorResponse<LibraryViewDto.UserBookResponseDto, Long> response =

@@ -240,11 +240,11 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
 
     @Test
     @WithCustomUser
-    void 서재_상태별_책_조회_실패_cursor_음수() throws Exception {
+    void 서재_상태별_책_조회_실패_cursor_0() throws Exception {
         mockMvc.perform(
                         get("/api/v1/library/status")
                                 .param("status", "READING")
-                                .param("cursor", "-1")
+                                .param("cursor", "0")
                                 .param("size", "20")
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                 )
@@ -545,6 +545,24 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         .andDo(documentWithAuth(
                                 "{class-name}/{method-name}"
                         ));
+            }
+
+            @Test
+            @DisplayName("cursor가 0이면 400")
+            @WithCustomUser
+            void invalidCursorZero() throws Exception {
+                mockMvc.perform(
+                                get("/api/v1/library/focus-records")
+                                        .param("date", "2026-02-26")
+                                        .param("cursor", "0")
+                                        .header(AUTH_HEADER, AUTH_TOKEN)
+                        )
+                        .andExpect(status().isBadRequest())
+                        .andDo(documentWithAuth(
+                                "{class-name}/{method-name}"
+                        ));
+
+                verifyNoInteractions(libraryCommandService, libraryQueryService);
             }
         }
     }

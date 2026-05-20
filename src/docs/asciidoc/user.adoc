@@ -24,6 +24,13 @@ include::{snippets}/auth-controller-test/dev회원가입_성공/request-fields.a
 include::{snippets}/auth-controller-test/dev회원가입_성공/http-response.adoc[]
 include::{snippets}/auth-controller-test/dev회원가입_성공/response-fields.adoc[]
 
+=== 내 정보 조회
+
+include::{snippets}/auth-controller-test/내정보_조회_성공/http-request.adoc[]
+include::{snippets}/auth-controller-test/내정보_조회_성공/request-headers.adoc[]
+include::{snippets}/auth-controller-test/내정보_조회_성공/http-response.adoc[]
+include::{snippets}/auth-controller-test/내정보_조회_성공/response-fields.adoc[]
+
 == 온보딩
 
 === 온보딩 완료

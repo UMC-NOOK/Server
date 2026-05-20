@@ -32,8 +32,6 @@ public class CacheConfig {
 
         Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
 
-        cacheConfigs.put("libraryStatusFirstPage",
-                defaultConfig.entryTtl(Duration.ofMinutes(2)));
         cacheConfigs.put(ALADIN_SEARCH_CACHE,
                 defaultConfig.entryTtl(Duration.ofMinutes(10)));
         cacheConfigs.put(WEEKLY_BESTSELLERS_CACHE,

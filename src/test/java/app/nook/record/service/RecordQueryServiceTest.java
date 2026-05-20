@@ -87,11 +87,11 @@ class RecordQueryServiceTest {
                     recordQueryService.getUserRecords(user, 10, null, SortType.RECENT_RECORDED);
 
             // then
-            assertThat(result.getItems()).hasSize(1);
-            assertThat(result.getItems().get(0).coverImageUrl())
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.items().get(0).coverImageUrl())
                     .isEqualTo("https://r2.example.com/cover.png");
-            assertThat(result.isHasNext()).isFalse();
-            assertThat(result.getNextCursor()).isNull();
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
             verify(presignedUrlService).resolveImageUrl(1L, "cover.png");
         }
 
@@ -124,7 +124,7 @@ class RecordQueryServiceTest {
                     );
 
             // then
-            RecordListCursor nextCursor = RecordListCursorCodec.decode(result.getNextCursor());
+            RecordListCursor nextCursor = RecordListCursorCodec.decode(result.nextCursor());
             assertThat(nextCursor.bookId()).isEqualTo(10L);
             assertThat(nextCursor.lastCreatedDate()).isEqualTo(lastDate);
             assertThat(nextCursor.lastCount()).isNull();
@@ -159,7 +159,7 @@ class RecordQueryServiceTest {
                     );
 
             // then
-            RecordListCursor nextCursor = RecordListCursorCodec.decode(result.getNextCursor());
+            RecordListCursor nextCursor = RecordListCursorCodec.decode(result.nextCursor());
             assertThat(nextCursor.lastCount()).isEqualTo(5L);
             assertThat(nextCursor.bookId()).isEqualTo(10L);
             assertThat(nextCursor.lastCreatedDate()).isNull();
@@ -311,10 +311,10 @@ class RecordQueryServiceTest {
                         recordQueryService.getBookRecords(user, 10L, 10, null, "FUN");
 
                 // then
-                assertThat(result.getItems()).hasSize(1);
-                assertThat(result.getItems().get(0).emotion()).isEqualTo(Emotion.FUN);
-                assertThat(result.getNextCursor()).isNull();
-                assertThat(result.isHasNext()).isFalse();
+                assertThat(result.items()).hasSize(1);
+                assertThat(result.items().get(0).emotion()).isEqualTo(Emotion.FUN);
+                assertThat(result.nextCursor()).isNull();
+                assertThat(result.hasNext()).isFalse();
             }
 
             @Test
@@ -349,11 +349,11 @@ class RecordQueryServiceTest {
                         recordQueryService.getBookRecords(user, 10L, 10, null, "ALL");
 
                 // then
-                assertThat(result.getItems()).hasSize(2);
-                assertThat(result.getItems().get(0).emotion()).isEqualTo(Emotion.FUN);
-                assertThat(result.getItems().get(1).emotion()).isEqualTo(Emotion.SAD);
-                assertThat(result.getNextCursor()).isNull();
-                assertThat(result.isHasNext()).isFalse();
+                assertThat(result.items()).hasSize(2);
+                assertThat(result.items().get(0).emotion()).isEqualTo(Emotion.FUN);
+                assertThat(result.items().get(1).emotion()).isEqualTo(Emotion.SAD);
+                assertThat(result.nextCursor()).isNull();
+                assertThat(result.hasNext()).isFalse();
             }
 
             @Test
@@ -381,9 +381,9 @@ class RecordQueryServiceTest {
                         recordQueryService.getBookRecords(user, 10L, 1, null, "ALL");
 
                 // then
-                assertThat(result.getItems()).hasSize(1);
-                assertThat(result.isHasNext()).isTrue();
-                assertThat(result.getNextCursor()).isEqualTo(1L);
+                assertThat(result.items()).hasSize(1);
+                assertThat(result.hasNext()).isTrue();
+                assertThat(result.nextCursor()).isEqualTo(1L);
             }
 
             @Test
@@ -419,11 +419,11 @@ class RecordQueryServiceTest {
                         recordQueryService.getBookRecords(user, 10L, 10, null, null);
 
                 // then
-                assertThat(result.getItems()).hasSize(2);
-                assertThat(result.getItems().get(0).emotion()).isEqualTo(Emotion.FUN);
-                assertThat(result.getItems().get(1).emotion()).isEqualTo(Emotion.SAD);
-                assertThat(result.getNextCursor()).isNull();
-                assertThat(result.isHasNext()).isFalse();
+                assertThat(result.items()).hasSize(2);
+                assertThat(result.items().get(0).emotion()).isEqualTo(Emotion.FUN);
+                assertThat(result.items().get(1).emotion()).isEqualTo(Emotion.SAD);
+                assertThat(result.nextCursor()).isNull();
+                assertThat(result.hasNext()).isFalse();
             }
 
             @Test
@@ -459,11 +459,11 @@ class RecordQueryServiceTest {
                         recordQueryService.getBookRecords(user, 10L, 10, null, " ");
 
                 // then
-                assertThat(result.getItems()).hasSize(2);
-                assertThat(result.getItems().get(0).emotion()).isEqualTo(Emotion.FUN);
-                assertThat(result.getItems().get(1).emotion()).isEqualTo(Emotion.SAD);
-                assertThat(result.getNextCursor()).isNull();
-                assertThat(result.isHasNext()).isFalse();
+                assertThat(result.items()).hasSize(2);
+                assertThat(result.items().get(0).emotion()).isEqualTo(Emotion.FUN);
+                assertThat(result.items().get(1).emotion()).isEqualTo(Emotion.SAD);
+                assertThat(result.nextCursor()).isNull();
+                assertThat(result.hasNext()).isFalse();
             }
         }
 
