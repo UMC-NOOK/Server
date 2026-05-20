@@ -1,7 +1,6 @@
-== 독서 이력
-
 === 독서 이력 요약 조회
 독서 이력 요약 조회는 포커스 요약, 기록 요약, 그리고 최신 독서 이력 preview를 함께 반환합니다.
+ +
 `timelinePreview`는 서버에서 최신 5개의 타임라인 아이템을 기준으로 날짜별 그룹으로 묶어 반환합니다.
 
 include::{snippets}/success/get-timeline-summary/http-request.adoc[]
@@ -12,6 +11,7 @@ include::{snippets}/success/get-timeline-summary/response-fields.adoc[]
 
 === 독서 이력 전체 조회
 독서 이력 전체 조회는 서재의 타임라인을 날짜별 그룹으로 반환합니다.
+ +
 각 그룹은 `year`, `monthDay`, `showYear`와 해당 날짜의 아이템 목록을 포함합니다.
 
 include::{snippets}/success/get-timeline-preview/http-request.adoc[]
@@ -22,6 +22,7 @@ include::{snippets}/success/get-timeline-preview/response-fields.adoc[]
 
 === 독서 이력 상세 조회
 독서 이력 상세 조회는 타임라인 아이템 클릭 시 바텀시트에 필요한 상세 정보를 반환합니다.
+ +
 상세 응답의 `detail`은 타임라인 타입(`REGISTER`, `STATUS`, `FOCUS`, `RECORD`)에 따라 구조가 달라집니다.
 
 include::{snippets}/get-timeline-detail/get-timeline-detail/http-request.adoc[]

@@ -1,9 +1,9 @@
-== 사진
+=== 사진 단건 업로드
 
 프론트가 해야 하는 일은 아래 순서입니다.
 
 1. 이미지 업로드 URL 발급 API를 호출해서 `uploadUrl(imageUrl)` 과 `key` 를 받습니다.
-2. 응답으로 받은 `uploadUrl`  로 파일을 `PUT` 업로드합니다.
+2. 응답으로 받은 `uploadUrl` 로 파일을 `PUT` 업로드합니다.
 ```
 PUT https://r2...signed-url
 Content-Type: image/png
@@ -11,7 +11,6 @@ Content-Type: image/png
 
 업로드가 끝나면 발급받은 `key` 를 기록 생성/수정 같은 서버 API에 전달합니다.
 
-=== 사진 단건 업로드
 include::{snippets}/image-upload-controller-test/단건_업로드_URL_발급_성공/http-request.adoc[]
 include::{snippets}/image-upload-controller-test/단건_업로드_URL_발급_성공/request-headers.adoc[]
 include::{snippets}/image-upload-controller-test/단건_업로드_URL_발급_성공/request-fields.adoc[]
