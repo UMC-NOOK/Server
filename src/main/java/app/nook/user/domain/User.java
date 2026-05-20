@@ -101,7 +101,7 @@ public class User extends BaseEntity {
         this.goal = goal;
     }
 
-    public boolean needsOnboarding() {
-        return this.onboardingCompletedAt == null;
+    public boolean isOnboardingCompleted() {
+        return this.onboardingCompletedAt != null;
     }
 }

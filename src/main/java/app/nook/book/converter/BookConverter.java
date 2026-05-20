@@ -7,7 +7,7 @@ import app.nook.book.domain.enums.SourceType;
 import app.nook.library.domain.Library;
 
 public class BookConverter {
-    public static BookResponseDto.BookDetailDto toBookDetailDto(Book book, Long bookShelfId) {
+    public static BookResponseDto.BookDetailDto toBookDetailDto(Book book, Library library) {
         Category category = book.getCategory();
 
         return BookResponseDto.BookDetailDto.builder()
@@ -25,7 +25,8 @@ public class BookConverter {
                 .coverImageUrl(book.getCoverImageKey())
                 .aladinLink(book.getAladinLink())
                 .sourceType(book.getSourceType())
-                .bookShelfId(bookShelfId)
+                .bookShelfId(library == null ? null : library.getId())
+                .readingStatus(library == null ? null : library.getReadingStatus())
                 .build();
     }
 

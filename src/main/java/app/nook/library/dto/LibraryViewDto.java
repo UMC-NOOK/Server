@@ -15,6 +15,12 @@ public class LibraryViewDto {
             String coverUrl
     ){}
 
+    public record BookStatusResponseDto(
+            Long bookId,
+            Long bookShelfId,
+            ReadingStatus readingStatus
+    ){}
+
     public record MonthlyBookResponseDto(
             LocalDate date,
             int bookNum,

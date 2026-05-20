@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,6 +66,7 @@ class UserServiceTest {
         assertThat(response.getNickName()).isEqualTo("DEV_USER");
         assertThat(response.getAccessToken()).isEqualTo("access-token");
         assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
+        assertThat(response.isOnboardingCompleted()).isFalse();
 
         ArgumentCaptor<TokenRedis> tokenCaptor = ArgumentCaptor.forClass(TokenRedis.class);
         verify(tokenRedisRepository).save(tokenCaptor.capture());
@@ -124,11 +126,34 @@ class UserServiceTest {
         assertThat(response.getEmail()).isEqualTo("new@test.com");
         assertThat(response.getNickName()).isEqualTo("NEW_USER");
         assertThat(response.getAccessToken()).isNull();
+        assertThat(response.isOnboardingCompleted()).isFalse();
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
         assertThat(userCaptor.getValue().getRole()).isEqualTo(UserRole.USER);
         assertThat(userCaptor.getValue().getProvider()).isEqualTo("DEV");
+    }
+
+    @Test
+    void devLogin_온보딩완료된유저_onboardingCompleted_true() {
+        User user = User.builder()
+                .email("done@test.com")
+                .nickName("DONE_USER")
+                .role(UserRole.USER)
+                .provider("DEV")
+                .providerId("dev-done")
+                .build();
+        ReflectionTestUtils.setField(user, "id", 2L);
+        ReflectionTestUtils.setField(user, "onboardingCompletedAt", LocalDateTime.now());
+
+        given(userRepository.findByEmail(eq("done@test.com")))
+                .willReturn(Optional.of(user));
+        given(jwtProvider.createAccessToken(user)).willReturn("access-token");
+        given(jwtProvider.createRefreshToken()).willReturn("refresh-token");
+
+        UserDTO.LoginResponse response = userService.devLogin("done@test.com");
+
+        assertThat(response.isOnboardingCompleted()).isTrue();
     }
 
     @Test

@@ -71,6 +71,7 @@ public class UserService {
                 .id(savedUser.getId())
                 .email(savedUser.getEmail())
                 .nickName(savedUser.getNickName())
+                .onboardingCompleted(savedUser.isOnboardingCompleted())
                 .build();
     }
 
@@ -140,6 +141,7 @@ public class UserService {
                 .nickName(user.getNickName())
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .onboardingCompleted(user.isOnboardingCompleted())
                 .build();
     }
 }

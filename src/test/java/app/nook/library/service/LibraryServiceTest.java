@@ -3,6 +3,7 @@ package app.nook.library.service;
 import app.nook.book.domain.Book;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
+import app.nook.book.service.BookAccessService;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.exception.CustomException;
@@ -51,6 +52,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -79,6 +81,9 @@ class LibraryServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private BookAccessService bookAccessService;
 
     @InjectMocks
     private LibraryCommandService libraryCommandService;
@@ -113,8 +118,12 @@ class LibraryServiceTest {
                 return saved;
             });
 
-            libraryCommandService.registerBook(1L, 1L);
+            LibraryViewDto.BookStatusResponseDto response =
+                    libraryCommandService.registerBook(1L, 1L);
 
+            assertThat(response.bookId()).isEqualTo(1L);
+            assertThat(response.bookShelfId()).isEqualTo(1L);
+            assertThat(response.readingStatus()).isEqualTo(ReadingStatus.BEFORE);
             verify(timelineCommandService).appendRegister(any());
         }
 
@@ -144,6 +153,23 @@ class LibraryServiceTest {
 
             assertThat(ex.getErrorCode()).isEqualTo(LibraryErrorCode.BOOK_ALREADY_EXIST);
         }
+
+        @Test
+        @DisplayName("접근 권한이 없는 도서면 예외를 던진다")
+        void save_도서접근권한없음_예외() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            willThrow(new CustomException(BookErrorCode.BOOK_ACCESS_DENIED))
+                    .given(bookAccessService).assertCanAddToLibrary(user, book);
+
+            CustomException ex = assertThrows(CustomException.class, () -> libraryCommandService.registerBook(1L, 1L));
+
+            assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_ACCESS_DENIED);
+            verify(libraryRepository, never()).saveAndFlush(any());
+        }
     }
 
     @Nested
@@ -160,8 +186,12 @@ class LibraryServiceTest {
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
 
-            libraryCommandService.deleteByBookId(1L, 1L);
+            LibraryViewDto.BookStatusResponseDto response =
+                    libraryCommandService.deleteByBookId(1L, 1L);
 
+            assertThat(response.bookId()).isEqualTo(1L);
+            assertThat(response.bookShelfId()).isNull();
+            assertThat(response.readingStatus()).isNull();
             verify(libraryRepository).delete(library);
         }
 
@@ -239,15 +269,21 @@ class LibraryServiceTest {
         void changeStatus_성공() {
             User user = UserFixture.user();
             Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
             Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "id", 10L);
 
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
 
-            libraryCommandService.changeReadingStatus(1L, request);
+            LibraryViewDto.BookStatusResponseDto response =
+                    libraryCommandService.changeReadingStatus(1L, request);
 
+            assertThat(response.bookId()).isEqualTo(1L);
+            assertThat(response.bookShelfId()).isEqualTo(library.getId());
+            assertThat(response.readingStatus()).isEqualTo(ReadingStatus.READING);
             assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
             verify(timelineCommandService).appendStatusChanged(any(), any());
         }

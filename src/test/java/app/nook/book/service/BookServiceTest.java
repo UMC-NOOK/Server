@@ -11,6 +11,8 @@ import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.global.exception.CustomException;
+import app.nook.library.domain.Library;
+import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
@@ -24,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -77,6 +80,9 @@ class BookServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Spy
+    private BookAccessService bookAccessService = new BookAccessService();
+
     @InjectMocks
     private BookService bookService;
 
@@ -129,10 +135,40 @@ class BookServiceTest {
         assertThat(result.getAuthor()).isEqualTo(TEST_AUTHOR);
         assertThat(result.getPublisher()).isEqualTo(TEST_PUBLISHER);
         assertThat(result.getPages()).isEqualTo(184);
+        assertThat(result.getBookShelfId()).isNull();
+        assertThat(result.getReadingStatus()).isNull();
 
         // DB에 있었으므로 알라딘 API는 호출되지 않아야 함
         verify(bookRepository, times(1)).findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN);
         verify(aladinService, never()).lookupItem(any());
+    }
+
+    @Test
+    @DisplayName("DB에 존재하고 서재에 등록된 도서 조회 - 서재 ID와 독서 상태 반환")
+    void getBookDetailByIsbn_서재등록_상태반환() {
+        // given
+        Book book = createBook(TEST_ISBN_1, "채식주의자", 184);
+        ReflectionTestUtils.setField(book, "id", 1L);
+        ReflectionTestUtils.setField(book, "modifiedDate", LocalDateTime.now());
+
+        Library library = Library.builder()
+                .user(testUser)
+                .book(book)
+                .build();
+        ReflectionTestUtils.setField(library, "id", 10L);
+        library.updateStatus(ReadingStatus.READING);
+
+        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN))
+                .willReturn(Optional.of(book));
+        given(libraryRepository.findByUserAndBook(testUser, book))
+                .willReturn(Optional.of(library));
+
+        // when
+        BookResponseDto.BookDetailDto result = bookService.getBookDetailByIsbn(testUser, TEST_ISBN_1);
+
+        // then
+        assertThat(result.getBookShelfId()).isEqualTo(10L);
+        assertThat(result.getReadingStatus()).isEqualTo(ReadingStatus.READING);
     }
 
     @Test
@@ -158,6 +194,8 @@ class BookServiceTest {
         // then 1. 반환값 검증 (Controller로 나가는 데이터)
         assertThat(result.getIsbn13()).isEqualTo(TEST_ISBN_1);
         assertThat(result.getTitle()).isEqualTo("채식주의자");
+        assertThat(result.getBookShelfId()).isNull();
+        assertThat(result.getReadingStatus()).isNull();
 
         // then 2. 저장 메서드에 넘겨진 실제 엔티티 '나포'
         verify(bookRepository).save(bookCaptor.capture());
@@ -212,6 +250,7 @@ class BookServiceTest {
         Book book = createBook(TEST_ISBN_1, "제목", 184);
         ReflectionTestUtils.setField(book, "id", 20L);
         ReflectionTestUtils.setField(book, "sourceType", SourceType.USER);
+        ReflectionTestUtils.setField(book, "createdByUserId", TEST_USER_ID);
 
         given(bookRepository.findById(20L)).willReturn(Optional.of(book));
         given(libraryRepository.findByUserAndBook(testUser, book)).willReturn(Optional.empty());
@@ -220,6 +259,53 @@ class BookServiceTest {
 
         assertThat(result.getBookId()).isEqualTo(20L);
         assertThat(result.getTitle()).isEqualTo("제목");
+        assertThat(result.getBookShelfId()).isNull();
+        assertThat(result.getReadingStatus()).isNull();
+    }
+
+    @Test
+    @DisplayName("bookId 기반 상세 조회 - 서재 ID와 독서 상태 반환")
+    void getBookDetailById_서재등록_상태반환() {
+        Book book = createBook(TEST_ISBN_1, "제목", 184);
+        ReflectionTestUtils.setField(book, "id", 20L);
+        ReflectionTestUtils.setField(book, "sourceType", SourceType.USER);
+        ReflectionTestUtils.setField(book, "createdByUserId", TEST_USER_ID);
+
+        Library library = Library.builder()
+                .user(testUser)
+                .book(book)
+                .build();
+        ReflectionTestUtils.setField(library, "id", 10L);
+        library.updateStatus(ReadingStatus.READING);
+
+        given(bookRepository.findById(20L)).willReturn(Optional.of(book));
+        given(libraryRepository.findByUserAndBook(testUser, book)).willReturn(Optional.of(library));
+
+        BookResponseDto.BookDetailDto result = bookService.getBookDetailById(testUser, 20L);
+
+        assertThat(result.getBookId()).isEqualTo(20L);
+        assertThat(result.getBookShelfId()).isEqualTo(10L);
+        assertThat(result.getReadingStatus()).isEqualTo(ReadingStatus.READING);
+    }
+
+    @Test
+    @DisplayName("bookId 기반 상세 조회 - 다른 사용자가 생성한 USER 도서면 실패")
+    void getBookDetailById_otherUserBook_fail() {
+        Book book = createBook(TEST_ISBN_1, "제목", 184);
+        ReflectionTestUtils.setField(book, "id", 20L);
+        ReflectionTestUtils.setField(book, "sourceType", SourceType.USER);
+        ReflectionTestUtils.setField(book, "createdByUserId", 999L);
+        ReflectionTestUtils.setField(book, "coverImageKey", "book/users/999/cover.png");
+
+        given(bookRepository.findById(20L)).willReturn(Optional.of(book));
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> bookService.getBookDetailById(testUser, 20L)
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_ACCESS_DENIED);
+        verify(presignedUrlService, never()).resolveImageUrl(anyLong(), any());
     }
 
     @Test

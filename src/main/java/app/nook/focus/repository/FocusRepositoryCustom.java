@@ -48,4 +48,10 @@ public interface FocusRepositoryCustom {
             User user,
             Pageable pageable
     );
+
+    Slice<Focus> findRecentByUserWithCursor(
+            User user,
+            Long cursor,
+            Pageable pageable
+    );
 }
