@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -63,7 +63,6 @@ public class LibraryCommandService {
         }
 
         timelineCommandService.appendRegister(savedLibrary);
-        eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(userId));
         return toBookStatusResponse(savedLibrary);
     }
 
@@ -75,21 +74,15 @@ public class LibraryCommandService {
         Library library = libraryRepository.findByUserIdAndBook(userId, book)
                 .orElseThrow(() -> new CustomException(LibraryErrorCode.BOOK_NOT_EXIST));
 
-        // 삭제로 영향받는 월별 통계 범위를 먼저 수집
-        List<YearMonth> affectedYearMonths = focusRepository.findDistinctFocusDatesByLibraryAndUser(
-                        library.getId(),
-                        userId
-                ).stream()
-                .map(YearMonth::from)
-                .distinct()
-                .collect(Collectors.toList());
-
         // 삭제 이후 상태 캐시와 월별 캐시를 함께 무효화
+        Set<YearMonth> affectedYearMonths = focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId)
+                .stream()
+                .map(YearMonth::from)
+                .collect(Collectors.toSet());
+
         libraryRepository.delete(library);
 
-        eventPublisher.publishEvent(
-                LibraryCacheInvalidateEvent.statusAndMonthly(userId, affectedYearMonths)
-        );
+        eventPublisher.publishEvent(LibraryCacheInvalidateEvent.monthly(userId, affectedYearMonths));
         return new LibraryViewDto.BookStatusResponseDto(bookId, null, null);
     }
 
@@ -110,7 +103,6 @@ public class LibraryCommandService {
         LocalDateTime occurredAt = LocalDateTime.now();
         library.updateStatus(requestDto.readingStatus());
         timelineCommandService.appendStatusChanged(library, occurredAt);
-        eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(userId));
         return toBookStatusResponse(library);
     }
 

@@ -15,7 +15,6 @@ import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,11 +46,6 @@ public class LibraryQueryService {
         return new LibraryViewDto.BookCountResponseDto(libraryRepository.countByUserId(userId));
     }
 
-    @Cacheable(
-            value = "libraryStatusFirstPage",
-            key = "#userId + ':' + #status",
-            condition = "#cursor == null && #size == 20"
-    )
     public LibraryViewDto.StatusBookResponseDto getBooksByStatus(
             Long userId,
             ReadingStatus status,
@@ -201,10 +195,10 @@ public class LibraryQueryService {
         // 커서 계산은 유지하고, 아이템만 조회 가능한 URL로 치환
         CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse =
                 LibraryConverter.toCursorResponse(libraries, size);
-        List<LibraryViewDto.UserStatusBookItem> resolvedItems = cursorResponse.getItems().stream()
+        List<LibraryViewDto.UserStatusBookItem> resolvedItems = cursorResponse.items().stream()
                 .map(item -> resolveStatusBookItem(userId, item))
                 .toList();
-        return CursorResponse.of(resolvedItems, cursorResponse.getNextCursor(), cursorResponse.isHasNext());
+        return CursorResponse.of(resolvedItems, cursorResponse.nextCursor(), cursorResponse.hasNext());
     }
 
     private LibraryViewDto.UserStatusBookItem resolveStatusBookItem(Long userId, LibraryViewDto.UserStatusBookItem item) {

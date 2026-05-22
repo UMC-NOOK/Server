@@ -293,13 +293,11 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
 
         CustomUserDetails userDetails = new CustomUserDetails(user);
 
-        UserDTO.LoginResponse response =
-                UserDTO.LoginResponse.builder()
-                        .id(2L)
-                        .email("jiwon@kakao.com")
-                        .nickName("jiwon")
-                        .onboardingCompleted(false)
-                        .build();
+        UserDTO.UserInfo response = new UserDTO.UserInfo(
+                2L,
+                "jiwon@kakao.com",
+                "jiwon"
+        );
 
         given(userService.getThisUser(any()))
                 .willReturn(response);
@@ -311,17 +309,16 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 .with(user(userDetails))
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.onboardingCompleted").value(false))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         responseFields(
                                 ApiResponseSnippet.withResult(
                                         fieldWithPath("result.id").description("사용자ID"),
                                         fieldWithPath("result.email").description("이메일"),
-                                        fieldWithPath("result.nickName").description("닉네임"),
-                                        fieldWithPath("result.onboardingCompleted").description("온보딩 완료 여부")
+                                        fieldWithPath("result.nickName").description("닉네임")
                                 )
                         )
                 ));
     }
+
 }

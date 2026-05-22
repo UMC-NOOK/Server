@@ -62,4 +62,10 @@ public class UserDTO {
             String accessToken,
             String refreshToken
     ) {}
+
+    public record UserInfo(
+            Long id,
+            String email,
+            String nickName
+    ) {}
 }

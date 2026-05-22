@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -115,13 +116,19 @@ class LibraryCachingIntegrationTest {
         given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
         given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(Optional.of(library));
         given(focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId))
-                .willReturn(List.of(LocalDate.of(2026, 2, 1)));
+                .willReturn(List.of(
+                        LocalDate.of(2026, 2, 1),
+                        LocalDate.of(2026, 2, 15),
+                        LocalDate.of(2026, 3, 1)
+                ));
 
         libraryCommandService.deleteByBookId(userId, bookId);
 
-        verify(redisZSETService, times(1)).evictMonthlyBooks(userId, YearMonth.of(2026, 2));
-        verify(redisZSETService, times(1)).evictMonthlyFocusTime(userId, YearMonth.of(2026, 2));
-        verify(redisZSETService, times(1)).evictMonthlyHourlyFocus(userId, YearMonth.of(2026, 2));
+        for (YearMonth affectedYearMonth : Set.of(YearMonth.of(2026, 2), YearMonth.of(2026, 3))) {
+            verify(redisZSETService, times(1)).evictMonthlyBooks(userId, affectedYearMonth);
+            verify(redisZSETService, times(1)).evictMonthlyFocusTime(userId, affectedYearMonth);
+            verify(redisZSETService, times(1)).evictMonthlyHourlyFocus(userId, affectedYearMonth);
+        }
     }
 
     private Long currentUserId() {

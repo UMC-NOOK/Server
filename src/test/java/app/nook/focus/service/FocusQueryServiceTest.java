@@ -74,11 +74,11 @@ class FocusQueryServiceTest {
                     focusQueryService.getRecentFocuses(user, null, 10);
 
             assertThat(result).isNotNull();
-            assertThat(result.getItems()).hasSize(1);
-            assertThat(result.isHasNext()).isFalse();
-            assertThat(result.getNextCursor()).isNull();
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
 
-            FocusResponseDto.RecentFocusItem item = result.getItems().get(0);
+            FocusResponseDto.RecentFocusItem item = result.items().get(0);
             assertThat(item.focusId()).isEqualTo(completedFocus.getId());
             assertThat(item.bookId()).isEqualTo(library.getBook().getId());
             assertThat(item.coverImageUrl()).isEqualTo("https://cdn.nook.com/covers/book.jpg");
@@ -98,8 +98,8 @@ class FocusQueryServiceTest {
             CursorResponse<FocusResponseDto.RecentFocusItem, Long> result =
                     focusQueryService.getRecentFocuses(user, null, 1);
 
-            assertThat(result.isHasNext()).isTrue();
-            assertThat(result.getNextCursor()).isEqualTo(completedFocus.getId());
+            assertThat(result.hasNext()).isTrue();
+            assertThat(result.nextCursor()).isEqualTo(completedFocus.getId());
         }
 
         @Test
@@ -113,9 +113,9 @@ class FocusQueryServiceTest {
             CursorResponse<FocusResponseDto.RecentFocusItem, Long> result =
                     focusQueryService.getRecentFocuses(user, null, 10);
 
-            assertThat(result.getItems()).isEmpty();
-            assertThat(result.isHasNext()).isFalse();
-            assertThat(result.getNextCursor()).isNull();
+            assertThat(result.items()).isEmpty();
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
         }
     }
 }

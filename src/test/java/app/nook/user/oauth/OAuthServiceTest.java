@@ -25,11 +25,13 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.client.ExpectedCount.once;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -96,6 +98,7 @@ class OAuthServiceTest {
 
         server.expect(once(), requestTo("https://google.test/token"))
                 .andExpect(method(HttpMethod.POST))
+                .andExpect(content().string(containsString("redirect_uri=https%3A%2F%2Fapp.test%2Fredirect")))
                 .andRespond(withSuccess(tokenJson, MediaType.APPLICATION_JSON));
 
         server.expect(once(), requestTo("https://google.test/userinfo"))
@@ -155,6 +158,7 @@ class OAuthServiceTest {
 
         server.expect(once(), requestTo("https://google.test/token"))
                 .andExpect(method(HttpMethod.POST))
+                .andExpect(content().string(containsString("redirect_uri=https%3A%2F%2Fapp.test%2Fredirect")))
                 .andRespond(withSuccess(tokenJson, MediaType.APPLICATION_JSON));
 
         server.expect(once(), requestTo("https://google.test/userinfo"))

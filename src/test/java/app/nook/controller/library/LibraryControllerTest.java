@@ -32,8 +32,11 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
@@ -303,6 +306,34 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 ));
 
         verifyNoInteractions(libraryCommandService, libraryQueryService);
+    }
+
+    @Test
+    @WithCustomUser
+    void 서재_상태별_책_조회_성공_cursor_0은_첫조회로_처리() throws Exception {
+        LibraryViewDto.StatusBookResponseDto response =
+                new LibraryViewDto.StatusBookResponseDto(
+                        ReadingStatus.READING,
+                        1,
+                        CursorResponse.of(List.of(), null, false)
+                );
+
+        given(libraryQueryService.getBooksByStatus(anyLong(), eq(ReadingStatus.READING), isNull(), eq(20)))
+                .willReturn(response);
+
+        mockMvc.perform(
+                        get("/api/v1/library/status")
+                                .param("status", "READING")
+                                .param("cursor", "0")
+                                .param("size", "20")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isOk())
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}"
+                ));
+
+        verify(libraryQueryService).getBooksByStatus(anyLong(), eq(ReadingStatus.READING), isNull(), eq(20));
     }
 
     @Test
@@ -612,6 +643,24 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         .andDo(documentWithAuth(
                                 "{class-name}/{method-name}"
                         ));
+            }
+
+            @Test
+            @DisplayName("cursor가 0이면 400")
+            @WithCustomUser
+            void invalidCursorZero() throws Exception {
+                mockMvc.perform(
+                                get("/api/v1/library/focus-records")
+                                        .param("date", "2026-02-26")
+                                        .param("cursor", "0")
+                                        .header(AUTH_HEADER, AUTH_TOKEN)
+                        )
+                        .andExpect(status().isBadRequest())
+                        .andDo(documentWithAuth(
+                                "{class-name}/{method-name}"
+                        ));
+
+                verifyNoInteractions(libraryCommandService, libraryQueryService);
             }
         }
     }
