@@ -338,6 +338,24 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
 
     @Test
     @WithCustomUser
+    void 서재_상태별_책_조회_실패_cursor_음수() throws Exception {
+        mockMvc.perform(
+                        get("/api/v1/library/status")
+                                .param("status", "READING")
+                                .param("cursor", "-1")
+                                .param("size", "20")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isBadRequest())
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}"
+                ));
+
+        verifyNoInteractions(libraryCommandService, libraryQueryService);
+    }
+
+    @Test
+    @WithCustomUser
     void 서재_상태별_책_조회_실패_size_최소값미만() throws Exception {
         mockMvc.perform(
                         get("/api/v1/library/status")
