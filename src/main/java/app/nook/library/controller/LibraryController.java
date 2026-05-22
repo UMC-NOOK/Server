@@ -70,11 +70,12 @@ public class LibraryController {
     public ApiResponse<LibraryViewDto.StatusBookResponseDto> viewBooksByStatus(
             @CurrentUser User user,
             @RequestParam @NotNull ReadingStatus status,
-            @RequestParam(required = false) @Min(1) Long cursor,
+            @RequestParam(required = false) @Min(0) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
+        Long normalizedCursor = (cursor != null && cursor == 0L) ? null : cursor;
         LibraryViewDto.StatusBookResponseDto response =
-                libraryQueryService.getBooksByStatus(user.getId(), status, cursor, size);
+                libraryQueryService.getBooksByStatus(user.getId(), status, normalizedCursor, size);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 

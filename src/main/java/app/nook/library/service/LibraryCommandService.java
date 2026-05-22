@@ -23,6 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -72,9 +75,14 @@ public class LibraryCommandService {
                 .orElseThrow(() -> new CustomException(LibraryErrorCode.BOOK_NOT_EXIST));
 
         // 삭제 이후 상태 캐시와 월별 캐시를 함께 무효화
+        Set<YearMonth> affectedYearMonths = focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId)
+                .stream()
+                .map(YearMonth::from)
+                .collect(Collectors.toSet());
+
         libraryRepository.delete(library);
 
-        eventPublisher.publishEvent(LibraryCacheInvalidateEvent.monthly(userId));
+        eventPublisher.publishEvent(LibraryCacheInvalidateEvent.monthly(userId, affectedYearMonths));
         return new LibraryViewDto.BookStatusResponseDto(bookId, null, null);
     }
 

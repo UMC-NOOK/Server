@@ -18,6 +18,6 @@ public class LibraryCacheInvalidationListener {
     // 트랜잭션 커밋 후 이벤트 처리하여 캐시 무효화
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAfterCommit(LibraryCacheInvalidateEvent event) {
-        redisCacheService.evictLibraryMonthlyCaches(event.userId());
+        redisCacheService.evictLibraryMonthlyCaches(event.userId(), event.affectedYearMonths());
     }
 }
