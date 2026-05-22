@@ -232,18 +232,24 @@ class LibraryServiceTest {
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+            given(focusRepository.findDistinctFocusDatesByLibraryAndUser(10L, 1L))
+                    .willReturn(List.of(LocalDate.of(2026, 2, 1), LocalDate.of(2026, 3, 1)));
 
             libraryCommandService.deleteByBookId(1L, 1L);
 
             verify(eventPublisher).publishEvent(argThat((Object event) ->
                     event instanceof LibraryCacheInvalidateEvent cacheEvent
                             && cacheEvent.userId().equals(1L)
+                            && cacheEvent.affectedYearMonths().equals(Set.of(
+                            java.time.YearMonth.of(2026, 2),
+                            java.time.YearMonth.of(2026, 3)
+                    ))
             ));
         }
 
         @Test
-        @DisplayName("삭제 시 포커스 조회 없이 삭제를 수행한다")
-        void deleteById_포커스조회없이_삭제() {
+        @DisplayName("삭제 시 영향 월 계산을 위해 포커스 날짜를 조회한다")
+        void deleteById_포커스날짜조회후_삭제() {
             User user = UserFixture.user();
             Book book = BookFixture.book();
             ReflectionTestUtils.setField(book, "id", 1L);
@@ -253,10 +259,13 @@ class LibraryServiceTest {
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+            given(focusRepository.findDistinctFocusDatesByLibraryAndUser(10L, 1L))
+                    .willReturn(List.of(LocalDate.of(2026, 2, 1)));
 
             libraryCommandService.deleteByBookId(1L, 1L);
 
-            verify(focusRepository, never()).findDistinctFocusDatesByLibraryAndUser(any(), any());
+            verify(focusRepository).findDistinctFocusDatesByLibraryAndUser(10L, 1L);
+            verify(libraryRepository).delete(library);
         }
     }
 
