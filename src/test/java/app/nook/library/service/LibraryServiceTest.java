@@ -464,7 +464,7 @@ class LibraryServiceTest {
             List<String> isbns = List.of("978123", "978456");
             Set<String> owned = Set.of("978123");
 
-            given(libraryRepository.findIsbnsByUserIdAndIsbnIn(userId, isbns)).willReturn(owned);
+            given(libraryRepository.findAladinIsbnsByUserIdAndIsbnIn(userId, isbns)).willReturn(owned);
 
             Set<String> result = libraryQueryService.getOwnedIsbns(userId, isbns);
 

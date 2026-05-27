@@ -53,6 +53,7 @@ public class BookConverter {
         Category category = book.getCategory();
 
         return BookResponseDto.BookSearchDto.builder()
+                .bookId(book.getId())
                 .isbn13(book.getIsbn13())
                 .title(book.getTitle())
                 .mallType(category.getMallType().getDisplayName())

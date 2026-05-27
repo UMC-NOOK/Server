@@ -261,7 +261,7 @@ class LibraryRepositoryTest {
     }
 
     @Test
-    void findIsbnsByUserIdAndIsbnIn_서재보유ISBN만반환한다() {
+    void findAladinIsbnsByUserIdAndIsbnIn_서재보유ISBN만반환한다() {
         User user = User.builder()
                 .email("isbn@library.com")
                 .nickName("isbn")
@@ -278,8 +278,17 @@ class LibraryRepositoryTest {
                 .build();
         bookRepository.save(ownedBook);
         libraryRepository.save(Library.builder().user(user).book(ownedBook).build());
+        Book userBook = Book.builder()
+                .isbn13("8888888888888")
+                .title("사용자 등록 도서")
+                .author("작가")
+                .sourceType(SourceType.USER)
+                .createdByUserId(user.getId())
+                .build();
+        bookRepository.save(userBook);
+        libraryRepository.save(Library.builder().user(user).book(userBook).build());
 
-        var result = libraryRepository.findIsbnsByUserIdAndIsbnIn(
+        var result = libraryRepository.findAladinIsbnsByUserIdAndIsbnIn(
                 user.getId(),
                 java.util.List.of("7777777777777", "8888888888888")
         );

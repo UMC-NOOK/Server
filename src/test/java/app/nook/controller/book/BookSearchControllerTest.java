@@ -194,6 +194,7 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.hasNext").description("다음 페이지 존재 여부"),
                                         fieldWithPath("result.nextCursor").description("다음 페이지 커서 (없으면 null)").optional(),
                                         fieldWithPath("result.books").description("검색된 도서 목록"),
+                                        fieldWithPath("result.books[].bookId").description("도서 ID (GLOBAL 검색에서는 null, LIBRARY 검색에서는 내부 도서 ID)").optional(),
                                         fieldWithPath("result.books[].isbn13").description("ISBN13"),
                                         fieldWithPath("result.books[].title").description("도서 제목"),
                                         fieldWithPath("result.books[].mallType").description("몰 타입(국내 도서, 전자책)"),
