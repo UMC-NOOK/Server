@@ -48,6 +48,7 @@ public class BookResponseDto {
     @AllArgsConstructor
     @Setter
     public static class BookSearchDto { // 검색 결과 DTO
+        private Long bookId;
         private String isbn13;
         private String title;
         private String mallType;

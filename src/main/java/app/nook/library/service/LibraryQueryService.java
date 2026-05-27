@@ -76,7 +76,10 @@ public class LibraryQueryService {
     }
 
     public Set<String> getOwnedIsbns(Long userId, List<String> isbns) {
-        return libraryRepository.findIsbnsByUserIdAndIsbnIn(userId, isbns);
+        if (isbns.isEmpty()) {
+            return Set.of();
+        }
+        return libraryRepository.findAladinIsbnsByUserIdAndIsbnIn(userId, isbns);
     }
 
     public Page<Library> searchBooksInLibrary(Long userId, String keyword, int page, int size) {
