@@ -76,6 +76,9 @@ public class LibraryQueryService {
     }
 
     public Set<String> getOwnedIsbns(Long userId, List<String> isbns) {
+        if (isbns.isEmpty()) {
+            return Set.of();
+        }
         return libraryRepository.findAladinIsbnsByUserIdAndIsbnIn(userId, isbns);
     }
 

@@ -470,6 +470,15 @@ class LibraryServiceTest {
 
             assertThat(result).containsExactly("978123");
         }
+
+        @Test
+        @DisplayName("ISBN 목록이 비어 있으면 repository를 호출하지 않는다")
+        void findOwnedIsbns_빈목록() {
+            Set<String> result = libraryQueryService.getOwnedIsbns(1L, List.of());
+
+            assertThat(result).isEmpty();
+            verify(libraryRepository, never()).findAladinIsbnsByUserIdAndIsbnIn(anyLong(), any());
+        }
     }
 
     @Nested
