@@ -347,9 +347,31 @@ class LibraryServiceTest {
         }
 
         @Test
+        @DisplayName("FINISHED 상태로 변경 성공")
+        void changeStatus_성공_FINISHED() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
+            Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "id", 10L);
+
+            ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.FINISHED);
+
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+
+            LibraryViewDto.BookStatusResponseDto response =
+                    libraryCommandService.changeReadingStatus(1L, request);
+
+            assertThat(response.readingStatus()).isEqualTo(ReadingStatusResponse.FINISHED);
+            assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.FINISHED);
+            verify(timelineCommandService).appendStatusChanged(any(), any());
+        }
+
+        @Test
         @DisplayName("상태 변경 성공 시 월별 캐시 무효화 이벤트는 발행하지 않는다")
         void changeStatus_성공_이벤트미발행() {
-            User user = UserFixture.user();
+
             Book book = BookFixture.book();
             Library library = LibraryFixture.library(user, book);
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
