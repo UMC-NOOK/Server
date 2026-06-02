@@ -9,6 +9,7 @@ import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.controller.LibraryController;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
+import app.nook.library.dto.ReadingStatusResponse;
 import app.nook.library.service.LibraryCommandService;
 import app.nook.library.service.LibraryQueryService;
 import app.nook.user.filter.JwtExceptionFilter;
@@ -80,7 +81,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     @WithCustomUser
     void 서재_책_등록_성공() throws Exception {
         LibraryViewDto.BookStatusResponseDto response =
-                new LibraryViewDto.BookStatusResponseDto(1L, 10L, 10L, ReadingStatus.BEFORE);
+                new LibraryViewDto.BookStatusResponseDto(1L, 10L, 10L, ReadingStatusResponse.BEFORE);
 
         given(libraryCommandService.registerBook(anyLong(), anyLong())).willReturn(response);
 
@@ -114,7 +115,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     @WithCustomUser
     void 서재_책_삭제_성공() throws Exception {
         LibraryViewDto.BookStatusResponseDto response =
-                new LibraryViewDto.BookStatusResponseDto(1L, null, null, null);
+                new LibraryViewDto.BookStatusResponseDto(1L, null, null, ReadingStatusResponse.UNREGISTERED);
 
         given(libraryCommandService.deleteByBookId(anyLong(), anyLong())).willReturn(response);
 
@@ -128,7 +129,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 .andExpect(jsonPath("$.result.bookId").value(1L))
                 .andExpect(jsonPath("$.result.bookShelfId").value(nullValue()))
                 .andExpect(jsonPath("$.result.libraryId").value(nullValue()))
-                .andExpect(jsonPath("$.result.readingStatus").value(nullValue()))
+                .andExpect(jsonPath("$.result.readingStatus").value("UNREGISTERED"))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         pathParameters(
@@ -138,7 +139,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                 fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
                                 fieldWithPath("result.bookShelfId").type(NULL).description("서재 ID (삭제 후 null)"),
                                 fieldWithPath("result.libraryId").type(NULL).description("서재 ID (삭제 후 null)"),
-                                fieldWithPath("result.readingStatus").type(NULL).description("독서 상태 (삭제 후 null)")
+                                fieldWithPath("result.readingStatus").type(STRING).description("독서 상태 (삭제 후 미등록 상태)")
                         ))
                 ));
     }
@@ -149,7 +150,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     void 서재_책_상태변경_성공() throws Exception {
         ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
         LibraryViewDto.BookStatusResponseDto response =
-                new LibraryViewDto.BookStatusResponseDto(1L, 10L, 10L, ReadingStatus.READING);
+                new LibraryViewDto.BookStatusResponseDto(1L, 10L, 10L, ReadingStatusResponse.READING);
 
         given(libraryCommandService.changeReadingStatus(anyLong(), any())).willReturn(response);
 

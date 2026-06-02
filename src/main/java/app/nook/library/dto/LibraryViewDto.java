@@ -19,7 +19,7 @@ public class LibraryViewDto {
             Long bookId,
             Long bookShelfId,
             Long libraryId,
-            ReadingStatus readingStatus
+            ReadingStatusResponse readingStatus
     ){}
 
     public record MonthlyBookResponseDto(

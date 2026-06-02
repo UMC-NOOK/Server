@@ -14,6 +14,7 @@ import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
+import app.nook.library.dto.ReadingStatusResponse;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
@@ -124,7 +125,7 @@ class LibraryServiceTest {
             assertThat(response.bookId()).isEqualTo(1L);
             assertThat(response.bookShelfId()).isEqualTo(1L);
             assertThat(response.libraryId()).isEqualTo(1L);
-            assertThat(response.readingStatus()).isEqualTo(ReadingStatus.BEFORE);
+            assertThat(response.readingStatus()).isEqualTo(ReadingStatusResponse.BEFORE);
             verify(timelineCommandService).appendRegister(any());
         }
 
@@ -193,7 +194,7 @@ class LibraryServiceTest {
             assertThat(response.bookId()).isEqualTo(1L);
             assertThat(response.bookShelfId()).isNull();
             assertThat(response.libraryId()).isNull();
-            assertThat(response.readingStatus()).isNull();
+            assertThat(response.readingStatus()).isEqualTo(ReadingStatusResponse.UNREGISTERED);
             verify(libraryRepository).delete(library);
         }
 
@@ -295,7 +296,7 @@ class LibraryServiceTest {
             assertThat(response.bookId()).isEqualTo(1L);
             assertThat(response.bookShelfId()).isEqualTo(library.getId());
             assertThat(response.libraryId()).isEqualTo(library.getId());
-            assertThat(response.readingStatus()).isEqualTo(ReadingStatus.READING);
+            assertThat(response.readingStatus()).isEqualTo(ReadingStatusResponse.READING);
             assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
             verify(timelineCommandService).appendStatusChanged(any(), any());
         }

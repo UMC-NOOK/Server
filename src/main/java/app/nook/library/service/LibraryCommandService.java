@@ -10,6 +10,7 @@ import app.nook.global.response.AuthErrorCode;
 import app.nook.library.domain.Library;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
+import app.nook.library.dto.ReadingStatusResponse;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
@@ -83,7 +84,12 @@ public class LibraryCommandService {
         libraryRepository.delete(library);
 
         eventPublisher.publishEvent(LibraryCacheInvalidateEvent.monthly(userId, affectedYearMonths));
-        return new LibraryViewDto.BookStatusResponseDto(bookId, null, null, null);
+        return new LibraryViewDto.BookStatusResponseDto(
+                bookId,
+                null,
+                null,
+                ReadingStatusResponse.UNREGISTERED
+        );
     }
 
     @Transactional
@@ -116,7 +122,7 @@ public class LibraryCommandService {
                 library.getBook().getId(),
                 library.getId(),
                 library.getId(),
-                library.getReadingStatus()
+                ReadingStatusResponse.from(library.getReadingStatus())
         );
     }
 }
