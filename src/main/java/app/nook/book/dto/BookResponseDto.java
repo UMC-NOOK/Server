@@ -30,6 +30,7 @@ public class BookResponseDto {
         private String aladinLink;
         private SourceType sourceType;
         private Long bookShelfId;
+        private Long libraryId;
         private ReadingStatus readingStatus;
     }
 

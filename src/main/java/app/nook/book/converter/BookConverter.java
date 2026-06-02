@@ -26,6 +26,7 @@ public class BookConverter {
                 .aladinLink(book.getAladinLink())
                 .sourceType(book.getSourceType())
                 .bookShelfId(library == null ? null : library.getId())
+                .libraryId(library == null ? null : library.getId())
                 .readingStatus(library == null ? null : library.getReadingStatus())
                 .build();
     }

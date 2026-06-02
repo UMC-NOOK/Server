@@ -136,6 +136,7 @@ class BookServiceTest {
         assertThat(result.getPublisher()).isEqualTo(TEST_PUBLISHER);
         assertThat(result.getPages()).isEqualTo(184);
         assertThat(result.getBookShelfId()).isNull();
+        assertThat(result.getLibraryId()).isNull();
         assertThat(result.getReadingStatus()).isNull();
 
         // DB에 있었으므로 알라딘 API는 호출되지 않아야 함
@@ -168,6 +169,7 @@ class BookServiceTest {
 
         // then
         assertThat(result.getBookShelfId()).isEqualTo(10L);
+        assertThat(result.getLibraryId()).isEqualTo(10L);
         assertThat(result.getReadingStatus()).isEqualTo(ReadingStatus.READING);
     }
 
@@ -195,6 +197,7 @@ class BookServiceTest {
         assertThat(result.getIsbn13()).isEqualTo(TEST_ISBN_1);
         assertThat(result.getTitle()).isEqualTo("채식주의자");
         assertThat(result.getBookShelfId()).isNull();
+        assertThat(result.getLibraryId()).isNull();
         assertThat(result.getReadingStatus()).isNull();
 
         // then 2. 저장 메서드에 넘겨진 실제 엔티티 '나포'
@@ -260,6 +263,7 @@ class BookServiceTest {
         assertThat(result.getBookId()).isEqualTo(20L);
         assertThat(result.getTitle()).isEqualTo("제목");
         assertThat(result.getBookShelfId()).isNull();
+        assertThat(result.getLibraryId()).isNull();
         assertThat(result.getReadingStatus()).isNull();
     }
 
@@ -285,6 +289,7 @@ class BookServiceTest {
 
         assertThat(result.getBookId()).isEqualTo(20L);
         assertThat(result.getBookShelfId()).isEqualTo(10L);
+        assertThat(result.getLibraryId()).isEqualTo(10L);
         assertThat(result.getReadingStatus()).isEqualTo(ReadingStatus.READING);
     }
 

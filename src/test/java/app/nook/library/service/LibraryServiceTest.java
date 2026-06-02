@@ -123,6 +123,7 @@ class LibraryServiceTest {
 
             assertThat(response.bookId()).isEqualTo(1L);
             assertThat(response.bookShelfId()).isEqualTo(1L);
+            assertThat(response.libraryId()).isEqualTo(1L);
             assertThat(response.readingStatus()).isEqualTo(ReadingStatus.BEFORE);
             verify(timelineCommandService).appendRegister(any());
         }
@@ -191,6 +192,7 @@ class LibraryServiceTest {
 
             assertThat(response.bookId()).isEqualTo(1L);
             assertThat(response.bookShelfId()).isNull();
+            assertThat(response.libraryId()).isNull();
             assertThat(response.readingStatus()).isNull();
             verify(libraryRepository).delete(library);
         }
@@ -292,6 +294,7 @@ class LibraryServiceTest {
 
             assertThat(response.bookId()).isEqualTo(1L);
             assertThat(response.bookShelfId()).isEqualTo(library.getId());
+            assertThat(response.libraryId()).isEqualTo(library.getId());
             assertThat(response.readingStatus()).isEqualTo(ReadingStatus.READING);
             assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
             verify(timelineCommandService).appendStatusChanged(any(), any());
