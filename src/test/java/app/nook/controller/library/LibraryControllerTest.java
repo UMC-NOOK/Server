@@ -80,7 +80,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     @WithCustomUser
     void 서재_책_등록_성공() throws Exception {
         LibraryViewDto.BookStatusResponseDto response =
-                new LibraryViewDto.BookStatusResponseDto(1L, 10L, ReadingStatus.BEFORE);
+                new LibraryViewDto.BookStatusResponseDto(1L, 10L, 10L, ReadingStatus.BEFORE);
 
         given(libraryCommandService.registerBook(anyLong(), anyLong())).willReturn(response);
 
@@ -93,6 +93,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.bookId").value(1L))
                 .andExpect(jsonPath("$.result.bookShelfId").value(10L))
+                .andExpect(jsonPath("$.result.libraryId").value(10L))
                 .andExpect(jsonPath("$.result.readingStatus").value("BEFORE"))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
@@ -102,6 +103,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         responseFields(ApiResponseSnippet.withResult(
                                 fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
                                 fieldWithPath("result.bookShelfId").type(NUMBER).description("서재 ID"),
+                                fieldWithPath("result.libraryId").type(NUMBER).description("서재 ID"),
                                 fieldWithPath("result.readingStatus").type(STRING).description("독서 상태")
                         ))
                 ));
@@ -112,7 +114,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     @WithCustomUser
     void 서재_책_삭제_성공() throws Exception {
         LibraryViewDto.BookStatusResponseDto response =
-                new LibraryViewDto.BookStatusResponseDto(1L, null, null);
+                new LibraryViewDto.BookStatusResponseDto(1L, null, null, null);
 
         given(libraryCommandService.deleteByBookId(anyLong(), anyLong())).willReturn(response);
 
@@ -125,6 +127,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.bookId").value(1L))
                 .andExpect(jsonPath("$.result.bookShelfId").value(nullValue()))
+                .andExpect(jsonPath("$.result.libraryId").value(nullValue()))
                 .andExpect(jsonPath("$.result.readingStatus").value(nullValue()))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
@@ -134,6 +137,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         responseFields(ApiResponseSnippet.withResult(
                                 fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
                                 fieldWithPath("result.bookShelfId").type(NULL).description("서재 ID (삭제 후 null)"),
+                                fieldWithPath("result.libraryId").type(NULL).description("서재 ID (삭제 후 null)"),
                                 fieldWithPath("result.readingStatus").type(NULL).description("독서 상태 (삭제 후 null)")
                         ))
                 ));
@@ -145,7 +149,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     void 서재_책_상태변경_성공() throws Exception {
         ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
         LibraryViewDto.BookStatusResponseDto response =
-                new LibraryViewDto.BookStatusResponseDto(1L, 10L, ReadingStatus.READING);
+                new LibraryViewDto.BookStatusResponseDto(1L, 10L, 10L, ReadingStatus.READING);
 
         given(libraryCommandService.changeReadingStatus(anyLong(), any())).willReturn(response);
 
@@ -160,6 +164,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.bookId").value(1L))
                 .andExpect(jsonPath("$.result.bookShelfId").value(10L))
+                .andExpect(jsonPath("$.result.libraryId").value(10L))
                 .andExpect(jsonPath("$.result.readingStatus").value("READING"))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
@@ -170,6 +175,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         responseFields(ApiResponseSnippet.withResult(
                                 fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
                                 fieldWithPath("result.bookShelfId").type(NUMBER).description("서재 ID"),
+                                fieldWithPath("result.libraryId").type(NUMBER).description("서재 ID"),
                                 fieldWithPath("result.readingStatus").type(STRING).description("변경된 독서 상태")
                         ))
                 ));

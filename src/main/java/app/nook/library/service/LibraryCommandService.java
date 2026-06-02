@@ -83,7 +83,7 @@ public class LibraryCommandService {
         libraryRepository.delete(library);
 
         eventPublisher.publishEvent(LibraryCacheInvalidateEvent.monthly(userId, affectedYearMonths));
-        return new LibraryViewDto.BookStatusResponseDto(bookId, null, null);
+        return new LibraryViewDto.BookStatusResponseDto(bookId, null, null, null);
     }
 
     @Transactional
@@ -114,6 +114,7 @@ public class LibraryCommandService {
     private LibraryViewDto.BookStatusResponseDto toBookStatusResponse(Library library) {
         return new LibraryViewDto.BookStatusResponseDto(
                 library.getBook().getId(),
+                library.getId(),
                 library.getId(),
                 library.getReadingStatus()
         );

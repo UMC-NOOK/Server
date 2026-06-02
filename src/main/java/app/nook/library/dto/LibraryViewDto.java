@@ -18,6 +18,7 @@ public class LibraryViewDto {
     public record BookStatusResponseDto(
             Long bookId,
             Long bookShelfId,
+            Long libraryId,
             ReadingStatus readingStatus
     ){}
 
