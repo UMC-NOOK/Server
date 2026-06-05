@@ -19,6 +19,9 @@ spring:
     init:
       mode: never
 
+  flyway:
+    enabled: false
+
   data:
     redis:
       host: localhost
