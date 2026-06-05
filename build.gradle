@@ -67,6 +67,8 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 
 	// db
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-database-postgresql'
 	runtimeOnly 'org.postgresql:postgresql'
 
 	// test db
