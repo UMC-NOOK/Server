@@ -13,6 +13,7 @@ import app.nook.book.repository.CategoryRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.dto.ReadingStatusResponse;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
@@ -137,7 +138,7 @@ class BookServiceTest {
         assertThat(result.getPages()).isEqualTo(184);
         assertThat(result.getBookShelfId()).isNull();
         assertThat(result.getLibraryId()).isNull();
-        assertThat(result.getReadingStatus()).isNull();
+        assertThat(result.getReadingStatus()).isEqualTo(ReadingStatusResponse.UNREGISTERED);
 
         // DB에 있었으므로 알라딘 API는 호출되지 않아야 함
         verify(bookRepository, times(1)).findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN);
@@ -170,7 +171,7 @@ class BookServiceTest {
         // then
         assertThat(result.getBookShelfId()).isEqualTo(10L);
         assertThat(result.getLibraryId()).isEqualTo(10L);
-        assertThat(result.getReadingStatus()).isEqualTo(ReadingStatus.READING);
+        assertThat(result.getReadingStatus()).isEqualTo(ReadingStatusResponse.READING);
     }
 
     @Test
@@ -198,7 +199,7 @@ class BookServiceTest {
         assertThat(result.getTitle()).isEqualTo("채식주의자");
         assertThat(result.getBookShelfId()).isNull();
         assertThat(result.getLibraryId()).isNull();
-        assertThat(result.getReadingStatus()).isNull();
+        assertThat(result.getReadingStatus()).isEqualTo(ReadingStatusResponse.UNREGISTERED);
 
         // then 2. 저장 메서드에 넘겨진 실제 엔티티 '나포'
         verify(bookRepository).save(bookCaptor.capture());
@@ -264,7 +265,7 @@ class BookServiceTest {
         assertThat(result.getTitle()).isEqualTo("제목");
         assertThat(result.getBookShelfId()).isNull();
         assertThat(result.getLibraryId()).isNull();
-        assertThat(result.getReadingStatus()).isNull();
+        assertThat(result.getReadingStatus()).isEqualTo(ReadingStatusResponse.UNREGISTERED);
     }
 
     @Test
@@ -290,7 +291,7 @@ class BookServiceTest {
         assertThat(result.getBookId()).isEqualTo(20L);
         assertThat(result.getBookShelfId()).isEqualTo(10L);
         assertThat(result.getLibraryId()).isEqualTo(10L);
-        assertThat(result.getReadingStatus()).isEqualTo(ReadingStatus.READING);
+        assertThat(result.getReadingStatus()).isEqualTo(ReadingStatusResponse.READING);
     }
 
     @Test

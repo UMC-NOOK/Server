@@ -13,7 +13,7 @@
   import app.nook.global.config.WebSecurityConfig;
   import app.nook.global.docs.ApiResponseSnippet;
   import app.nook.global.exception.CustomException;
-  import app.nook.library.domain.enums.ReadingStatus;
+  import app.nook.library.dto.ReadingStatusResponse;
   import app.nook.user.filter.JwtExceptionFilter;
   import app.nook.user.filter.JwtFilter;
   import org.junit.jupiter.api.DisplayName;
@@ -84,7 +84,7 @@
                   .sourceType(SourceType.ALADIN)
                   .bookShelfId(null)
                   .libraryId(null)
-                  .readingStatus(null)
+                  .readingStatus(ReadingStatusResponse.UNREGISTERED)
                   .build();
 
           given(bookService.getBookDetailByIsbn(any(), eq(isbn13))).willReturn(response);
@@ -94,7 +94,7 @@
                   .andExpect(jsonPath("$.result.title").value("채식주의자"))
                   .andExpect(jsonPath("$.result.bookShelfId").value(nullValue()))
                   .andExpect(jsonPath("$.result.libraryId").value(nullValue()))
-                  .andExpect(jsonPath("$.result.readingStatus").value(nullValue()))
+                  .andExpect(jsonPath("$.result.readingStatus").value("UNREGISTERED"))
                   .andDo(documentWithAuth(
                           "{class-name}/{method-name}",
                           pathParameters(parameterWithName("isbn13").description("도서 ISBN13 (13자리 숫자)")),
@@ -115,7 +115,7 @@
                                   fieldWithPath("result.sourceType").description("데이터 출처"),
                                   fieldWithPath("result.bookShelfId").description("서재 ID (없으면 null)").optional(),
                                   fieldWithPath("result.libraryId").description("서재 ID (없으면 null)").optional(),
-                                  fieldWithPath("result.readingStatus").description("독서 상태 (서재에 없으면 null)").optional()
+                                  fieldWithPath("result.readingStatus").description("독서 상태 (서재에 없으면 UNREGISTERED)").optional()
                           ))
                   ));
       }
@@ -160,7 +160,7 @@
                   .sourceType(SourceType.USER)
                   .bookShelfId(3L)
                   .libraryId(3L)
-                  .readingStatus(ReadingStatus.READING)
+                  .readingStatus(ReadingStatusResponse.READING)
                   .build();
 
           given(bookService.getBookDetailById(any(), eq(1L))).willReturn(response);
@@ -262,7 +262,7 @@
                   .sourceType(SourceType.USER)
                   .bookShelfId(5L)
                   .libraryId(5L)
-                  .readingStatus(ReadingStatus.BEFORE)
+                  .readingStatus(ReadingStatusResponse.BEFORE)
                   .build();
 
           given(userBookFacade.createUserBook(any(), any(BookRequestDto.CreateUserBookRequest.class)))
@@ -344,7 +344,7 @@
                   .sourceType(SourceType.USER)
                   .bookShelfId(5L)
                   .libraryId(5L)
-                  .readingStatus(ReadingStatus.READING)
+                  .readingStatus(ReadingStatusResponse.READING)
                   .build();
 
           given(userBookFacade.updateUserBook(any(), anyLong(), any(BookRequestDto.UpdateUserBookRequest.class)))
