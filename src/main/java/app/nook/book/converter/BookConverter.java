@@ -5,6 +5,7 @@ import app.nook.book.domain.Book;
 import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.SourceType;
 import app.nook.library.domain.Library;
+import app.nook.library.dto.ReadingStatusResponse;
 
 public class BookConverter {
     public static BookResponseDto.BookDetailDto toBookDetailDto(Book book, Library library) {
@@ -27,7 +28,9 @@ public class BookConverter {
                 .sourceType(book.getSourceType())
                 .bookShelfId(library == null ? null : library.getId())
                 .libraryId(library == null ? null : library.getId())
-                .readingStatus(library == null ? null : library.getReadingStatus())
+                .readingStatus(library == null
+                        ? ReadingStatusResponse.UNREGISTERED
+                        : ReadingStatusResponse.from(library.getReadingStatus()))
                 .build();
     }
 
