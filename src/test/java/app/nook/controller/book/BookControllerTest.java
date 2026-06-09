@@ -115,7 +115,7 @@
                                   fieldWithPath("result.sourceType").description("데이터 출처"),
                                   fieldWithPath("result.bookShelfId").description("서재 ID (없으면 null)").optional(),
                                   fieldWithPath("result.libraryId").description("서재 ID (없으면 null)").optional(),
-                                  fieldWithPath("result.readingStatus").description("독서 상태 (서재에 없으면 UNREGISTERED)").optional()
+                                  fieldWithPath("result.readingStatus").description("독서 상태 (BEFORE, READING, FINISHED, UNREGISTERED)")
                           ))
                   ));
       }
@@ -192,7 +192,7 @@
                                   fieldWithPath("result.sourceType").description("데이터 출처"),
                                   fieldWithPath("result.bookShelfId").description("서재 ID").optional(),
                                   fieldWithPath("result.libraryId").description("서재 ID").optional(),
-                                  fieldWithPath("result.readingStatus").description("독서 상태").optional()
+                                  fieldWithPath("result.readingStatus").description("독서 상태 (BEFORE, READING, FINISHED, UNREGISTERED)")
                           ))
                   ));
       }
