@@ -15,6 +15,7 @@ import app.nook.global.fixture.ThemeFixture;
 import app.nook.global.fixture.UserFixture;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -34,6 +36,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -52,6 +55,9 @@ class FocusServiceTest {
 
     @Mock
     private TimelineCommandService timelineCommandService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private FocusService focusService;
@@ -180,6 +186,12 @@ class FocusServiceTest {
             assertThat(result.totalFocusSec()).isGreaterThanOrEqualTo(0L);
             assertThat(result.readingStatus()).isEqualTo("FINISHED");
             verify(timelineCommandService).appendFocusCompleted(focus);
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.userId().equals(user.getId())
+                            && cacheEvent.evictOnboardingGoal()
+                            && cacheEvent.affectedYearMonths().isEmpty()
+            ));
         }
 
         @Test

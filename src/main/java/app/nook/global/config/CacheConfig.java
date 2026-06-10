@@ -20,6 +20,7 @@ public class CacheConfig {
     public static final String ALADIN_SEARCH_CACHE = "aladinSearchResults";
     public static final String WEEKLY_BESTSELLERS_CACHE = "weeklyBestsellers";
     public static final String PERSONALIZED_BESTSELLERS_CACHE = "personalizedBestsellers";
+    public static final String ONBOARDING_GOAL_CACHE = "onboardingGoal";
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -38,6 +39,8 @@ public class CacheConfig {
                 defaultConfig.entryTtl(Duration.ofMinutes(30)));
         cacheConfigs.put(PERSONALIZED_BESTSELLERS_CACHE,
                 defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        cacheConfigs.put(ONBOARDING_GOAL_CACHE,
+                defaultConfig.entryTtl(Duration.ofMinutes(2)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)

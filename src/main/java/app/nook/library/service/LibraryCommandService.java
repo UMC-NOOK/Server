@@ -8,6 +8,7 @@ import app.nook.focus.repository.FocusRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.library.domain.Library;
+import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.dto.ReadingStatusResponse;
@@ -75,7 +76,7 @@ public class LibraryCommandService {
         Library library = libraryRepository.findByUserIdAndBook(userId, book)
                 .orElseThrow(() -> new CustomException(LibraryErrorCode.BOOK_NOT_EXIST));
 
-        // 삭제 이후 상태 캐시와 월별 캐시를 함께 무효화
+        boolean evictOnboardingGoal = library.getReadingStatus() == ReadingStatus.FINISHED;
         Set<YearMonth> affectedYearMonths = focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId)
                 .stream()
                 .map(YearMonth::from)
@@ -83,7 +84,9 @@ public class LibraryCommandService {
 
         libraryRepository.delete(library);
 
-        eventPublisher.publishEvent(LibraryCacheInvalidateEvent.monthly(userId, affectedYearMonths));
+        eventPublisher.publishEvent(evictOnboardingGoal
+                ? LibraryCacheInvalidateEvent.monthlyAndOnboardingGoal(userId, affectedYearMonths)
+                : LibraryCacheInvalidateEvent.monthly(userId, affectedYearMonths));
         return new LibraryViewDto.BookStatusResponseDto(
                 bookId,
                 null,
@@ -105,11 +108,18 @@ public class LibraryCommandService {
             throw new CustomException(LibraryErrorCode.BOOK_STATUS_INVALID);
         }
 
-        // 상태 변경 이력과 첫 페이지 캐시를 함께 갱신
         LocalDateTime occurredAt = LocalDateTime.now();
+        ReadingStatus beforeStatus = library.getReadingStatus();
         library.updateStatus(requestDto.readingStatus());
         timelineCommandService.appendStatusChanged(library, occurredAt);
+        if (affectsFinishedCount(beforeStatus, requestDto.readingStatus())) {
+            eventPublisher.publishEvent(LibraryCacheInvalidateEvent.onboardingGoal(userId));
+        }
         return toBookStatusResponse(library);
+    }
+
+    private boolean affectsFinishedCount(ReadingStatus beforeStatus, ReadingStatus afterStatus) {
+        return beforeStatus == ReadingStatus.FINISHED || afterStatus == ReadingStatus.FINISHED;
     }
 
     private User getUser(Long userId) {

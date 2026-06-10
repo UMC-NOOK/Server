@@ -11,10 +11,12 @@ import app.nook.focus.repository.ThemeRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,7 @@ public class FocusService {
     private final LibraryRepository libraryRepository;
     private final ThemeRepository themeRepository;
     private final TimelineCommandService timelineCommandService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public FocusResponseDto.FocusStart startFocus(User user, FocusRequestDto.FocusStart request) {
 
@@ -81,6 +84,7 @@ public class FocusService {
 
         if (Boolean.TRUE.equals(request.isFinished())) {
             library.updateStatus(ReadingStatus.FINISHED);
+            eventPublisher.publishEvent(LibraryCacheInvalidateEvent.onboardingGoal(userId));
         } else if (library.getReadingStatus() == ReadingStatus.BEFORE) {
             library.updateStatus(ReadingStatus.READING);
         }
