@@ -19,5 +19,8 @@ public class LibraryCacheInvalidationListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAfterCommit(LibraryCacheInvalidateEvent event) {
         redisCacheService.evictLibraryMonthlyCaches(event.userId(), event.affectedYearMonths());
+        if (event.evictOnboardingGoal()) {
+            redisCacheService.evictOnboardingGoal(event.userId());
+        }
     }
 }

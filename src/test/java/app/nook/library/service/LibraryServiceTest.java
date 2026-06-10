@@ -246,7 +246,8 @@ class LibraryServiceTest {
                             && cacheEvent.affectedYearMonths().equals(Set.of(
                             java.time.YearMonth.of(2026, 2),
                             java.time.YearMonth.of(2026, 3)
-                    ))
+                            ))
+                            && !cacheEvent.evictOnboardingGoal()
             ));
         }
 
@@ -347,7 +348,7 @@ class LibraryServiceTest {
         }
 
         @Test
-        @DisplayName("상태 변경 성공 시 월별 캐시 무효화 이벤트는 발행하지 않는다")
+        @DisplayName("완독 수가 바뀌지 않는 상태 변경 성공 시 캐시 무효화 이벤트는 발행하지 않는다")
         void changeStatus_성공_이벤트미발행() {
             User user = UserFixture.user();
             Book book = BookFixture.book();
@@ -360,6 +361,27 @@ class LibraryServiceTest {
             libraryCommandService.changeReadingStatus(1L, request);
 
             verify(eventPublisher, never()).publishEvent(any());
+        }
+
+        @Test
+        @DisplayName("완독 수가 바뀌는 상태 변경 성공 시 온보딩 목표 캐시 무효화 이벤트를 발행한다")
+        void changeStatus_finishedCountChanged_온보딩목표캐시무효화_이벤트발행() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            Library library = LibraryFixture.library(user, book);
+            ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.FINISHED);
+
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+
+            libraryCommandService.changeReadingStatus(1L, request);
+
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.userId().equals(1L)
+                            && cacheEvent.evictOnboardingGoal()
+                            && cacheEvent.affectedYearMonths().isEmpty()
+            ));
         }
     }
 

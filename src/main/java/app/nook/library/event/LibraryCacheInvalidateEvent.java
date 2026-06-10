@@ -8,9 +8,21 @@ import java.util.Set;
  */
 public record LibraryCacheInvalidateEvent(
         Long userId,
-        Set<YearMonth> affectedYearMonths
+        Set<YearMonth> affectedYearMonths,
+        boolean evictOnboardingGoal
 ) {
     public static LibraryCacheInvalidateEvent monthly(Long userId, Set<YearMonth> affectedYearMonths) {
-        return new LibraryCacheInvalidateEvent(userId, Set.copyOf(affectedYearMonths));
+        return new LibraryCacheInvalidateEvent(userId, Set.copyOf(affectedYearMonths), false);
+    }
+
+    public static LibraryCacheInvalidateEvent onboardingGoal(Long userId) {
+        return new LibraryCacheInvalidateEvent(userId, Set.of(), true);
+    }
+
+    public static LibraryCacheInvalidateEvent monthlyAndOnboardingGoal(
+            Long userId,
+            Set<YearMonth> affectedYearMonths
+    ) {
+        return new LibraryCacheInvalidateEvent(userId, Set.copyOf(affectedYearMonths), true);
     }
 }

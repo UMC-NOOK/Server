@@ -5,14 +5,19 @@ import app.nook.book.domain.Book;
 import app.nook.book.repository.BookRepository;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.focus.repository.dto.MonthlyFocusStatsDto;
+import app.nook.global.config.CacheConfig;
 import app.nook.global.common.security.WithCustomUser;
 import app.nook.library.domain.Library;
+import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.redis.service.RedisZSETService;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import app.nook.user.service.CustomUserDetails;
 import org.junit.jupiter.api.Test;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -59,6 +64,12 @@ class LibraryCachingIntegrationTest {
 
     @MockitoBean
     private TimelineCommandService timelineCommandService;
+
+    @MockitoBean
+    private CacheManager cacheManager;
+
+    @MockitoBean
+    private Cache cache;
 
     @Test
     void viewMonthly_redisHit이면_db를_조회하지_않는다() {
@@ -129,6 +140,65 @@ class LibraryCachingIntegrationTest {
             verify(redisZSETService, times(1)).evictMonthlyFocusTime(userId, affectedYearMonth);
             verify(redisZSETService, times(1)).evictMonthlyHourlyFocus(userId, affectedYearMonth);
         }
+        verify(cacheManager, never()).getCache(CacheConfig.ONBOARDING_GOAL_CACHE);
+    }
+
+    @Test
+    void deleteByBookId_완독도서_후_월별_zset과_온보딩목표_캐시무효화가_호출된다() {
+        Long userId = currentUserId();
+        Long bookId = 100L;
+        User user = currentUser();
+
+        Book book = Book.builder()
+                .isbn13("9780000000001")
+                .title("book")
+                .build();
+        ReflectionTestUtils.setField(book, "id", bookId);
+
+        Library library = new Library(user, book);
+        ReflectionTestUtils.setField(library, "id", 999L);
+        ReflectionTestUtils.setField(library, "readingStatus", ReadingStatus.FINISHED);
+
+        given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
+        given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(Optional.of(library));
+        given(focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId))
+                .willReturn(List.of(LocalDate.of(2026, 2, 1)));
+        given(cacheManager.getCache(CacheConfig.ONBOARDING_GOAL_CACHE)).willReturn(cache);
+
+        libraryCommandService.deleteByBookId(userId, bookId);
+
+        YearMonth affectedYearMonth = YearMonth.of(2026, 2);
+        verify(redisZSETService).evictMonthlyBooks(userId, affectedYearMonth);
+        verify(redisZSETService).evictMonthlyFocusTime(userId, affectedYearMonth);
+        verify(redisZSETService).evictMonthlyHourlyFocus(userId, affectedYearMonth);
+        verify(cache).evict(userId);
+    }
+
+    @Test
+    void changeReadingStatus_완독_후_온보딩목표_캐시무효화가_호출된다() {
+        Long userId = currentUserId();
+        Long bookId = 100L;
+        User user = currentUser();
+
+        Book book = Book.builder()
+                .isbn13("9780000000001")
+                .title("book")
+                .build();
+        ReflectionTestUtils.setField(book, "id", bookId);
+
+        Library library = new Library(user, book);
+        ReflectionTestUtils.setField(library, "id", 999L);
+
+        given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
+        given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(Optional.of(library));
+        given(cacheManager.getCache(CacheConfig.ONBOARDING_GOAL_CACHE)).willReturn(cache);
+
+        libraryCommandService.changeReadingStatus(
+                userId,
+                new ReadingStatusRequestDto(bookId, ReadingStatus.FINISHED)
+        );
+
+        verify(cache).evict(userId);
     }
 
     private Long currentUserId() {
