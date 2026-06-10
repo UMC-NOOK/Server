@@ -38,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -210,6 +211,7 @@ class FocusServiceTest {
             assertThat(focus.getEndPage()).isEqualTo(45);
             assertThat(result.readingStatus()).isEqualTo("READING");
             verify(timelineCommandService).appendFocusCompleted(focus);
+            verify(eventPublisher, never()).publishEvent(any());
         }
 
         @Test
