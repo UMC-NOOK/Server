@@ -140,6 +140,7 @@ class LibraryCachingIntegrationTest {
             verify(redisZSETService, times(1)).evictMonthlyFocusTime(userId, affectedYearMonth);
             verify(redisZSETService, times(1)).evictMonthlyHourlyFocus(userId, affectedYearMonth);
         }
+        verify(cacheManager, never()).getCache(CacheConfig.ONBOARDING_GOAL_CACHE);
     }
 
     @Test
