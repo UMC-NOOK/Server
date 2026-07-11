@@ -447,7 +447,7 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                     .andDo(documentWithAuth(
                             "{class-name}/{method-name}",
                             queryParameters(
-                                    parameterWithName("sort").optional().description("정렬 기준 (RECENT_FOCUSED, RECORD_COUNT_DESC, RECORD_COUNT_ASC, ALPHABETICAL)"),
+                                    parameterWithName("sort").optional().description("정렬 기준(최근 포커스순, 기록 많은 순, 기록 적은 순, 가나다순) (RECENT_FOCUSED, RECORD_COUNT_DESC, RECORD_COUNT_ASC, ALPHABETICAL)"),
                                     parameterWithName("cursor").optional().description("다음 페이지 조회용 커서. 최초 조회 시 미전달"),
                                     parameterWithName("size").optional().description("조회할 개수")
                             ),
