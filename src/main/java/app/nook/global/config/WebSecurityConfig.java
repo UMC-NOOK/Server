@@ -57,7 +57,7 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/",
-                                "/docs/**",              
+                                "/docs/**",
                                 "/index.html",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",

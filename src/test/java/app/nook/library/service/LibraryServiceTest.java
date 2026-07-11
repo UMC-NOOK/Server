@@ -6,18 +6,23 @@ import app.nook.book.repository.BookRepository;
 import app.nook.book.service.BookAccessService;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.repository.FocusRepository;
+import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
 import app.nook.global.fixture.BookFixture;
 import app.nook.global.fixture.LibraryFixture;
 import app.nook.global.fixture.UserFixture;
 import app.nook.library.domain.Library;
+import app.nook.library.domain.enums.LibrarySortType;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.dto.LibraryBookCursor;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.dto.ReadingStatusResponse;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.library.repository.dto.LibraryBookQueryResult;
+import app.nook.library.util.LibraryBookCursorCodec;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
@@ -477,6 +482,160 @@ class LibraryServiceTest {
             LibraryViewDto.BookCountResponseDto result = libraryQueryService.getBookCount(1L);
 
             assertThat(result.totalBookNum()).isEqualTo(7);
+        }
+    }
+
+    @Nested
+    @DisplayName("서재 전체 책 목록 조회")
+    class ViewAllBooks {
+
+        @Test
+        @DisplayName("다음 페이지가 있으면 size만큼 반환하고 정렬 기준에 맞는 다음 커서를 만든다")
+        void viewAllBooks_다음페이지_존재() {
+            LocalDateTime focusedAt = LocalDateTime.of(2026, 3, 1, 10, 0);
+            LibraryBookQueryResult first = new LibraryBookQueryResult(
+                    10L,
+                    1L,
+                    "첫 번째",
+                    "작가1",
+                    "book/users/1/first.png",
+                    ReadingStatus.READING,
+                    focusedAt,
+                    0L
+            );
+            LibraryBookQueryResult second = new LibraryBookQueryResult(
+                    9L,
+                    2L,
+                    "두 번째",
+                    "작가2",
+                    "book/users/1/second.png",
+                    ReadingStatus.BEFORE,
+                    LocalDateTime.of(2026, 2, 1, 10, 0),
+                    0L
+            );
+            given(libraryRepository.findAllBooksByCursor(1L, null, LibrarySortType.RECENT_FOCUSED, 1))
+                    .willReturn(List.of(first, second));
+            given(presignedUrlService.resolveImageUrl(1L, "book/users/1/first.png"))
+                    .willReturn("https://cdn.example.com/first.png");
+
+            CursorResponse<LibraryViewDto.LibraryBookItem, String> result =
+                    libraryQueryService.getAllBooks(1L, null, LibrarySortType.RECENT_FOCUSED, 1);
+
+            LibraryBookCursor decodedCursor = LibraryBookCursorCodec.decode(result.nextCursor());
+            assertThat(result.hasNext()).isTrue();
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.items().get(0).bookId()).isEqualTo(1L);
+            assertThat(result.items().get(0).coverUrl()).isEqualTo("https://cdn.example.com/first.png");
+            assertThat(decodedCursor.libraryId()).isEqualTo(10L);
+            assertThat(decodedCursor.lastFocusedAt()).isEqualTo(focusedAt);
+            assertThat(decodedCursor.recordCount()).isNull();
+            assertThat(decodedCursor.title()).isNull();
+            verify(presignedUrlService).resolveImageUrl(1L, "book/users/1/first.png");
+        }
+
+        @Test
+        @DisplayName("기록 개수순 조회는 recordCount 기반 다음 커서를 만든다")
+        void viewAllBooks_기록개수순_다음커서() {
+            LibraryBookQueryResult first = new LibraryBookQueryResult(
+                    20L,
+                    1L,
+                    "기록 많은 책",
+                    "작가",
+                    "cover",
+                    ReadingStatus.FINISHED,
+                    null,
+                    3L
+            );
+            LibraryBookQueryResult second = new LibraryBookQueryResult(
+                    19L,
+                    2L,
+                    "다음 책",
+                    "작가",
+                    "cover2",
+                    ReadingStatus.READING,
+                    null,
+                    2L
+            );
+            given(libraryRepository.findAllBooksByCursor(
+                    eq(1L),
+                    any(),
+                    eq(LibrarySortType.RECORD_COUNT_DESC),
+                    eq(1)
+            )).willReturn(List.of(first, second));
+
+            CursorResponse<LibraryViewDto.LibraryBookItem, String> result =
+                    libraryQueryService.getAllBooks(
+                            1L,
+                            new LibraryBookCursor(30L, null, 5L, null),
+                            LibrarySortType.RECORD_COUNT_DESC,
+                            1
+                    );
+
+            LibraryBookCursor decodedCursor = LibraryBookCursorCodec.decode(result.nextCursor());
+            assertThat(decodedCursor.libraryId()).isEqualTo(20L);
+            assertThat(decodedCursor.recordCount()).isEqualTo(3L);
+            assertThat(decodedCursor.lastFocusedAt()).isNull();
+            assertThat(decodedCursor.title()).isNull();
+        }
+
+        @Test
+        @DisplayName("가나다순 조회는 title 기반 다음 커서를 만든다")
+        void viewAllBooks_가나다순_다음커서() {
+            LibraryBookQueryResult first = new LibraryBookQueryResult(
+                    1L,
+                    1L,
+                    "가나다",
+                    "작가",
+                    "cover",
+                    ReadingStatus.BEFORE,
+                    null,
+                    0L
+            );
+            LibraryBookQueryResult second = new LibraryBookQueryResult(
+                    2L,
+                    2L,
+                    "라마바",
+                    "작가",
+                    "cover2",
+                    ReadingStatus.READING,
+                    null,
+                    0L
+            );
+            given(libraryRepository.findAllBooksByCursor(1L, null, LibrarySortType.ALPHABETICAL, 1))
+                    .willReturn(List.of(first, second));
+
+            CursorResponse<LibraryViewDto.LibraryBookItem, String> result =
+                    libraryQueryService.getAllBooks(1L, null, LibrarySortType.ALPHABETICAL, 1);
+
+            LibraryBookCursor decodedCursor = LibraryBookCursorCodec.decode(result.nextCursor());
+            assertThat(decodedCursor.libraryId()).isEqualTo(1L);
+            assertThat(decodedCursor.title()).isEqualTo("가나다");
+            assertThat(decodedCursor.lastFocusedAt()).isNull();
+            assertThat(decodedCursor.recordCount()).isNull();
+        }
+
+        @Test
+        @DisplayName("마지막 페이지면 다음 커서 없이 전체 결과를 반환한다")
+        void viewAllBooks_마지막페이지() {
+            LibraryBookQueryResult only = new LibraryBookQueryResult(
+                    1L,
+                    1L,
+                    "마지막 책",
+                    "작가",
+                    "cover",
+                    ReadingStatus.BEFORE,
+                    null,
+                    0L
+            );
+            given(libraryRepository.findAllBooksByCursor(1L, null, LibrarySortType.ALPHABETICAL, 20))
+                    .willReturn(List.of(only));
+
+            CursorResponse<LibraryViewDto.LibraryBookItem, String> result =
+                    libraryQueryService.getAllBooks(1L, null, LibrarySortType.ALPHABETICAL, 20);
+
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
+            assertThat(result.items()).hasSize(1);
         }
     }
 

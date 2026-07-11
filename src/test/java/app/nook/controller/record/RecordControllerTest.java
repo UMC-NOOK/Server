@@ -227,6 +227,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                             "https://example.com/records/31-1.png",
                             "https://example.com/records/31-2.png"
                     ),
+                    List.of("records/31-1.png", "records/31-2.png"),
                     Emotion.FUN,
                     java.time.LocalDate.of(2026, 4, 5)
             );
@@ -234,6 +235,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     27L,
                     "같은 책에서 다시 웃겼던 포인트를 정리한 기록",
                     List.of("https://example.com/records/27-1.png"),
+                    List.of("records/27-1.png"),
                     Emotion.FUN,
                     java.time.LocalDate.of(2026, 4, 1)
             );
@@ -254,6 +256,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result.items[0].recordId").value(31))
                     .andExpect(jsonPath("$.result.items[0].imgUrls[0]").value("https://example.com/records/31-1.png"))
+                    .andExpect(jsonPath("$.result.items[0].imageKeys[0]").value("records/31-1.png"))
                     .andExpect(jsonPath("$.result.items[0].emotion").value("FUN"))
                     .andExpect(jsonPath("$.result.nextCursor").value(27))
                     .andDo(documentWithAuth(
@@ -271,6 +274,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                     fieldWithPath("result.items[].recordId").type(JsonFieldType.NUMBER).description("기록 ID"),
                                     fieldWithPath("result.items[].content").type(JsonFieldType.STRING).description("기록 내용"),
                                     fieldWithPath("result.items[].imgUrls").type(JsonFieldType.ARRAY).description("기록에 연결된 이미지 조회 URL 목록. 저장된 key를 기준으로 조회 시점에 presigned GET URL로 변환"),
+                                    fieldWithPath("result.items[].imageKeys").type(JsonFieldType.ARRAY).description("기록에 연결된 원본 이미지 key 목록"),
                                     fieldWithPath("result.items[].emotion").type(JsonFieldType.STRING).description("기록 감정 값"),
                                     fieldWithPath("result.items[].createdDate").type(JsonFieldType.STRING).description("기록 생성 날짜"),
                                     fieldWithPath("result.nextCursor").type(JsonFieldType.NUMBER).description("다음 페이지 조회에 사용할 커서 값. 다음 페이지가 없으면 null").optional(),
@@ -631,6 +635,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                 "https://example.com/records/1-1.png",
                                 "https://example.com/records/1-2.png"
                         ),
+                        List.of("records/1-1.png", "records/1-2.png"),
                         Emotion.FUN,
                         java.time.LocalDate.of(2026, 4, 10)
                 );
@@ -643,6 +648,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.result.recordId").value(1))
                         .andExpect(jsonPath("$.result.content").value("가장 인상 깊었던 구절을 적어둔 기록"))
+                        .andExpect(jsonPath("$.result.imageKeys[0]").value("records/1-1.png"))
                         .andExpect(jsonPath("$.result.emotion").value("FUN"))
                         .andDo(documentWithAuth(
                                 "record-controller-test/기록_개별_조회_성공",
@@ -653,6 +659,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.recordId").type(JsonFieldType.NUMBER).description("기록 ID"),
                                         fieldWithPath("result.content").type(JsonFieldType.STRING).description("기록 내용"),
                                         fieldWithPath("result.imgUrls").type(JsonFieldType.ARRAY).description("기록에 연결된 이미지 조회 URL 목록. 저장된 key를 기준으로 조회 시점에 presigned GET URL로 변환"),
+                                        fieldWithPath("result.imageKeys").type(JsonFieldType.ARRAY).description("기록에 연결된 원본 이미지 key 목록"),
                                         fieldWithPath("result.emotion").type(JsonFieldType.STRING).description("기록 감정 값. EMPTY, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나"),
                                         fieldWithPath("result.createdDate").type(JsonFieldType.STRING).description("기록 작성 날짜 (yyyy-MM-dd)")
                                 ))

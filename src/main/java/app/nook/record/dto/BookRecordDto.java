@@ -25,6 +25,7 @@ public record BookRecordDto(
             Long recordId,
             String content,
             List<String> imgUrls,
+            List<String> imageKeys,
             Emotion emotion,
             LocalDate createdDate
     ){}

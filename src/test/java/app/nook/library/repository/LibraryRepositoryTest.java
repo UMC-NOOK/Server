@@ -6,15 +6,27 @@ import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
+import app.nook.focus.domain.Focus;
+import app.nook.focus.domain.Theme;
+import app.nook.focus.domain.enums.ThemeName;
 import app.nook.global.config.QueryDslConfig;
 import app.nook.library.domain.Library;
+import app.nook.library.domain.enums.LibrarySortType;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.dto.LibraryBookCursor;
+import app.nook.library.repository.dto.LibraryBookQueryResult;
+import app.nook.record.domain.Record;
+import app.nook.record.domain.enums.Emotion;
+
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.test.context.ActiveProfiles;
@@ -41,6 +53,9 @@ class LibraryRepositoryTest {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Autowired
+    private TestEntityManager em;
 
     @Test
     void findByUserAndBook_존재() {
@@ -475,5 +490,248 @@ class LibraryRepositoryTest {
         );
 
         assertThat(result).containsExactly(1001, 1002);
+    }
+
+    @Test
+    void findAllBooksByCursor_최근포커스순_정렬과커서조건을검증한다() {
+        User user = saveUser("recent-focus@library.com", "provider-recent-focus");
+        User otherUser = saveUser("recent-focus-other@library.com", "provider-recent-focus-other");
+        Theme theme = saveTheme();
+
+        Library oldFocused = saveLibrary(user, "최근 포커스 오래됨");
+        Library recentFocused = saveLibrary(user, "최근 포커스 최신");
+        Library noFocused = saveLibrary(user, "포커스 없음");
+        Library sameTimeFocused = saveLibrary(user, "최근 포커스 동일시각");
+        Library otherUserLibrary = saveLibrary(otherUser, "다른 사용자 포커스");
+
+        LocalDateTime oldEndedAt = LocalDateTime.of(2026, 5, 1, 21, 0);
+        LocalDateTime recentEndedAt = LocalDateTime.of(2026, 5, 3, 21, 0);
+        saveFocus(oldFocused, theme, oldEndedAt);
+        saveFocus(recentFocused, theme, recentEndedAt);
+        saveFocus(sameTimeFocused, theme, recentEndedAt);
+        saveFocus(otherUserLibrary, theme, LocalDateTime.of(2026, 5, 4, 21, 0));
+        em.flush();
+        em.clear();
+
+        List<LibraryBookQueryResult> firstPage = libraryRepository.findAllBooksByCursor(
+                user.getId(),
+                null,
+                LibrarySortType.RECENT_FOCUSED,
+                10
+        );
+
+        assertThat(firstPage)
+                .extracting(LibraryBookQueryResult::libraryId)
+                .containsExactly(
+                        sameTimeFocused.getId(),
+                        recentFocused.getId(),
+                        oldFocused.getId(),
+                        noFocused.getId()
+                );
+
+        LibraryBookCursor cursor = new LibraryBookCursor(recentFocused.getId(), recentEndedAt, null, null);
+        List<LibraryBookQueryResult> nextPage = libraryRepository.findAllBooksByCursor(
+                user.getId(),
+                cursor,
+                LibrarySortType.RECENT_FOCUSED,
+                10
+        );
+
+        assertThat(nextPage)
+                .extracting(LibraryBookQueryResult::libraryId)
+                .containsExactly(oldFocused.getId(), noFocused.getId());
+    }
+
+    @Test
+    void findAllBooksByCursor_기록많은순_정렬과커서조건을검증한다() {
+        User user = saveUser("record-desc@library.com", "provider-record-desc");
+        User otherUser = saveUser("record-desc-other@library.com", "provider-record-desc-other");
+
+        Library twoRecordsLowId = saveLibrary(user, "기록 두 개 낮은 ID");
+        Library twoRecordsHighId = saveLibrary(user, "기록 두 개 높은 ID");
+        Library threeRecords = saveLibrary(user, "기록 세 개");
+        Library noRecords = saveLibrary(user, "기록 없음");
+        Library otherUserLibrary = saveLibrary(otherUser, "다른 사용자 기록 많음");
+
+        saveRecords(twoRecordsLowId, 2);
+        saveRecords(twoRecordsHighId, 2);
+        saveRecords(threeRecords, 3);
+        saveRecords(otherUserLibrary, 4);
+        em.flush();
+        em.clear();
+
+        List<LibraryBookQueryResult> firstPage = libraryRepository.findAllBooksByCursor(
+                user.getId(),
+                null,
+                LibrarySortType.RECORD_COUNT_DESC,
+                10
+        );
+
+        assertThat(firstPage)
+                .extracting(LibraryBookQueryResult::libraryId)
+                .containsExactly(
+                        threeRecords.getId(),
+                        twoRecordsHighId.getId(),
+                        twoRecordsLowId.getId(),
+                        noRecords.getId()
+                );
+        assertThat(firstPage)
+                .extracting(LibraryBookQueryResult::recordCount)
+                .containsExactly(3L, 2L, 2L, 0L);
+
+        LibraryBookCursor cursor = new LibraryBookCursor(twoRecordsHighId.getId(), null, 2L, null);
+        List<LibraryBookQueryResult> nextPage = libraryRepository.findAllBooksByCursor(
+                user.getId(),
+                cursor,
+                LibrarySortType.RECORD_COUNT_DESC,
+                10
+        );
+
+        assertThat(nextPage)
+                .extracting(LibraryBookQueryResult::libraryId)
+                .containsExactly(twoRecordsLowId.getId(), noRecords.getId());
+    }
+
+    @Test
+    void findAllBooksByCursor_기록적은순_정렬과커서조건을검증한다() {
+        User user = saveUser("record-asc@library.com", "provider-record-asc");
+
+        Library noRecords = saveLibrary(user, "기록 없음");
+        Library oneRecord = saveLibrary(user, "기록 한 개");
+        Library twoRecordsLowId = saveLibrary(user, "기록 두 개 낮은 ID");
+        Library twoRecordsHighId = saveLibrary(user, "기록 두 개 높은 ID");
+        Library threeRecords = saveLibrary(user, "기록 세 개");
+
+        saveRecords(oneRecord, 1);
+        saveRecords(twoRecordsLowId, 2);
+        saveRecords(twoRecordsHighId, 2);
+        saveRecords(threeRecords, 3);
+        em.flush();
+        em.clear();
+
+        List<LibraryBookQueryResult> firstPage = libraryRepository.findAllBooksByCursor(
+                user.getId(),
+                null,
+                LibrarySortType.RECORD_COUNT_ASC,
+                10
+        );
+
+        assertThat(firstPage)
+                .extracting(LibraryBookQueryResult::libraryId)
+                .containsExactly(
+                        noRecords.getId(),
+                        oneRecord.getId(),
+                        twoRecordsLowId.getId(),
+                        twoRecordsHighId.getId(),
+                        threeRecords.getId()
+                );
+
+        LibraryBookCursor cursor = new LibraryBookCursor(twoRecordsLowId.getId(), null, 2L, null);
+        List<LibraryBookQueryResult> nextPage = libraryRepository.findAllBooksByCursor(
+                user.getId(),
+                cursor,
+                LibrarySortType.RECORD_COUNT_ASC,
+                10
+        );
+
+        assertThat(nextPage)
+                .extracting(LibraryBookQueryResult::libraryId)
+                .containsExactly(twoRecordsHighId.getId(), threeRecords.getId());
+    }
+
+    @Test
+    void findAllBooksByCursor_가나다순_정렬과커서조건을검증한다() {
+        User user = saveUser("alphabetical@library.com", "provider-alphabetical");
+        User otherUser = saveUser("alphabetical-other@library.com", "provider-alphabetical-other");
+
+        Library firstSameTitle = saveLibrary(user, "가나다");
+        Library secondSameTitle = saveLibrary(user, "가나다");
+        Library nextTitle = saveLibrary(user, "나나");
+        Library lastTitle = saveLibrary(user, "다다");
+        saveLibrary(otherUser, "가가");
+        em.flush();
+        em.clear();
+
+        List<LibraryBookQueryResult> firstPage = libraryRepository.findAllBooksByCursor(
+                user.getId(),
+                null,
+                LibrarySortType.ALPHABETICAL,
+                10
+        );
+
+        assertThat(firstPage)
+                .extracting(LibraryBookQueryResult::libraryId)
+                .containsExactly(
+                        firstSameTitle.getId(),
+                        secondSameTitle.getId(),
+                        nextTitle.getId(),
+                        lastTitle.getId()
+                );
+
+        LibraryBookCursor cursor = new LibraryBookCursor(firstSameTitle.getId(), null, null, "가나다");
+        List<LibraryBookQueryResult> nextPage = libraryRepository.findAllBooksByCursor(
+                user.getId(),
+                cursor,
+                LibrarySortType.ALPHABETICAL,
+                10
+        );
+
+        assertThat(nextPage)
+                .extracting(LibraryBookQueryResult::libraryId)
+                .containsExactly(secondSameTitle.getId(), nextTitle.getId(), lastTitle.getId());
+    }
+
+    private User saveUser(String email, String providerId) {
+        User user = User.builder()
+                .email(email)
+                .nickName(email)
+                .provider("GOOGLE")
+                .providerId(providerId)
+                .build();
+        return userRepository.save(user);
+    }
+
+    private Library saveLibrary(User user, String title) {
+        Book book = Book.builder()
+                .isbn13(String.format("%013d", Math.floorMod(title.hashCode() + System.nanoTime(), 1_000_000_000_000L)))
+                .title(title)
+                .author("작가")
+                .coverImageKey("library/cover.png")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        bookRepository.save(book);
+
+        Library library = Library.builder()
+                .user(user)
+                .book(book)
+                .build();
+        return libraryRepository.save(library);
+    }
+
+    private Theme saveTheme() {
+        Theme theme = Theme.builder()
+                .name(ThemeName.THEME1)
+                .imageUrl("https://cdn.nook.com/themes/theme1.png")
+                .build();
+        em.persist(theme);
+        return theme;
+    }
+
+    private void saveFocus(Library library, Theme theme, LocalDateTime endedAt) {
+        Focus focus = Focus.builder()
+                .library(library)
+                .theme(theme)
+                .startedAt(endedAt.minusMinutes(30))
+                .endedAt(endedAt)
+                .durationSec(1800)
+                .build();
+        em.persist(focus);
+    }
+
+    private void saveRecords(Library library, int count) {
+        for (int i = 0; i < count; i++) {
+            Record record = Record.create(library, Emotion.FUN, "기록 " + i);
+            em.persist(record);
+        }
     }
 }

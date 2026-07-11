@@ -166,7 +166,11 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
     }
 
     @Override
-    public Slice<Focus> findRecentByUserWithCursor(User user, Long cursor, Pageable pageable) {
+    public Slice<Focus> findRecentByUserWithCursor(
+            User user,
+            Long cursor,
+            Pageable pageable
+    ) {
         BooleanBuilder builder = new BooleanBuilder()
                 .and(focus.library.user.eq(user))
                 .and(focus.endedAt.isNotNull());

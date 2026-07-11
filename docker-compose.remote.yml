@@ -1,0 +1,119 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: nook-nginx-dev
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    restart: unless-stopped
+    networks:
+      - nook-network
+
+  app-blue:
+    image: ${IMAGE:-123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/nook-server:dev-latest}
+    container_name: nook-app-blue-dev
+    expose:
+      - "8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 8080
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 12s
+      timeout: 5s
+      retries: 5
+      start_period: 0s
+    restart: unless-stopped
+    networks:
+      - nook-network
+
+  app-green:
+    image: ${IMAGE:-123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/nook-server:dev-latest}
+    container_name: nook-app-green-dev
+    expose:
+      - "8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 8080
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 12s
+      timeout: 5s
+      retries: 5
+      start_period: 0s
+    restart: unless-stopped
+    networks:
+      - nook-network
+
+  redis:
+    image: redis:7
+    container_name: nook-redis-dev
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - nook-network
+
+  # 로그 수집 에이전트 — 이 서버의 컨테이너 로그를 모니터링 서버 Loki로 push
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: nook-promtail-dev
+    volumes:
+      - ./monitoring/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail-positions:/run/promtail
+    command: -config.file=/etc/promtail/promtail.yml
+    restart: unless-stopped
+    networks:
+      - nook-network
+
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: npm
+    depends_on:
+      - npm_db
+      - nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    networks:
+      - nook-network
+
+  npm_db:
+    image: jc21/mariadb-aria:latest
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 'abc123'
+      MYSQL_DATABASE: 'npm'
+      MYSQL_USER: 'abc'
+      MYSQL_PASSWORD: '123'
+    volumes:
+      - npm-db-data:/var/lib/mysql
+    networks:
+      - nook-network
+
+volumes:
+  redis-data:
+  promtail-positions:
+  npm-data:
+  npm-letsencrypt:
+  npm-db-data:
+
+networks:
+  nook-network:
+    driver: bridge

@@ -112,6 +112,7 @@ dependencies {
 
 	// spring actuator
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
 	// swagger
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
@@ -232,7 +233,7 @@ jacocoTestCoverageVerification {
 sourceSets {
 	main {
 		java {
-			srcDirs = ["$projectDir/src/main/java", "$projectDir/build/generated"]
+			srcDirs = ["$projectDir/src/main/java", "$projectDir/src/main/generated"]
 		}
 	}
 }

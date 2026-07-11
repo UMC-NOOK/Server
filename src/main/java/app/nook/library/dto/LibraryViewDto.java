@@ -1,6 +1,7 @@
 package app.nook.library.dto;
 
 import app.nook.global.dto.CursorResponse;
+import app.nook.library.domain.enums.LibrarySortType;
 import app.nook.library.domain.enums.ReadingStatus;
 
 import java.time.LocalDate;
@@ -107,4 +108,12 @@ public class LibraryViewDto {
     public record YearResponseDto(
             List<Integer> years
     ){}
+
+    public record LibraryBookItem(
+            Long bookId,
+            String title,
+            String author,
+            String coverUrl,
+            ReadingStatus readingStatus
+    ) {}
 }

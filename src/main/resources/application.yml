@@ -3,9 +3,8 @@ spring:
     import: optional:classpath:application-secret.properties
   application:
     name: nook-api
-
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:local}
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -33,7 +32,6 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: 6379
-
   servlet:
     multipart:
       max-file-size: 5MB
@@ -45,7 +43,6 @@ file:
   cover-url-prefix: /uploads/covers/
   profile-url-prefix: /uploads/profiles/
 
-# image
 cloudflare:
   r2:
     endpoint: ${R2_ENDPOINT}
@@ -60,7 +57,11 @@ aladin:
   base-url: ${ALADIN_BASE_URL}
   ttbkey: ${ALADIN_TTB_KEY}
 
-# oauth
+logging:
+  level:
+    root: info
+    app.nook: debug
+
 auth:
   kakao:
     client-id: ${KAKAO_CLIENT_ID}
@@ -79,22 +80,34 @@ auth:
     token-request-uri: ${TOKEN_REQUEST_URI}
     user-info-uri: ${MEMBER_INFO_REQUEST_URI}
 
-logging:
-  level:
-    root: info
-    app.nook : debug
-
 management:
   endpoints:
     web:
       base-path: /actuator
       exposure:
-        include: health,info
+        include: health,info,prometheus,metrics
   endpoint:
     health:
       probes:
         enabled: true
       show-details: never
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    enable:
+      jvm: true
+      hikaricp: true
+      redis: true
+      http: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+      slo:
+        http.server.requests: 100ms, 300ms, 1s
 
 info:
   app:

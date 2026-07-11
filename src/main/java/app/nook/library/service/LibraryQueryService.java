@@ -7,10 +7,14 @@ import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.library.converter.LibraryConverter;
 import app.nook.library.domain.Library;
+import app.nook.library.domain.enums.LibrarySortType;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.dto.LibraryBookCursor;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.library.repository.dto.LibraryBookQueryResult;
 import app.nook.library.util.FocusTimeUtil;
+import app.nook.library.util.LibraryBookCursorCodec;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
@@ -227,6 +231,38 @@ public class LibraryQueryService {
                 finished.startedAt(),
                 finished.endedAt()
         );
+    }
+
+    // 서재 전체 책 목록 조회 (무한스크롤)
+    public CursorResponse<LibraryViewDto.LibraryBookItem, String> getAllBooks(
+            Long userId, LibraryBookCursor cursor, LibrarySortType sortType, int size
+    ) {
+        List<LibraryBookQueryResult> results = libraryRepository.findAllBooksByCursor(userId, cursor, sortType, size);
+
+        boolean hasNext = results.size() > size;
+        List<LibraryBookQueryResult> pageContent = hasNext ? results.subList(0, size) : results;
+
+        LibraryBookCursor nextCursor = hasNext ? toNextCursor(pageContent.get(pageContent.size() - 1), sortType) : null;
+
+        List<LibraryViewDto.LibraryBookItem> items = pageContent.stream()
+                .map(r -> new LibraryViewDto.LibraryBookItem(
+                        r.bookId(),
+                        r.title(),
+                        r.author(),
+                        presignedUrlService.resolveImageUrl(userId, r.coverImageKey()),
+                        r.readingStatus()
+                ))
+                .toList();
+
+        return CursorResponse.of(items, LibraryBookCursorCodec.encode(nextCursor), hasNext);
+    }
+
+    private LibraryBookCursor toNextCursor(LibraryBookQueryResult last, LibrarySortType sortType) {
+        return switch (sortType) {
+            case RECENT_FOCUSED -> new LibraryBookCursor(last.libraryId(), last.lastFocusedAt(), null, null);
+            case RECORD_COUNT_DESC, RECORD_COUNT_ASC -> new LibraryBookCursor(last.libraryId(), null, last.recordCount(), null);
+            case ALPHABETICAL -> new LibraryBookCursor(last.libraryId(), null, null, last.title());
+        };
     }
 
     private User getUser(Long userId) {

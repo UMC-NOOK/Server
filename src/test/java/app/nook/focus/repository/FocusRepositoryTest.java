@@ -16,6 +16,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -258,6 +259,231 @@ public class FocusRepositoryTest {
 
         // then
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("완료된 포커스를 id 내림차순으로 커서 없이 조회한다")
+    void findRecentByUserWithCursor_첫페이지() {
+        User user = User.builder()
+                .email("recent-cursor@example.com")
+                .nickName("커서유저")
+                .provider("google")
+                .providerId("cursor-provider")
+                .role(UserRole.USER)
+                .build();
+        em.persist(user);
+
+        Book book = Book.builder().title("테스트 책").author("작가").build();
+        em.persist(book);
+
+        Library library = Library.builder().user(user).book(book).build();
+        em.persist(library);
+
+        Theme theme = themeRepository.save(
+                Theme.builder()
+                        .name(ThemeName.THEME1)
+                        .imageUrl("https://cdn.nook.com/themes/theme1.png")
+                        .build()
+        );
+
+        Focus older = Focus.builder()
+                .library(library).theme(theme)
+                .startedAt(LocalDateTime.of(2026, 4, 1, 10, 0, 0))
+                .endedAt(LocalDateTime.of(2026, 4, 1, 10, 30, 0))
+                .durationSec(1800)
+                .build();
+        em.persist(older);
+
+        Focus newer = Focus.builder()
+                .library(library).theme(theme)
+                .startedAt(LocalDateTime.of(2026, 4, 2, 10, 0, 0))
+                .endedAt(LocalDateTime.of(2026, 4, 2, 10, 30, 0))
+                .durationSec(1800)
+                .build();
+        em.persist(newer);
+
+        // endedAt == null 인 진행 중 포커스 (결과에 포함되면 안 됨)
+        Focus inProgress = Focus.builder()
+                .library(library).theme(theme)
+                .startedAt(LocalDateTime.of(2026, 4, 3, 10, 0, 0))
+                .endedAt(null)
+                .durationSec(0)
+                .build();
+        em.persist(inProgress);
+
+        em.flush();
+        em.clear();
+
+        Slice<Focus> result = focusRepository.findRecentByUserWithCursor(user, null, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).getId()).isEqualTo(newer.getId());
+        assertThat(result.getContent().get(1).getId()).isEqualTo(older.getId());
+        assertThat(result.hasNext()).isFalse();
+    }
+
+    @Test
+    @DisplayName("커서 이전 id의 포커스만 조회된다")
+    void findRecentByUserWithCursor_커서페이지() {
+        User user = User.builder()
+                .email("recent-cursor2@example.com")
+                .nickName("커서유저2")
+                .provider("google")
+                .providerId("cursor-provider-2")
+                .role(UserRole.USER)
+                .build();
+        em.persist(user);
+
+        Book book = Book.builder().title("테스트 책2").author("작가2").build();
+        em.persist(book);
+
+        Library library = Library.builder().user(user).book(book).build();
+        em.persist(library);
+
+        Theme theme = themeRepository.save(
+                Theme.builder()
+                        .name(ThemeName.THEME2)
+                        .imageUrl("https://cdn.nook.com/themes/theme2.png")
+                        .build()
+        );
+
+        Focus focus1 = Focus.builder()
+                .library(library).theme(theme)
+                .startedAt(LocalDateTime.of(2026, 5, 1, 10, 0, 0))
+                .endedAt(LocalDateTime.of(2026, 5, 1, 10, 30, 0))
+                .durationSec(1800)
+                .build();
+        em.persist(focus1);
+
+        Focus focus2 = Focus.builder()
+                .library(library).theme(theme)
+                .startedAt(LocalDateTime.of(2026, 5, 2, 10, 0, 0))
+                .endedAt(LocalDateTime.of(2026, 5, 2, 10, 30, 0))
+                .durationSec(1800)
+                .build();
+        em.persist(focus2);
+
+        Focus focus3 = Focus.builder()
+                .library(library).theme(theme)
+                .startedAt(LocalDateTime.of(2026, 5, 3, 10, 0, 0))
+                .endedAt(LocalDateTime.of(2026, 5, 3, 10, 30, 0))
+                .durationSec(1800)
+                .build();
+        em.persist(focus3);
+
+        em.flush();
+        em.clear();
+
+        // focus3.id를 커서로 넘기면 focus3보다 id가 작은 것들만 나와야 함
+        Slice<Focus> result = focusRepository.findRecentByUserWithCursor(user, focus3.getId(), PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent()).noneMatch(f -> f.getId().equals(focus3.getId()));
+        assertThat(result.getContent().get(0).getId()).isEqualTo(focus2.getId());
+        assertThat(result.getContent().get(1).getId()).isEqualTo(focus1.getId());
+    }
+
+    @Test
+    @DisplayName("페이지 크기보다 많으면 hasNext가 true다")
+    void findRecentByUserWithCursor_hasNext() {
+        User user = User.builder()
+                .email("recent-cursor3@example.com")
+                .nickName("커서유저3")
+                .provider("google")
+                .providerId("cursor-provider-3")
+                .role(UserRole.USER)
+                .build();
+        em.persist(user);
+
+        Book book = Book.builder().title("테스트 책3").author("작가3").build();
+        em.persist(book);
+
+        Library library = Library.builder().user(user).book(book).build();
+        em.persist(library);
+
+        Theme theme = themeRepository.save(
+                Theme.builder()
+                        .name(ThemeName.THEME3)
+                        .imageUrl("https://cdn.nook.com/themes/theme3.png")
+                        .build()
+        );
+
+        for (int i = 1; i <= 3; i++) {
+            em.persist(Focus.builder()
+                    .library(library).theme(theme)
+                    .startedAt(LocalDateTime.of(2026, 6, i, 10, 0, 0))
+                    .endedAt(LocalDateTime.of(2026, 6, i, 10, 30, 0))
+                    .durationSec(1800)
+                    .build());
+        }
+
+        em.flush();
+        em.clear();
+
+        Slice<Focus> result = focusRepository.findRecentByUserWithCursor(user, null, PageRequest.of(0, 2));
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.hasNext()).isTrue();
+    }
+
+    @Test
+    @DisplayName("다른 유저의 포커스는 조회되지 않는다")
+    void findRecentByUserWithCursor_다른유저_제외() {
+        User owner = User.builder()
+                .email("recent-owner@example.com")
+                .nickName("소유자")
+                .provider("google")
+                .providerId("owner-provider-2")
+                .role(UserRole.USER)
+                .build();
+        em.persist(owner);
+
+        User other = User.builder()
+                .email("recent-other@example.com")
+                .nickName("다른유저")
+                .provider("google")
+                .providerId("other-provider-2")
+                .role(UserRole.USER)
+                .build();
+        em.persist(other);
+
+        Book book = Book.builder().title("공유 책").author("작가").build();
+        em.persist(book);
+
+        Library ownerLibrary = Library.builder().user(owner).book(book).build();
+        em.persist(ownerLibrary);
+
+        Library otherLibrary = Library.builder().user(other).book(book).build();
+        em.persist(otherLibrary);
+
+        Theme theme = themeRepository.save(
+                Theme.builder()
+                        .name(ThemeName.THEME1)
+                        .imageUrl("https://cdn.nook.com/themes/theme1.png")
+                        .build()
+        );
+
+        em.persist(Focus.builder()
+                .library(ownerLibrary).theme(theme)
+                .startedAt(LocalDateTime.of(2026, 7, 1, 10, 0, 0))
+                .endedAt(LocalDateTime.of(2026, 7, 1, 10, 30, 0))
+                .durationSec(1800)
+                .build());
+
+        em.persist(Focus.builder()
+                .library(otherLibrary).theme(theme)
+                .startedAt(LocalDateTime.of(2026, 7, 1, 11, 0, 0))
+                .endedAt(LocalDateTime.of(2026, 7, 1, 11, 30, 0))
+                .durationSec(1800)
+                .build());
+
+        em.flush();
+        em.clear();
+
+        Slice<Focus> result = focusRepository.findRecentByUserWithCursor(owner, null, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getLibrary().getUser().getId()).isEqualTo(owner.getId());
     }
 
     @Test

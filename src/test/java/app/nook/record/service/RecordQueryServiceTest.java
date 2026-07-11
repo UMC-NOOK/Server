@@ -302,6 +302,7 @@ class RecordQueryServiceTest {
                                 1L,
                                 "내용 0",
                                 List.of(),
+                                List.of(),
                                 Emotion.FUN,
                                 LocalDate.of(2026, 4, 24)
                         ));
@@ -332,6 +333,7 @@ class RecordQueryServiceTest {
                                 1L,
                                 "내용 0",
                                 List.of(),
+                                List.of(),
                                 Emotion.FUN,
                                 LocalDate.of(2026, 4, 24)
                         ));
@@ -339,6 +341,7 @@ class RecordQueryServiceTest {
                         .willReturn(new BookRecordDto.RecordItemDto(
                                 2L,
                                 "내용 1",
+                                List.of(),
                                 List.of(),
                                 Emotion.SAD,
                                 LocalDate.of(2026, 4, 25)
@@ -372,6 +375,7 @@ class RecordQueryServiceTest {
                                 1L,
                                 "내용 0",
                                 List.of(),
+                                List.of(),
                                 Emotion.FUN,
                                 LocalDate.of(2026, 4, 24)
                         ));
@@ -402,6 +406,7 @@ class RecordQueryServiceTest {
                                 1L,
                                 "내용 0",
                                 List.of(),
+                                List.of(),
                                 Emotion.FUN,
                                 LocalDate.of(2026, 4, 24)
                         ));
@@ -409,6 +414,7 @@ class RecordQueryServiceTest {
                         .willReturn(new BookRecordDto.RecordItemDto(
                                 2L,
                                 "내용 1",
+                                List.of(),
                                 List.of(),
                                 Emotion.SAD,
                                 LocalDate.of(2026, 4, 25)
@@ -442,6 +448,7 @@ class RecordQueryServiceTest {
                                 1L,
                                 "내용 0",
                                 List.of(),
+                                List.of(),
                                 Emotion.FUN,
                                 LocalDate.of(2026, 4, 24)
                         ));
@@ -449,6 +456,7 @@ class RecordQueryServiceTest {
                         .willReturn(new BookRecordDto.RecordItemDto(
                                 2L,
                                 "내용 1",
+                                List.of(),
                                 List.of(),
                                 Emotion.SAD,
                                 LocalDate.of(2026, 4, 25)
