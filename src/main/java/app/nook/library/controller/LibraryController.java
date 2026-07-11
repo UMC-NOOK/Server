@@ -4,11 +4,14 @@ import app.nook.global.api.Api1Version;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.global.dto.CursorResponse;
+import app.nook.library.domain.enums.LibrarySortType;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.dto.LibraryBookCursor;
 import app.nook.library.dto.ReadingStatusRequestDto;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.service.LibraryCommandService;
 import app.nook.library.service.LibraryQueryService;
+import app.nook.library.util.LibraryBookCursorCodec;
 import app.nook.user.annotation.CurrentUser;
 import app.nook.user.domain.User;
 import jakarta.validation.constraints.Max;
@@ -120,7 +123,26 @@ public class LibraryController {
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
-    // 독서 연도 표시  API
+    // 서재 전체 책 목록 상태별 조회 (무한스크롤) - 진입점: 독서 기록
+    @GetMapping("/books")
+    public ApiResponse<CursorResponse<LibraryViewDto.LibraryBookItem, String>> viewAllBooks(
+            @CurrentUser User user,
+            @RequestParam(defaultValue = "RECENT_FOCUSED") LibrarySortType sort,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
+    ) {
+        LibraryBookCursor decoded = LibraryBookCursorCodec.decode(cursor);
+        CursorResponse<LibraryViewDto.LibraryBookItem, String> response =
+                libraryQueryService.getAllBooks(user.getId(), decoded, sort, size);
+
+        if (response.getItems().isEmpty()) {
+            return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
+        }
+
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
+    }
+
+    // 독서 연도 표시 API
     // 사용자 최초 사용 시점부터 현재까지 연도 반환
     @GetMapping("/years")
     public ApiResponse<LibraryViewDto.YearResponseDto> viewReadingYears(

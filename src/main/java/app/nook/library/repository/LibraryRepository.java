@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-public interface LibraryRepository extends JpaRepository<Library,Long> {
+public interface LibraryRepository extends JpaRepository<Library, Long>, LibraryQueryRepository {
 
     Optional<Library> findByUserAndBook(User user, Book book);
 

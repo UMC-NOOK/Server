@@ -18,7 +18,7 @@ public class RecordConverter {
     private final PresignedUrlService presignedUrlService;
 
     public BookRecordDto.RecordItemDto toRecordItemDto(Long userId, Record record) {
-        List<String> imageUrls = record.getImages().stream()
+        List<String> imageKeys = record.getImages().stream()
                 .sorted(Comparator
                         .comparing(RecordImage::getOrderIndex, Comparator.nullsLast(Integer::compareTo))
                         .thenComparing(RecordImage::getCreatedDate, Comparator.nullsLast(Comparator.naturalOrder())))
@@ -26,6 +26,9 @@ public class RecordConverter {
                 .filter(Objects::nonNull)
                 .map(String::trim)
                 .filter(key -> !key.isBlank())
+                .toList();
+
+        List<String> imageUrls = imageKeys.stream()
                 .map(key -> presignedUrlService.getImageUrl(userId, key))
                 .toList();
 
@@ -33,6 +36,7 @@ public class RecordConverter {
                 record.getId(),
                 record.getContent(),
                 imageUrls,
+                imageKeys,
                 record.getEmotion(),
                 record.getCreatedDate().toLocalDate()
         );

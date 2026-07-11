@@ -166,6 +166,37 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
     }
 
     @Override
+    public Slice<Focus> findRecentByUserWithCursor(
+            User user,
+            Long cursor,
+            Pageable pageable
+    ) {
+        BooleanBuilder builder = new BooleanBuilder()
+                .and(focus.library.user.eq(user))
+                .and(focus.endedAt.isNotNull());
+
+        if (cursor != null) {
+            builder.and(focus.id.lt(cursor));
+        }
+
+        List<Focus> fetched = queryFactory
+                .selectFrom(focus)
+                .join(focus.library, library).fetchJoin()
+                .join(library.book, book).fetchJoin()
+                .where(builder)
+                .orderBy(focus.id.desc())
+                .limit(pageable.getPageSize() + 1L)
+                .fetch();
+
+        boolean hasNext = fetched.size() > pageable.getPageSize();
+        List<Focus> content = hasNext
+                ? new ArrayList<>(fetched.subList(0, pageable.getPageSize()))
+                : fetched;
+
+        return new SliceImpl<>(content, pageable, hasNext);
+    }
+
+    @Override
     public List<Focus> findRecentDistinctBooksByUser(User user, Pageable pageable) {
         QFocus newerFocus = new QFocus("newerFocus");
         QLibrary newerLibrary = new QLibrary("newerLibrary");

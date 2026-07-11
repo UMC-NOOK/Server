@@ -305,4 +305,6 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
 
         return new BookRecordDto.RecordEmotionCountResponse(totalCount, emotionCounts);
     }
+
+
 }

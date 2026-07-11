@@ -44,6 +44,12 @@ public interface FocusRepositoryCustom {
             Pageable pageable
     );
 
+    Slice<Focus> findRecentByUserWithCursor(
+            User user,
+            Long cursor,
+            Pageable pageable
+    );
+
     List<Focus> findRecentDistinctBooksByUser(
             User user,
             Pageable pageable
