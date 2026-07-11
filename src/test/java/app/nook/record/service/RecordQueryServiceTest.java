@@ -87,11 +87,11 @@ class RecordQueryServiceTest {
                     recordQueryService.getUserRecords(user, 10, null, SortType.RECENT_RECORDED);
 
             // then
-            assertThat(result.getItems()).hasSize(1);
-            assertThat(result.getItems().get(0).coverImageUrl())
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.items().get(0).coverImageUrl())
                     .isEqualTo("https://r2.example.com/cover.png");
-            assertThat(result.isHasNext()).isFalse();
-            assertThat(result.getNextCursor()).isNull();
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
             verify(presignedUrlService).resolveImageUrl(1L, "cover.png");
         }
 
@@ -124,7 +124,7 @@ class RecordQueryServiceTest {
                     );
 
             // then
-            RecordListCursor nextCursor = RecordListCursorCodec.decode(result.getNextCursor());
+            RecordListCursor nextCursor = RecordListCursorCodec.decode(result.nextCursor());
             assertThat(nextCursor.bookId()).isEqualTo(10L);
             assertThat(nextCursor.lastCreatedDate()).isEqualTo(lastDate);
             assertThat(nextCursor.lastCount()).isNull();
@@ -159,7 +159,7 @@ class RecordQueryServiceTest {
                     );
 
             // then
-            RecordListCursor nextCursor = RecordListCursorCodec.decode(result.getNextCursor());
+            RecordListCursor nextCursor = RecordListCursorCodec.decode(result.nextCursor());
             assertThat(nextCursor.lastCount()).isEqualTo(5L);
             assertThat(nextCursor.bookId()).isEqualTo(10L);
             assertThat(nextCursor.lastCreatedDate()).isNull();
@@ -212,22 +212,70 @@ class RecordQueryServiceTest {
         void 감상별_개수_조회() {
             // given
             User user = UserFixture.user();
+            Long bookId = 10L;
             List<BookRecordDto.RecordEmotionDto> emotionCounts = List.of(
-                    new BookRecordDto.RecordEmotionDto(Emotion.FUN, 5L),
-                    new BookRecordDto.RecordEmotionDto(Emotion.SAD, 3L)
+                    new BookRecordDto.RecordEmotionDto("FUN", 5L),
+                    new BookRecordDto.RecordEmotionDto("SAD", 3L)
             );
 
-            given(recordRepository.countRecordsByEmotion(1L))
+            given(bookRepository.existsById(bookId)).willReturn(true);
+            given(libraryRepository.existsByUserIdAndBookId(user.getId(), bookId)).willReturn(true);
+            given(recordRepository.countRecordsByEmotion(1L, bookId))
                     .willReturn(new BookRecordDto.RecordEmotionCountResponse(8L, emotionCounts));
 
             // when
-            BookRecordDto.RecordEmotionCountResponse result = recordQueryService.getRecordEmotionCounts(user);
+            BookRecordDto.RecordEmotionCountResponse result = recordQueryService.getRecordEmotionCounts(user, bookId);
 
             // then
             assertThat(result.totalCount()).isEqualTo(8L);
-            assertThat(result.emotionCounts()).hasSize(2);
-            assertThat(result.emotionCounts().get(0).emotion()).isEqualTo(Emotion.FUN);
-            assertThat(result.emotionCounts().get(1).emotion()).isEqualTo(Emotion.SAD);
+            assertThat(result.emotionCounts()).hasSize(Emotion.values().length);
+            assertThat(result.emotionCounts().get(0).emotion()).isEqualTo("ALL");
+            assertThat(result.emotionCounts().get(0).recordCount()).isEqualTo(8L);
+            assertThat(result.emotionCounts().get(1).emotion()).isEqualTo("FUN");
+            assertThat(result.emotionCounts().get(1).recordCount()).isEqualTo(5L);
+            assertThat(result.emotionCounts().get(2).emotion()).isEqualTo("EMPATHIZING");
+            assertThat(result.emotionCounts().get(2).recordCount()).isZero();
+            assertThat(result.emotionCounts().get(5).emotion()).isEqualTo("SAD");
+            assertThat(result.emotionCounts().get(5).recordCount()).isEqualTo(3L);
+            assertThat(result.emotionCounts().get(6).emotion()).isEqualTo("UNCOMFORTABLE");
+            assertThat(result.emotionCounts().get(6).recordCount()).isZero();
+            assertThat(result.emotionCounts()).noneMatch(item -> item.emotion().equals("EMPTY"));
+            verify(recordRepository).countRecordsByEmotion(1L, bookId);
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 책이면 예외를 던진다")
+        void 감상별_개수_조회_실패_책없음() {
+            // given
+            User user = UserFixture.user();
+            given(bookRepository.existsById(10L)).willReturn(false);
+
+            // when
+            CustomException exception = assertThrows(
+                    CustomException.class,
+                    () -> recordQueryService.getRecordEmotionCounts(user, 10L)
+            );
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(BookErrorCode.BOOK_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("실패 - 서재에 없는 책이면 예외를 던진다")
+        void 감상별_개수_조회_실패_서재없음() {
+            // given
+            User user = UserFixture.user();
+            given(bookRepository.existsById(10L)).willReturn(true);
+            given(libraryRepository.existsByUserIdAndBookId(user.getId(), 10L)).willReturn(false);
+
+            // when
+            CustomException exception = assertThrows(
+                    CustomException.class,
+                    () -> recordQueryService.getRecordEmotionCounts(user, 10L)
+            );
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(LibraryErrorCode.BOOK_NOT_EXIST);
         }
     }
 
@@ -264,10 +312,10 @@ class RecordQueryServiceTest {
                         recordQueryService.getBookRecords(user, 10L, 10, null, "FUN");
 
                 // then
-                assertThat(result.getItems()).hasSize(1);
-                assertThat(result.getItems().get(0).emotion()).isEqualTo(Emotion.FUN);
-                assertThat(result.getNextCursor()).isNull();
-                assertThat(result.isHasNext()).isFalse();
+                assertThat(result.items()).hasSize(1);
+                assertThat(result.items().get(0).emotion()).isEqualTo(Emotion.FUN);
+                assertThat(result.nextCursor()).isNull();
+                assertThat(result.hasNext()).isFalse();
             }
 
             @Test
@@ -304,11 +352,11 @@ class RecordQueryServiceTest {
                         recordQueryService.getBookRecords(user, 10L, 10, null, "ALL");
 
                 // then
-                assertThat(result.getItems()).hasSize(2);
-                assertThat(result.getItems().get(0).emotion()).isEqualTo(Emotion.FUN);
-                assertThat(result.getItems().get(1).emotion()).isEqualTo(Emotion.SAD);
-                assertThat(result.getNextCursor()).isNull();
-                assertThat(result.isHasNext()).isFalse();
+                assertThat(result.items()).hasSize(2);
+                assertThat(result.items().get(0).emotion()).isEqualTo(Emotion.FUN);
+                assertThat(result.items().get(1).emotion()).isEqualTo(Emotion.SAD);
+                assertThat(result.nextCursor()).isNull();
+                assertThat(result.hasNext()).isFalse();
             }
 
             @Test
@@ -337,9 +385,9 @@ class RecordQueryServiceTest {
                         recordQueryService.getBookRecords(user, 10L, 1, null, "ALL");
 
                 // then
-                assertThat(result.getItems()).hasSize(1);
-                assertThat(result.isHasNext()).isTrue();
-                assertThat(result.getNextCursor()).isEqualTo(1L);
+                assertThat(result.items()).hasSize(1);
+                assertThat(result.hasNext()).isTrue();
+                assertThat(result.nextCursor()).isEqualTo(1L);
             }
 
             @Test
@@ -377,11 +425,11 @@ class RecordQueryServiceTest {
                         recordQueryService.getBookRecords(user, 10L, 10, null, null);
 
                 // then
-                assertThat(result.getItems()).hasSize(2);
-                assertThat(result.getItems().get(0).emotion()).isEqualTo(Emotion.FUN);
-                assertThat(result.getItems().get(1).emotion()).isEqualTo(Emotion.SAD);
-                assertThat(result.getNextCursor()).isNull();
-                assertThat(result.isHasNext()).isFalse();
+                assertThat(result.items()).hasSize(2);
+                assertThat(result.items().get(0).emotion()).isEqualTo(Emotion.FUN);
+                assertThat(result.items().get(1).emotion()).isEqualTo(Emotion.SAD);
+                assertThat(result.nextCursor()).isNull();
+                assertThat(result.hasNext()).isFalse();
             }
 
             @Test
@@ -419,11 +467,11 @@ class RecordQueryServiceTest {
                         recordQueryService.getBookRecords(user, 10L, 10, null, " ");
 
                 // then
-                assertThat(result.getItems()).hasSize(2);
-                assertThat(result.getItems().get(0).emotion()).isEqualTo(Emotion.FUN);
-                assertThat(result.getItems().get(1).emotion()).isEqualTo(Emotion.SAD);
-                assertThat(result.getNextCursor()).isNull();
-                assertThat(result.isHasNext()).isFalse();
+                assertThat(result.items()).hasSize(2);
+                assertThat(result.items().get(0).emotion()).isEqualTo(Emotion.FUN);
+                assertThat(result.items().get(1).emotion()).isEqualTo(Emotion.SAD);
+                assertThat(result.nextCursor()).isNull();
+                assertThat(result.hasNext()).isFalse();
             }
         }
 
@@ -478,6 +526,24 @@ class RecordQueryServiceTest {
                 CustomException exception = assertThrows(
                         CustomException.class,
                         () -> recordQueryService.getBookRecords(user, 10L, 10, null, "invalid-emotion")
+                );
+
+                // then
+                assertThat(exception.getErrorCode().getCode()).isEqualTo("COMMON-002");
+            }
+
+            @Test
+            @DisplayName("실패 - EMPTY 감정 필터면 예외를 던진다")
+            void 도서별_기록조회_실패_empty감정필터() {
+                // given
+                User user = UserFixture.user();
+                given(bookRepository.existsById(10L)).willReturn(true);
+                given(libraryRepository.existsByUserIdAndBookId(user.getId(), 10L)).willReturn(true);
+
+                // when
+                CustomException exception = assertThrows(
+                        CustomException.class,
+                        () -> recordQueryService.getBookRecords(user, 10L, 10, null, "EMPTY")
                 );
 
                 // then

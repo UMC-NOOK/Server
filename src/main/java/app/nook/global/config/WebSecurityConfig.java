@@ -7,6 +7,7 @@ import app.nook.user.handler.CustomAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,6 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
@@ -51,10 +53,11 @@ public class WebSecurityConfig {
                 .cors(Customizer.withDefaults())
 
                 .authorizeHttpRequests(auth -> auth
-                        // ===== 공개 리소스 =====
+                        .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/",
-                                "/docs/**",              // REST Docs
+                                "/docs/**",
                                 "/index.html",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
@@ -91,12 +94,20 @@ public class WebSecurityConfig {
                 "http://localhost:5173",
                 "http://localhost:8080",
                 "https://dev.reading-nook.site",
-                "https://readingnook.netlify.app"
+                "https://nook-rho-ruddy.vercel.app"
         ));
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("*");
         config.addExposedHeader("Authorization");
-        config.addExposedHeader("Set-Cookie");
+        config.setAllowedHeaders(List.of(
+                "Content-Type",
+                "Authorization"
+        ));
+        config.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
+        ));
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =

@@ -22,8 +22,18 @@ include::{snippets}/record-controller-test/특정_책_기록_감정_필터_조�
 include::{snippets}/record-controller-test/특정_책_기록_감정_필터_조회_성공/http-response.adoc[opts=optional]
 include::{snippets}/record-controller-test/특정_책_기록_감정_필터_조회_성공/response-fields.adoc[opts=optional]
 
+=== 기록 개별 조회
+기록 ID로 단건 기록을 조회합니다.
+이미지가 연결된 기록은 저장된 key를 기준으로 조회 시점에 presigned GET URL로 변환된 `imgUrls` 로 내려갑니다.
+
+include::{snippets}/record-controller-test/기록_개별_조회_성공/http-request.adoc[opts=optional]
+include::{snippets}/record-controller-test/기록_개별_조회_성공/request-headers.adoc[opts=optional]
+include::{snippets}/record-controller-test/기록_개별_조회_성공/path-parameters.adoc[opts=optional]
+include::{snippets}/record-controller-test/기록_개별_조회_성공/http-response.adoc[opts=optional]
+include::{snippets}/record-controller-test/기록_개별_조회_성공/response-fields.adoc[opts=optional]
+
 === 독서 기록 감정별 개수 조회
-사용자가 작성한 전체 독서 기록 수와 감정별 기록 수를 함께 반환합니다.
+특정 책의 전체 기록 수와 감정별 기록 수를 함께 반환합니다.
 
 include::{snippets}/record-controller-test/독서_기록_감정별_개수_조회_성공/http-request.adoc[opts=optional]
 include::{snippets}/record-controller-test/독서_기록_감정별_개수_조회_성공/request-headers.adoc[opts=optional]

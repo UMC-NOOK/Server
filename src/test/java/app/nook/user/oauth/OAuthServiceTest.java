@@ -21,14 +21,17 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.client.ExpectedCount.once;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -95,6 +98,7 @@ class OAuthServiceTest {
 
         server.expect(once(), requestTo("https://google.test/token"))
                 .andExpect(method(HttpMethod.POST))
+                .andExpect(content().string(containsString("redirect_uri=https%3A%2F%2Fapp.test%2Fredirect")))
                 .andRespond(withSuccess(tokenJson, MediaType.APPLICATION_JSON));
 
         server.expect(once(), requestTo("https://google.test/userinfo"))
@@ -121,6 +125,7 @@ class OAuthServiceTest {
         assertThat(result.getEmail()).isEqualTo("user@test.com");
         assertThat(result.getNickName()).isEqualTo("user");
         assertThat(result.getAccessToken()).isEqualTo("app-access");
+        assertThat(result.isOnboardingCompleted()).isFalse();
         ArgumentCaptor<TokenRedis> tokenCaptor = ArgumentCaptor.forClass(TokenRedis.class);
         verify(tokenRedisRepository).save(tokenCaptor.capture());
         assertThat(tokenCaptor.getValue().getId()).isEqualTo(10L);
@@ -153,6 +158,7 @@ class OAuthServiceTest {
 
         server.expect(once(), requestTo("https://google.test/token"))
                 .andExpect(method(HttpMethod.POST))
+                .andExpect(content().string(containsString("redirect_uri=https%3A%2F%2Fapp.test%2Fredirect")))
                 .andRespond(withSuccess(tokenJson, MediaType.APPLICATION_JSON));
 
         server.expect(once(), requestTo("https://google.test/userinfo"))
@@ -181,11 +187,63 @@ class OAuthServiceTest {
         assertThat(result.getEmail()).isEqualTo("new@test.com");
         assertThat(result.getNickName()).isEqualTo("new-user");
         assertThat(result.getAccessToken()).isEqualTo("app-access-new");
+        assertThat(result.isOnboardingCompleted()).isFalse();
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
         assertThat(userCaptor.getValue().getProvider()).isEqualTo("GOOGLE");
         assertThat(userCaptor.getValue().getProviderId()).isEqualTo("google-sub-new");
+        server.verify();
+    }
+
+    @Test
+    void 소셜로그인_온보딩완료된_기존유저_onboardingCompleted_true() {
+        String tokenJson = """
+                {
+                  "access_token": "google-access",
+                  "expires_in": 3600,
+                  "scope": "email profile",
+                  "token_type": "Bearer",
+                  "id_token": "id-token",
+                  "refresh_token": "google-refresh"
+                }
+                """;
+
+        String userInfoJson = """
+                {
+                  "sub": "google-sub-done",
+                  "email": "done@test.com",
+                  "name": "done-user",
+                  "picture": "https://img.test/done.png"
+                }
+                """;
+
+        server.expect(once(), requestTo("https://google.test/token"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess(tokenJson, MediaType.APPLICATION_JSON));
+
+        server.expect(once(), requestTo("https://google.test/userinfo"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(userInfoJson, MediaType.APPLICATION_JSON));
+
+        User user = User.builder()
+                .email("done@test.com")
+                .nickName("done-user")
+                .role(UserRole.USER)
+                .provider("GOOGLE")
+                .providerId("google-sub-done")
+                .build();
+        ReflectionTestUtils.setField(user, "id", 30L);
+        ReflectionTestUtils.setField(user, "onboardingCompletedAt", LocalDateTime.now());
+
+        given(userRepository.findByEmail(eq("done@test.com")))
+                .willReturn(Optional.of(user));
+        given(jwtProvider.createAccessToken(user)).willReturn("app-access-done");
+        given(jwtProvider.createRefreshToken()).willReturn("app-refresh-done");
+
+        UserDTO.LoginResponse result = oAuthService.login("google", "auth-code");
+
+        assertThat(result.isOnboardingCompleted()).isTrue();
         server.verify();
     }
 }

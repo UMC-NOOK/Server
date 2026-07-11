@@ -1,22 +1,28 @@
 package app.nook.library.event;
 
 import java.time.YearMonth;
-import java.util.List;
+import java.util.Set;
 
 /**
  * 캐시 무효화 이벤트를 처리하는 레코드
  */
 public record LibraryCacheInvalidateEvent(
         Long userId,
-        List<YearMonth> affectedYearMonths,
-        boolean evictStatusFirstPage
+        Set<YearMonth> affectedYearMonths,
+        boolean evictOnboardingGoal
 ) {
-    // 상태 캐시 무효화
-    public static LibraryCacheInvalidateEvent statusOnly(Long userId) {
-        return new LibraryCacheInvalidateEvent(userId, List.of(), true);
+    public static LibraryCacheInvalidateEvent monthly(Long userId, Set<YearMonth> affectedYearMonths) {
+        return new LibraryCacheInvalidateEvent(userId, Set.copyOf(affectedYearMonths), false);
     }
 
-    public static LibraryCacheInvalidateEvent statusAndMonthly(Long userId, List<YearMonth> affectedYearMonths) {
-        return new LibraryCacheInvalidateEvent(userId, affectedYearMonths, true);
+    public static LibraryCacheInvalidateEvent onboardingGoal(Long userId) {
+        return new LibraryCacheInvalidateEvent(userId, Set.of(), true);
+    }
+
+    public static LibraryCacheInvalidateEvent monthlyAndOnboardingGoal(
+            Long userId,
+            Set<YearMonth> affectedYearMonths
+    ) {
+        return new LibraryCacheInvalidateEvent(userId, Set.copyOf(affectedYearMonths), true);
     }
 }

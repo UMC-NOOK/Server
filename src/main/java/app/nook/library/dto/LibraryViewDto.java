@@ -16,6 +16,13 @@ public class LibraryViewDto {
             String coverUrl
     ){}
 
+    public record BookStatusResponseDto(
+            Long bookId,
+            Long bookShelfId,
+            Long libraryId,
+            ReadingStatusResponse readingStatus
+    ){}
+
     public record MonthlyBookResponseDto(
             LocalDate date,
             int bookNum,
@@ -38,7 +45,7 @@ public class LibraryViewDto {
     public record StatusBookResponseDto(
             ReadingStatus readingStatus,
             int totalBookNum,
-            CursorResponse<? extends UserStatusBookItem, Long> bookItems
+            CursorResponse<UserStatusBookItem, Long> bookItems
     ) {}
 
 

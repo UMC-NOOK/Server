@@ -3,6 +3,7 @@ package app.nook.book.dto;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.dto.ReadingStatusResponse;
 import lombok.*;
 
 import java.util.List;
@@ -30,6 +31,8 @@ public class BookResponseDto {
         private String aladinLink;
         private SourceType sourceType;
         private Long bookShelfId;
+        private Long libraryId;
+        private ReadingStatusResponse readingStatus;
     }
 
     public record BookPreviewDto( // 검색 베스트셀러 프리뷰 DTO
@@ -47,6 +50,7 @@ public class BookResponseDto {
     @AllArgsConstructor
     @Setter
     public static class BookSearchDto { // 검색 결과 DTO
+        private Long bookId;
         private String isbn13;
         private String title;
         private String mallType;

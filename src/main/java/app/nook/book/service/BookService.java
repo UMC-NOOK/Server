@@ -46,6 +46,7 @@ public class BookService {
     private final PersonalizedBestsellerCacheService personalizedBestsellerCacheService;
     private final PresignedUrlService presignedUrlService;
     private final ApplicationEventPublisher eventPublisher;
+    private final BookAccessService bookAccessService;
 
     // ISBN 기반 상세조회: ALADIN 소스만 조회/저장 대상으로 사용
     @Transactional
@@ -62,7 +63,7 @@ public class BookService {
                 updateBookInfo(book, isbn13);
             }
             log.info("[DB_HIT] isbn={}, title='{}'", isbn13, book.getTitle());
-            return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibraryId(user, book)));
+            return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibrary(user, book)));
         }
 
         log.info("[API_FETCH] isbn={}, status='Not found in DB(ALADIN)'", isbn13);
@@ -78,6 +79,7 @@ public class BookService {
     public BookResponseDto.BookDetailDto getBookDetailById(User user, Long bookId) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
+        bookAccessService.assertCanView(user, book);
 
         if (book.getSourceType() == SourceType.ALADIN
                 && book.getIsbn13() != null
@@ -85,7 +87,7 @@ public class BookService {
             updateBookInfo(book, book.getIsbn13());
         }
 
-        return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibraryId(user, book)));
+        return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibrary(user, book)));
     }
 
     @Transactional
@@ -119,7 +121,7 @@ public class BookService {
         // 소유권 검증 후에만 USER 도서 수정 허용
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
-        validateUserBookOwnership(user, book);
+        bookAccessService.assertCanUpdate(user, book);
         String oldCoverImageKey = book.getCoverImageKey();
         String coverImageKeyToUse = (newCoverImageUrl == null || newCoverImageUrl.isBlank())
                 ? book.getCoverImageKey() : newCoverImageUrl;
@@ -200,19 +202,6 @@ public class BookService {
         return 1;
     }
 
-    private void validateUserBookOwnership(User user, Book book) {
-        if (book.getSourceType() != SourceType.USER) {
-            log.warn("[USER_BOOK_UPDATE_FORBIDDEN] requestUserId={}, bookId={}, reason=NOT_USER_SOURCE, sourceType={}",
-                    user.getId(), book.getId(), book.getSourceType());
-            throw new CustomException(BookErrorCode.BOOK_NOT_OWNED);
-        }
-        if (book.getCreatedByUserId() == null || !book.getCreatedByUserId().equals(user.getId())) {
-            log.warn("[USER_BOOK_UPDATE_FORBIDDEN] requestUserId={}, bookId={}, reason=NOT_OWNER, createdByUserId={}",
-                    user.getId(), book.getId(), book.getCreatedByUserId());
-            throw new CustomException(BookErrorCode.BOOK_NOT_OWNED);
-        }
-    }
-
     // USER 도서는 BOOK mallType 기준 카테고리만 허용
     private Category findUserBookCategory(String categoryName) {
         return categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, categoryName)
@@ -244,12 +233,11 @@ public class BookService {
         log.info("[BookService] Book info updated - ISBN: {}, title: {}", isbn13, book.getTitle());
     }
 
-    private Long findLibraryId(User user, Book book) {
+    private Library findLibrary(User user, Book book) {
         if (user == null) {
             return null;
         }
         return libraryRepository.findByUserAndBook(user, book)
-                .map(Library::getId)
                 .orElse(null);
     }
 }

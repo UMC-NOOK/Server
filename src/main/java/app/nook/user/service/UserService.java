@@ -71,16 +71,49 @@ public class UserService {
                 .id(savedUser.getId())
                 .email(savedUser.getEmail())
                 .nickName(savedUser.getNickName())
+                .onboardingCompleted(savedUser.isOnboardingCompleted())
                 .build();
     }
 
     @Transactional(readOnly = true)
-    public UserDTO.LoginResponse getThisUser(User user) {
-            return UserDTO.LoginResponse.builder()
-                    .id(user.getId())
-                    .email(user.getEmail())
-                    .nickName(user.getNickName())
-                    .build();
+    public UserDTO.UserInfo getThisUser(User user) {
+            return new UserDTO.UserInfo(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getNickName()
+            );
+    }
+
+    @Transactional
+    public UserDTO.TokenReissueResponse reissueAccessToken(String refreshToken) {
+        if (!jwtProvider.validateToken(refreshToken)) {
+            if (jwtProvider.isExpiredToken(refreshToken)) {
+                throw new CustomException(AuthErrorCode.TOKEN_EXPIRED);
+            }
+            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+        }
+
+        TokenRedis tokenRedis = tokenRedisRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(() -> {
+                    log.warn("[TOKEN REISSUE REUSE DETECTED] refresh token was valid but not found in Redis. Possible rotated token reuse.");
+                    throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+                });
+
+        User user = userRepository.findById(tokenRedis.getId())
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+
+        String newAccessToken = jwtProvider.createAccessToken(user);
+        String newRefreshToken = jwtProvider.createRefreshToken();
+
+        tokenRedisRepository.save(
+                TokenRedis.builder()
+                        .id(user.getId())
+                        .refreshToken(newRefreshToken)
+                        .accessToken(newAccessToken)
+                        .build()
+        );
+
+        return new UserDTO.TokenReissueResponse(newAccessToken, newRefreshToken);
     }
 
     private void validateDevUserRole(User user) {
@@ -107,6 +140,8 @@ public class UserService {
                 .email(user.getEmail())
                 .nickName(user.getNickName())
                 .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .onboardingCompleted(user.isOnboardingCompleted())
                 .build();
     }
 }

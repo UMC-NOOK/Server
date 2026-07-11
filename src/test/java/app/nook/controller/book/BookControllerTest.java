@@ -13,6 +13,7 @@
   import app.nook.global.config.WebSecurityConfig;
   import app.nook.global.docs.ApiResponseSnippet;
   import app.nook.global.exception.CustomException;
+  import app.nook.library.dto.ReadingStatusResponse;
   import app.nook.user.filter.JwtExceptionFilter;
   import app.nook.user.filter.JwtFilter;
   import org.junit.jupiter.api.DisplayName;
@@ -27,6 +28,7 @@
   import java.util.Collections;
   import java.util.List;
 
+  import static org.hamcrest.Matchers.nullValue;
   import static org.mockito.ArgumentMatchers.*;
   import static org.mockito.BDDMockito.given;
   import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
@@ -81,6 +83,8 @@
                   .aladinLink("http://aladin.com/book")
                   .sourceType(SourceType.ALADIN)
                   .bookShelfId(null)
+                  .libraryId(null)
+                  .readingStatus(ReadingStatusResponse.UNREGISTERED)
                   .build();
 
           given(bookService.getBookDetailByIsbn(any(), eq(isbn13))).willReturn(response);
@@ -88,6 +92,9 @@
           mockMvc.perform(get("/api/v1/books/{isbn13}", isbn13).header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.title").value("채식주의자"))
+                  .andExpect(jsonPath("$.result.bookShelfId").value(nullValue()))
+                  .andExpect(jsonPath("$.result.libraryId").value(nullValue()))
+                  .andExpect(jsonPath("$.result.readingStatus").value("UNREGISTERED"))
                   .andDo(documentWithAuth(
                           "{class-name}/{method-name}",
                           pathParameters(parameterWithName("isbn13").description("도서 ISBN13 (13자리 숫자)")),
@@ -106,7 +113,9 @@
                                   fieldWithPath("result.coverImageUrl").description("표지 이미지 URL"),
                                   fieldWithPath("result.aladinLink").description("알라딘 링크"),
                                   fieldWithPath("result.sourceType").description("데이터 출처"),
-                                  fieldWithPath("result.bookShelfId").description("서재 ID (없으면 null)").optional()
+                                  fieldWithPath("result.bookShelfId").description("서재 ID (없으면 null)").optional(),
+                                  fieldWithPath("result.libraryId").description("서재 ID (없으면 null)").optional(),
+                                  fieldWithPath("result.readingStatus").description("독서 상태 (BEFORE, READING, FINISHED, UNREGISTERED)")
                           ))
                   ));
       }
@@ -150,6 +159,8 @@
                   .coverImageUrl("http://example.com/cover.jpg")
                   .sourceType(SourceType.USER)
                   .bookShelfId(3L)
+                  .libraryId(3L)
+                  .readingStatus(ReadingStatusResponse.READING)
                   .build();
 
           given(bookService.getBookDetailById(any(), eq(1L))).willReturn(response);
@@ -158,6 +169,9 @@
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.bookId").value(1L))
                   .andExpect(jsonPath("$.result.title").value("테스트책"))
+                  .andExpect(jsonPath("$.result.bookShelfId").value(3L))
+                  .andExpect(jsonPath("$.result.libraryId").value(3L))
+                  .andExpect(jsonPath("$.result.readingStatus").value("READING"))
                   .andDo(documentWithAuth(
                           "{class-name}/{method-name}",
                           pathParameters(parameterWithName("bookId").description("도서 ID")),
@@ -176,7 +190,9 @@
                                   fieldWithPath("result.coverImageUrl").description("표지 이미지 URL").optional(),
                                   fieldWithPath("result.aladinLink").description("알라딘 링크").optional(),
                                   fieldWithPath("result.sourceType").description("데이터 출처"),
-                                  fieldWithPath("result.bookShelfId").description("서재 ID").optional()
+                                  fieldWithPath("result.bookShelfId").description("서재 ID").optional(),
+                                  fieldWithPath("result.libraryId").description("서재 ID").optional(),
+                                  fieldWithPath("result.readingStatus").description("독서 상태 (BEFORE, READING, FINISHED, UNREGISTERED)")
                           ))
                   ));
       }
@@ -245,6 +261,8 @@
                   .category("소설/시/희곡")
                   .sourceType(SourceType.USER)
                   .bookShelfId(5L)
+                  .libraryId(5L)
+                  .readingStatus(ReadingStatusResponse.BEFORE)
                   .build();
 
           given(userBookFacade.createUserBook(any(), any(BookRequestDto.CreateUserBookRequest.class)))
@@ -270,6 +288,9 @@
                   .andExpect(jsonPath("$.code").value("SUCCESS-201"))
                   .andExpect(jsonPath("$.result.bookId").value(101L))
                   .andExpect(jsonPath("$.result.sourceType").value("USER"))
+                  .andExpect(jsonPath("$.result.bookShelfId").value(5L))
+                  .andExpect(jsonPath("$.result.libraryId").value(5L))
+                  .andExpect(jsonPath("$.result.readingStatus").value("BEFORE"))
                   .andDo(documentWithAuth(
                           "{class-name}/{method-name}",
                           requestFields(
@@ -298,7 +319,9 @@
                                   fieldWithPath("result.coverImageUrl").description("표지 이미지 URL").optional(),
                                   fieldWithPath("result.aladinLink").description("알라딘 링크").optional(),
                                   fieldWithPath("result.sourceType").description("데이터 출처"),
-                                  fieldWithPath("result.bookShelfId").description("서재 ID").optional()
+                                  fieldWithPath("result.bookShelfId").description("서재 ID").optional(),
+                                  fieldWithPath("result.libraryId").description("서재 ID").optional(),
+                                  fieldWithPath("result.readingStatus").description("독서 상태").optional()
                           ))
                   ));
       }
@@ -320,6 +343,8 @@
                   .coverImageUrl("http://example.com/cover.jpg")
                   .sourceType(SourceType.USER)
                   .bookShelfId(5L)
+                  .libraryId(5L)
+                  .readingStatus(ReadingStatusResponse.READING)
                   .build();
 
           given(userBookFacade.updateUserBook(any(), anyLong(), any(BookRequestDto.UpdateUserBookRequest.class)))
@@ -343,6 +368,9 @@
                           .header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.bookId").value(101L))
+                  .andExpect(jsonPath("$.result.bookShelfId").value(5L))
+                  .andExpect(jsonPath("$.result.libraryId").value(5L))
+                  .andExpect(jsonPath("$.result.readingStatus").value("READING"))
                   .andDo(documentWithAuth(
                           "{class-name}/{method-name}",
                           pathParameters(
@@ -374,7 +402,9 @@
                                   fieldWithPath("result.coverImageUrl").description("표지 이미지 URL").optional(),
                                   fieldWithPath("result.aladinLink").description("알라딘 링크").optional(),
                                   fieldWithPath("result.sourceType").description("데이터 출처"),
-                                  fieldWithPath("result.bookShelfId").description("서재 ID").optional()
+                                  fieldWithPath("result.bookShelfId").description("서재 ID").optional(),
+                                  fieldWithPath("result.libraryId").description("서재 ID").optional(),
+                                  fieldWithPath("result.readingStatus").description("독서 상태").optional()
                           ))
                   ));
       }

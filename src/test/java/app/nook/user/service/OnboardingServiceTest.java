@@ -4,6 +4,7 @@ import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.CategoryRepository;
+import app.nook.global.config.CacheConfig;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.global.response.CommonErrorCode;
@@ -22,9 +23,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 
@@ -265,6 +270,18 @@ class OnboardingServiceTest {
     }
 
     @Test
+    @DisplayName("getGoal은 사용자별 온보딩 목표 캐시에 sync=true로 저장한다")
+    void getGoal_cacheable() throws NoSuchMethodException {
+        Method method = OnboardingService.class.getDeclaredMethod("getGoal", Long.class);
+        Cacheable cacheable = AnnotationUtils.findAnnotation(method, Cacheable.class);
+
+        assertThat(cacheable).isNotNull();
+        assertThat(cacheable.cacheNames()).containsExactly(CacheConfig.ONBOARDING_GOAL_CACHE);
+        assertThat(cacheable.key()).isEqualTo("#userId");
+        assertThat(cacheable.sync()).isTrue();
+    }
+
+    @Test
     @DisplayName("getGoal: finished가 goal보다 크면 remainingCount는 0, progressPercent는 100")
     void getGoal_floorZero() {
         user.updateGoal((short) 5);
@@ -312,6 +329,32 @@ class OnboardingServiceTest {
 
         assertThat(res.goal()).isEqualTo((short) 50);
         assertThat(user.getGoal()).isEqualTo((short) 50);
+    }
+
+    @Test
+    @DisplayName("completeOnboarding과 updateGoal은 성공 시 온보딩 목표 캐시를 사용자별로 무효화한다")
+    void goal_mutations_evictOnboardingGoalCache() throws NoSuchMethodException {
+        Method completeOnboarding = OnboardingService.class.getDeclaredMethod(
+                "completeOnboarding",
+                Long.class,
+                OnboardingDto.CompleteRequest.class
+        );
+        Method updateGoal = OnboardingService.class.getDeclaredMethod(
+                "updateGoal",
+                Long.class,
+                OnboardingDto.GoalUpdateRequest.class
+        );
+
+        CacheEvict completeEvict = AnnotationUtils.findAnnotation(completeOnboarding, CacheEvict.class);
+        CacheEvict updateEvict = AnnotationUtils.findAnnotation(updateGoal, CacheEvict.class);
+
+        assertThat(completeEvict).isNotNull();
+        assertThat(completeEvict.cacheNames()).containsExactly(CacheConfig.ONBOARDING_GOAL_CACHE);
+        assertThat(completeEvict.key()).isEqualTo("#userId");
+
+        assertThat(updateEvict).isNotNull();
+        assertThat(updateEvict.cacheNames()).containsExactly(CacheConfig.ONBOARDING_GOAL_CACHE);
+        assertThat(updateEvict.key()).isEqualTo("#userId");
     }
 
     @Test

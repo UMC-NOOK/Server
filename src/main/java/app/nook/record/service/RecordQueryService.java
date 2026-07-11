@@ -13,6 +13,7 @@ import app.nook.record.domain.enums.Emotion;
 import app.nook.record.domain.enums.SortType;
 import app.nook.record.dto.BookRecordDto;
 import app.nook.record.dto.RecordListCursor;
+import app.nook.record.exception.RecordErrorCode;
 import app.nook.record.repository.RecordRepository;
 import app.nook.record.util.RecordListCursorCodec;
 import app.nook.r2.service.PresignedUrlService;
@@ -21,7 +22,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -78,8 +82,33 @@ public class RecordQueryService {
     }
 
     // 독서 기록 감상별 개수 조회
-    public BookRecordDto.RecordEmotionCountResponse getRecordEmotionCounts(User user) {
-        return recordRepository.countRecordsByEmotion(user.getId());
+    public BookRecordDto.RecordEmotionCountResponse getRecordEmotionCounts(User user, Long bookId) {
+        if (!bookRepository.existsById(bookId)) {
+            throw new CustomException(BookErrorCode.BOOK_NOT_FOUND);
+        }
+
+        if (!libraryRepository.existsByUserIdAndBookId(user.getId(), bookId)) {
+            throw new CustomException(LibraryErrorCode.BOOK_NOT_EXIST);
+        }
+
+        BookRecordDto.RecordEmotionCountResponse response = recordRepository.countRecordsByEmotion(user.getId(), bookId);
+
+        Map<Emotion, Long> emotionCountMap = new EnumMap<>(Emotion.class);
+        response.emotionCounts().forEach(item -> emotionCountMap.put(Emotion.valueOf(item.emotion()), item.recordCount()));
+
+        List<BookRecordDto.RecordEmotionDto> normalizedEmotionCounts = Arrays.stream(Emotion.values())
+                .filter(emotion -> emotion != Emotion.EMPTY)
+                .map(emotion -> new BookRecordDto.RecordEmotionDto(
+                        emotion.name(),
+                        emotionCountMap.getOrDefault(emotion, 0L)
+                ))
+                .toList();
+
+        List<BookRecordDto.RecordEmotionDto> emotionCountsWithAll = new java.util.ArrayList<>();
+        emotionCountsWithAll.add(new BookRecordDto.RecordEmotionDto("ALL", response.totalCount()));
+        emotionCountsWithAll.addAll(normalizedEmotionCounts);
+
+        return new BookRecordDto.RecordEmotionCountResponse(response.totalCount(), emotionCountsWithAll);
     }
 
     // 해당 책의 독서 기록 목록 조회
@@ -146,10 +175,24 @@ public class RecordQueryService {
         }
 
         try {
-            return Emotion.valueOf(emotion.trim().toUpperCase());
+            Emotion parsedEmotion = Emotion.valueOf(emotion.trim().toUpperCase());
+            if (parsedEmotion == Emotion.EMPTY) {
+                throw new CustomException(CommonErrorCode.INVALID_REQUEST);
+            }
+            return parsedEmotion;
         } catch (IllegalArgumentException exception) {
             throw new CustomException(CommonErrorCode.INVALID_REQUEST);
         }
     }
 
+    public BookRecordDto.RecordItemDto getRecordDetail(User user, Long recordId) {
+        Record record = recordRepository.findWithDetailById(recordId)
+                .orElseThrow(() -> new CustomException(RecordErrorCode.RECORD_NOT_FOUND));
+
+        if (!record.getLibrary().getUser().getId().equals(user.getId())) {
+            throw new CustomException(RecordErrorCode.RECORD_NOT_AUTHORIZED);
+        }
+
+        return recordConverter.toRecordItemDto(user.getId(), record);
+    }
 }

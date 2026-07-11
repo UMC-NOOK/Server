@@ -67,6 +67,8 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 
 	// db
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-database-postgresql'
 	runtimeOnly 'org.postgresql:postgresql'
 
 	// test db
@@ -231,7 +233,7 @@ jacocoTestCoverageVerification {
 sourceSets {
 	main {
 		java {
-			srcDirs = ["$projectDir/src/main/java", "$projectDir/build/generated"]
+			srcDirs = ["$projectDir/src/main/java", "$projectDir/src/main/generated"]
 		}
 	}
 }

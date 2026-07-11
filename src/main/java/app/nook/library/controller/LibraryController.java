@@ -14,6 +14,7 @@ import app.nook.library.service.LibraryQueryService;
 import app.nook.library.util.LibraryBookCursorCodec;
 import app.nook.user.annotation.CurrentUser;
 import app.nook.user.domain.User;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -36,32 +37,35 @@ public class LibraryController {
 
     // 서재 책 등록
     @PostMapping("/{bookId}")
-    public ApiResponse<Void> registerBook(
+    public ApiResponse<LibraryViewDto.BookStatusResponseDto> registerBook(
             @CurrentUser User user,
             @PathVariable Long bookId
     ) {
-        libraryCommandService.registerBook(user.getId(), bookId);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
+        LibraryViewDto.BookStatusResponseDto response =
+                libraryCommandService.registerBook(user.getId(), bookId);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
     // 서재 책 삭제
     @DeleteMapping("/{bookId}")
-    public ApiResponse<Void> deleteBook(
+    public ApiResponse<LibraryViewDto.BookStatusResponseDto> deleteBook(
             @CurrentUser User user,
             @PathVariable Long bookId
     ) {
-        libraryCommandService.deleteByBookId(user.getId(), bookId);
-        return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
+        LibraryViewDto.BookStatusResponseDto response =
+                libraryCommandService.deleteByBookId(user.getId(), bookId);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
     // 서재 책 상태 변경
     @PatchMapping("/status")
-    public ApiResponse<Void> changeStatus(
+    public ApiResponse<LibraryViewDto.BookStatusResponseDto> changeStatus(
             @CurrentUser User user,
-            @RequestBody ReadingStatusRequestDto requestDto
+            @Valid @RequestBody ReadingStatusRequestDto requestDto
     ) {
-        libraryCommandService.changeReadingStatus(user.getId(), requestDto);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
+        LibraryViewDto.BookStatusResponseDto response =
+                libraryCommandService.changeReadingStatus(user.getId(), requestDto);
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
     // 서재 상태별 책 조회
@@ -72,8 +76,9 @@ public class LibraryController {
             @RequestParam(required = false) @Min(0) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
+        Long normalizedCursor = (cursor != null && cursor == 0L) ? null : cursor;
         LibraryViewDto.StatusBookResponseDto response =
-                libraryQueryService.getBooksByStatus(user.getId(), status, cursor, size);
+                libraryQueryService.getBooksByStatus(user.getId(), status, normalizedCursor, size);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
@@ -95,7 +100,7 @@ public class LibraryController {
             @NotNull
             @DateTimeFormat(pattern = "yyyy-MM-dd")
             LocalDate date,
-            @RequestParam(required = false) @Min(0) Long cursor,
+            @RequestParam(required = false) @Min(1) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         CursorResponse<LibraryViewDto.UserBookResponseDto, Long> response =
@@ -135,7 +140,7 @@ public class LibraryController {
         CursorResponse<LibraryViewDto.LibraryBookItem, String> response =
                 libraryQueryService.getAllBooks(user.getId(), decoded, sort, size);
 
-        if (response.getItems().isEmpty()) {
+        if (response.items().isEmpty()) {
             return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
         }
 

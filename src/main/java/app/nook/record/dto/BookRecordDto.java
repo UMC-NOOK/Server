@@ -31,7 +31,7 @@ public record BookRecordDto(
     ){}
 
     public record RecordEmotionDto(
-            Emotion emotion,
+            String emotion,
             long recordCount
     ){}
 

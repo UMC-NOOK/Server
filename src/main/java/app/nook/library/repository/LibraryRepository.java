@@ -76,9 +76,15 @@ public interface LibraryRepository extends JpaRepository<Library, Long>, Library
     long countByUserIdAndReadingStatus(Long userId, ReadingStatus status);
 
 
-    // [전체 검색 - 서재 보유 여부 매핑용] ISBN 목록 중 서재에 있는 ISBN들 반환
-    @Query("SELECT l.book.isbn13 FROM Library l WHERE l.user.id = :userId AND l.book.isbn13 IN :isbns")
-    Set<String> findIsbnsByUserIdAndIsbnIn(@Param("userId") Long userId, @Param("isbns") List<String> isbns);
+    // [전체 검색 - 서재 보유 여부 매핑용] ALADIN 소스 도서 중 ISBN 목록에 포함된 값만 반환
+    @Query("""
+        select l.book.isbn13
+        from Library l
+        where l.user.id = :userId
+          and l.book.sourceType = app.nook.book.domain.enums.SourceType.ALADIN
+          and l.book.isbn13 in :isbns
+    """)
+    Set<String> findAladinIsbnsByUserIdAndIsbnIn(@Param("userId") Long userId, @Param("isbns") List<String> isbns);
 
     // [서재 내 검색] 사용자의 서재에서 제목/저자/ISBN 키워드 검색
     @Query(value = "SELECT l FROM Library l JOIN FETCH l.book b JOIN FETCH b.category " +

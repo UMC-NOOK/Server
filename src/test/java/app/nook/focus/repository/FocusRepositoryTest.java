@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest(properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
+@ActiveProfiles("test")
 @EnableJpaRepositories(basePackages = "app.nook.focus.repository")
 @EntityScan(basePackages = "app.nook")
 @Import(QueryDslConfig.class)
