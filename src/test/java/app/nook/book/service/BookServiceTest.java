@@ -81,6 +81,9 @@ class BookServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private BookViewHistoryService bookViewHistoryService;
+
     @Spy
     private BookAccessService bookAccessService = new BookAccessService();
 
@@ -143,6 +146,7 @@ class BookServiceTest {
         // DB에 있었으므로 알라딘 API는 호출되지 않아야 함
         verify(bookRepository, times(1)).findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN);
         verify(aladinService, never()).lookupItem(any());
+        verify(bookViewHistoryService).saveBookView(testUser, book);
     }
 
     @Test
@@ -172,6 +176,7 @@ class BookServiceTest {
         assertThat(result.getBookShelfId()).isEqualTo(10L);
         assertThat(result.getLibraryId()).isEqualTo(10L);
         assertThat(result.getReadingStatus()).isEqualTo(ReadingStatusResponse.READING);
+        verify(bookViewHistoryService).saveBookView(testUser, book);
     }
 
     @Test
@@ -218,6 +223,7 @@ class BookServiceTest {
         // SourceType이 ALADIN으로 잘 들어갔는지, 카테고리 연관관계가 잘 맺어졌는지 확인
         assertThat(capturedBook.getSourceType()).isEqualTo(SourceType.ALADIN);
         assertThat(capturedBook.getCategory()).isEqualTo(category);
+        verify(bookViewHistoryService).saveBookView(testUser, savedBookWithId);
     }
 
     @Test
@@ -246,6 +252,7 @@ class BookServiceTest {
 
         // 예외 발생 시 저장이 수행되면 안 됨 (데이터 오염 방지)
         verify(bookRepository, never()).save(any());
+        verifyNoInteractions(bookViewHistoryService);
     }
 
     @Test
@@ -266,6 +273,7 @@ class BookServiceTest {
         assertThat(result.getBookShelfId()).isNull();
         assertThat(result.getLibraryId()).isNull();
         assertThat(result.getReadingStatus()).isEqualTo(ReadingStatusResponse.UNREGISTERED);
+        verify(bookViewHistoryService).saveBookView(testUser, book);
     }
 
     @Test
@@ -292,6 +300,39 @@ class BookServiceTest {
         assertThat(result.getBookShelfId()).isEqualTo(10L);
         assertThat(result.getLibraryId()).isEqualTo(10L);
         assertThat(result.getReadingStatus()).isEqualTo(ReadingStatusResponse.READING);
+        verify(bookViewHistoryService).saveBookView(testUser, book);
+    }
+
+    @Test
+    @DisplayName("사용자 도서 생성/수정 응답용 상세 조회는 이력을 저장하지 않음")
+    void getBookDetailByIdForUserBookResponse_이력저장없음() {
+        Book book = createBook(TEST_ISBN_1, "제목", 184);
+        ReflectionTestUtils.setField(book, "id", 20L);
+        ReflectionTestUtils.setField(book, "sourceType", SourceType.USER);
+        ReflectionTestUtils.setField(book, "createdByUserId", TEST_USER_ID);
+
+        given(bookRepository.findById(20L)).willReturn(Optional.of(book));
+        given(libraryRepository.findByUserAndBook(testUser, book)).willReturn(Optional.empty());
+
+        BookResponseDto.BookDetailDto result = bookService.getBookDetailByIdForUserBookResponse(testUser, 20L);
+
+        assertThat(result.getBookId()).isEqualTo(20L);
+        assertThat(result.getTitle()).isEqualTo("제목");
+        verifyNoInteractions(bookViewHistoryService);
+    }
+
+    @Test
+    @DisplayName("bookId 기반 상세 조회 - 존재하지 않는 도서면 이력 저장 없이 실패")
+    void getBookDetailById_notFound_fail() {
+        given(bookRepository.findById(999L)).willReturn(Optional.empty());
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> bookService.getBookDetailById(testUser, 999L)
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_NOT_FOUND);
+        verifyNoInteractions(bookViewHistoryService);
     }
 
     @Test
@@ -312,6 +353,7 @@ class BookServiceTest {
 
         assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_ACCESS_DENIED);
         verify(presignedUrlService, never()).resolveImageUrl(anyLong(), any());
+        verifyNoInteractions(bookViewHistoryService);
     }
 
     @Test

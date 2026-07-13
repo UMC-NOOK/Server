@@ -67,13 +67,15 @@ class UserBookFacadeTest {
                 .bookId(100L).title("혼모노").build();
 
         given(bookService.createUserBook(eq(user), any(), isNull())).willReturn(saved);
-        given(bookService.getBookDetailById(user, 100L)).willReturn(detail);
+        given(bookService.getBookDetailByIdForUserBookResponse(user, 100L)).willReturn(detail);
 
         BookResponseDto.BookDetailDto result = userBookFacade.createUserBook(user, req);
 
         verify(presignedUrlService, never()).validateOwnedImageKey(anyLong(), any(), any());
         verify(bookService).createUserBook(eq(user), any(), isNull());
         verify(libraryCommandService).registerBook(1L, 100L);
+        verify(bookService).getBookDetailByIdForUserBookResponse(user, 100L);
+        verify(bookService, never()).getBookDetailById(any(), anyLong());
         assertThat(result.getBookId()).isEqualTo(100L);
     }
 
@@ -99,13 +101,14 @@ class UserBookFacadeTest {
 
         willDoNothing().given(bookService)
                 .updateUserBook(eq(user), eq(100L), any(BookRequestDto.UpdateUserBookRequest.class), isNull());
-        given(bookService.getBookDetailById(user, 100L)).willReturn(detail);
+        given(bookService.getBookDetailByIdForUserBookResponse(user, 100L)).willReturn(detail);
 
         BookResponseDto.BookDetailDto result = userBookFacade.updateUserBook(user, 100L, req);
 
         verify(presignedUrlService, never()).validateOwnedImageKey(anyLong(), any(), any());
         verify(bookService).updateUserBook(eq(user), eq(100L), any(BookRequestDto.UpdateUserBookRequest.class), isNull());
-        verify(bookService).getBookDetailById(user, 100L);
+        verify(bookService).getBookDetailByIdForUserBookResponse(user, 100L);
+        verify(bookService, never()).getBookDetailById(any(), anyLong());
         assertThat(result.getBookId()).isEqualTo(100L);
     }
 

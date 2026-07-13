@@ -39,7 +39,7 @@ public class UserBookFacade {
         // 신규 생성 도서는 생성 즉시 내 서재로 등록
         libraryCommandService.registerBook(user.getId(), book.getId());
 
-        return bookService.getBookDetailById(user, book.getId());
+        return bookService.getBookDetailByIdForUserBookResponse(user, book.getId());
     }
 
     // USER 도서 수정(업로드/도서 수정/상세 조회)
@@ -56,6 +56,6 @@ public class UserBookFacade {
         bookService.updateUserBook(user, bookId, request, newCoverKey);
 
         log.info("[USER_BOOK_UPDATE_DONE] userId={}, bookId={}", user.getId(), bookId);
-        return bookService.getBookDetailById(user, bookId);
+        return bookService.getBookDetailByIdForUserBookResponse(user, bookId);
     }
 }
