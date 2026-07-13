@@ -65,7 +65,7 @@ public class BookService {
             }
             log.info("[DB_HIT] isbn={}, title='{}'", isbn13, book.getTitle());
             bookViewHistoryService.saveBookView(user, book);
-            return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibrary(user, book)));
+            return toBookDetailDto(user, book);
         }
 
         log.info("[API_FETCH] isbn={}, status='Not found in DB(ALADIN)'", isbn13);
