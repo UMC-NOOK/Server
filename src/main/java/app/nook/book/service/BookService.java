@@ -47,6 +47,7 @@ public class BookService {
     private final PresignedUrlService presignedUrlService;
     private final ApplicationEventPublisher eventPublisher;
     private final BookAccessService bookAccessService;
+    private final BookViewHistoryService bookViewHistoryService;
 
     // ISBN 기반 상세조회: ALADIN 소스만 조회/저장 대상으로 사용
     @Transactional
@@ -63,7 +64,8 @@ public class BookService {
                 updateBookInfo(book, isbn13);
             }
             log.info("[DB_HIT] isbn={}, title='{}'", isbn13, book.getTitle());
-            return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibrary(user, book)));
+            bookViewHistoryService.saveBookView(user, book);
+            return toBookDetailDto(user, book);
         }
 
         log.info("[API_FETCH] isbn={}, status='Not found in DB(ALADIN)'", isbn13);
@@ -71,12 +73,25 @@ public class BookService {
         Category category = findCategory(bookDetailDto);
         Book newBook = bookRepository.save(BookConverter.toBook(bookDetailDto, category, SourceType.ALADIN));
         log.info("[BOOK_SAVE] isbn={}, title='{}'", isbn13, bookDetailDto.getTitle());
+        bookViewHistoryService.saveBookView(user, newBook);
         return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(newBook, null));
     }
 
     // bookId 기반 상세조회: USER/ALADIN 공통 상세 진입점
     @Transactional
     public BookResponseDto.BookDetailDto getBookDetailById(User user, Long bookId) {
+        Book book = findViewableBook(user, bookId);
+        bookViewHistoryService.saveBookView(user, book);
+        return toBookDetailDto(user, book);
+    }
+
+    @Transactional
+    public BookResponseDto.BookDetailDto getBookDetailByIdForUserBookResponse(User user, Long bookId) {
+        Book book = findViewableBook(user, bookId);
+        return toBookDetailDto(user, book);
+    }
+
+    private Book findViewableBook(User user, Long bookId) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
         bookAccessService.assertCanView(user, book);
@@ -87,6 +102,10 @@ public class BookService {
             updateBookInfo(book, book.getIsbn13());
         }
 
+        return book;
+    }
+
+    private BookResponseDto.BookDetailDto toBookDetailDto(User user, Book book) {
         return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(book, findLibrary(user, book)));
     }
 
