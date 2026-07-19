@@ -1,0 +1,17 @@
+aws_account_id          = "123456789012"
+vpc_id                  = "vpc-xxxxxxxx"
+public_subnet_id        = "subnet-public"
+private_db_subnet_ids   = ["subnet-private-a", "subnet-private-c"]
+ami_id                  = "ami-xxxxxxxx"
+instance_type           = "t3.small"
+key_name                = null
+create_eip              = true
+root_volume_size        = 20
+admin_cidrs             = ["203.0.113.10/32"]
+monitoring_cidrs        = []
+database_name           = "nookDB"
+database_username       = "nook"
+database_instance_class = "db.t3.micro"
+
+# The RDS master password is generated and stored by AWS Secrets Manager.
+# master_user_secret_kms_key_id = "arn:aws:kms:ap-northeast-2:123456789012:key/xxxxxxxx"
