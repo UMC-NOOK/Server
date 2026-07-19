@@ -135,10 +135,13 @@ Production Terraform and CD are intentionally separated. Do not apply
 `infra/envs/prod` until the production launch is approved. The prod workflow is
 manual-only and should use a protected GitHub `prod` environment.
 
-Both CD workflows use GitHub OIDC. Configure `AWS_ROLE_ARN` in the protected
-GitHub environment and add the server host, username, private key, and deploy
-path secrets prefixed with `DEV_` or `PROD_`. The EC2 instance role can pull
-from ECR without storing AWS access keys on the server.
+Dev CD keeps the existing GitHub secrets: `AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY`, `AWS_ACCOUNT_ID`, `DEV_HOST`, `DEV_USERNAME`, and
+`DEV_PRIVATE_KEY`. Deployment files are copied to the SSH user's home directory. The
+workflow never creates or overwrites `/secrets/.env.dev`; the server-managed file is
+preserved across deployments.
+Prod CD remains OIDC-based and is not enabled until production infrastructure is ready.
+The EC2 server must be able to run `aws ecr get-login-password` to pull from ECR.
 
 Create the secret directory with access restricted to the deployment user:
 
