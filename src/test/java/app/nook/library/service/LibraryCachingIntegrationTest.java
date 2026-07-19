@@ -5,6 +5,7 @@ import app.nook.book.domain.Book;
 import app.nook.book.repository.BookRepository;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.focus.repository.dto.MonthlyFocusStatsDto;
+import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.CacheConfig;
 import app.nook.global.common.security.WithCustomUser;
 import app.nook.library.domain.Library;
@@ -42,7 +43,7 @@ import static org.mockito.Mockito.verify;
 @SpringBootTest(classes = NookApplication.class)
 @ActiveProfiles("test")
 @WithCustomUser(userId = 1L)
-class LibraryCachingIntegrationTest {
+class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
 
     @Autowired
     private LibraryStatsService libraryStatsService;

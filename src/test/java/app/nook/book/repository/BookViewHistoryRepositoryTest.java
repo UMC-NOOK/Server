@@ -2,6 +2,7 @@ package app.nook.book.repository;
 
 import app.nook.book.domain.Book;
 import app.nook.book.domain.BookViewHistory;
+import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.QueryDslConfig;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
@@ -19,12 +20,10 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@DataJpaTest
 @ActiveProfiles("test")
 @Import(QueryDslConfig.class)
-class BookViewHistoryRepositoryTest {
+class BookViewHistoryRepositoryTest extends AbstractPostgresContainerTests {
 
     @Autowired
     private BookViewHistoryRepository bookViewHistoryRepository;

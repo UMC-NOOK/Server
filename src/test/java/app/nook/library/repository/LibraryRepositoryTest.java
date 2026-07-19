@@ -9,6 +9,7 @@ import app.nook.book.repository.CategoryRepository;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.domain.Theme;
 import app.nook.focus.domain.enums.ThemeName;
+import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.QueryDslConfig;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.LibrarySortType;
@@ -35,12 +36,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@DataJpaTest
 @ActiveProfiles("test")
 @Import(QueryDslConfig.class)
-class LibraryRepositoryTest {
+class LibraryRepositoryTest extends AbstractPostgresContainerTests {
 
     @Autowired
     private LibraryRepository libraryRepository;
@@ -451,8 +450,8 @@ class LibraryRepositoryTest {
                 .build();
         userRepository.save(user);
 
-        Category novel = categoryRepository.save(Category.of(MallType.BOOK, "소설", 1001));
-        Category essay = categoryRepository.save(Category.of(MallType.BOOK, "에세이", 1002));
+        Category novel = categoryRepository.save(Category.of(MallType.BOOK, "테스트 소설", 1001));
+        Category essay = categoryRepository.save(Category.of(MallType.BOOK, "테스트 에세이", 1002));
 
         Book novelBook1 = Book.builder()
                 .isbn13("3030303030301")
