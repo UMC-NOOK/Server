@@ -67,7 +67,7 @@ jobs:
           host: ${{ secrets.DEV_HOST }}
           username: ${{ secrets.DEV_USERNAME }}
           key: ${{ secrets.DEV_PRIVATE_KEY }}
-          source: docker-compose.dev.yml,nginx,monitoring/alloy,scripts/deploy.sh,scripts/init-certificate.sh
+          source: docker-compose.dev.yml,monitoring/alloy,scripts/deploy.sh
           target: ${{ secrets.DEV_DEPLOY_PATH }}
 
       - name: Deploy dev

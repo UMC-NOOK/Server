@@ -1,20 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <dev|prod>" >&2
+if [[ $# -ne 1 || "$1" != "prod" ]]; then
+  echo "Usage: $0 prod" >&2
   exit 1
 fi
 
 deploy_env="$1"
-
-case "$deploy_env" in
-  dev|prod) ;;
-  *)
-    echo "Unsupported environment: $deploy_env" >&2
-    exit 1
-    ;;
-esac
 
 compose_file="docker-compose.${deploy_env}.yml"
 secret_dir="${SECRET_DIR:-/secrets}"

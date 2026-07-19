@@ -31,21 +31,23 @@ if [[ ! -f "$env_file" ]]; then
   exit 1
 fi
 
-server_name="$(awk 'index($0, "SERVER_NAME=") == 1 { print substr($0, 13); exit }' "$env_file" | tr -d '\r')"
+if [[ "$deploy_env" == "prod" ]]; then
+  server_name="$(awk 'index($0, "SERVER_NAME=") == 1 { print substr($0, 13); exit }' "$env_file" | tr -d '\r')"
 
-if [[ ! "$server_name" =~ ^[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-  echo "SERVER_NAME must be a valid hostname in $env_file" >&2
-  exit 1
+  if [[ ! "$server_name" =~ ^[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+    echo "SERVER_NAME must be a valid hostname in $env_file" >&2
+    exit 1
+  fi
+
+  certificate_dir="$(pwd)/data/certbot/conf/live/${server_name}"
+
+  if [[ ! -f "${certificate_dir}/fullchain.pem" || ! -f "${certificate_dir}/privkey.pem" ]]; then
+    echo "Missing TLS certificate for ${server_name}. Run ./scripts/init-certificate.sh prod first." >&2
+    exit 1
+  fi
+
+  mkdir -p data/certbot/www
 fi
-
-certificate_dir="$(pwd)/data/certbot/conf/live/${server_name}"
-
-if [[ ! -f "${certificate_dir}/fullchain.pem" || ! -f "${certificate_dir}/privkey.pem" ]]; then
-  echo "Missing TLS certificate for ${server_name}. Run ./scripts/init-certificate.sh ${deploy_env} first." >&2
-  exit 1
-fi
-
-mkdir -p data/certbot/www
 
 export IMAGE="$image"
 export ENV_FILE="$env_file"

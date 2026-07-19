@@ -1,42 +1,17 @@
-services:
-  nginx:
-    image: nginx:1.31.3-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      SERVER_NAME: ${SERVER_NAME:?SERVER_NAME must be set}
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/templates/default.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - ./data/certbot/conf:/etc/letsencrypt:ro
-      - ./data/certbot/www:/var/www/certbot:ro
-    command:
-      - /bin/sh
-      - -c
-      - |
-        (while sleep 21600; do nginx -s reload; done) &
-        exec nginx -g 'daemon off;'
-    depends_on:
-      app:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - app-network
-    logging: &default-logging
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
+services:
   app:
     image: ${IMAGE:?IMAGE must be set}
     env_file:
       - ${ENV_FILE:-/secrets/.env.dev}
-    expose:
-      - "8080"
     ports:
-      - "9091:9091"
+      - "127.0.0.1:8080:8080"
+      - "${MANAGEMENT_BIND_ADDRESS:-127.0.0.1}:9091:9091"
     environment:
       SPRING_PROFILES_ACTIVE: dev
       SERVER_PORT: 8080
@@ -57,23 +32,6 @@ services:
       - app-network
     logging: *default-logging
 
-  certbot:
-    image: certbot/certbot:v5.7.0
-    volumes:
-      - ./data/certbot/conf:/etc/letsencrypt
-      - ./data/certbot/www:/var/www/certbot
-    entrypoint: /bin/sh
-    command:
-      - -c
-      - |
-        trap exit TERM
-        while :; do
-          certbot renew --webroot --webroot-path /var/www/certbot --quiet
-          sleep 43200 & wait $$!
-        done
-    restart: unless-stopped
-    logging: *default-logging
-
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
@@ -91,10 +49,12 @@ services:
 
   alloy:
     image: grafana/alloy:v1.17.0
+    profiles:
+      - monitoring
     environment:
-      DEPLOY_ENV: ${DEPLOY_ENV:?DEPLOY_ENV must be set}
-      INSTANCE_NAME: ${INSTANCE_NAME:?INSTANCE_NAME must be set}
-      LOKI_URL: ${LOKI_URL:?LOKI_URL must be set}
+      DEPLOY_ENV: dev
+      INSTANCE_NAME: nook-dev
+      LOKI_URL: ${LOKI_URL:-}
     command:
       - run
       - --storage.path=/var/lib/alloy/data
