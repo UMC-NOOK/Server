@@ -168,6 +168,22 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                         .andExpect(jsonPath("$.code").value("COMMON-002"))
                         .andExpect(jsonPath("$.result.contentType").exists());
             }
+
+            @Test
+            @WithCustomUser
+            void 단건_업로드_URL_발급_실패_유효하지않은_업로드타입() throws Exception {
+                // when & then
+                mockMvc.perform(post("/api/v1/images/upload-url")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                        new ImageUploadRequestDto("invalid", "image/png")
+                                )))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("COMMON-002"))
+                        .andExpect(jsonPath("$.result.uploadType").exists());
+            }
         }
     }
 }
