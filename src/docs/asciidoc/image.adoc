@@ -3,6 +3,7 @@
 프론트가 해야 하는 일은 아래 순서입니다.
 
 1. 이미지 업로드 URL 발급 API를 호출해서 `uploadUrl(imageUrl)` 과 `key` 를 받습니다.
+   요청에는 `uploadType`(업로드 위치: book, record, profile)과 `contentType`(이미지 MIME 타입: image/jpeg, image/png, image/webp)을 함께 보내야 합니다.
 2. 응답으로 받은 `uploadUrl` 로 파일을 `PUT` 업로드합니다.
    URL 발급 요청에 보낸 `contentType` 과 파일 업로드 시 `Content-Type` 은 같아야 합니다.
 ```
