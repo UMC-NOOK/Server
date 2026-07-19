@@ -284,25 +284,33 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
     }
 
     // 감상별 독서 기록 개수 조회
-    public BookRecordDto.RecordEmotionCountResponse countRecordsByEmotion(Long userId) {
+    public BookRecordDto.RecordEmotionCountResponse countRecordsByEmotion(Long userId, Long bookId) {
         Long totalCount = Optional.ofNullable(
                 queryFactory
                         .select(record.count())
                         .from(record)
-                        .where(record.library.user.id.eq(userId))
+                        .where(
+                                record.library.user.id.eq(userId),
+                                record.library.book.id.eq(bookId)
+                        )
                         .fetchOne()
         ).orElse(0L);
 
         List<BookRecordDto.RecordEmotionDto> emotionCounts = queryFactory
                 .select(Projections.constructor(BookRecordDto.RecordEmotionDto.class,
-                        record.emotion,
+                        record.emotion.stringValue(),
                         record.count()
                 ))
                 .from(record)
-                .where(record.library.user.id.eq(userId))
+                .where(
+                        record.library.user.id.eq(userId),
+                        record.library.book.id.eq(bookId)
+                )
                 .groupBy(record.emotion)
                 .fetch();
 
         return new BookRecordDto.RecordEmotionCountResponse(totalCount, emotionCounts);
     }
+
+
 }

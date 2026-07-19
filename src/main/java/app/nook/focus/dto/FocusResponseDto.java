@@ -38,4 +38,15 @@ public class FocusResponseDto {
             Long totalFocusSec,
             String readingStatus
     ) {}
+
+    public record RecentFocusItem(
+            Long focusId,
+            Long bookId,
+            String bookTitle,
+            String author,
+            String coverImageUrl,
+            LocalDateTime startedAt,
+            LocalDateTime endedAt,
+            String durationText
+    ) {}
 }

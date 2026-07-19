@@ -7,15 +7,18 @@ import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.library.converter.LibraryConverter;
 import app.nook.library.domain.Library;
+import app.nook.library.domain.enums.LibrarySortType;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.dto.LibraryBookCursor;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.library.repository.dto.LibraryBookQueryResult;
 import app.nook.library.util.FocusTimeUtil;
+import app.nook.library.util.LibraryBookCursorCodec;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,11 +50,6 @@ public class LibraryQueryService {
         return new LibraryViewDto.BookCountResponseDto(libraryRepository.countByUserId(userId));
     }
 
-    @Cacheable(
-            value = "libraryStatusFirstPage",
-            key = "#userId + ':' + #status",
-            condition = "#cursor == null && #size == 20"
-    )
     public LibraryViewDto.StatusBookResponseDto getBooksByStatus(
             Long userId,
             ReadingStatus status,
@@ -82,7 +80,10 @@ public class LibraryQueryService {
     }
 
     public Set<String> getOwnedIsbns(Long userId, List<String> isbns) {
-        return libraryRepository.findIsbnsByUserIdAndIsbnIn(userId, isbns);
+        if (isbns.isEmpty()) {
+            return Set.of();
+        }
+        return libraryRepository.findAladinIsbnsByUserIdAndIsbnIn(userId, isbns);
     }
 
     public Page<Library> searchBooksInLibrary(Long userId, String keyword, int page, int size) {
@@ -201,10 +202,10 @@ public class LibraryQueryService {
         // 커서 계산은 유지하고, 아이템만 조회 가능한 URL로 치환
         CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse =
                 LibraryConverter.toCursorResponse(libraries, size);
-        List<LibraryViewDto.UserStatusBookItem> resolvedItems = cursorResponse.getItems().stream()
+        List<LibraryViewDto.UserStatusBookItem> resolvedItems = cursorResponse.items().stream()
                 .map(item -> resolveStatusBookItem(userId, item))
                 .toList();
-        return CursorResponse.of(resolvedItems, cursorResponse.getNextCursor(), cursorResponse.isHasNext());
+        return CursorResponse.of(resolvedItems, cursorResponse.nextCursor(), cursorResponse.hasNext());
     }
 
     private LibraryViewDto.UserStatusBookItem resolveStatusBookItem(Long userId, LibraryViewDto.UserStatusBookItem item) {
@@ -230,6 +231,38 @@ public class LibraryQueryService {
                 finished.startedAt(),
                 finished.endedAt()
         );
+    }
+
+    // 서재 전체 책 목록 조회 (무한스크롤)
+    public CursorResponse<LibraryViewDto.LibraryBookItem, String> getAllBooks(
+            Long userId, LibraryBookCursor cursor, LibrarySortType sortType, int size
+    ) {
+        List<LibraryBookQueryResult> results = libraryRepository.findAllBooksByCursor(userId, cursor, sortType, size);
+
+        boolean hasNext = results.size() > size;
+        List<LibraryBookQueryResult> pageContent = hasNext ? results.subList(0, size) : results;
+
+        LibraryBookCursor nextCursor = hasNext ? toNextCursor(pageContent.get(pageContent.size() - 1), sortType) : null;
+
+        List<LibraryViewDto.LibraryBookItem> items = pageContent.stream()
+                .map(r -> new LibraryViewDto.LibraryBookItem(
+                        r.bookId(),
+                        r.title(),
+                        r.author(),
+                        presignedUrlService.resolveImageUrl(userId, r.coverImageKey()),
+                        r.readingStatus()
+                ))
+                .toList();
+
+        return CursorResponse.of(items, LibraryBookCursorCodec.encode(nextCursor), hasNext);
+    }
+
+    private LibraryBookCursor toNextCursor(LibraryBookQueryResult last, LibrarySortType sortType) {
+        return switch (sortType) {
+            case RECENT_FOCUSED -> new LibraryBookCursor(last.libraryId(), last.lastFocusedAt(), null, null);
+            case RECORD_COUNT_DESC, RECORD_COUNT_ASC -> new LibraryBookCursor(last.libraryId(), null, last.recordCount(), null);
+            case ALPHABETICAL -> new LibraryBookCursor(last.libraryId(), null, null, last.title());
+        };
     }
 
     private User getUser(Long userId) {

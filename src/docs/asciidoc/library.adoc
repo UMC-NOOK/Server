@@ -56,6 +56,31 @@ include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_s
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_size_최대값초과/request-headers.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_size_최대값초과/http-response.adoc[]
 
+=== 서재 전체 책 목록 조회(독서기록에서 진입)
+
+include::{snippets}/view-all-books/서재_전체_책_목록_조회_성공/http-request.adoc[]
+include::{snippets}/view-all-books/서재_전체_책_목록_조회_성공/request-headers.adoc[]
+include::{snippets}/view-all-books/서재_전체_책_목록_조회_성공/query-parameters.adoc[]
+include::{snippets}/view-all-books/서재_전체_책_목록_조회_성공/http-response.adoc[]
+include::{snippets}/view-all-books/서재_전체_책_목록_조회_성공/response-fields.adoc[]
+
+==== 빈 목록 (204)
+
+include::{snippets}/view-all-books/서재_전체_책_목록_조회_빈목록이면_no_content_코드/http-request.adoc[]
+include::{snippets}/view-all-books/서재_전체_책_목록_조회_빈목록이면_no_content_코드/http-response.adoc[]
+
+==== 실패 케이스
+
+===== cursor 형식 오류 (400)
+
+include::{snippets}/view-all-books/서재_전체_책_목록_조회_실패_cursor_형식오류/http-request.adoc[]
+include::{snippets}/view-all-books/서재_전체_책_목록_조회_실패_cursor_형식오류/http-response.adoc[]
+
+===== size 최대값 초과 (400)
+
+include::{snippets}/view-all-books/서재_전체_책_목록_조회_실패_size_최대값초과/http-request.adoc[]
+include::{snippets}/view-all-books/서재_전체_책_목록_조회_실패_size_최대값초과/http-response.adoc[]
+
 === 읽기 전 상태의 책 5권 조회
 
 include::{snippets}/library-controller-test/읽기전_상태_책_5권_조회_성공/http-request.adoc[]

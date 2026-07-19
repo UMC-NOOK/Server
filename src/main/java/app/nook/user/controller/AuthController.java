@@ -11,12 +11,14 @@ import app.nook.user.oauth.OAuthService;
 import app.nook.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Api1Version
 @RequiredArgsConstructor
 @RequestMapping("/auth")
+@Validated
 public class AuthController {
 
     private final OAuthService oAuthService;
@@ -71,11 +73,22 @@ public class AuthController {
         );
     }
 
+    @PostMapping("/reissue")
+    public ApiResponse<UserDTO.TokenReissueResponse> reissueAccessToken(
+            @Valid @RequestBody UserDTO.TokenReissueRequest request
+    ) {
+        return ApiResponse.onSuccess(
+                userService.reissueAccessToken(request.getRefreshToken()),
+                SuccessCode.OK
+        );
+    }
+
     // 현재 로그인한 유저 확인
     @GetMapping("/me")
-    public ApiResponse<UserDTO.LoginResponse> user(
+    public ApiResponse<UserDTO.UserInfo> user(
             @CurrentUser User user
             ){
         return ApiResponse.onSuccess(userService.getThisUser(user),SuccessCode.OK);
     }
+
 }

@@ -32,6 +32,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWit
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
@@ -68,6 +69,8 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         .email("jiwon@kakao.com")
                         .nickName("jiwon")
                         .accessToken("test-access-token")
+                        .refreshToken("test-refresh-token")
+                        .onboardingCompleted(false)
                         .build();
 
         given(oAuthService.login(any(), any()))
@@ -80,6 +83,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.onboardingCompleted").value(false))
                 .andDo(restDocs.document(
                         requestFields(
                                 fieldWithPath("code")
@@ -92,7 +96,9 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.id").description("사용자ID"),
                                         fieldWithPath("result.email").description("이메일"),
                                         fieldWithPath("result.nickName").description("닉네임"),
-                                        fieldWithPath("result.accessToken").description("엑세스 토큰")
+                                        fieldWithPath("result.accessToken").description("엑세스 토큰"),
+                                        fieldWithPath("result.refreshToken").description("리프레시 토큰"),
+                                        fieldWithPath("result.onboardingCompleted").description("온보딩 완료 여부")
                                 )
                         )
                 ));
@@ -110,6 +116,8 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         .email("dev@test.com")
                         .nickName("DEV_USER")
                         .accessToken("test-access-token")
+                        .refreshToken("test-refresh-token")
+                        .onboardingCompleted(false)
                         .build();
 
         given(userService.devLogin(any()))
@@ -122,6 +130,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.onboardingCompleted").value(false))
                 .andDo(restDocs.document(
                         requestFields(
                                 fieldWithPath("email")
@@ -134,7 +143,9 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.id").description("사용자ID"),
                                         fieldWithPath("result.email").description("이메일"),
                                         fieldWithPath("result.nickName").description("닉네임"),
-                                        fieldWithPath("result.accessToken").description("엑세스 토큰")
+                                        fieldWithPath("result.accessToken").description("엑세스 토큰"),
+                                        fieldWithPath("result.refreshToken").description("리프레시 토큰"),
+                                        fieldWithPath("result.onboardingCompleted").description("온보딩 완료 여부")
                                 )
                         )
                 ));
@@ -150,6 +161,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         .id(3L)
                         .email("new@test.com")
                         .nickName("NEW_USER")
+                        .onboardingCompleted(false)
                         .build();
 
         given(userService.devSignUp(any()))
@@ -161,6 +173,7 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.onboardingCompleted").value(false))
                 .andDo(restDocs.document(
                         requestFields(
                                 fieldWithPath("email").description("DEV 유저 이메일"),
@@ -170,7 +183,8 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 ApiResponseSnippet.withResult(
                                         fieldWithPath("result.id").description("사용자ID"),
                                         fieldWithPath("result.email").description("이메일"),
-                                        fieldWithPath("result.nickName").description("닉네임")
+                                        fieldWithPath("result.nickName").description("닉네임"),
+                                        fieldWithPath("result.onboardingCompleted").description("온보딩 완료 여부")
                                 )
                         )
                 ));
@@ -225,6 +239,48 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
     }
 
     @Test
+    void 토큰_재발급_성공() throws Exception {
+        UserDTO.TokenReissueRequest request = new UserDTO.TokenReissueRequest("valid-refresh-token");
+        UserDTO.TokenReissueResponse response = new UserDTO.TokenReissueResponse("new-access-token", "new-refresh-token");
+
+        given(userService.reissueAccessToken(any()))
+                .willReturn(response);
+
+        mockMvc.perform(
+                        post("/api/v1/auth/reissue")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isOk())
+                .andDo(restDocs.document(
+                        requestFields(
+                                fieldWithPath("refreshToken").description("새 access token 발급에 사용할 refresh token")
+                        ),
+                        responseFields(
+                                ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.accessToken").description("재발급된 access token"),
+                                        fieldWithPath("result.refreshToken").description("재발급된 refresh token")
+                                )
+                        )
+                ));
+    }
+
+    @Test
+    void 토큰_재발급_실패_만료된_리프레시토큰() throws Exception {
+        UserDTO.TokenReissueRequest request = new UserDTO.TokenReissueRequest("expired-refresh-token");
+
+        given(userService.reissueAccessToken(any()))
+                .willThrow(new CustomException(AuthErrorCode.TOKEN_EXPIRED));
+
+        mockMvc.perform(
+                        post("/api/v1/auth/reissue")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void 내정보_조회_성공() throws Exception {
         // given
         User user = User.builder()
@@ -237,12 +293,11 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
 
         CustomUserDetails userDetails = new CustomUserDetails(user);
 
-        UserDTO.LoginResponse response =
-                UserDTO.LoginResponse.builder()
-                        .id(2L)
-                        .email("jiwon@kakao.com")
-                        .nickName("jiwon")
-                        .build();
+        UserDTO.UserInfo response = new UserDTO.UserInfo(
+                2L,
+                "jiwon@kakao.com",
+                "jiwon"
+        );
 
         given(userService.getThisUser(any()))
                 .willReturn(response);
@@ -265,4 +320,5 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                         )
                 ));
     }
+
 }

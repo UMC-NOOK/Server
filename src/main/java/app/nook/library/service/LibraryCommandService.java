@@ -3,11 +3,15 @@ package app.nook.library.service;
 import app.nook.book.domain.Book;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
+import app.nook.book.service.BookAccessService;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.library.domain.Library;
+import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
+import app.nook.library.dto.ReadingStatusResponse;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
@@ -22,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,13 +40,15 @@ public class LibraryCommandService {
     private final TimelineCommandService timelineCommandService;
     private final ApplicationEventPublisher eventPublisher;
     private final UserRepository userRepository;
+    private final BookAccessService bookAccessService;
 
     @Transactional
-    public void registerBook(Long userId, Long bookId) {
+    public LibraryViewDto.BookStatusResponseDto registerBook(Long userId, Long bookId) {
         // 등록 대상 도서와 사용자 조회
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
         User user = getUser(userId);
+        bookAccessService.assertCanAddToLibrary(user, book);
 
         // 이미 서재에 있는 도서는 중복 등록 차단
         if (libraryRepository.findByUserIdAndBook(userId, book).isPresent()) {
@@ -59,36 +65,38 @@ public class LibraryCommandService {
         }
 
         timelineCommandService.appendRegister(savedLibrary);
-        eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(userId));
+        return toBookStatusResponse(savedLibrary);
     }
 
     @Transactional
-    public void deleteByBookId(Long userId, Long bookId) {
+    public LibraryViewDto.BookStatusResponseDto deleteByBookId(Long userId, Long bookId) {
         // 삭제 대상 도서와 서재 등록 여부 확인
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
         Library library = libraryRepository.findByUserIdAndBook(userId, book)
                 .orElseThrow(() -> new CustomException(LibraryErrorCode.BOOK_NOT_EXIST));
 
-        // 삭제로 영향받는 월별 통계 범위를 먼저 수집
-        List<YearMonth> affectedYearMonths = focusRepository.findDistinctFocusDatesByLibraryAndUser(
-                        library.getId(),
-                        userId
-                ).stream()
+        boolean evictOnboardingGoal = library.getReadingStatus() == ReadingStatus.FINISHED;
+        Set<YearMonth> affectedYearMonths = focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId)
+                .stream()
                 .map(YearMonth::from)
-                .distinct()
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
 
-        // 삭제 이후 상태 캐시와 월별 캐시를 함께 무효화
         libraryRepository.delete(library);
 
-        eventPublisher.publishEvent(
-                LibraryCacheInvalidateEvent.statusAndMonthly(userId, affectedYearMonths)
+        eventPublisher.publishEvent(evictOnboardingGoal
+                ? LibraryCacheInvalidateEvent.monthlyAndOnboardingGoal(userId, affectedYearMonths)
+                : LibraryCacheInvalidateEvent.monthly(userId, affectedYearMonths));
+        return new LibraryViewDto.BookStatusResponseDto(
+                bookId,
+                null,
+                null,
+                ReadingStatusResponse.UNREGISTERED
         );
     }
 
     @Transactional
-    public void changeReadingStatus(Long userId, ReadingStatusRequestDto requestDto) {
+    public LibraryViewDto.BookStatusResponseDto changeReadingStatus(Long userId, ReadingStatusRequestDto requestDto) {
         // 상태 변경 대상 도서와 서재 엔티티 조회
         Book book = bookRepository.findById(requestDto.bookId())
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
@@ -100,15 +108,31 @@ public class LibraryCommandService {
             throw new CustomException(LibraryErrorCode.BOOK_STATUS_INVALID);
         }
 
-        // 상태 변경 이력과 첫 페이지 캐시를 함께 갱신
         LocalDateTime occurredAt = LocalDateTime.now();
+        ReadingStatus beforeStatus = library.getReadingStatus();
         library.updateStatus(requestDto.readingStatus());
         timelineCommandService.appendStatusChanged(library, occurredAt);
-        eventPublisher.publishEvent(LibraryCacheInvalidateEvent.statusOnly(userId));
+        if (affectsFinishedCount(beforeStatus, requestDto.readingStatus())) {
+            eventPublisher.publishEvent(LibraryCacheInvalidateEvent.onboardingGoal(userId));
+        }
+        return toBookStatusResponse(library);
+    }
+
+    private boolean affectsFinishedCount(ReadingStatus beforeStatus, ReadingStatus afterStatus) {
+        return beforeStatus == ReadingStatus.FINISHED || afterStatus == ReadingStatus.FINISHED;
     }
 
     private User getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+    }
+
+    private LibraryViewDto.BookStatusResponseDto toBookStatusResponse(Library library) {
+        return new LibraryViewDto.BookStatusResponseDto(
+                library.getBook().getId(),
+                library.getId(),
+                library.getId(),
+                ReadingStatusResponse.from(library.getReadingStatus())
+        );
     }
 }

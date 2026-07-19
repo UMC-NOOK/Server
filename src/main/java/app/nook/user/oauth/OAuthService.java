@@ -93,6 +93,8 @@ public class OAuthService {
                 .email(user.getEmail())
                 .nickName(user.getNickName())
                 .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .onboardingCompleted(user.isOnboardingCompleted())
                 .build();
     }
 
@@ -143,7 +145,7 @@ public class OAuthService {
             return OAuthDTO.TokenWrapper.fromGoogle(token);
 
         } catch (Exception e) {
-            log.error("Google token request failed", e);
+            log.error("Google token request failed.", e);
             throw new CustomException(OAuthErrorCode.INVALID_OAUTH_TOKEN);
         }
     }
@@ -181,7 +183,7 @@ public class OAuthService {
             return OAuthDTO.TokenWrapper.fromKakao(token);
 
         } catch (Exception e) {
-            log.error("Kakao token request failed", e);
+            log.error("Kakao token request failed.", e);
             throw new CustomException(OAuthErrorCode.INVALID_OAUTH_TOKEN);
         }
     }

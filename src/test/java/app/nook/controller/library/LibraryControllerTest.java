@@ -5,12 +5,16 @@ import app.nook.global.common.security.WithCustomUser;
 import app.nook.global.config.WebSecurityConfig;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.global.dto.CursorResponse;
+import app.nook.library.domain.enums.LibrarySortType;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.controller.LibraryController;
+import app.nook.library.dto.LibraryBookCursor;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
+import app.nook.library.dto.ReadingStatusResponse;
 import app.nook.library.service.LibraryCommandService;
 import app.nook.library.service.LibraryQueryService;
+import app.nook.library.util.LibraryBookCursorCodec;
 import app.nook.user.filter.JwtExceptionFilter;
 import app.nook.user.filter.JwtFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,12 +32,15 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
@@ -73,9 +80,13 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     ObjectMapper objectMapper;
 
     @Test
+    @DisplayName("서재에 책 등록 성공")
     @WithCustomUser
     void 서재_책_등록_성공() throws Exception {
-        willDoNothing().given(libraryCommandService).registerBook(anyLong(), anyLong());
+        LibraryViewDto.BookStatusResponseDto response =
+                new LibraryViewDto.BookStatusResponseDto(1L, 10L, 10L, ReadingStatusResponse.BEFORE);
+
+        given(libraryCommandService.registerBook(anyLong(), anyLong())).willReturn(response);
 
         // when & then
         mockMvc.perform(
@@ -84,19 +95,32 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                 .with(csrf())
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.bookId").value(1L))
+                .andExpect(jsonPath("$.result.bookShelfId").value(10L))
+                .andExpect(jsonPath("$.result.libraryId").value(10L))
+                .andExpect(jsonPath("$.result.readingStatus").value("BEFORE"))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         pathParameters(
                                 parameterWithName("bookId").description("서재에 추가할 도서 ID")
                         ),
-                        responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                        responseFields(ApiResponseSnippet.withResult(
+                                fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
+                                fieldWithPath("result.bookShelfId").type(NUMBER).description("서재 ID"),
+                                fieldWithPath("result.libraryId").type(NUMBER).description("서재 ID"),
+                                fieldWithPath("result.readingStatus").type(STRING).description("독서 상태")
+                        ))
                 ));
     }
 
     @Test
+    @DisplayName("서재에서 책 삭제 성공")
     @WithCustomUser
     void 서재_책_삭제_성공() throws Exception {
-        willDoNothing().given(libraryCommandService).deleteByBookId(anyLong(), anyLong());
+        LibraryViewDto.BookStatusResponseDto response =
+                new LibraryViewDto.BookStatusResponseDto(1L, null, null, ReadingStatusResponse.UNREGISTERED);
+
+        given(libraryCommandService.deleteByBookId(anyLong(), anyLong())).willReturn(response);
 
         // when & then
         mockMvc.perform(
@@ -105,21 +129,33 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                 .with(csrf())
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.bookId").value(1L))
+                .andExpect(jsonPath("$.result.bookShelfId").value(nullValue()))
+                .andExpect(jsonPath("$.result.libraryId").value(nullValue()))
+                .andExpect(jsonPath("$.result.readingStatus").value("UNREGISTERED"))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         pathParameters(
                                 parameterWithName("bookId").description("서재에서 삭제할 도서 ID")
                         ),
-                        responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                        responseFields(ApiResponseSnippet.withResult(
+                                fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
+                                fieldWithPath("result.bookShelfId").type(NULL).description("서재 ID (삭제 후 null)"),
+                                fieldWithPath("result.libraryId").type(NULL).description("서재 ID (삭제 후 null)"),
+                                fieldWithPath("result.readingStatus").type(STRING).description("독서 상태 (삭제 후 미등록 상태)")
+                        ))
                 ));
     }
 
     @Test
+    @DisplayName("서재 책 상태변경 성공")
     @WithCustomUser
     void 서재_책_상태변경_성공() throws Exception {
         ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
+        LibraryViewDto.BookStatusResponseDto response =
+                new LibraryViewDto.BookStatusResponseDto(1L, 10L, 10L, ReadingStatusResponse.READING);
 
-        willDoNothing().given(libraryCommandService).changeReadingStatus(anyLong(), any());
+        given(libraryCommandService.changeReadingStatus(anyLong(), any())).willReturn(response);
 
         // when & then
         mockMvc.perform(
@@ -130,13 +166,22 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                 .with(csrf())
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.bookId").value(1L))
+                .andExpect(jsonPath("$.result.bookShelfId").value(10L))
+                .andExpect(jsonPath("$.result.libraryId").value(10L))
+                .andExpect(jsonPath("$.result.readingStatus").value("READING"))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         requestFields(
                                 fieldWithPath("bookId").description("상태 변경할 도서 ID"),
                                 fieldWithPath("readingStatus").description("독서 상태 (READING, FINISHED, BEFORE)")
                         ),
-                        responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                        responseFields(ApiResponseSnippet.withResult(
+                                fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
+                                fieldWithPath("result.bookShelfId").type(NUMBER).description("서재 ID"),
+                                fieldWithPath("result.libraryId").type(NUMBER).description("서재 ID"),
+                                fieldWithPath("result.readingStatus").type(STRING).description("변경된 독서 상태")
+                        ))
                 ));
     }
 
@@ -161,6 +206,45 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
     }
 
     @Test
+    @WithCustomUser
+    void 서재_책_상태변경_실패_bookId_누락() throws Exception {
+        mockMvc.perform(
+                        patch("/api/v1/library/status")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "readingStatus": "READING"
+                                        }
+                                        """)
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .with(csrf())
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON-002"));
+    }
+
+    @Test
+    @WithCustomUser
+    void 서재_책_상태변경_실패_readingStatus_누락() throws Exception {
+        mockMvc.perform(
+                        patch("/api/v1/library/status")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "bookId": 1
+                                        }
+                                        """)
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .with(csrf())
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON-002"));
+    }
+
+    @Test
+    @DisplayName("서재 상태별 책 조회 성공")
     @WithCustomUser
     void 서재_상태별_책_조회_성공() throws Exception {
         LibraryViewDto.UserStatusBookItem item =
@@ -236,6 +320,34 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
 
     @Test
     @WithCustomUser
+    void 서재_상태별_책_조회_성공_cursor_0은_첫조회로_처리() throws Exception {
+        LibraryViewDto.StatusBookResponseDto response =
+                new LibraryViewDto.StatusBookResponseDto(
+                        ReadingStatus.READING,
+                        1,
+                        CursorResponse.of(List.of(), null, false)
+                );
+
+        given(libraryQueryService.getBooksByStatus(anyLong(), eq(ReadingStatus.READING), isNull(), eq(20)))
+                .willReturn(response);
+
+        mockMvc.perform(
+                        get("/api/v1/library/status")
+                                .param("status", "READING")
+                                .param("cursor", "0")
+                                .param("size", "20")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isOk())
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}"
+                ));
+
+        verify(libraryQueryService).getBooksByStatus(anyLong(), eq(ReadingStatus.READING), isNull(), eq(20));
+    }
+
+    @Test
+    @WithCustomUser
     void 서재_상태별_책_조회_실패_cursor_음수() throws Exception {
         mockMvc.perform(
                         get("/api/v1/library/status")
@@ -293,6 +405,111 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                 .param("status", "READING")
                 )
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Nested
+    @DisplayName("서재 전체 책 목록 조회")
+    class ViewAllBooks {
+
+        @Test
+        @WithCustomUser
+        void 서재_전체_책_목록_조회_성공() throws Exception {
+            LibraryViewDto.LibraryBookItem item = new LibraryViewDto.LibraryBookItem(
+                    1L,
+                    "타이틀",
+                    "작가",
+                    "https://example.com/cover.jpg",
+                    ReadingStatus.READING
+            );
+            CursorResponse<LibraryViewDto.LibraryBookItem, String> response =
+                    CursorResponse.of(List.of(item), "next-cursor", true);
+            String cursor = LibraryBookCursorCodec.encode(
+                    new LibraryBookCursor(10L, null, 3L, null)
+            );
+
+            given(libraryQueryService.getAllBooks(anyLong(), any(), any(), anyInt()))
+                    .willReturn(response);
+
+            mockMvc.perform(
+                            get("/api/v1/library/books")
+                                    .param("sort", "RECORD_COUNT_DESC")
+                                    .param("cursor", cursor)
+                                    .param("size", "1")
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.isSuccess").value(true))
+                    .andExpect(jsonPath("$.code").value("SUCCESS-200"))
+                    .andExpect(jsonPath("$.result.items[0].bookId").value(1L))
+                    .andExpect(jsonPath("$.result.items[0].readingStatus").value("READING"))
+                    .andExpect(jsonPath("$.result.nextCursor").value("next-cursor"))
+                    .andExpect(jsonPath("$.result.hasNext").value(true))
+                    .andDo(documentWithAuth(
+                            "{class-name}/{method-name}",
+                            queryParameters(
+                                    parameterWithName("sort").optional().description("정렬 기준(최근 포커스순, 기록 많은 순, 기록 적은 순, 가나다순) (RECENT_FOCUSED, RECORD_COUNT_DESC, RECORD_COUNT_ASC, ALPHABETICAL)"),
+                                    parameterWithName("cursor").optional().description("다음 페이지 조회용 커서. 최초 조회 시 미전달"),
+                                    parameterWithName("size").optional().description("조회할 개수")
+                            ),
+                            responseFields(ApiResponseSnippet.withResult(
+                                    fieldWithPath("result.items").type(ARRAY).description("서재 도서 목록"),
+                                    fieldWithPath("result.items[].bookId").type(NUMBER).description("도서 ID"),
+                                    fieldWithPath("result.items[].title").type(STRING).description("도서 제목"),
+                                    fieldWithPath("result.items[].author").type(STRING).description("도서 저자"),
+                                    fieldWithPath("result.items[].coverUrl").type(STRING).description("도서 커버 URL"),
+                                    fieldWithPath("result.items[].readingStatus").type(STRING).description("독서 상태"),
+                                    fieldWithPath("result.nextCursor").type(STRING).description("다음 커서"),
+                                    fieldWithPath("result.hasNext").type(BOOLEAN).description("다음 페이지 존재 여부")
+                            ))
+                    ));
+
+            verify(libraryQueryService).getAllBooks(anyLong(), any(LibraryBookCursor.class), any(LibrarySortType.class), anyInt());
+        }
+
+        @Test
+        @WithCustomUser
+        void 서재_전체_책_목록_조회_빈목록이면_NO_CONTENT_코드() throws Exception {
+            CursorResponse<LibraryViewDto.LibraryBookItem, String> response =
+                    CursorResponse.of(List.of(), null, false);
+            given(libraryQueryService.getAllBooks(anyLong(), any(), any(), anyInt()))
+                    .willReturn(response);
+
+            mockMvc.perform(
+                            get("/api/v1/library/books")
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.isSuccess").value(true))
+                    .andExpect(jsonPath("$.code").value("SUCCESS-204"))
+                    .andExpect(jsonPath("$.result").doesNotExist());
+        }
+
+        @Test
+        @WithCustomUser
+        void 서재_전체_책_목록_조회_실패_cursor_형식오류() throws Exception {
+            mockMvc.perform(
+                            get("/api/v1/library/books")
+                                    .param("cursor", "invalid-cursor")
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                    )
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.isSuccess").value(false));
+
+            verifyNoInteractions(libraryCommandService, libraryQueryService);
+        }
+
+        @Test
+        @WithCustomUser
+        void 서재_전체_책_목록_조회_실패_size_최대값초과() throws Exception {
+            mockMvc.perform(
+                            get("/api/v1/library/books")
+                                    .param("size", "101")
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                    )
+                    .andExpect(status().isBadRequest());
+
+            verifyNoInteractions(libraryCommandService, libraryQueryService);
+        }
     }
 
     @Test
@@ -541,6 +758,24 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         .andDo(documentWithAuth(
                                 "{class-name}/{method-name}"
                         ));
+            }
+
+            @Test
+            @DisplayName("cursor가 0이면 400")
+            @WithCustomUser
+            void invalidCursorZero() throws Exception {
+                mockMvc.perform(
+                                get("/api/v1/library/focus-records")
+                                        .param("date", "2026-02-26")
+                                        .param("cursor", "0")
+                                        .header(AUTH_HEADER, AUTH_TOKEN)
+                        )
+                        .andExpect(status().isBadRequest())
+                        .andDo(documentWithAuth(
+                                "{class-name}/{method-name}"
+                        ));
+
+                verifyNoInteractions(libraryCommandService, libraryQueryService);
             }
         }
     }

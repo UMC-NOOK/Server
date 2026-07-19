@@ -1,6 +1,7 @@
 package app.nook.library.dto;
 
 import app.nook.global.dto.CursorResponse;
+import app.nook.library.domain.enums.LibrarySortType;
 import app.nook.library.domain.enums.ReadingStatus;
 
 import java.time.LocalDate;
@@ -13,6 +14,13 @@ public class LibraryViewDto {
             Long bookId,
             String ISBN,
             String coverUrl
+    ){}
+
+    public record BookStatusResponseDto(
+            Long bookId,
+            Long bookShelfId,
+            Long libraryId,
+            ReadingStatusResponse readingStatus
     ){}
 
     public record MonthlyBookResponseDto(
@@ -37,7 +45,7 @@ public class LibraryViewDto {
     public record StatusBookResponseDto(
             ReadingStatus readingStatus,
             int totalBookNum,
-            CursorResponse<? extends UserStatusBookItem, Long> bookItems
+            CursorResponse<UserStatusBookItem, Long> bookItems
     ) {}
 
 
@@ -100,4 +108,12 @@ public class LibraryViewDto {
     public record YearResponseDto(
             List<Integer> years
     ){}
+
+    public record LibraryBookItem(
+            Long bookId,
+            String title,
+            String author,
+            String coverUrl,
+            ReadingStatus readingStatus
+    ) {}
 }

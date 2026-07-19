@@ -46,11 +46,6 @@ public class RecordController {
                         RecordListCursorCodec.decode(cursor),
                         order
                 );
-
-        if (response.getItems().isEmpty()) {
-            return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
-        }
-
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
@@ -64,20 +59,16 @@ public class RecordController {
     ) {
         CursorResponse<BookRecordDto.RecordItemDto, Long> response =
                 recordQueryService.getBookRecords(user, bookId, size, cursor, emotion);
-
-        if (response.getItems().isEmpty()) {
-            return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
-        }
-
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
-    @GetMapping("/emotions")
+    @GetMapping("/emotions/{bookId}")
     public ApiResponse<BookRecordDto.RecordEmotionCountResponse> getRecordEmotionCounts(
-            @CurrentUser User user
+            @CurrentUser User user,
+            @PathVariable Long bookId
     ) {
         return ApiResponse.onSuccess(
-                recordQueryService.getRecordEmotionCounts(user),
+                recordQueryService.getRecordEmotionCounts(user,bookId),
                 SuccessCode.OK
         );
     }
@@ -120,5 +111,17 @@ public class RecordController {
                 SuccessCode.OK
         );
     }
+
+    @GetMapping("/{recordId}")
+    public ApiResponse<BookRecordDto.RecordItemDto> getRecordDetail(
+            @CurrentUser User user,
+            @PathVariable Long recordId
+    ) {
+        return ApiResponse.onSuccess(
+                recordQueryService.getRecordDetail(user, recordId),
+                SuccessCode.OK
+        );
+    }
+
 
 }

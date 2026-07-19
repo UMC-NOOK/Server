@@ -91,7 +91,7 @@ public class WebSecurityConfig {
                 "http://localhost:5173",
                 "http://localhost:8080",
                 "https://dev.reading-nook.site",
-                "https://readingnook.netlify.app"
+                "https://nook-rho-ruddy.vercel.app"
         ));
         config.addExposedHeader("Authorization");
         config.setAllowedHeaders(List.of(

@@ -3,19 +3,26 @@ package app.nook.library.service;
 import app.nook.book.domain.Book;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
+import app.nook.book.service.BookAccessService;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.repository.FocusRepository;
+import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
 import app.nook.global.fixture.BookFixture;
 import app.nook.global.fixture.LibraryFixture;
 import app.nook.global.fixture.UserFixture;
 import app.nook.library.domain.Library;
+import app.nook.library.domain.enums.LibrarySortType;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.dto.LibraryBookCursor;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.dto.ReadingStatusRequestDto;
+import app.nook.library.dto.ReadingStatusResponse;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.library.repository.dto.LibraryBookQueryResult;
+import app.nook.library.util.LibraryBookCursorCodec;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
@@ -51,6 +58,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -79,6 +87,9 @@ class LibraryServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private BookAccessService bookAccessService;
 
     @InjectMocks
     private LibraryCommandService libraryCommandService;
@@ -113,8 +124,13 @@ class LibraryServiceTest {
                 return saved;
             });
 
-            libraryCommandService.registerBook(1L, 1L);
+            LibraryViewDto.BookStatusResponseDto response =
+                    libraryCommandService.registerBook(1L, 1L);
 
+            assertThat(response.bookId()).isEqualTo(1L);
+            assertThat(response.bookShelfId()).isEqualTo(1L);
+            assertThat(response.libraryId()).isEqualTo(1L);
+            assertThat(response.readingStatus()).isEqualTo(ReadingStatusResponse.BEFORE);
             verify(timelineCommandService).appendRegister(any());
         }
 
@@ -144,6 +160,23 @@ class LibraryServiceTest {
 
             assertThat(ex.getErrorCode()).isEqualTo(LibraryErrorCode.BOOK_ALREADY_EXIST);
         }
+
+        @Test
+        @DisplayName("접근 권한이 없는 도서면 예외를 던진다")
+        void save_도서접근권한없음_예외() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            willThrow(new CustomException(BookErrorCode.BOOK_ACCESS_DENIED))
+                    .given(bookAccessService).assertCanAddToLibrary(user, book);
+
+            CustomException ex = assertThrows(CustomException.class, () -> libraryCommandService.registerBook(1L, 1L));
+
+            assertThat(ex.getErrorCode()).isEqualTo(BookErrorCode.BOOK_ACCESS_DENIED);
+            verify(libraryRepository, never()).saveAndFlush(any());
+        }
     }
 
     @Nested
@@ -159,10 +192,14 @@ class LibraryServiceTest {
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
-            given(focusRepository.findDistinctFocusDatesByLibraryAndUser(any(), any())).willReturn(List.of());
 
-            libraryCommandService.deleteByBookId(1L, 1L);
+            LibraryViewDto.BookStatusResponseDto response =
+                    libraryCommandService.deleteByBookId(1L, 1L);
 
+            assertThat(response.bookId()).isEqualTo(1L);
+            assertThat(response.bookShelfId()).isNull();
+            assertThat(response.libraryId()).isNull();
+            assertThat(response.readingStatus()).isEqualTo(ReadingStatusResponse.UNREGISTERED);
             verify(libraryRepository).delete(library);
         }
 
@@ -192,7 +229,7 @@ class LibraryServiceTest {
         }
 
         @Test
-        @DisplayName("삭제 시 영향 연월을 중복 제거해 캐시 무효화 이벤트를 발행한다")
+        @DisplayName("삭제 시 사용자 기준 월별 캐시 무효화 이벤트를 발행한다")
         void deleteById_캐시무효화_이벤트발행() {
             User user = UserFixture.user();
             Book book = BookFixture.book();
@@ -204,24 +241,40 @@ class LibraryServiceTest {
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
             given(focusRepository.findDistinctFocusDatesByLibraryAndUser(10L, 1L))
-                    .willReturn(List.of(
-                            LocalDate.of(2026, 2, 1),
-                            LocalDate.of(2026, 2, 5),
-                            LocalDate.of(2026, 3, 1)
-                    ));
+                    .willReturn(List.of(LocalDate.of(2026, 2, 1), LocalDate.of(2026, 3, 1)));
 
             libraryCommandService.deleteByBookId(1L, 1L);
 
             verify(eventPublisher).publishEvent(argThat((Object event) ->
                     event instanceof LibraryCacheInvalidateEvent cacheEvent
                             && cacheEvent.userId().equals(1L)
-                            && cacheEvent.evictStatusFirstPage()
-                            && cacheEvent.affectedYearMonths().containsAll(List.of(
+                            && cacheEvent.affectedYearMonths().equals(Set.of(
                             java.time.YearMonth.of(2026, 2),
                             java.time.YearMonth.of(2026, 3)
-                    ))
-                            && cacheEvent.affectedYearMonths().size() == 2
+                            ))
+                            && !cacheEvent.evictOnboardingGoal()
             ));
+        }
+
+        @Test
+        @DisplayName("삭제 시 영향 월 계산을 위해 포커스 날짜를 조회한다")
+        void deleteById_포커스날짜조회후_삭제() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
+
+            Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "id", 10L);
+
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+            given(focusRepository.findDistinctFocusDatesByLibraryAndUser(10L, 1L))
+                    .willReturn(List.of(LocalDate.of(2026, 2, 1)));
+
+            libraryCommandService.deleteByBookId(1L, 1L);
+
+            verify(focusRepository).findDistinctFocusDatesByLibraryAndUser(10L, 1L);
+            verify(libraryRepository).delete(library);
         }
     }
 
@@ -234,15 +287,22 @@ class LibraryServiceTest {
         void changeStatus_성공() {
             User user = UserFixture.user();
             Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
             Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "id", 10L);
 
             ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.READING);
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
 
-            libraryCommandService.changeReadingStatus(1L, request);
+            LibraryViewDto.BookStatusResponseDto response =
+                    libraryCommandService.changeReadingStatus(1L, request);
 
+            assertThat(response.bookId()).isEqualTo(1L);
+            assertThat(response.bookShelfId()).isEqualTo(library.getId());
+            assertThat(response.libraryId()).isEqualTo(library.getId());
+            assertThat(response.readingStatus()).isEqualTo(ReadingStatusResponse.READING);
             assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
             verify(timelineCommandService).appendStatusChanged(any(), any());
         }
@@ -293,8 +353,8 @@ class LibraryServiceTest {
         }
 
         @Test
-        @DisplayName("상태 변경 성공 시 캐시 무효화 이벤트를 발행한다")
-        void changeStatus_성공_이벤트발행() {
+        @DisplayName("완독 수가 바뀌지 않는 상태 변경 성공 시 캐시 무효화 이벤트는 발행하지 않는다")
+        void changeStatus_성공_이벤트미발행() {
             User user = UserFixture.user();
             Book book = BookFixture.book();
             Library library = LibraryFixture.library(user, book);
@@ -305,10 +365,26 @@ class LibraryServiceTest {
 
             libraryCommandService.changeReadingStatus(1L, request);
 
+            verify(eventPublisher, never()).publishEvent(any());
+        }
+
+        @Test
+        @DisplayName("완독 수가 바뀌는 상태 변경 성공 시 온보딩 목표 캐시 무효화 이벤트를 발행한다")
+        void changeStatus_finishedCountChanged_온보딩목표캐시무효화_이벤트발행() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            Library library = LibraryFixture.library(user, book);
+            ReadingStatusRequestDto request = new ReadingStatusRequestDto(1L, ReadingStatus.FINISHED);
+
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+
+            libraryCommandService.changeReadingStatus(1L, request);
+
             verify(eventPublisher).publishEvent(argThat((Object event) ->
                     event instanceof LibraryCacheInvalidateEvent cacheEvent
                             && cacheEvent.userId().equals(1L)
-                            && cacheEvent.evictStatusFirstPage()
+                            && cacheEvent.evictOnboardingGoal()
                             && cacheEvent.affectedYearMonths().isEmpty()
             ));
         }
@@ -360,8 +436,8 @@ class LibraryServiceTest {
 
             assertThat(response.readingStatus()).isEqualTo(ReadingStatus.READING);
             assertThat(response.totalBookNum()).isEqualTo(10);
-            assertThat(response.bookItems().getItems()).hasSize(1);
-            assertThat(response.bookItems().getItems().get(0).coverUrl())
+            assertThat(response.bookItems().items()).hasSize(1);
+            assertThat(response.bookItems().items().get(0).coverUrl())
                     .isEqualTo("https://r2.example.com/cover1.png");
             verify(libraryRepository).countByUserIdAndReadingStatus(1L, ReadingStatus.READING);
             verify(presignedUrlService).resolveImageUrl(1L, "book/users/1/cover1.png");
@@ -410,6 +486,160 @@ class LibraryServiceTest {
     }
 
     @Nested
+    @DisplayName("서재 전체 책 목록 조회")
+    class ViewAllBooks {
+
+        @Test
+        @DisplayName("다음 페이지가 있으면 size만큼 반환하고 정렬 기준에 맞는 다음 커서를 만든다")
+        void viewAllBooks_다음페이지_존재() {
+            LocalDateTime focusedAt = LocalDateTime.of(2026, 3, 1, 10, 0);
+            LibraryBookQueryResult first = new LibraryBookQueryResult(
+                    10L,
+                    1L,
+                    "첫 번째",
+                    "작가1",
+                    "book/users/1/first.png",
+                    ReadingStatus.READING,
+                    focusedAt,
+                    0L
+            );
+            LibraryBookQueryResult second = new LibraryBookQueryResult(
+                    9L,
+                    2L,
+                    "두 번째",
+                    "작가2",
+                    "book/users/1/second.png",
+                    ReadingStatus.BEFORE,
+                    LocalDateTime.of(2026, 2, 1, 10, 0),
+                    0L
+            );
+            given(libraryRepository.findAllBooksByCursor(1L, null, LibrarySortType.RECENT_FOCUSED, 1))
+                    .willReturn(List.of(first, second));
+            given(presignedUrlService.resolveImageUrl(1L, "book/users/1/first.png"))
+                    .willReturn("https://cdn.example.com/first.png");
+
+            CursorResponse<LibraryViewDto.LibraryBookItem, String> result =
+                    libraryQueryService.getAllBooks(1L, null, LibrarySortType.RECENT_FOCUSED, 1);
+
+            LibraryBookCursor decodedCursor = LibraryBookCursorCodec.decode(result.nextCursor());
+            assertThat(result.hasNext()).isTrue();
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.items().get(0).bookId()).isEqualTo(1L);
+            assertThat(result.items().get(0).coverUrl()).isEqualTo("https://cdn.example.com/first.png");
+            assertThat(decodedCursor.libraryId()).isEqualTo(10L);
+            assertThat(decodedCursor.lastFocusedAt()).isEqualTo(focusedAt);
+            assertThat(decodedCursor.recordCount()).isNull();
+            assertThat(decodedCursor.title()).isNull();
+            verify(presignedUrlService).resolveImageUrl(1L, "book/users/1/first.png");
+        }
+
+        @Test
+        @DisplayName("기록 개수순 조회는 recordCount 기반 다음 커서를 만든다")
+        void viewAllBooks_기록개수순_다음커서() {
+            LibraryBookQueryResult first = new LibraryBookQueryResult(
+                    20L,
+                    1L,
+                    "기록 많은 책",
+                    "작가",
+                    "cover",
+                    ReadingStatus.FINISHED,
+                    null,
+                    3L
+            );
+            LibraryBookQueryResult second = new LibraryBookQueryResult(
+                    19L,
+                    2L,
+                    "다음 책",
+                    "작가",
+                    "cover2",
+                    ReadingStatus.READING,
+                    null,
+                    2L
+            );
+            given(libraryRepository.findAllBooksByCursor(
+                    eq(1L),
+                    any(),
+                    eq(LibrarySortType.RECORD_COUNT_DESC),
+                    eq(1)
+            )).willReturn(List.of(first, second));
+
+            CursorResponse<LibraryViewDto.LibraryBookItem, String> result =
+                    libraryQueryService.getAllBooks(
+                            1L,
+                            new LibraryBookCursor(30L, null, 5L, null),
+                            LibrarySortType.RECORD_COUNT_DESC,
+                            1
+                    );
+
+            LibraryBookCursor decodedCursor = LibraryBookCursorCodec.decode(result.nextCursor());
+            assertThat(decodedCursor.libraryId()).isEqualTo(20L);
+            assertThat(decodedCursor.recordCount()).isEqualTo(3L);
+            assertThat(decodedCursor.lastFocusedAt()).isNull();
+            assertThat(decodedCursor.title()).isNull();
+        }
+
+        @Test
+        @DisplayName("가나다순 조회는 title 기반 다음 커서를 만든다")
+        void viewAllBooks_가나다순_다음커서() {
+            LibraryBookQueryResult first = new LibraryBookQueryResult(
+                    1L,
+                    1L,
+                    "가나다",
+                    "작가",
+                    "cover",
+                    ReadingStatus.BEFORE,
+                    null,
+                    0L
+            );
+            LibraryBookQueryResult second = new LibraryBookQueryResult(
+                    2L,
+                    2L,
+                    "라마바",
+                    "작가",
+                    "cover2",
+                    ReadingStatus.READING,
+                    null,
+                    0L
+            );
+            given(libraryRepository.findAllBooksByCursor(1L, null, LibrarySortType.ALPHABETICAL, 1))
+                    .willReturn(List.of(first, second));
+
+            CursorResponse<LibraryViewDto.LibraryBookItem, String> result =
+                    libraryQueryService.getAllBooks(1L, null, LibrarySortType.ALPHABETICAL, 1);
+
+            LibraryBookCursor decodedCursor = LibraryBookCursorCodec.decode(result.nextCursor());
+            assertThat(decodedCursor.libraryId()).isEqualTo(1L);
+            assertThat(decodedCursor.title()).isEqualTo("가나다");
+            assertThat(decodedCursor.lastFocusedAt()).isNull();
+            assertThat(decodedCursor.recordCount()).isNull();
+        }
+
+        @Test
+        @DisplayName("마지막 페이지면 다음 커서 없이 전체 결과를 반환한다")
+        void viewAllBooks_마지막페이지() {
+            LibraryBookQueryResult only = new LibraryBookQueryResult(
+                    1L,
+                    1L,
+                    "마지막 책",
+                    "작가",
+                    "cover",
+                    ReadingStatus.BEFORE,
+                    null,
+                    0L
+            );
+            given(libraryRepository.findAllBooksByCursor(1L, null, LibrarySortType.ALPHABETICAL, 20))
+                    .willReturn(List.of(only));
+
+            CursorResponse<LibraryViewDto.LibraryBookItem, String> result =
+                    libraryQueryService.getAllBooks(1L, null, LibrarySortType.ALPHABETICAL, 20);
+
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
+            assertThat(result.items()).hasSize(1);
+        }
+    }
+
+    @Nested
     @DisplayName("findOwnedIsbns")
     class FindOwnedIsbns {
         @Test
@@ -419,11 +649,20 @@ class LibraryServiceTest {
             List<String> isbns = List.of("978123", "978456");
             Set<String> owned = Set.of("978123");
 
-            given(libraryRepository.findIsbnsByUserIdAndIsbnIn(userId, isbns)).willReturn(owned);
+            given(libraryRepository.findAladinIsbnsByUserIdAndIsbnIn(userId, isbns)).willReturn(owned);
 
             Set<String> result = libraryQueryService.getOwnedIsbns(userId, isbns);
 
             assertThat(result).containsExactly("978123");
+        }
+
+        @Test
+        @DisplayName("ISBN 목록이 비어 있으면 repository를 호출하지 않는다")
+        void findOwnedIsbns_빈목록() {
+            Set<String> result = libraryQueryService.getOwnedIsbns(1L, List.of());
+
+            assertThat(result).isEmpty();
+            verify(libraryRepository, never()).findAladinIsbnsByUserIdAndIsbnIn(anyLong(), any());
         }
     }
 
@@ -494,10 +733,10 @@ class LibraryServiceTest {
 
             var result = libraryQueryService.getFocusRecordsByDate(1L, date, null, size);
 
-            assertThat(result.isHasNext()).isTrue();
-            assertThat(result.getNextCursor()).isEqualTo(30L);
-            assertThat(result.getItems()).hasSize(1);
-            assertThat(result.getItems().get(0).focusTime()).isEqualTo("00:02:00");
+            assertThat(result.hasNext()).isTrue();
+            assertThat(result.nextCursor()).isEqualTo(30L);
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.items().get(0).focusTime()).isEqualTo("00:02:00");
         }
 
         @Test
@@ -528,10 +767,10 @@ class LibraryServiceTest {
 
             var result = libraryQueryService.getFocusRecordsByDate(1L, date, 100L, size);
 
-            assertThat(result.isHasNext()).isFalse();
-            assertThat(result.getNextCursor()).isNull();
-            assertThat(result.getItems()).hasSize(1);
-            assertThat(result.getItems().get(0).focusTime()).isEqualTo("00:00:00");
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.items().get(0).focusTime()).isEqualTo("00:00:00");
         }
     }
 

@@ -4,6 +4,7 @@ import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.CategoryRepository;
+import app.nook.global.config.CacheConfig;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.global.response.CommonErrorCode;
@@ -16,6 +17,8 @@ import app.nook.user.event.ProfileImageCleanupEvent;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +40,7 @@ public class OnboardingService {
 
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.ONBOARDING_GOAL_CACHE, key = "#userId")
     public OnboardingDto.CompleteResponse completeOnboarding(
             Long userId,
             OnboardingDto.CompleteRequest request
@@ -115,11 +119,16 @@ public class OnboardingService {
     public OnboardingDto.StatusResponse getOnboardingStatus(Long userId) {
         User user = getUser(userId);
         return new OnboardingDto.StatusResponse(
-                user.needsOnboarding(),
+                !user.isOnboardingCompleted(),
                 user.getOnboardingCompletedAt()
         );
     }
 
+    @Cacheable(
+            cacheNames = CacheConfig.ONBOARDING_GOAL_CACHE,
+            key = "#userId",
+            sync = true
+    )
     public OnboardingDto.GoalResponse getGoal(Long userId) {
         User user = getUser(userId);
         long finishedCount = libraryRepository.countByUserAndReadingStatus(user, ReadingStatus.FINISHED);
@@ -133,6 +142,7 @@ public class OnboardingService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.ONBOARDING_GOAL_CACHE, key = "#userId")
     public OnboardingDto.GoalUpdateResponse updateGoal(
             Long userId,
             OnboardingDto.GoalUpdateRequest request
