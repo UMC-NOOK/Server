@@ -7,7 +7,6 @@ import app.nook.user.handler.CustomAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,7 +18,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
@@ -53,11 +51,10 @@ public class WebSecurityConfig {
                 .cors(Customizer.withDefaults())
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // ===== 공개 리소스 =====
                         .requestMatchers(
                                 "/",
-                                "/docs/**",
+                                "/docs/**",              // REST Docs
                                 "/index.html",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
@@ -104,6 +101,7 @@ public class WebSecurityConfig {
         config.setAllowedMethods(List.of(
                 "GET",
                 "POST",
+                "PUT",
                 "PATCH",
                 "DELETE",
                 "OPTIONS"

@@ -79,7 +79,7 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(
-                                        new ImageUploadRequestDto("book")
+                                        new ImageUploadRequestDto("book", "image/jpeg")
                                 )))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
@@ -89,7 +89,8 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                         .andDo(documentWithAuth(
                                 "image-upload-controller-test/단건_업로드_URL_발급_성공",
                                 requestFields(
-                                        fieldWithPath("contentType").type(JsonFieldType.STRING).description("이미지 업로드 타입(record, book, profile)")
+                                        fieldWithPath("uploadType").type(JsonFieldType.STRING).description("이미지 업로드 위치 타입(record, book, profile)"),
+                                        fieldWithPath("contentType").type(JsonFieldType.STRING).description("이미지 MIME 타입(image/jpeg, image/png, image/webp)")
                                 ),
                                 responseFields(ApiResponseSnippet.withResult(
                                         fieldWithPath("result.imageUrl").type(JsonFieldType.STRING).description("Presigned 업로드 URL"),
@@ -122,8 +123,8 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(
                                         new MultipleImageUploadRequestDto(List.of(
-                                                new ImageUploadRequestDto("record"),
-                                                new ImageUploadRequestDto("record")
+                                                new ImageUploadRequestDto("record", "image/png"),
+                                                new ImageUploadRequestDto("record", "image/webp")
                                         ))
                                 )))
                         .andExpect(status().isOk())
@@ -137,7 +138,8 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                                 "image-upload-controller-test/다건_업로드_URL_발급_성공",
                                 requestFields(
                                         fieldWithPath("files").type(JsonFieldType.ARRAY).description("업로드할 이미지 요청 목록"),
-                                        fieldWithPath("files[].contentType").type(JsonFieldType.STRING).description("이미지 업로드 타입(record, book, profile)")
+                                        fieldWithPath("files[].uploadType").type(JsonFieldType.STRING).description("이미지 업로드 위치 타입(record, book, profile)"),
+                                        fieldWithPath("files[].contentType").type(JsonFieldType.STRING).description("이미지 MIME 타입(image/jpeg, image/png, image/webp)")
                                 ),
                                 responseFields(ApiResponseSnippet.withResult(
                                         fieldWithPath("result[].imageUrl").type(JsonFieldType.STRING).description("Presigned 업로드 URL"),
@@ -159,12 +161,28 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(
-                                        new ImageUploadRequestDto("invalid")
+                                        new ImageUploadRequestDto("record", "image/gif")
                                 )))
                         .andExpect(status().isBadRequest())
                         .andExpect(jsonPath("$.isSuccess").value(false))
                         .andExpect(jsonPath("$.code").value("COMMON-002"))
                         .andExpect(jsonPath("$.result.contentType").exists());
+            }
+
+            @Test
+            @WithCustomUser
+            void 단건_업로드_URL_발급_실패_유효하지않은_업로드타입() throws Exception {
+                // when & then
+                mockMvc.perform(post("/api/v1/images/upload-url")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                        new ImageUploadRequestDto("invalid", "image/png")
+                                )))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("COMMON-002"))
+                        .andExpect(jsonPath("$.result.uploadType").exists());
             }
         }
     }
