@@ -1,0 +1,89 @@
+name: NOOK PROD CD
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: nook-server
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build application
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image metadata
+        id: image
+        run: |
+          tag="prod-${GITHUB_SHA::7}"
+          image="${{ steps.ecr.outputs.registry }}/${ECR_REPOSITORY}:${tag}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "uri=${image}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.image.outputs.uri }}
+
+      - name: Copy deployment files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_PRIVATE_KEY }}
+          source: docker-compose.prod.yml,nginx,monitoring/alloy,scripts/deploy.sh,scripts/init-certificate.sh
+          target: ${{ secrets.PROD_DEPLOY_PATH }}
+
+      - name: Deploy prod
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd "${{ secrets.PROD_DEPLOY_PATH }}"
+            image="${{ steps.image.outputs.uri }}"
+            registry="${image%%/*}"
+            aws ecr get-login-password --region "${{ env.AWS_REGION }}" | docker login --username AWS --password-stdin "$registry"
+            chmod +x scripts/deploy.sh
+            ./scripts/deploy.sh prod "$image"
+
+      - name: Deployment summary
+        run: |
+          echo "## PROD deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image: ${{ steps.image.outputs.uri }}" >> "$GITHUB_STEP_SUMMARY"
