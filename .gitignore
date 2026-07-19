@@ -22,8 +22,6 @@ data/certbot/
 .terraform/
 *.tfvars
 !*.tfvars.example
-*.backend.hcl
-!*.backend.hcl.example
 
 db/postgres
 

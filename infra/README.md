@@ -6,7 +6,6 @@ dev, prod, monitoring은 코드와 state를 완전히 분리한다. 현재 적�
 
 ```text
 infra/
-├── bootstrap/state/       # 원격 state용 S3 버킷(최초 1회)
 ├── modules/
 │   ├── ec2/
 │   └── rds/
@@ -14,7 +13,7 @@ infra/
 │   ├── dev/               # 기존 t3.micro EC2를 그대로 import
 │   ├── prod/              # 신규 EC2 + private PostgreSQL RDS, 적용 보류
 │   └── monitoring/        # 신규 EC2, 적용 보류
-└── vars/                  # 환경별 값과 backend 설정
+└── vars/                  # 환경별 변수
 ```
 
 ## 환경별 구성
@@ -31,12 +30,11 @@ AWS가 생성하여 Secrets Manager에 저장한다.
 
 ## 1. vars 준비
 
-예제 파일을 복사하고 실제 AWS 값으로 바꾼다. 실제 `.tfvars`와 `.backend.hcl`은 Git에서
+예제 파일을 복사하고 실제 AWS 값으로 바꾼다. 실제 `.tfvars`와 로컬 state 파일은 Git에서
 제외된다.
 
 ```bash
 cp infra/vars/dev.tfvars.example infra/vars/dev.tfvars
-cp infra/vars/dev.backend.hcl.example infra/vars/dev.backend.hcl
 ```
 
 dev에서 특히 확인할 값은 다음과 같다.
@@ -48,37 +46,25 @@ dev에서 특히 확인할 값은 다음과 같다.
 - `create_eip`: 현재 EIP가 있거나 새 고정 IP를 사용할 때 `true`
 - `monitoring_cidrs`: monitoring 보류 중에는 `[]`
 
-## 2. 원격 state 버킷 준비
-
-버킷 이름은 전 세계에서 고유해야 한다. 최초 한 번만 로컬 state로 생성한다.
-
-```bash
-cp infra/vars/state.tfvars.example infra/vars/state.tfvars
-cd infra/bootstrap/state
-terraform init
-terraform plan -var-file=../../vars/state.tfvars
-terraform apply -var-file=../../vars/state.tfvars
-```
-
-생성된 버킷 이름을 세 환경의 `*.backend.hcl`에 동일하게 반영한다. 환경별 key는 다음처럼
-분리되어 있다.
+각 환경은 별도 디렉터리의 로컬 state를 사용한다.
 
 ```text
-nook/dev/terraform.tfstate
-nook/prod/terraform.tfstate
-nook/monitoring/terraform.tfstate
+infra/envs/dev/terraform.tfstate
+infra/envs/prod/terraform.tfstate
+infra/envs/monitoring/terraform.tfstate
 ```
 
-bootstrap의 로컬 state는 버킷 보호 설정을 관리하므로 삭제하지 말고 안전하게 백업한다.
+state에는 리소스 정보와 민감한 값이 포함될 수 있으므로 Git에 커밋하지 않고 안전하게
+백업해야 한다. 팀에서 동시에 Terraform을 실행하지 않는다.
 
-## 3. 기존 EC2를 dev state로 가져오기
+## 2. 기존 EC2를 dev state로 가져오기
 
 아래 명령의 ID를 현재 서버 값으로 교체한다. 먼저 instance만 import한다. 모듈이 새 관리용
 SG와 IAM role을 만들며, `existing_security_group_ids`에 넣은 기존 SG는 전환 중 함께 유지한다.
 
 ```bash
 cd infra/envs/dev
-terraform init -backend-config=../../vars/dev.backend.hcl
+terraform init
 terraform import -var-file=../../vars/dev.tfvars module.server.aws_instance.this i-xxxxxxxx
 ```
 
@@ -92,7 +78,7 @@ terraform import -var-file=../../vars/dev.tfvars 'module.server.aws_eip.this[0]'
 EIP가 없는데 `create_eip = true`이면 새 EIP가 생성된다. 인스턴스의 기존 일반 공인 IP는
 바뀌므로 DNS 전환 계획을 먼저 확인한다.
 
-## 4. dev 변경 검토 및 적용
+## 3. dev 변경 검토 및 적용
 
 ```bash
 terraform fmt -recursive ../..
@@ -116,16 +102,15 @@ terraform apply dev.tfplan
 전환이 끝나고 새 관리 SG의 22/80/443 접근을 검증한 뒤에만
 `existing_security_group_ids = []`로 바꾸고 다시 적용한다.
 
-## 5. prod와 monitoring은 plan까지만
+## 4. prod와 monitoring은 plan까지만
 
 prod는 신규 `t3.small` EC2와 private PostgreSQL RDS를 함께 만든다. RDS는 서로 다른 AZ의
 private subnet 두 개 이상을 요구한다.
 
 ```bash
 cp infra/vars/prod.tfvars.example infra/vars/prod.tfvars
-cp infra/vars/prod.backend.hcl.example infra/vars/prod.backend.hcl
 cd infra/envs/prod
-terraform init -backend-config=../../vars/prod.backend.hcl
+terraform init
 terraform plan -var-file=../../vars/prod.tfvars
 ```
 
@@ -133,9 +118,8 @@ monitoring도 동일하게 준비할 수 있지만 현재는 `apply`하지 않�
 
 ```bash
 cp infra/vars/monitoring.tfvars.example infra/vars/monitoring.tfvars
-cp infra/vars/monitoring.backend.hcl.example infra/vars/monitoring.backend.hcl
 cd infra/envs/monitoring
-terraform init -backend-config=../../vars/monitoring.backend.hcl
+terraform init
 terraform plan -var-file=../../vars/monitoring.tfvars
 ```
 

@@ -1,5 +1,0 @@
-bucket       = "nook-terraform-state"
-key          = "nook/prod/terraform.tfstate"
-region       = "ap-northeast-2"
-encrypt      = true
-use_lockfile = true
