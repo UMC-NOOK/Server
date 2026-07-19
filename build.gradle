@@ -72,7 +72,9 @@ dependencies {
 	runtimeOnly 'org.postgresql:postgresql'
 
 	// test db
-	testImplementation 'com.h2database:h2'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
 
 	// restdocs
 	asciidoctorExt 'org.springframework.restdocs:spring-restdocs-asciidoctor'

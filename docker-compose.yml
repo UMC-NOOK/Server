@@ -25,19 +25,6 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
-  h2:
-    image: oscarfonts/h2
-    container_name: local-h2
-    ports:
-      - "1521:1521"   # TCP
-      - "8082:81"     # H2 Console
-    environment:
-      H2_OPTIONS: -ifNotExists
-    volumes:
-      - h2_data:/opt/h2-data
-    restart: unless-stopped
-
 volumes:
   postgres_data:
   redis_data:
-  h2_data:
