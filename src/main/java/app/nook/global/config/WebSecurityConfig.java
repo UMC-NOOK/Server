@@ -104,6 +104,7 @@ public class WebSecurityConfig {
         config.setAllowedMethods(List.of(
                 "GET",
                 "POST",
+                "PUT",
                 "PATCH",
                 "DELETE",
                 "OPTIONS"
