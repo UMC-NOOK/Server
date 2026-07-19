@@ -140,7 +140,7 @@ monitoring을 실제 생성한 뒤 dev/prod의 `monitoring_cidrs`에 monitoring 
 
 DNS는 사용하는 도메인 제공자에서 `dev.<domain>`을 dev EIP로, `api.<domain>`을 prod
 EIP로 연결한다. dev는 EC2 호스트에 이미 설치된 nginx와 Certbot을 사용하고, prod는 Docker
-nginx와 Certbot을 사용한다. 인증서 발급 절차는 저장소 루트의 `SERVER_SETUP.md`를 따른다.
+nginx와 Certbot을 사용한다.
 
 실제 `apply` 전에는 AWS 자격 증명과 대상 account ID가 일치하는지 확인해야 한다. provider의
 `allowed_account_ids`가 다른 계정에 실수로 적용하는 것을 한 번 더 막는다.
