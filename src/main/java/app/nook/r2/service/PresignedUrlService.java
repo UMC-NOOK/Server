@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,9 +27,6 @@ public class PresignedUrlService {
 
     // 만료 시간 필수 지정
     private static final int EXPIRATION_SECONDS = 300;
-    // 현재 업로드 정책은 PNG만 지원한다.
-    private static final String FIXED_IMAGE_MIME_TYPE = "image/png";
-    private static final String FIXED_IMAGE_EXTENSION = ".png";
     private static final long MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024L;
     private static final int MAX_FILE_COUNT = 5;
 
@@ -39,8 +37,13 @@ public class PresignedUrlService {
     @Value("${cloudflare.r2.bucket-name}")
     private String bucketName;
 
-    private static final Set<String> ALLOWED = Set.of(
+    private static final Set<String> ALLOWED_UPLOAD_TYPES = Set.of(
             "book", "profile", "record"
+    );
+    private static final Map<String, String> ALLOWED_IMAGE_CONTENT_TYPES = Map.of(
+            "image/jpeg", "jpg",
+            "image/png", "png",
+            "image/webp", "webp"
     );
 
 
@@ -64,16 +67,16 @@ public class PresignedUrlService {
     public ImageUrlResponseDto generateUploadUrl(Long userId, ImageUploadRequestDto requestDto){
         validateUserId(userId);
         NormalizedUpload normalized = validateAndNormalizeUploadRequest(requestDto);
-        String key = buildObjectKey(userId, normalized.contentType(), normalized.extension());
-        return generateUploadUrl(key);
+        String key = buildObjectKey(userId, normalized.uploadType(), normalized.extension());
+        return generateUploadUrl(key, normalized.contentType());
     }
 
     // 키 기반으로 presigned 업로드 url을 생성
-    private ImageUrlResponseDto generateUploadUrl(String key) {
+    private ImageUrlResponseDto generateUploadUrl(String key, String contentType) {
         PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
-                .contentType(FIXED_IMAGE_MIME_TYPE)
+                .contentType(contentType)
                 .build();
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
                 .putObjectRequest(request)
@@ -105,11 +108,11 @@ public class PresignedUrlService {
         }
     }
 
-    public void validateOwnedImageKey(Long userId, String key, String expectedContentType) {
+    public void validateOwnedImageKey(Long userId, String key, String expectedUploadType) {
         validateUserId(userId);
         ParsedKey parsedKey = parseKey(key);
 
-        if (expectedContentType != null && !expectedContentType.equals(parsedKey.contentType())) {
+        if (expectedUploadType != null && !expectedUploadType.equals(parsedKey.uploadType())) {
             throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
         }
         if (!exists(key)) {
@@ -155,8 +158,8 @@ public class PresignedUrlService {
          return requestDtos.stream()
                  .map(requestDto -> {
                      NormalizedUpload normalized = validateAndNormalizeUploadRequest(requestDto);
-                     String key = buildObjectKey(userId, normalized.contentType(), normalized.extension());
-                     return generateUploadUrl(key);
+                     String key = buildObjectKey(userId, normalized.uploadType(), normalized.extension());
+                     return generateUploadUrl(key, normalized.contentType());
                  })
                  .toList();
      }
@@ -169,9 +172,10 @@ public class PresignedUrlService {
         if (requestDto == null) {
             throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
         }
+        String normalizedUploadType = normalizeAndValidateUploadType(requestDto.uploadType());
         String normalizedContentType = normalizeAndValidateContentType(requestDto.contentType());
-        String extension = FIXED_IMAGE_EXTENSION;
-        return new NormalizedUpload(normalizedContentType, extension);
+        String extension = ALLOWED_IMAGE_CONTENT_TYPES.get(normalizedContentType);
+        return new NormalizedUpload(normalizedUploadType, normalizedContentType, extension);
     }
 
     private void validateUploadRequests(List<ImageUploadRequestDto> requestDtos) {
@@ -192,22 +196,34 @@ public class PresignedUrlService {
         }
     }
 
-    // 타입 정규화, 검증
+    // 업로드 위치 타입 정규화, 검증
+    private String normalizeAndValidateUploadType(String uploadType) {
+        if (uploadType == null) {
+            throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
+        }
+        String normalized = uploadType.trim().toLowerCase(Locale.ROOT);
+        if (!ALLOWED_UPLOAD_TYPES.contains(normalized)) {
+            throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
+        }
+        return normalized;
+    }
+
+    // 이미지 MIME 타입 정규화, 검증
     private String normalizeAndValidateContentType(String contentType) {
         if (contentType == null) {
             throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
         }
         String normalized = contentType.trim().toLowerCase(Locale.ROOT);
-        if (!ALLOWED.contains(normalized)) {
+        if (!ALLOWED_IMAGE_CONTENT_TYPES.containsKey(normalized)) {
             throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
         }
         return normalized;
     }
 
      // 고유 키 생성
-     private String buildObjectKey(Long userId, String contentType, String extension) {
+     private String buildObjectKey(Long userId, String uploadType, String extension) {
          String uuid = UUID.randomUUID().toString();
-         return contentType + "/users/" + userId + "/" + uuid + extension;
+         return uploadType + "/users/" + userId + "/" + uuid + "." + extension;
      }
 
     // 파일 존재 여부 확인 - 메타데이터 확인
@@ -246,7 +262,7 @@ public class PresignedUrlService {
         }
 
         String[] parts = key.split("/");
-        if (parts.length == 4 && ALLOWED.contains(parts[0]) && "users".equals(parts[1])) {
+        if (parts.length == 4 && ALLOWED_UPLOAD_TYPES.contains(parts[0]) && "users".equals(parts[1])) {
             Long ownerUserId;
             try {
                 ownerUserId = Long.parseLong(parts[2]);
@@ -266,7 +282,7 @@ public class PresignedUrlService {
         return userId.equals(ownerUserId);
     }
 
-    private record NormalizedUpload(String contentType, String extension) {}
-    private record ParsedKey(String contentType, Long ownerUserId) {}
+    private record NormalizedUpload(String uploadType, String contentType, String extension) {}
+    private record ParsedKey(String uploadType, Long ownerUserId) {}
 
 }
