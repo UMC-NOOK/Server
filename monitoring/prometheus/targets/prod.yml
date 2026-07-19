@@ -1,0 +1,5 @@
+- targets:
+    - prod-private-ip:9091
+  labels:
+    environment: prod
+    application: nook-api

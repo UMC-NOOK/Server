@@ -1,52 +1,57 @@
 services:
   prometheus:
-    image: prom/prometheus:v2.52.0
-    container_name: nook-prometheus
+    image: prom/prometheus:v3.13.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-15d}
+      - --web.enable-lifecycle
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/targets:/etc/prometheus/targets:ro
+      - prometheus-data:/prometheus
     ports:
-      - "9090:9090"
-    restart: unless-stopped
-    networks:
-      - monitoring-network
-
-  grafana:
-    image: grafana/grafana:10.4.2
-    container_name: nook-grafana
-    ports:
-      - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin1234
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/logs-overview.json
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./grafana/dashboards:/etc/grafana/dashboards:ro
-    depends_on:
-      - loki
-      - prometheus
+      - "127.0.0.1:9090:9090"
     restart: unless-stopped
     networks:
       - monitoring-network
 
   loki:
-    image: grafana/loki:3.0.0
-    container_name: nook-loki
+    image: grafana/loki:3.7.3
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
     ports:
       - "3100:3100"
-    command: -config.file=/etc/loki/loki-config.yaml
+    restart: unless-stopped
+    networks:
+      - monitoring-network
+
+  grafana:
+    image: grafana/grafana:13.1.0
+    env_file:
+      - ${ENV_FILE:-/secrets/.env.monitoring}
+    environment:
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
     volumes:
-      - ./monitoring/loki-config.yaml:/etc/loki/loki-config.yaml:ro
-      - loki-data:/loki
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
     restart: unless-stopped
     networks:
       - monitoring-network
 
 volumes:
-  grafana-data:
+  prometheus-data:
   loki-data:
+  grafana-data:
 
 networks:
   monitoring-network:
-    driver: bridge

@@ -1,0 +1,5 @@
+- targets:
+    - dev-private-ip:9091
+  labels:
+    environment: dev
+    application: nook-api

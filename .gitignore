@@ -10,6 +10,19 @@ src/main/resources/static/docs/*.html
 
 /src/main/resources/application-secret.properties
 
+# Server environment secrets
+.env
+.env.dev
+.env.prod
+.env.monitoring
+data/certbot/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform/
+*.tfvars
+!*.tfvars.example
+
 db/postgres
 
 # IDE

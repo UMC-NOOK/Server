@@ -1,0 +1,78 @@
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  app:
+    image: ${IMAGE:?IMAGE must be set}
+    env_file:
+      - ${ENV_FILE:-/secrets/.env.dev}
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "${MANAGEMENT_BIND_ADDRESS:-127.0.0.1}:9091:9091"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 8080
+      MANAGEMENT_SERVER_PORT: 9091
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:9091/actuator/health >/dev/null || exit 1"]
+      interval: 12s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - app-network
+    logging: *default-logging
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+    logging: *default-logging
+
+  alloy:
+    image: grafana/alloy:v1.17.0
+    profiles:
+      - monitoring
+    environment:
+      DEPLOY_ENV: dev
+      INSTANCE_NAME: nook-dev
+      LOKI_URL: ${LOKI_URL:-}
+    command:
+      - run
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - app-network
+    logging: *default-logging
+
+volumes:
+  redis-data:
+  alloy-data:
+
+networks:
+  app-network:
