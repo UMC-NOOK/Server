@@ -93,10 +93,19 @@ public class WebSecurityConfig {
                 "https://dev.reading-nook.site",
                 "https://readingnook.netlify.app"
         ));
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("*");
         config.addExposedHeader("Authorization");
-        config.addExposedHeader("Set-Cookie");
+        config.setAllowedHeaders(List.of(
+                "Content-Type",
+                "Authorization"
+        ));
+        config.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
+        ));
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
