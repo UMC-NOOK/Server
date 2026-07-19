@@ -2,6 +2,7 @@ package app.nook.book.repository;
 
 import app.nook.book.domain.SearchHistory;
 import app.nook.book.domain.enums.SearchType;
+import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.QueryDslConfig;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
@@ -19,12 +20,10 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@DataJpaTest
 @ActiveProfiles("test")
 @Import(QueryDslConfig.class)
-class SearchHistoryRepositoryTest {
+class SearchHistoryRepositoryTest extends AbstractPostgresContainerTests {
 
     private static final String TEST_KEYWORD_1 = "채식주의자";
     private static final String TEST_KEYWORD_2 = "소년이 온다";

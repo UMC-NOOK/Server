@@ -4,6 +4,7 @@ import app.nook.book.domain.Book;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.domain.Theme;
 import app.nook.focus.domain.enums.ThemeName;
+import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.QueryDslConfig;
 import app.nook.library.domain.Library;
 import app.nook.user.domain.User;
@@ -26,14 +27,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@DataJpaTest
 @ActiveProfiles("test")
 @EnableJpaRepositories(basePackages = "app.nook.focus.repository")
 @EntityScan(basePackages = "app.nook")
 @Import(QueryDslConfig.class)
-public class FocusRepositoryTest {
+public class FocusRepositoryTest extends AbstractPostgresContainerTests {
 
     @Autowired
     private FocusRepository focusRepository;

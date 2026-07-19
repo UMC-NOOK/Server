@@ -1,5 +1,6 @@
 package app.nook.user.repository;
 
+import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.global.config.QueryDslConfig;
@@ -13,12 +14,10 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@DataJpaTest
 @ActiveProfiles("test")
 @Import(QueryDslConfig.class)
-class UserRepositoryTest {
+class UserRepositoryTest extends AbstractPostgresContainerTests {
 
     @Autowired
     private UserRepository userRepository;

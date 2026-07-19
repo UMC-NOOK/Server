@@ -4,6 +4,7 @@ import app.nook.book.domain.Book;
 import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SourceType;
+import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.QueryDslConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,12 +18,10 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@DataJpaTest
 @ActiveProfiles("test")
 @Import(QueryDslConfig.class)
-public class BookRepositoryTest {
+public class BookRepositoryTest extends AbstractPostgresContainerTests {
     @Autowired
     private BookRepository bookRepository;
 
@@ -33,8 +32,8 @@ public class BookRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        category = Category.of(MallType.BOOK, "소설/시/희곡", 1);
-        categoryRepository.save(category);
+        category = categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, "소설/시/희곡")
+                .orElseThrow();
     }
 
     @Test

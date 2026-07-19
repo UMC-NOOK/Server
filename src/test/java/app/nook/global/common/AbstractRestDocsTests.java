@@ -36,7 +36,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
         "spring.profiles.active=test"
 })
 @ActiveProfiles("test")
-public abstract class AbstractRestDocsTests {
+public abstract class AbstractRestDocsTests extends AbstractPostgresContainerTests {
 
     protected static final String AUTH_HEADER = "Authorization";
     protected static final String AUTH_TOKEN = "Bearer test-access-token";
