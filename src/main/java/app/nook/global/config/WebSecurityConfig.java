@@ -62,6 +62,7 @@ public class WebSecurityConfig {
                                 "/actuator/health",
                                 "/actuator/health/**",
                                 "/actuator/info",
+                                "/actuator/prometheus",
                                 "/api/v1/auth/**",
                                 "/api/auth/**",
                                 "/ws/**"

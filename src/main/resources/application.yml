@@ -1,19 +1,9 @@
 spring:
-  config:
-    import: optional:classpath:application-secret.properties
   application:
     name: nook-api
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-
   jpa:
-    hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:validate}
     properties:
       hibernate:
         format_sql: true
@@ -81,6 +71,8 @@ auth:
     user-info-uri: ${MEMBER_INFO_REQUEST_URI}
 
 management:
+  server:
+    port: ${MANAGEMENT_SERVER_PORT:${SERVER_PORT:8080}}
   endpoints:
     web:
       base-path: /actuator
@@ -97,17 +89,15 @@ management:
     tags:
       application: ${spring.application.name}
     enable:
-      jvm: true
-      hikaricp: true
-      redis: true
-      http: true
+      "[spring.data.redis]": true
     distribution:
       percentiles-histogram:
-        http.server.requests: true
-      percentiles:
-        http.server.requests: 0.5, 0.95, 0.99
+        "[http.server.requests]": true
       slo:
-        http.server.requests: 100ms, 300ms, 1s
+        "[http.server.requests]":
+          - 100ms
+          - 300ms
+          - 1s
 
 info:
   app:
