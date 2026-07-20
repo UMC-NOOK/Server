@@ -82,7 +82,7 @@ jobs:
             registry="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
             aws ecr get-login-password --region "${{ env.AWS_REGION }}" | docker login --username AWS --password-stdin "$registry"
             chmod +x scripts/deploy.sh
-            ./scripts/deploy.sh dev "$image"
+            SECRET_DIR="$HOME/secrets" ./scripts/deploy.sh dev "$image"
 
       - name: Deployment summary
         run: |
