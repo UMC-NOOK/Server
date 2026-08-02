@@ -39,6 +39,7 @@ cloudflare:
     bucket-name: ${R2_BUCKET_NAME}
     access-key: ${R2_ACCESS_KEY}
     secret-key: ${R2_SECRET_KEY}
+    cdn-base-url: ${R2_CDN_BASE_URL}
 
 jwt:
   secret: ${JWT_SECRET}
@@ -69,6 +70,15 @@ auth:
     client-secret: ${GOOGLE_CLIENT_SECRET}
     token-request-uri: ${TOKEN_REQUEST_URI}
     user-info-uri: ${MEMBER_INFO_REQUEST_URI}
+
+# 회원탈퇴(soft delete) 후 완전 삭제까지의 유예기간 및 스케줄 (UserScheduler)
+withdraw:
+  grace-period-days: ${WITHDRAW_GRACE_PERIOD_DAYS:14}
+  hard-delete-cron: ${WITHDRAW_HARD_DELETE_CRON:0 0 4 * * *}
+
+# 관리자 계정 이메일 (콤마 구분). 이 목록에 있는 계정만 관리자 API 호출 가능.
+admin:
+  emails: ${ADMIN_EMAILS:}
 
 management:
   server:
