@@ -1,6 +1,5 @@
 package app.nook.global.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -14,40 +13,25 @@ import java.net.URI;
 @Configuration
 public class S3Config {
 
-    @Value("${cloudflare.r2.endpoint}")
-    private String endpoint;
-
-    @Value("${cloudflare.r2.access-key}")
-    private String accessKey;
-
-    @Value("${cloudflare.r2.secret-key}")
-    private String secretKey;
-
-    /** S3Presigner
-     *  SDK 기본 주소 강제로 변경, URI 객체로 바꾸는 방법 사용
-     */
     @Bean
-    public S3Presigner s3Presigner() {
+    public S3Presigner s3Presigner(R2Properties r2) {
         return S3Presigner.builder()
-                .endpointOverride(URI.create(endpoint))
+                .endpointOverride(URI.create(r2.endpoint()))
                 .region(Region.of("auto"))
                 .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(accessKey,secretKey)
+                        AwsBasicCredentials.create(r2.accessKey(), r2.secretKey())
                 ))
                 .build();
     }
 
     @Bean
-    public S3Client s3Client() {
+    public S3Client s3Client(R2Properties r2) {
         return S3Client.builder()
-                .endpointOverride(URI.create(endpoint))
+                .endpointOverride(URI.create(r2.endpoint()))
                 .region(Region.of("auto"))
                 .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(accessKey,secretKey)
+                        AwsBasicCredentials.create(r2.accessKey(), r2.secretKey())
                 ))
                 .build();
-
     }
-
-
 }
