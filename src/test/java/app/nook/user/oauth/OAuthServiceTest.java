@@ -1,5 +1,6 @@
 package app.nook.user.oauth;
 
+import app.nook.admin.AdminAccessChecker;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.dto.UserDTO;
@@ -29,6 +30,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.client.ExpectedCount.once;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
@@ -54,6 +56,9 @@ class OAuthServiceTest {
     @Mock
     private TokenRedisRepository tokenRedisRepository;
 
+    @Mock
+    private AdminAccessChecker adminAccessChecker;
+
     @BeforeEach
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
@@ -64,7 +69,8 @@ class OAuthServiceTest {
                 objectMapper,
                 userRepository,
                 jwtProvider,
-                tokenRedisRepository
+                tokenRedisRepository,
+                adminAccessChecker
         );
 
         ReflectionTestUtils.setField(oAuthService, "googleClientId", "google-client-id");
@@ -193,6 +199,108 @@ class OAuthServiceTest {
         verify(userRepository).save(userCaptor.capture());
         assertThat(userCaptor.getValue().getProvider()).isEqualTo("GOOGLE");
         assertThat(userCaptor.getValue().getProviderId()).isEqualTo("google-sub-new");
+        server.verify();
+    }
+
+    @Test
+    void 소셜로그인_관리자이메일이면_role이_ADMIN으로_동기화된다() {
+        String tokenJson = """
+                {
+                  "access_token": "google-access",
+                  "token_type": "Bearer",
+                  "refresh_token": "google-refresh",
+                  "expires_in": 3600
+                }
+                """;
+
+        String userInfoJson = """
+                {
+                  "sub": "google-sub-admin",
+                  "email": "admin@test.com",
+                  "name": "admin-user",
+                  "picture": "https://img.test/admin.png"
+                }
+                """;
+
+        server.expect(once(), requestTo("https://google.test/token"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess(tokenJson, MediaType.APPLICATION_JSON));
+        server.expect(once(), requestTo("https://google.test/userinfo"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(userInfoJson, MediaType.APPLICATION_JSON));
+
+        User user = User.builder()
+                .email("admin@test.com")
+                .nickName("admin-user")
+                .role(UserRole.USER)
+                .provider("GOOGLE")
+                .providerId("google-sub-admin")
+                .build();
+        ReflectionTestUtils.setField(user, "id", 50L);
+
+        given(userRepository.findByEmail(eq("admin@test.com")))
+                .willReturn(Optional.of(user));
+        given(adminAccessChecker.isAdmin("admin@test.com")).willReturn(true);
+        given(jwtProvider.createAccessToken(user)).willReturn("app-access");
+        given(jwtProvider.createRefreshToken()).willReturn("app-refresh");
+
+        oAuthService.login("google", "auth-code");
+
+        assertThat(user.getRole()).isEqualTo(UserRole.ADMIN);
+        server.verify();
+    }
+
+    @Test
+    void 소셜로그인_탈퇴유예중_계정이면_recovery토큰을_반환하고_로그인토큰은_발급하지_않는다() {
+        String tokenJson = """
+                {
+                  "access_token": "google-access",
+                  "expires_in": 3600,
+                  "scope": "email profile",
+                  "token_type": "Bearer",
+                  "id_token": "id-token",
+                  "refresh_token": "google-refresh"
+                }
+                """;
+
+        String userInfoJson = """
+                {
+                  "sub": "google-sub-gone",
+                  "email": "gone@test.com",
+                  "name": "gone-user",
+                  "picture": "https://img.test/gone.png"
+                }
+                """;
+
+        server.expect(once(), requestTo("https://google.test/token"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess(tokenJson, MediaType.APPLICATION_JSON));
+
+        server.expect(once(), requestTo("https://google.test/userinfo"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(userInfoJson, MediaType.APPLICATION_JSON));
+
+        User user = User.builder()
+                .email("gone@test.com")
+                .nickName("gone-user")
+                .role(UserRole.USER)
+                .provider("GOOGLE")
+                .providerId("google-sub-gone")
+                .build();
+        ReflectionTestUtils.setField(user, "id", 40L);
+        user.withdraw(); // soft delete(탈퇴 유예중) 상태
+
+        given(userRepository.findByEmail(eq("gone@test.com")))
+                .willReturn(Optional.of(user));
+        given(jwtProvider.createRecoveryToken(user)).willReturn("recovery-token");
+
+        UserDTO.LoginResponse result = oAuthService.login("google", "auth-code");
+
+        assertThat(result.getRecoveryRequired()).isTrue();
+        assertThat(result.getRecoveryToken()).isEqualTo("recovery-token");
+        assertThat(result.getAccessToken()).isNull();
+        assertThat(result.getRefreshToken()).isNull();
+        verify(tokenRedisRepository, never()).save(any());
         server.verify();
     }
 

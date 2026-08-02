@@ -4,11 +4,15 @@ import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
+import app.nook.user.domain.enums.UserStatus;
 import app.nook.user.dto.UserDTO;
 import app.nook.user.jwt.JwtProvider;
+import app.nook.user.redis.TokenBlacklistService;
 import app.nook.user.redis.TokenRedis;
 import app.nook.user.redis.TokenRedisRepository;
 import app.nook.user.repository.UserRepository;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -39,6 +43,9 @@ class UserServiceTest {
 
     @Mock
     private TokenRedisRepository tokenRedisRepository;
+
+    @Mock
+    private TokenBlacklistService tokenBlacklistService;
 
     @InjectMocks
     private UserService userService;
@@ -245,6 +252,83 @@ class UserServiceTest {
         CustomException ex = assertThrows(
                 CustomException.class,
                 () -> userService.reissueAccessToken(invalidToken)
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.INVALID_TOKEN);
+    }
+
+    @Test
+    void logout_성공_refresh제거_및_access블랙리스트() {
+        User user = User.builder()
+                .email("dev@test.com")
+                .nickName("DEV_USER")
+                .role(UserRole.USER)
+                .provider("DEV")
+                .providerId("dev-1")
+                .build();
+        ReflectionTestUtils.setField(user, "id", 1L);
+
+        userService.logout(user, "access-token");
+
+        verify(tokenRedisRepository).deleteById(1L);
+        verify(tokenBlacklistService).blacklist("access-token");
+    }
+
+    @Test
+    void recover_성공_계정복구_및_토큰재발급() {
+        String recoveryToken = "recovery-token";
+
+        User user = User.builder()
+                .email("gone@test.com")
+                .nickName("GONE")
+                .role(UserRole.USER)
+                .provider("KAKAO")
+                .providerId("kakao-1")
+                .build();
+        ReflectionTestUtils.setField(user, "id", 5L);
+        user.withdraw(); // soft delete 상태
+
+        Claims claims = Jwts.claims();
+        claims.put("userId", 5L);
+
+        given(jwtProvider.validateToken(recoveryToken)).willReturn(true);
+        given(jwtProvider.isRecoveryToken(recoveryToken)).willReturn(true);
+        given(jwtProvider.parseClaims(recoveryToken)).willReturn(claims);
+        given(userRepository.findById(5L)).willReturn(Optional.of(user));
+        given(jwtProvider.createAccessToken(user)).willReturn("new-access");
+        given(jwtProvider.createRefreshToken()).willReturn("new-refresh");
+
+        UserDTO.LoginResponse response = userService.recover(recoveryToken);
+
+        assertThat(response.getAccessToken()).isEqualTo("new-access");
+        assertThat(response.getRefreshToken()).isEqualTo("new-refresh");
+        assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(user.getDeletedAt()).isNull();
+    }
+
+    @Test
+    void recover_유효하지않은토큰_예외() {
+        String token = "invalid-token";
+        given(jwtProvider.validateToken(token)).willReturn(false);
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> userService.recover(token)
+        );
+
+        assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.INVALID_TOKEN);
+        verify(tokenRedisRepository, never()).save(any());
+    }
+
+    @Test
+    void recover_recovery타입아닌_토큰_예외() {
+        String token = "access-token-not-recovery";
+        given(jwtProvider.validateToken(token)).willReturn(true);
+        given(jwtProvider.isRecoveryToken(token)).willReturn(false);
+
+        CustomException ex = assertThrows(
+                CustomException.class,
+                () -> userService.recover(token)
         );
 
         assertThat(ex.getErrorCode()).isEqualTo(AuthErrorCode.INVALID_TOKEN);
