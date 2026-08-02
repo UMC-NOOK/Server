@@ -288,8 +288,8 @@ public class OAuthService {
                     .body(String.class);
             log.info("[KAKAO UNLINK] success. targetId={}", kakaoUserId);
         } catch (Exception e) {
-            log.error("[KAKAO UNLINK] failed. targetId={}", kakaoUserId, e);
-            throw new CustomException(OAuthErrorCode.KAKAO_UNLINK_FAILED);
+            // unlink 실패는 best-effort 처리 (삭제 트랜잭션 롤백 방지)
+            log.error("[KAKAO UNLINK] failed (best-effort, 삭제 계속 진행). targetId={}", kakaoUserId, e);
         }
     }
 

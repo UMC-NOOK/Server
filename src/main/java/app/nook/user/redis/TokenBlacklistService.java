@@ -28,20 +28,31 @@ public class TokenBlacklistService {
     private final RedisTemplate<String, String> redisTemplate;
     private final JwtProvider jwtProvider;
 
-    /** access token 을 남은 만료 시간만큼 블랙리스트에 등록 */
+    // access token 을 남은 만료 시간만큼 블랙리스트에 등록 (Redis 장애 시 best-effort)
     public void blacklist(String accessToken) {
         long remainingMillis = remainingMillis(accessToken);
         if (remainingMillis <= 0) {
-            // 이미 만료된 토큰이면 등록할 필요 없음
+            // 이미 만료된 토큰이면 등록 생략
             return;
         }
-        redisTemplate.opsForValue()
-                .set(PREFIX + accessToken, VALUE, Duration.ofMillis(remainingMillis));
+        try {
+            redisTemplate.opsForValue()
+                    .set(PREFIX + accessToken, VALUE, Duration.ofMillis(remainingMillis));
+        } catch (RuntimeException e) {
+            // 등록 실패해도 토큰은 TTL 후 자연 만료
+            log.error("[BLACKLIST] Redis 등록 실패 (best-effort)", e);
+        }
     }
 
-    /** 블랙리스트 등록 여부 */
+    // 블랙리스트 등록 여부 (Redis 장애 시 fail-open)
     public boolean isBlacklisted(String accessToken) {
-        return redisTemplate.hasKey(PREFIX + accessToken);
+        try {
+            return Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + accessToken));
+        } catch (RuntimeException e) {
+            // 조회 장애 시 단기 토큰 특성상 가용성 우선 (인증 허용)
+            log.error("[BLACKLIST] Redis 조회 실패, fail-open 으로 인증 허용", e);
+            return false;
+        }
     }
 
     private long remainingMillis(String accessToken) {

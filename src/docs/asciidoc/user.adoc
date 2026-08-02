@@ -1,7 +1,7 @@
 === 마이페이지 내 정보 조회
 로그인한 사용자의 프로필 정보를 조회합니다.
  +
-`profileImageUrl`은 R2에서 발급된 presigned URL이며, 설정하지 않은 경우 `null`을 반환합니다.
+`profileImageUrl`은 R2 public 버킷의 만료 없는 CDN URL이며, 설정하지 않은 경우 `null`을 반환합니다.
 
 include::{snippets}/user-controller-test/내정보_조회_성공/http-request.adoc[]
 include::{snippets}/user-controller-test/내정보_조회_성공/request-headers.adoc[]

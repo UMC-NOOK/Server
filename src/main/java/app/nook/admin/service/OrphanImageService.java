@@ -9,8 +9,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.Delete;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.time.Duration;
@@ -38,6 +41,9 @@ public class OrphanImageService {
     /** 해당 시간 이내 생성 객체 삭제 제외 — "업로드 중/커밋 대기" 간주 */
     private static final Duration SAFETY_WINDOW = Duration.ofHours(24);
 
+    /** S3 DeleteObjects 배치 최대 크기 */
+    private static final int DELETE_BATCH_SIZE = 1000;
+
     private final S3Client s3Client;
     private final R2Properties r2;
     private final UserRepository userRepository;
@@ -57,19 +63,31 @@ public class OrphanImageService {
         List<String> orphans = findOrphanKeys(scanned);
 
         int deleted = 0;
-        for (String key : orphans) {
-            try {
-                s3Client.deleteObject(DeleteObjectRequest.builder()
-                        .bucket(r2.bucketName())
-                        .key(key)
-                        .build());
-                deleted++;
-            } catch (Exception e) {
-                log.warn("[ORPHAN_CLEANUP] 삭제 실패 key={}", key, e);
-            }
+        for (int i = 0; i < orphans.size(); i += DELETE_BATCH_SIZE) {
+            List<String> batch = orphans.subList(i, Math.min(i + DELETE_BATCH_SIZE, orphans.size()));
+            deleted += deleteBatch(batch);
         }
         log.info("[ORPHAN_CLEANUP] 스캔 {}건 중 고아 {}건, 삭제 {}건", scanned.size(), orphans.size(), deleted);
         return new OrphanScanResult(scanned.size(), deleted, List.of(), true);
+    }
+
+    // 최대 1000개 단위 배치 삭제, 삭제 성공 수 반환
+    private int deleteBatch(List<String> keys) {
+        try {
+            List<ObjectIdentifier> objects = keys.stream()
+                    .map(key -> ObjectIdentifier.builder().key(key).build())
+                    .toList();
+            DeleteObjectsResponse response = s3Client.deleteObjects(DeleteObjectsRequest.builder()
+                    .bucket(r2.bucketName())
+                    .delete(Delete.builder().objects(objects).build())
+                    .build());
+            response.errors().forEach(error ->
+                    log.warn("[ORPHAN_CLEANUP] 삭제 실패 key={}, code={}", error.key(), error.code()));
+            return keys.size() - response.errors().size();
+        } catch (Exception e) {
+            log.warn("[ORPHAN_CLEANUP] 배치 삭제 실패 size={}", keys.size(), e);
+            return 0;
+        }
     }
 
     // 테스트를 위해 package-private (24h 안전창 + known 필터 로직 직접 검증)

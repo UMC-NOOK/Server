@@ -12,18 +12,24 @@ import app.nook.user.redis.TokenRedisRepository;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UserService {
 
+    private static final String RECOVERY_USED_PREFIX = "recovery:used:";
+
     private final UserRepository userRepository;
     private final JwtProvider jwtProvider;
     private final TokenRedisRepository tokenRedisRepository;
     private final TokenBlacklistService tokenBlacklistService;
+    private final RedisTemplate<String, String> redisTemplate;
 
     /**
      * DEV 전용 로그인
@@ -145,8 +151,17 @@ public class UserService {
             throw new CustomException(AuthErrorCode.INVALID_TOKEN);
         }
 
+        // recovery token 1회용 검증 (replay 차단)
+        String usedKey = RECOVERY_USED_PREFIX + recoveryToken;
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(usedKey))) {
+            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+        }
+
         User user = userRepository.findById(userIdClaim.longValue())
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+
+        // 남은 만료 시간만큼 사용 처리 (TTL)
+        markRecoveryTokenUsed(usedKey, recoveryToken);
 
         if (user.isDeleted()) {
             user.reactivate();
@@ -154,6 +169,14 @@ public class UserService {
         }
 
         return issueTokens(user);
+    }
+
+    private void markRecoveryTokenUsed(String usedKey, String recoveryToken) {
+        long remainingMillis = jwtProvider.parseClaims(recoveryToken).getExpiration().getTime()
+                - System.currentTimeMillis();
+        if (remainingMillis > 0) {
+            redisTemplate.opsForValue().set(usedKey, "used", Duration.ofMillis(remainingMillis));
+        }
     }
 
     private void validateDevUserRole(User user) {

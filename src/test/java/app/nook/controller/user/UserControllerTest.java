@@ -85,7 +85,7 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.userId").description("사용자 ID"),
                                         fieldWithPath("result.nickName").description("닉네임"),
                                         fieldWithPath("result.email").description("이메일"),
-                                        fieldWithPath("result.profileImageUrl").description("프로필 이미지 presigned URL (없으면 null)")
+                                        fieldWithPath("result.profileImageUrl").description("프로필 이미지 CDN URL (없으면 null)")
                                 )
                         )
                 ));
@@ -203,7 +203,7 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
                         ),
                         responseFields(
                                 ApiResponseSnippet.withResult(
-                                        fieldWithPath("result.profileImageUrl").description("수정된 프로필 이미지 presigned URL")
+                                        fieldWithPath("result.profileImageUrl").description("수정된 프로필 이미지 CDN URL")
                                 )
                         )
                 ));

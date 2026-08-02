@@ -10,7 +10,10 @@ import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,7 @@ public class UserProfileService {
     private final UserRepository userRepository;
     private final PresignedUrlService presignedUrlService;
     private final ApplicationEventPublisher eventPublisher;
+    private final PlatformTransactionManager transactionManager;
 
     public UserProfileDto.MyPageResponse getMyPage(Long userId) {
         User user = getUser(userId);
@@ -41,22 +45,26 @@ public class UserProfileService {
         return new UserProfileDto.NickNameUpdateResponse(user.getNickName());
     }
 
-    // 프로필 이미지 업데이트
-    @Transactional
+    // 프로필 이미지 업데이트 (S3 검증은 트랜잭션 밖, DB 변경만 트랜잭션 안)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public UserProfileDto.ProfileImageUpdateResponse updateProfileImage(Long userId, String profileImageKey) {
-        User user = getUser(userId);
-
+        // S3 소유/유효성 검증 (트랜잭션 밖)
         presignedUrlService.validateOwnedImageKey(userId, profileImageKey, "profile");
 
-        String oldKey = user.getProfileImageKey();
-        user.updateProfileImage(profileImageKey);
+        // DB 변경 (트랜잭션 안)
+        return new TransactionTemplate(transactionManager).execute(status -> {
+            User user = getUser(userId);
 
-        if (oldKey != null && !oldKey.isBlank() && !oldKey.equals(profileImageKey)) {
-            eventPublisher.publishEvent(new ProfileImageCleanupEvent(oldKey));
-        }
+            String oldKey = user.getProfileImageKey();
+            user.updateProfileImage(profileImageKey);
 
-        String profileImageUrl = presignedUrlService.resolveImageUrl(userId, profileImageKey);
-        return new UserProfileDto.ProfileImageUpdateResponse(profileImageUrl);
+            if (oldKey != null && !oldKey.isBlank() && !oldKey.equals(profileImageKey)) {
+                eventPublisher.publishEvent(new ProfileImageCleanupEvent(oldKey));
+            }
+
+            String profileImageUrl = presignedUrlService.resolveImageUrl(userId, profileImageKey);
+            return new UserProfileDto.ProfileImageUpdateResponse(profileImageUrl);
+        });
     }
 
     private User getUser(Long userId) {

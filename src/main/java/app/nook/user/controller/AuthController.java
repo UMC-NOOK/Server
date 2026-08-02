@@ -7,15 +7,13 @@ import app.nook.user.annotation.CurrentUser;
 import app.nook.user.domain.User;
 import app.nook.user.dto.OAuthDTO;
 import app.nook.user.dto.UserDTO;
-import app.nook.user.jwt.JwtProvider;
+import app.nook.user.jwt.BearerTokenResolver;
 import app.nook.user.oauth.OAuthService;
 import app.nook.user.service.UserService;
 import app.nook.user.service.WithdrawService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -123,7 +121,7 @@ public class AuthController {
             @CurrentUser User user,
             HttpServletRequest request
     ) {
-        userService.logout(user, resolveAccessToken(request));
+        userService.logout(user, BearerTokenResolver.resolve(request));
         return ApiResponse.onSuccess(null, SuccessCode.OK);
     }
 
@@ -139,16 +137,8 @@ public class AuthController {
             @CurrentUser User user,
             HttpServletRequest request
     ) {
-        withdrawService.softDelete(user, resolveAccessToken(request));
+        withdrawService.softDelete(user, BearerTokenResolver.resolve(request));
         return ApiResponse.onSuccess(null, SuccessCode.OK);
-    }
-
-    private String resolveAccessToken(HttpServletRequest request) {
-        String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (StringUtils.hasText(authorization) && authorization.startsWith(JwtProvider.BEARER_PREFIX)) {
-            return authorization.substring(JwtProvider.BEARER_PREFIX.length());
-        }
-        return null;
     }
 
 }

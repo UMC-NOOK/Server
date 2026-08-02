@@ -19,9 +19,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,6 +49,12 @@ class UserServiceTest {
 
     @Mock
     private TokenBlacklistService tokenBlacklistService;
+
+    @Mock
+    private RedisTemplate<String, String> redisTemplate;
+
+    @Mock
+    private ValueOperations<String, String> valueOperations;
 
     @InjectMocks
     private UserService userService;
@@ -290,6 +299,7 @@ class UserServiceTest {
 
         Claims claims = Jwts.claims();
         claims.put("userId", 5L);
+        claims.setExpiration(new Date(System.currentTimeMillis() + 60_000)); // 남은 만료 시간
 
         given(jwtProvider.validateToken(recoveryToken)).willReturn(true);
         given(jwtProvider.isRecoveryToken(recoveryToken)).willReturn(true);
@@ -297,6 +307,7 @@ class UserServiceTest {
         given(userRepository.findById(5L)).willReturn(Optional.of(user));
         given(jwtProvider.createAccessToken(user)).willReturn("new-access");
         given(jwtProvider.createRefreshToken()).willReturn("new-refresh");
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
 
         UserDTO.LoginResponse response = userService.recover(recoveryToken);
 
@@ -304,6 +315,8 @@ class UserServiceTest {
         assertThat(response.getRefreshToken()).isEqualTo("new-refresh");
         assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
         assertThat(user.getDeletedAt()).isNull();
+        // 1회용 사용 처리(TTL) 저장 확인
+        verify(valueOperations).set(any(), any(), any(java.time.Duration.class));
     }
 
     @Test
