@@ -101,7 +101,38 @@ public class User extends BaseEntity {
         this.goal = goal;
     }
 
+    public void updateNickName(String nickName) {
+        this.nickName = nickName;
+    }
+
+    public void updateProfileImage(String profileImageKey) {
+        this.profileImageKey = profileImageKey;
+    }
+
     public boolean isOnboardingCompleted() {
         return this.onboardingCompletedAt != null;
+    }
+
+    /** 회원탈퇴 — soft delete */
+    public void withdraw() {
+        this.status = UserStatus.DELETED;
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    /** 탈퇴 후 동일 소셜 계정으로 재로그인 시 계정 복구 */
+    public void reactivate() {
+        this.status = UserStatus.ACTIVE;
+        this.deletedAt = null;
+    }
+
+    public boolean isDeleted() {
+        return this.status == UserStatus.DELETED;
+    }
+
+    /** 관리자 이메일 목록(env) 기준으로 role 을 동기화한다. */
+    public void syncRole(UserRole role) {
+        if (this.role != role) {
+            this.role = role;
+        }
     }
 }
