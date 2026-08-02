@@ -1,16 +1,14 @@
 package app.nook.library.domain;
 
 import app.nook.book.domain.Book;
-import app.nook.focus.domain.Focus;
 import app.nook.global.common.BaseEntity;
 import app.nook.library.domain.enums.ReadingStatus;
-import app.nook.timeline.domain.Timeline;
 import app.nook.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -46,17 +44,13 @@ public class Library extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "book_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Book book;
-
-    @OneToMany(mappedBy = "library", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Focus> focuses = new ArrayList<>();
-
-    @OneToMany(mappedBy = "library", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Timeline> timelines = new ArrayList<>();
 
     @Column(name = "started_at")
     private LocalDate startedAt;

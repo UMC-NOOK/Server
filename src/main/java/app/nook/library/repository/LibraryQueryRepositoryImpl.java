@@ -54,7 +54,7 @@ public class LibraryQueryRepositoryImpl implements LibraryQueryRepository {
                 )
                 .from(library)
                 .join(library.book, book)
-                .leftJoin(library.focuses, focus)
+                .leftJoin(focus).on(focus.library.eq(library))
                 .where(library.user.id.eq(userId))
                 .groupBy(
                         library.id,
