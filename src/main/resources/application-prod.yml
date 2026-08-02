@@ -7,3 +7,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:validate}
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
