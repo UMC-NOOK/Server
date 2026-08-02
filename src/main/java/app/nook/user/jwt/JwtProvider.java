@@ -25,6 +25,9 @@ public class JwtProvider {
     private Key key;
     private final long ACCESS_EXP = 1000L * 60 * 60;        // 1시간
     private final long REFRESH_EXP = 1000L * 60 * 60 * 24 * 3; // 3일
+    private final long RECOVERY_EXP = 1000L * 60 * 60;      // 1시간 (탈퇴 유예 계정 복구용)
+
+    private static final String TYPE_RECOVERY = "RECOVERY";
 
     @PostConstruct
     public void init() {
@@ -56,6 +59,26 @@ public class JwtProvider {
                 .setExpiration(new Date(now.getTime() + REFRESH_EXP))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    /**
+     * RecoveryToken 생성 — 탈퇴 유예중 계정 복구 전용(1시간).
+     * type=RECOVERY 로 표시하여 일반 API 인증(JwtFilter)에는 사용할 수 없게 한다.
+     */
+    public String createRecoveryToken(User user) {
+        Date now = new Date();
+        return Jwts.builder()
+                .claim("userId", user.getId())
+                .claim("type", TYPE_RECOVERY)
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime() + RECOVERY_EXP))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /** recovery 전용 토큰인지 여부 (일반 access token 은 type claim 이 없어 false) */
+    public boolean isRecoveryToken(String token) {
+        return TYPE_RECOVERY.equals(parseClaims(token).get("type", String.class));
     }
 
     /**
