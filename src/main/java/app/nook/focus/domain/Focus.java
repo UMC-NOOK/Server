@@ -5,6 +5,8 @@ import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -32,6 +34,7 @@ public class Focus extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "library_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Library library;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
