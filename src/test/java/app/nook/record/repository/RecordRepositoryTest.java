@@ -7,7 +7,9 @@ import app.nook.global.config.QueryDslConfig;
 import app.nook.library.domain.Library;
 import app.nook.record.domain.Record;
 import app.nook.record.domain.enums.Emotion;
+import app.nook.record.domain.enums.SortType;
 import app.nook.record.dto.BookRecordDto;
+import app.nook.record.dto.RecordListCursor;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import org.junit.jupiter.api.DisplayName;
@@ -156,6 +158,66 @@ class RecordRepositoryTest extends AbstractPostgresContainerTests {
                         assertThat(item.emotion()).isEqualTo("SAD");
                         assertThat(item.recordCount()).isEqualTo(1L);
                     });
+        }
+
+        @Test
+        @DisplayName("한 책에 기록이 2개 이상이어도 책별로 1건씩, 최신 기록 content로 그룹핑한다")
+        void findRecordsByCursor_책당_기록_다수() {
+            // given - 한 책에 기록 3개 (기존에는 content 서브쿼리가 여러 row를 반환해 예외 발생)
+            User user = persistUser("cursor@test.com", "cursor-provider");
+            Book book = persistBook("커서 그룹핑 테스트", "작가");
+            Library library = persistLibrary(user, book);
+            persistRecord(library, Emotion.FUN, "오래된 기록",
+                    LocalDateTime.of(2026, 4, 1, 10, 0));
+            persistRecord(library, Emotion.SAD, "중간 기록",
+                    LocalDateTime.of(2026, 4, 2, 10, 0));
+            persistRecord(library, Emotion.USEFUL, "최신 기록",
+                    LocalDateTime.of(2026, 4, 3, 10, 0));
+            em.flush();
+            em.clear();
+
+            // when
+            List<BookRecordDto.BookRecordItemDto> result = recordRepository.findRecordsByCursor(
+                    user.getId(),
+                    new RecordListCursor(null, null, null),
+                    SortType.RECENT_RECORDED,
+                    10
+            );
+
+            // then - 책 1권으로 묶이고 count=3, content는 가장 최신 기록
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).bookId()).isEqualTo(book.getId());
+            assertThat(result.get(0).recordCount()).isEqualTo(3L);
+            assertThat(result.get(0).recordContent()).isEqualTo("최신 기록");
+        }
+    }
+
+    @Nested
+    @DisplayName("삭제")
+    class Delete {
+
+        @Test
+        @DisplayName("기록을 삭제해도 소속 서재(Library)는 삭제되지 않는다")
+        void deleteRecord_서재는_보존() {
+            // given - 한 서재에 기록 2개
+            User user = persistUser("delete@test.com", "delete-provider");
+            Book book = persistBook("삭제 테스트", "작가");
+            Library library = persistLibrary(user, book);
+            Record target = persistRecord(library, Emotion.FUN, "삭제될 기록",
+                    LocalDateTime.of(2026, 4, 1, 10, 0));
+            Record survivor = persistRecord(library, Emotion.SAD, "남을 기록",
+                    LocalDateTime.of(2026, 4, 2, 10, 0));
+            em.flush();
+
+            // when - 기록 1건 삭제
+            recordRepository.delete(target);
+            em.flush();
+            em.clear();
+
+            // then - 서재와 다른 기록은 그대로 남는다 (자식→부모 삭제 전파 없음)
+            assertThat(em.find(Library.class, library.getId())).isNotNull();
+            assertThat(recordRepository.findById(target.getId())).isEmpty();
+            assertThat(recordRepository.findById(survivor.getId())).isPresent();
         }
     }
 
