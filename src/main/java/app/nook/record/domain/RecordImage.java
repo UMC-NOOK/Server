@@ -20,7 +20,7 @@ public class RecordImage extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "record_id")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Record record;

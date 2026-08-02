@@ -32,7 +32,7 @@ public class Record extends BaseEntity {
     @Column(name = "record_id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "library_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Library library;

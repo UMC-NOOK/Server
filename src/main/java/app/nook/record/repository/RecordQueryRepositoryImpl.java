@@ -9,11 +9,13 @@ import app.nook.record.domain.enums.Emotion;
 import app.nook.record.domain.enums.SortType;
 import app.nook.record.dto.BookRecordDto;
 import app.nook.record.dto.RecordListCursor;
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.DateTimeExpression;
 import com.querydsl.core.types.dsl.EnumPath;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -42,24 +44,16 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
     ){
         QBook book = QBook.book;
         QLibrary library = QLibrary.library;
-        QRecord subRecord = new QRecord("subRecord");
         NumberExpression<Long> recordCount = record.count();
         DateTimeExpression<LocalDateTime> lastCreatedDate = sortDateExpression(sortType);
 
-        return queryFactory
+        // 1) 책별 집계 조회 (최신 기록 content는 별도 조회 후 합침)
+        List<BookRecordDto.BookRecordItemDto> items = queryFactory
                 .select(Projections.constructor(BookRecordDto.BookRecordItemDto.class,
                         record.library.book.id,
                         record.library.book.title,
                         record.library.book.author,
-                        JPAExpressions // 가장 최신의 기록 1개 가져오기
-                                .select(subRecord.content)
-                                .from(subRecord)
-                                .where(
-                                        subRecord.library.book.eq(book),
-                                        subRecord.library.user.id.eq(userId)
-                                )
-                                .orderBy(subRecord.createdDate.desc())
-                                .limit(1),
+                        Expressions.nullExpression(String.class),
                         record.library.book.coverImageKey,
                         recordCount,
                         lastCreatedDate
@@ -80,6 +74,53 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
                 .orderBy(orderByConditions(sortType, recordCount, book.id, lastCreatedDate))
                 .limit(size + 1)
                 .fetch();
+
+        if (items.isEmpty()) {
+            return items;
+        }
+
+        // 2) 책별 최신 기록 content 조회 후 합치기
+        List<Long> bookIds = items.stream()
+                .map(BookRecordDto.BookRecordItemDto::bookId)
+                .toList();
+        Map<Long, String> latestContentByBook = findLatestContentByBook(userId, bookIds);
+
+        return items.stream()
+                .map(item -> new BookRecordDto.BookRecordItemDto(
+                        item.bookId(),
+                        item.title(),
+                        item.author(),
+                        latestContentByBook.get(item.bookId()),
+                        item.coverImageUrl(),
+                        item.recordCount(),
+                        item.lastCreatedDate()
+                ))
+                .toList();
+    }
+
+    // 책별 최신(생성일 기준) 기록의 content를 조회해 bookId -> content 로 매핑
+    private Map<Long, String> findLatestContentByBook(Long userId, List<Long> bookIds) {
+        QLibrary library = QLibrary.library;
+
+        List<Tuple> rows = queryFactory
+                .select(record.library.book.id, record.content)
+                .from(record)
+                .join(record.library, library)
+                .where(
+                        library.user.id.eq(userId),
+                        record.library.book.id.in(bookIds)
+                )
+                .orderBy(record.library.book.id.asc(), record.createdDate.desc(), record.id.desc())
+                .fetch();
+
+        Map<Long, String> latestContentByBook = new HashMap<>();
+        for (Tuple row : rows) {
+            Long bookId = row.get(record.library.book.id);
+            if (!latestContentByBook.containsKey(bookId)) {
+                latestContentByBook.put(bookId, row.get(record.content));
+            }
+        }
+        return latestContentByBook;
     }
 
     // 감정 필터
