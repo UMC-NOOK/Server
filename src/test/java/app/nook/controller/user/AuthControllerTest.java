@@ -15,6 +15,7 @@ import app.nook.user.filter.JwtExceptionFilter;
 import app.nook.user.filter.JwtFilter;
 import app.nook.user.service.CustomUserDetails;
 import app.nook.user.service.UserService;
+import app.nook.user.service.WithdrawService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
@@ -53,6 +55,9 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private WithdrawService withdrawService;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -316,6 +321,93 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.id").description("사용자ID"),
                                         fieldWithPath("result.email").description("이메일"),
                                         fieldWithPath("result.nickName").description("닉네임")
+                                )
+                        )
+                ));
+    }
+
+    @Test
+    void 로그아웃_성공() throws Exception {
+        User user = User.builder()
+                .email("jiwon@kakao.com")
+                .nickName("jiwon")
+                .provider("kakao")
+                .providerId("provider-id")
+                .role(UserRole.USER)
+                .build();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+
+        mockMvc.perform(
+                        post("/api/v1/auth/logout")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .with(user(userDetails))
+                )
+                .andExpect(status().isOk())
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                ));
+    }
+
+    @Test
+    void 회원탈퇴_성공() throws Exception {
+        User user = User.builder()
+                .email("jiwon@kakao.com")
+                .nickName("jiwon")
+                .provider("kakao")
+                .providerId("provider-id")
+                .role(UserRole.USER)
+                .build();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+
+        mockMvc.perform(
+                        delete("/api/v1/auth/withdraw")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .with(user(userDetails))
+                )
+                .andExpect(status().isOk())
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                ));
+    }
+
+    @Test
+    void 계정복구_성공() throws Exception {
+        UserDTO.RecoveryRequest request = new UserDTO.RecoveryRequest("recovery-token");
+
+        UserDTO.LoginResponse response =
+                UserDTO.LoginResponse.builder()
+                        .id(5L)
+                        .email("gone@test.com")
+                        .nickName("gone-user")
+                        .accessToken("new-access-token")
+                        .refreshToken("new-refresh-token")
+                        .onboardingCompleted(true)
+                        .build();
+
+        given(userService.recover(any()))
+                .willReturn(response);
+
+        mockMvc.perform(
+                        post("/api/v1/auth/recover")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.accessToken").value("new-access-token"))
+                .andDo(restDocs.document(
+                        requestFields(
+                                fieldWithPath("recoveryToken").description("로그인 응답으로 받은 복구 토큰(1시간)")
+                        ),
+                        responseFields(
+                                ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.id").description("사용자ID"),
+                                        fieldWithPath("result.email").description("이메일"),
+                                        fieldWithPath("result.nickName").description("닉네임"),
+                                        fieldWithPath("result.accessToken").description("엑세스 토큰"),
+                                        fieldWithPath("result.refreshToken").description("리프레시 토큰"),
+                                        fieldWithPath("result.onboardingCompleted").description("온보딩 완료 여부")
                                 )
                         )
                 ));
