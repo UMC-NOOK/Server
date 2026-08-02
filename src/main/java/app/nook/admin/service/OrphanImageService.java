@@ -21,22 +21,21 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 고아 이미지 정리 — R2 에는 존재하지만 DB 어디에서도 참조하지 않는 이미지를 찾아 삭제한다.
+ * 고아 이미지 정리 — R2 에 존재하나 DB 어디에서도 미참조 이미지 탐색 및 삭제
  * <p>
- * 안전장치:
- * - 업로드 직후 아직 DB 커밋이 안 된 파일은 고아처럼 보이므로, 생성 후 {@link #SAFETY_WINDOW}
- *   이내 객체는 무조건 제외한다.
- * - 관리 대상 prefix({@link #MANAGED_PREFIXES}) 밖의 객체는 손대지 않는다.
+ * 안전장치
+ * - 생성 후 {@link #SAFETY_WINDOW} 이내 객체 제외 (업로드 직후 DB 커밋 대기 파일 보호)
+ * - 관리 대상 prefix({@link #MANAGED_PREFIXES}) 밖 객체 제외
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrphanImageService {
 
-    /** 키 포맷: {type}/users/{id}/{file}. PresignedUrlService 의 업로드 타입과 일치. */
+    /** 키 포맷: {type}/users/{id}/{file}, PresignedUrlService 업로드 타입과 일치 */
     private static final List<String> MANAGED_PREFIXES = List.of("profile/", "record/", "book/");
 
-    /** 이 시간보다 최근에 생성된 객체는 "업로드 중/커밋 대기" 로 보고 삭제 대상에서 제외 */
+    /** 해당 시간 이내 생성 객체 삭제 제외 — "업로드 중/커밋 대기" 간주 */
     private static final Duration SAFETY_WINDOW = Duration.ofHours(24);
 
     private final S3Client s3Client;
