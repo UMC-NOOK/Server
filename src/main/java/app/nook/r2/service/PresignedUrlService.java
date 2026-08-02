@@ -1,11 +1,11 @@
 package app.nook.r2.service;
 
-import app.nook.r2.dto.ImageUploadRequestDto;
-import app.nook.r2.dto.ImageUrlResponseDto;
+import app.nook.global.config.R2Properties;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.FileErrorCode;
+import app.nook.r2.dto.ImageUploadRequestDto;
+import app.nook.r2.dto.ImageUrlResponseDto;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
@@ -31,14 +31,14 @@ public class PresignedUrlService {
     private static final int MAX_FILE_COUNT = 5;
 
     private final S3Presigner s3Presigner;
-
     private final S3Client s3Client;
-
-    @Value("${cloudflare.r2.bucket-name}")
-    private String bucketName;
+    private final R2Properties r2;
 
     private static final Set<String> ALLOWED_UPLOAD_TYPES = Set.of(
             "book", "profile", "record"
+    );
+    private static final Set<String> PUBLIC_UPLOAD_TYPES = Set.of(
+            "profile", "book"
     );
     private static final Map<String, String> ALLOWED_IMAGE_CONTENT_TYPES = Map.of(
             "image/jpeg", "jpg",
@@ -50,7 +50,7 @@ public class PresignedUrlService {
     // presigned 다운로드
     public ImageUrlResponseDto getPresignedUrl(String key) {
         GetObjectRequest objectRequest = GetObjectRequest.builder()
-                .bucket(bucketName)
+                .bucket(r2.bucketName())
                 .key(key)
                 .build();
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
@@ -74,7 +74,7 @@ public class PresignedUrlService {
     // 키 기반으로 presigned 업로드 url을 생성
     private ImageUrlResponseDto generateUploadUrl(String key, String contentType) {
         PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(bucketName)
+                .bucket(r2.bucketName())
                 .key(key)
                 .contentType(contentType)
                 .build();
@@ -99,10 +99,14 @@ public class PresignedUrlService {
             return keyOrUrl;
         }
         try {
+            ParsedKey parsed = parseKey(keyOrUrl);
+            if (PUBLIC_UPLOAD_TYPES.contains(parsed.uploadType())) {
+                return r2.cdnBaseUrl() + "/" + keyOrUrl;
+            }
             return getImageUrl(userId, keyOrUrl);
         } catch (CustomException e) {
             if (e.getErrorCode() == FileErrorCode.INVALID_FILE_TYPE) {
-                return keyOrUrl;
+                return keyOrUrl; // 이미 URL인 경우 (Aladin 책 표지 등)
             }
             throw e;
         }
@@ -134,7 +138,7 @@ public class PresignedUrlService {
 
          // 파일 삭제
          DeleteObjectRequest request = DeleteObjectRequest.builder()
-                 .bucket(bucketName)
+                 .bucket(r2.bucketName())
                  .key(key)
                  .build();
          s3Client.deleteObject(request);
@@ -230,7 +234,7 @@ public class PresignedUrlService {
     public boolean exists(String key) {
         try {
             HeadObjectRequest request = HeadObjectRequest.builder()
-                    .bucket(bucketName)
+                    .bucket(r2.bucketName())
                     .key(key)
                     .build();
 
@@ -245,7 +249,7 @@ public class PresignedUrlService {
     // S3 메타데이터 기반 파일 크기 검증
     private void validateFileSizeByMetadata(String key) {
         HeadObjectRequest request = HeadObjectRequest.builder()
-                .bucket(bucketName)
+                .bucket(r2.bucketName())
                 .key(key)
                 .build();
         HeadObjectResponse response = s3Client.headObject(request);

@@ -3,6 +3,7 @@ package app.nook.user.filter;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.jwt.JwtProvider;
+import app.nook.user.redis.TokenBlacklistService;
 import app.nook.user.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -37,6 +38,9 @@ class JwtFilterTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private TokenBlacklistService tokenBlacklistService;
 
     @Mock
     private FilterChain filterChain;
@@ -117,6 +121,42 @@ class JwtFilterTest {
             assertThat(response.getHeader(HttpHeaders.AUTHORIZATION)).isNull();
             verify(userRepository, never()).findById(org.mockito.ArgumentMatchers.anyLong());
             verify(filterChain).doFilter(request, response);
+        }
+
+        @Test
+        void recovery토큰이면_JwtException을_던지고_인증하지_않는다() throws Exception {
+            String recoveryToken = "recovery-token";
+
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            request.addHeader(HttpHeaders.AUTHORIZATION, JwtProvider.BEARER_PREFIX + recoveryToken);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            given(jwtProvider.validateToken(recoveryToken)).willReturn(true);
+            given(jwtProvider.isRecoveryToken(recoveryToken)).willReturn(true);
+
+            assertThatThrownBy(() -> jwtFilter.doFilter(request, response, filterChain))
+                    .isInstanceOf(io.jsonwebtoken.JwtException.class);
+
+            assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+            verify(filterChain, never()).doFilter(request, response);
+        }
+
+        @Test
+        void 블랙리스트에_등록된_토큰이면_JwtException을_던진다() throws Exception {
+            String blacklistedToken = "blacklisted-token";
+
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            request.addHeader(HttpHeaders.AUTHORIZATION, JwtProvider.BEARER_PREFIX + blacklistedToken);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            given(jwtProvider.validateToken(blacklistedToken)).willReturn(true);
+            given(tokenBlacklistService.isBlacklisted(blacklistedToken)).willReturn(true);
+
+            assertThatThrownBy(() -> jwtFilter.doFilter(request, response, filterChain))
+                    .isInstanceOf(io.jsonwebtoken.JwtException.class);
+
+            assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+            verify(filterChain, never()).doFilter(request, response);
         }
 
         @Test

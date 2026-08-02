@@ -1,7 +1,44 @@
+=== 마이페이지 내 정보 조회
+로그인한 사용자의 프로필 정보를 조회합니다.
+ +
+`profileImageUrl`은 R2 public 버킷의 만료 없는 CDN URL이며, 설정하지 않은 경우 `null`을 반환합니다.
+
+include::{snippets}/user-controller-test/내정보_조회_성공/http-request.adoc[]
+include::{snippets}/user-controller-test/내정보_조회_성공/request-headers.adoc[]
+include::{snippets}/user-controller-test/내정보_조회_성공/http-response.adoc[]
+include::{snippets}/user-controller-test/내정보_조회_성공/response-fields.adoc[]
+
+=== 닉네임 수정
+로그인한 사용자의 닉네임을 수정합니다.
+ +
+닉네임은 2~20자의 영문, 숫자, 한글만 허용합니다.
+
+include::{snippets}/user-controller-test/닉네임_수정_성공/http-request.adoc[]
+include::{snippets}/user-controller-test/닉네임_수정_성공/request-headers.adoc[]
+include::{snippets}/user-controller-test/닉네임_수정_성공/request-fields.adoc[]
+include::{snippets}/user-controller-test/닉네임_수정_성공/http-response.adoc[]
+include::{snippets}/user-controller-test/닉네임_수정_성공/response-fields.adoc[]
+
+=== 프로필 이미지 수정
+로그인한 사용자의 프로필 이미지를 수정합니다.
+ +
+이미지는 별도 업로드 API를 통해 먼저 업로드한 뒤 발급받은 `profileImageKey`만 전달합니다. +
+기존 이미지는 비동기로 삭제됩니다.
+
+include::{snippets}/user-controller-test/프로필이미지_수정_성공/http-request.adoc[]
+include::{snippets}/user-controller-test/프로필이미지_수정_성공/request-headers.adoc[]
+include::{snippets}/user-controller-test/프로필이미지_수정_성공/request-fields.adoc[]
+include::{snippets}/user-controller-test/프로필이미지_수정_성공/http-response.adoc[]
+include::{snippets}/user-controller-test/프로필이미지_수정_성공/response-fields.adoc[]
+
 === 소셜 로그인
 
 `GOOGLE`, `KAKAO` 두 가지 방법으로 소셜 로그인 요청을 보낼 수 있습니다.
 인가 코드를 발급받고 code에 담아서 요청을 보내면 됩니다.
+ +
+탈퇴 유예중(soft delete) 계정이 로그인을 시도하면 `accessToken`/`refreshToken` 대신
+`recoveryRequired=true`와 `recoveryToken`(1시간)이 반환됩니다.
+사용자가 복구를 확정하면 이 `recoveryToken`으로 `계정 복구` API를 호출합니다.
 
 include::{snippets}/auth-controller-test/소셜로그인_성공/http-request.adoc[]
 include::{snippets}/auth-controller-test/소셜로그인_성공/request-fields.adoc[]
@@ -28,6 +65,37 @@ include::{snippets}/auth-controller-test/내정보_조회_성공/http-request.ad
 include::{snippets}/auth-controller-test/내정보_조회_성공/request-headers.adoc[]
 include::{snippets}/auth-controller-test/내정보_조회_성공/http-response.adoc[]
 include::{snippets}/auth-controller-test/내정보_조회_성공/response-fields.adoc[]
+
+=== 로그아웃
+
+현재 access token을 무효화(블랙리스트)하고 refresh token을 제거합니다. +
+로그아웃 후에는 해당 access token으로 API를 호출할 수 없습니다.
+
+include::{snippets}/auth-controller-test/로그아웃_성공/http-request.adoc[]
+include::{snippets}/auth-controller-test/로그아웃_성공/request-headers.adoc[]
+include::{snippets}/auth-controller-test/로그아웃_성공/http-response.adoc[]
+include::{snippets}/auth-controller-test/로그아웃_성공/response-fields.adoc[]
+
+=== 회원 탈퇴
+
+회원 탈퇴를 요청합니다(soft delete). +
+계정은 즉시 비활성화되고 토큰이 무효화되지만, 데이터/사진/소셜 연결은 보존됩니다. +
+탈퇴 후 14일 이내 동일 소셜 계정으로 로그인하면 복구할 수 있으며, 유예기간이 지나면 완전 삭제됩니다.
+
+include::{snippets}/auth-controller-test/회원탈퇴_성공/http-request.adoc[]
+include::{snippets}/auth-controller-test/회원탈퇴_성공/request-headers.adoc[]
+include::{snippets}/auth-controller-test/회원탈퇴_성공/http-response.adoc[]
+include::{snippets}/auth-controller-test/회원탈퇴_성공/response-fields.adoc[]
+
+=== 계정 복구
+
+탈퇴 유예중인 계정을 복구하고 로그인합니다. +
+소셜 로그인 응답으로 받은 `recoveryToken`(1시간)을 담아 요청하면 계정이 복구되고 정상 토큰이 발급됩니다.
+
+include::{snippets}/auth-controller-test/계정복구_성공/http-request.adoc[]
+include::{snippets}/auth-controller-test/계정복구_성공/request-fields.adoc[]
+include::{snippets}/auth-controller-test/계정복구_성공/http-response.adoc[]
+include::{snippets}/auth-controller-test/계정복구_성공/response-fields.adoc[]
 
 == 온보딩
 

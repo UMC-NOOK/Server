@@ -6,22 +6,30 @@ import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.dto.UserDTO;
 import app.nook.user.jwt.JwtProvider;
+import app.nook.user.redis.TokenBlacklistService;
 import app.nook.user.redis.TokenRedis;
 import app.nook.user.redis.TokenRedisRepository;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UserService {
 
+    private static final String RECOVERY_USED_PREFIX = "recovery:used:";
+
     private final UserRepository userRepository;
     private final JwtProvider jwtProvider;
     private final TokenRedisRepository tokenRedisRepository;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final RedisTemplate<String, String> redisTemplate;
 
     /**
      * DEV 전용 로그인
@@ -114,6 +122,61 @@ public class UserService {
         );
 
         return new UserDTO.TokenReissueResponse(newAccessToken, newRefreshToken);
+    }
+
+    /**
+     * 로그아웃
+     * 1. refresh token 제거 (재발급 차단)
+     * 2. access token 을 남은 만료 시간만큼 블랙리스트 처리 (즉시 무효화)
+     */
+    @Transactional
+    public void logout(User user, String accessToken) {
+        tokenRedisRepository.deleteById(user.getId());
+        tokenBlacklistService.blacklist(accessToken);
+        log.info("[LOGOUT] userId={}", user.getId());
+    }
+
+    /**
+     * 탈퇴 유예중 계정 복구 후 로그인.
+     * 로그인 응답으로 받은 recovery token(1시간, type=RECOVERY)으로 호출한다.
+     */
+    @Transactional
+    public UserDTO.LoginResponse recover(String recoveryToken) {
+        if (!jwtProvider.validateToken(recoveryToken) || !jwtProvider.isRecoveryToken(recoveryToken)) {
+            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+        }
+
+        Number userIdClaim = jwtProvider.parseClaims(recoveryToken).get("userId", Number.class);
+        if (userIdClaim == null) {
+            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+        }
+
+        // recovery token 1회용 검증 (replay 차단)
+        String usedKey = RECOVERY_USED_PREFIX + recoveryToken;
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(usedKey))) {
+            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+        }
+
+        User user = userRepository.findById(userIdClaim.longValue())
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+
+        // 남은 만료 시간만큼 사용 처리 (TTL)
+        markRecoveryTokenUsed(usedKey, recoveryToken);
+
+        if (user.isDeleted()) {
+            user.reactivate();
+            log.info("[RECOVER] userId={}", user.getId());
+        }
+
+        return issueTokens(user);
+    }
+
+    private void markRecoveryTokenUsed(String usedKey, String recoveryToken) {
+        long remainingMillis = jwtProvider.parseClaims(recoveryToken).getExpiration().getTime()
+                - System.currentTimeMillis();
+        if (remainingMillis > 0) {
+            redisTemplate.opsForValue().set(usedKey, "used", Duration.ofMillis(remainingMillis));
+        }
     }
 
     private void validateDevUserRole(User user) {

@@ -22,6 +22,11 @@ public class UserDTO {
         private String accessToken;
         private String refreshToken;
         private boolean onboardingCompleted;
+
+        // 탈퇴 유예중 계정: recoveryRequired=true, recoveryToken(1시간) 발급, access/refresh 는 null
+        // 일반 로그인 응답에는 두 필드 모두 null → NON_NULL 로 직렬화에서 제외됨
+        private Boolean recoveryRequired;
+        private String recoveryToken;
     }
 
     @AllArgsConstructor
@@ -57,6 +62,11 @@ public class UserDTO {
         @NotBlank(message = "리프레시토큰은 필수입니다.")
         private String refreshToken;
     }
+
+    public record RecoveryRequest(
+            @NotBlank(message = "복구 토큰은 필수입니다.")
+            String recoveryToken
+    ) {}
 
     public record TokenReissueResponse(
             String accessToken,
