@@ -2,6 +2,9 @@
 .gradle/
 build/
 
+# QueryDSL generated
+src/main/generated/
+
 # REST Docs
 build/generated-snippets/
 
