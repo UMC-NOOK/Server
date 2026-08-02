@@ -55,8 +55,8 @@ public class WithdrawService {
     }
 
     /**
-     * 완전 탈퇴 (hard delete) — {@link app.nook.user.scheduler.UserScheduler} 가 유예기간 경과 계정에 대해 호출.
-     * 이미 soft delete 시점에 토큰은 무효화되었고 access token 도 만료되었으므로 별도 토큰 처리는 방어적 수준만 수행한다.
+     * 완전 탈퇴 (hard delete) — {@link app.nook.user.scheduler.UserScheduler} 가 유예기간 경과 계정에 대해 호출
+     * soft delete 시점에 토큰 무효화 + access token 만료 완료 상태라 별도 토큰 처리는 방어적 수준만 수행
      * 1. 소셜 연결 해제(카카오 unlink 등)
      * 2. 삭제 전 S3 이미지 key 수집 (프로필 + 모든 기록 이미지)
      * 3. user 삭제 → DB ON DELETE CASCADE 로 library/record/focus/timeline/검색·조회 기록 전부 삭제

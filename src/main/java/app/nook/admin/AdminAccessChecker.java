@@ -11,8 +11,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 관리자 여부 판별. 관리자 계정 이메일은 환경변수(ADMIN_EMAILS, 콤마 구분)로 주입된다.
- * 목록이 비어 있으면 관리자 없음 → 관리자 API 는 항상 거부된다.
+ * 관리자 여부 판별 — 관리자 계정 이메일은 환경변수(ADMIN_EMAILS, 콤마 구분) 주입
+ * 목록이 비면 관리자 없음 → 관리자 API 항상 거부
  */
 @Component
 public class AdminAccessChecker {

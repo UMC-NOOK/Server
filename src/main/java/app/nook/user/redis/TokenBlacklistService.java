@@ -12,10 +12,10 @@ import java.util.Date;
 /**
  * 로그아웃/회원탈퇴된 access token 블랙리스트
  * <p>
- * JWT는 stateless 라 발급된 access token 을 만료 전에 서버가 무효화할 수 없다.
- * 로그아웃/탈퇴 시 해당 토큰을 "남은 만료 시간(TTL)" 만큼만 Redis 에 등록해 두고,
- * {@link app.nook.user.filter.JwtFilter} 가 인증 세팅 전에 조회해서 거부한다.
- * TTL 이 지나면 토큰도 자연 만료되므로 Redis 키도 자동 삭제된다.
+ * JWT는 stateless 라 발급된 access token 을 만료 전 서버가 무효화 불가
+ * 로그아웃/탈퇴 시 해당 토큰을 "남은 만료 시간(TTL)" 만큼만 Redis 에 등록,
+ * {@link app.nook.user.filter.JwtFilter} 가 인증 세팅 전 조회하여 거부
+ * TTL 경과 시 토큰 자연 만료 → Redis 키도 자동 삭제
  */
 @Slf4j
 @Service

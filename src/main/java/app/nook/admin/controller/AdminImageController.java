@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 관리자 전용 이미지 관리 API.
- * URL 단 hasRole("ADMIN") + 컨트롤러 이메일 확인(AdminAccessChecker) 이중 게이트.
+ * 관리자 전용 이미지 관리 API
+ * URL 단 hasRole("ADMIN") + 컨트롤러 이메일 확인(AdminAccessChecker) 이중 게이트
  */
 @RestController
 @Api1Version

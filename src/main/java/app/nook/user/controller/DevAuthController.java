@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * DEV/LOCAL 전용 인증 API.
- * prod 프로파일에서는 빈이 로드되지 않아 노출되지 않는다.
+ * DEV/LOCAL 전용 인증 API
+ * prod 프로파일에서는 빈 미로드로 미노출
  */
 @RestController
 @Api1Version

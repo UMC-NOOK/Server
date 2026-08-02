@@ -3,7 +3,7 @@ package app.nook.admin.dto;
 import java.util.List;
 
 /**
- * 고아 이미지 대조/삭제 결과.
+ * 고아 이미지 대조/삭제 결과
  *
  * @param scanned     스캔한 R2 객체 수(관리 prefix 한정)
  * @param orphanCount 고아로 판정된 수 (삭제 모드에서는 실제 삭제 성공 수)

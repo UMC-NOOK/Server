@@ -10,8 +10,8 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
- * 회원 hard delete 커밋 후, 유저가 가지고 있던 이미지들을 S3 에서 삭제한다.
- * DB 삭제가 성공적으로 커밋된 뒤에만 실행되어, 롤백 시 S3 파일이 유실되는 것을 방지한다.
+ * 회원 hard delete 커밋 후 유저가 보유하던 이미지 S3 삭제
+ * DB 삭제 커밋 후에만 실행 → 롤백 시 S3 파일 유실 방지
  */
 @Slf4j
 @Component
