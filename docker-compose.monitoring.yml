@@ -6,12 +6,15 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-15d}
       - --web.enable-lifecycle
+      - --web.enable-remote-write-receiver
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/prometheus/targets:/etc/prometheus/targets:ro
       - prometheus-data:/prometheus
     ports:
       - "127.0.0.1:9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     networks:
       - monitoring-network
@@ -40,11 +43,57 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/etc/grafana/dashboards:ro
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
     depends_on:
       - prometheus
       - loki
     restart: unless-stopped
+    networks:
+      - monitoring-network
+
+  k6:
+    image: grafana/k6:2.1.0
+    profiles:
+      - loadtest
+    user: ${K6_DOCKER_USER:-12345:12345}
+    environment:
+      BASE_URL: ${BASE_URL:-http://host.docker.internal:8080}
+      MANAGEMENT_BASE_URL: ${MANAGEMENT_BASE_URL:-}
+      TOKEN: ${TOKEN:-}
+      K6_ACCESS_TOKEN: ${K6_ACCESS_TOKEN:-}
+      K6_REFRESH_TOKEN: ${K6_REFRESH_TOKEN:-}
+      K6_USER_EMAIL: ${K6_USER_EMAIL:-}
+      K6_USER_NICKNAME: ${K6_USER_NICKNAME:-}
+      K6_ENV: ${K6_ENV:-local}
+      RUN_PREFIX: ${RUN_PREFIX:-}
+      RUN_ID: ${RUN_ID:-}
+      K6_REPORT_NAME: ${K6_REPORT_NAME:-}
+      K6_REQUIRE_CONFIRM: ${K6_REQUIRE_CONFIRM:-}
+      K6_PROD_BASE_URL_PATTERN: ${K6_PROD_BASE_URL_PATTERN:-}
+      CONFIRM_PROD_LOADTEST: ${CONFIRM_PROD_LOADTEST:-}
+      VUS: ${VUS:-}
+      ITERATIONS: ${ITERATIONS:-}
+      MAX_DURATION: ${MAX_DURATION:-}
+      P95_THRESHOLD_MS: ${P95_THRESHOLD_MS:-}
+      FAILED_RATE_THRESHOLD: ${FAILED_RATE_THRESHOLD:-}
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+      K6_PROMETHEUS_RW_TREND_STATS: p(95),p(99),avg,min,max
+    volumes:
+      - ./performance/k6:/workspace/performance/k6:ro
+      - ./performance/k6/reports:/workspace/performance/k6/reports
+    working_dir: /workspace
+    entrypoint:
+      - /bin/sh
+      - /workspace/performance/k6/scripts/k6-entrypoint.sh
+    command:
+      - run
+      - -o
+      - experimental-prometheus-rw
+      - ${K6_SCRIPT:-performance/k6/scenarios/smoke.js}
+    depends_on:
+      - prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - monitoring-network
 

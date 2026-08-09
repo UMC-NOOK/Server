@@ -28,6 +28,13 @@ data/certbot/
 
 db/postgres
 
+# k6 generated reports may include tokens or run-specific response data.
+performance/k6/env/*.env
+performance/k6/state/*
+!performance/k6/state/.gitkeep
+performance/k6/reports/*.json
+!performance/k6/reports/.gitkeep
+
 # IDE
 .idea/
 *.iml
