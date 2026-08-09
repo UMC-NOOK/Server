@@ -9,16 +9,10 @@ ENV_FILE ?= performance/k6/env/monitoring.env
 K6_RUNNER := performance/k6/scripts/run-k6.sh
 K6_ENV_FILE := performance/k6/env/$(K6_ENV).env
 K6_MIXED_READ_PROFILE := jps$(JOURNEYS_PER_SECOND)
+K6_RUN = K6_ENV="$(K6_ENV)" K6_ENV_FILE="$(K6_ENV_FILE)" RUN_PREFIX="$(K6_ENV)" ENV_FILE="$(ENV_FILE)" GRAFANA_PORT="$(GRAFANA_PORT)" $(K6_RUNNER)
 
-K6_OPTIONAL_ENV := BASE_URL MANAGEMENT_BASE_URL TOKEN K6_ACCESS_TOKEN K6_REFRESH_TOKEN K6_USER_EMAIL K6_USER_NICKNAME \
-	SEED_RUN_ID RUN_ID TARGET_RPS DURATION PRE_ALLOCATED_VUS MAX_VUS P95_THRESHOLD_MS FAILED_RATE_THRESHOLD MAX_DROPPED_ITERATIONS \
-	VUS ITERATIONS MAX_DURATION K6_BOOK_ID K6_LIBRARY_ID K6_RECORD_ID K6_TIMELINE_ID K6_SEARCH_KEYWORD K6_DRY_RUN \
-	K6_ENABLE_EXTERNAL_API K6_GLOBAL_SEARCH_KEYWORDS K6_GLOBAL_P95_THRESHOLD_MS K6_GLOBAL_FAILED_RATE_THRESHOLD K6_GLOBAL_USER_POOL_SIZE \
-	SEED_BOOKS SEED_RECORDS_PER_BOOK SEED_FOCUS_SESSIONS SEED_BOOK_TITLE_PREFIX SEED_RECORD_PREFIX \
-	K6_REQUIRE_CONFIRM K6_PROD_BASE_URL_PATTERN CONFIRM_PROD_LOADTEST
-K6_EXTRA_ENV := $(foreach var,$(K6_OPTIONAL_ENV),$(if $($(var)),$(var)='$($(var))'))
-
-.PHONY: k6-up k6-down k6-smoke k6-seed k6-mixed-read k6-dry-mixed-read k6-global-search k6-scenario k6-test-options k6-env-init k6-guard-prod
+.PHONY: k6-up k6-down k6-smoke k6-seed k6-mixed-read k6-dry-mixed-read k6-global-search k6-scenario k6-env-init \
+	k6-test k6-test-syntax k6-test-runner k6-test-options k6-test-compose
 
 k6-env-init:
 	@mkdir -p performance/k6/env performance/k6/state
@@ -31,53 +25,48 @@ k6-env-init:
 		echo "created $(K6_ENV_FILE)"; \
 	fi
 
-k6-guard-prod:
-	@if [[ "$(K6_ENV)" == "prod" && "$(CONFIRM_PROD_LOADTEST)" != "yes" ]]; then \
-		echo "error: prod load test requires CONFIRM_PROD_LOADTEST=yes" >&2; \
-		exit 2; \
-	fi
-
 k6-up: k6-env-init
 	@ENV_FILE="$(ENV_FILE)" GRAFANA_PORT="$(GRAFANA_PORT)" \
-		docker compose -f docker-compose.monitoring.yml --profile apm up -d
+		docker compose -f docker-compose.monitoring.yml up -d
 
 k6-down:
 	@ENV_FILE="$(ENV_FILE)" GRAFANA_PORT="$(GRAFANA_PORT)" \
-		docker compose -f docker-compose.monitoring.yml --profile apm down
+		docker compose -f docker-compose.monitoring.yml down
 
-k6-smoke: k6-env-init k6-guard-prod
-	@$(K6_EXTRA_ENV) K6_ENV="$(K6_ENV)" K6_ENV_FILE="$(K6_ENV_FILE)" RUN_PREFIX="$(K6_ENV)" \
-		ENV_FILE="$(ENV_FILE)" GRAFANA_PORT="$(GRAFANA_PORT)" \
-		$(K6_RUNNER) smoke
+k6-smoke: k6-env-init
+	@$(K6_RUN) smoke
 
-k6-seed: k6-env-init k6-guard-prod
-	@$(K6_EXTRA_ENV) K6_ENV="$(K6_ENV)" K6_ENV_FILE="$(K6_ENV_FILE)" RUN_PREFIX="$(K6_ENV)" \
-		ENV_FILE="$(ENV_FILE)" GRAFANA_PORT="$(GRAFANA_PORT)" \
-		$(K6_RUNNER) seed
+k6-seed: k6-env-init
+	@$(K6_RUN) seed
 
-k6-mixed-read: k6-env-init k6-guard-prod
-	@JOURNEYS_PER_SECOND="$(JOURNEYS_PER_SECOND)" $(K6_EXTRA_ENV) K6_ENV="$(K6_ENV)" K6_ENV_FILE="$(K6_ENV_FILE)" RUN_PREFIX="$(K6_ENV)" \
-		ENV_FILE="$(ENV_FILE)" GRAFANA_PORT="$(GRAFANA_PORT)" \
-		$(K6_RUNNER) mixed-read $(K6_MIXED_READ_PROFILE)
+k6-mixed-read: k6-env-init
+	@$(K6_RUN) mixed-read $(K6_MIXED_READ_PROFILE)
 
-k6-global-search: k6-env-init k6-guard-prod
-	@$(K6_EXTRA_ENV) K6_ENV="$(K6_ENV)" K6_ENV_FILE="$(K6_ENV_FILE)" RUN_PREFIX="$(K6_ENV)" \
-		ENV_FILE="$(ENV_FILE)" GRAFANA_PORT="$(GRAFANA_PORT)" \
-		$(K6_RUNNER) books-search-global
+k6-global-search: k6-env-init
+	@$(K6_RUN) books-search-global
 
-k6-scenario: k6-env-init k6-guard-prod
-	@if [[ -z "$(SCENARIO)" ]]; then \
+k6-scenario: k6-env-init
+	@if [[ -z "$${SCENARIO:-}" ]]; then \
 		echo "error: SCENARIO is required. Example: make k6-scenario SCENARIO=books-user" >&2; \
 		exit 2; \
 	fi
-	@$(K6_EXTRA_ENV) K6_ENV="$(K6_ENV)" K6_ENV_FILE="$(K6_ENV_FILE)" RUN_PREFIX="$(K6_ENV)" \
-		ENV_FILE="$(ENV_FILE)" GRAFANA_PORT="$(GRAFANA_PORT)" \
-		$(K6_RUNNER) "$(SCENARIO)"
+	@$(K6_RUN) "$${SCENARIO}"
 
-k6-dry-mixed-read: k6-env-init k6-guard-prod
-	@JOURNEYS_PER_SECOND="$(JOURNEYS_PER_SECOND)" $(K6_EXTRA_ENV) K6_ENV="$(K6_ENV)" K6_ENV_FILE="$(K6_ENV_FILE)" RUN_PREFIX="$(K6_ENV)" K6_DRY_RUN=1 \
-		ENV_FILE="$(ENV_FILE)" GRAFANA_PORT="$(GRAFANA_PORT)" \
-		$(K6_RUNNER) mixed-read $(K6_MIXED_READ_PROFILE)
+k6-dry-mixed-read: k6-env-init
+	@K6_DRY_RUN=1 $(K6_RUN) mixed-read $(K6_MIXED_READ_PROFILE)
+
+k6-test: k6-test-syntax k6-test-runner k6-test-options k6-test-compose
+
+k6-test-syntax:
+	@bash -n performance/k6/scripts/run-k6.sh performance/k6/scripts/verify-runner.sh performance/k6/scripts/verify-options.sh
+	@sh -n performance/k6/scripts/target-policy.sh performance/k6/scripts/k6-entrypoint.sh
+
+k6-test-runner:
+	@performance/k6/scripts/verify-runner.sh
 
 k6-test-options:
 	@ENV_FILE="$(ENV_FILE)" bash performance/k6/scripts/verify-options.sh
+
+k6-test-compose:
+	@ENV_FILE="$(ENV_FILE)" K6_DOCKER_USER="$$(id -u):$$(id -g)" \
+		docker compose -f docker-compose.monitoring.yml --profile loadtest config --quiet
