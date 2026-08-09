@@ -89,7 +89,7 @@ MAX_DROPPED_ITERATIONS=5 make k6-mixed-read JOURNEYS_PER_SECOND=10
 
 ## 원격 환경 안전 정책
 
-staging 등 모든 비로컬 HTTP 대상은 정확히 `CONFIRM_PROD_LOADTEST=yes`를 전달해야 합니다. 이름은 기존 호환성 때문에 `PROD`를 포함하지만 비로컬 실행 전체에 적용됩니다.
+staging 등 모든 비로컬 HTTP 대상은 정확히 `CONFIRM_PROD_LOADTEST=yes`를 전달해야 합니다. `staging.env`와 `prod.env`에는 각각 승인된 `BASE_URL`, `MANAGEMENT_BASE_URL` 정규식 허용 목록을 설정해야 하며, 둘 중 하나라도 목록과 맞지 않으면 실행하지 않습니다.
 
 ```bash
 cp performance/k6/env/staging.env.example performance/k6/env/staging.env
@@ -104,7 +104,7 @@ seed는 로컬 환경과 로컬 URL에서만 허용됩니다. staging 데이터�
 CONFIRM_PROD_LOADTEST=yes make k6-smoke ENV=prod
 ```
 
-확인 없이 허용되는 host는 `localhost`, `127.0.0.1`, `[::1]`, `host.docker.internal`뿐입니다. 사설망 주소도 비로컬로 취급합니다. 러너를 우회해 컨테이너를 직접 실행해도 entrypoint가 같은 정책을 검사합니다.
+로컬에서는 `localhost`, `127.0.0.1`, `[::1]`, `host.docker.internal`만 허용합니다. 사설망 주소도 비로컬로 취급합니다. 러너를 우회해 컨테이너를 직접 실행해도 entrypoint가 API와 management URL 모두에 같은 정책을 검사합니다.
 
 ## GLOBAL/Aladin 검색
 

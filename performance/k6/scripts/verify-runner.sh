@@ -159,25 +159,44 @@ if [[ "$focus" != "safety" ]]; then
 fi
 
 if [[ "$focus" != "routes" ]]; then
+  staging_policy_env=(
+    K6_ENV=staging
+    BASE_URL=https://staging-api.example.com
+    MANAGEMENT_BASE_URL=http://staging-api.example.com:9091
+    K6_BASE_URL_PATTERN='^https://staging-api[.]example[.]com(:[0-9]+)?(/|$)'
+    K6_MANAGEMENT_BASE_URL_PATTERN='^http://staging-api[.]example[.]com:9091(/|$)'
+  )
+  production_policy_env=(
+    K6_ENV=prod
+    BASE_URL=https://api.example.com
+    MANAGEMENT_BASE_URL=http://management.example.internal:9091
+    K6_BASE_URL_PATTERN='^https://api[.]example[.]com(:[0-9]+)?(/|$)'
+    K6_MANAGEMENT_BASE_URL_PATTERN='^http://management[.]example[.]internal:9091(/|$)'
+  )
+
   capture "${base_runner_env[@]}" bash "$runner" smoke
   expect_status 0 "local smoke"
   capture "${base_runner_env[@]}" bash "$runner" seed
   expect_status 0 "local seed"
 
-  capture "${base_runner_env[@]}" BASE_URL=https://staging-api.example.com bash "$runner" smoke
+  capture "${base_runner_env[@]}" "${staging_policy_env[@]}" bash "$runner" smoke
   expect_status 2 "remote smoke without confirmation"
   expect_contains "CONFIRM_PROD_LOADTEST=yes" "remote confirmation error"
-  capture "${base_runner_env[@]}" BASE_URL=https://staging-api.example.com CONFIRM_PROD_LOADTEST=yes bash "$runner" smoke
+  capture "${base_runner_env[@]}" "${staging_policy_env[@]}" CONFIRM_PROD_LOADTEST=yes bash "$runner" smoke
   expect_status 0 "confirmed remote smoke"
-  capture "${base_runner_env[@]}" BASE_URL=https://staging-api.example.com CONFIRM_PROD_LOADTEST=yes bash "$runner" seed
+  capture "${base_runner_env[@]}" "${staging_policy_env[@]}" CONFIRM_PROD_LOADTEST=yes bash "$runner" seed
   expect_status 2 "remote seed remains denied"
+  capture "${base_runner_env[@]}" K6_ENV=staging BASE_URL=https://service.example.internal MANAGEMENT_BASE_URL=https://service.example.internal K6_BASE_URL_PATTERN='^https://staging-api[.]example[.]com(:[0-9]+)?(/|$)' CONFIRM_PROD_LOADTEST=yes bash "$runner" mixed-read jps1
+  expect_status 2 "unlisted remote target remains denied"
+  capture "${base_runner_env[@]}" "${staging_policy_env[@]}" MANAGEMENT_BASE_URL=https://management.example.internal CONFIRM_PROD_LOADTEST=yes bash "$runner" smoke
+  expect_status 2 "unlisted management target remains denied"
 
-  capture "${base_runner_env[@]}" K6_ENV=prod BASE_URL=https://api.example.com bash "$runner" smoke
+  capture "${base_runner_env[@]}" "${production_policy_env[@]}" bash "$runner" smoke
   expect_status 2 "production smoke without confirmation"
-  capture "${base_runner_env[@]}" K6_ENV=prod BASE_URL=https://api.example.com CONFIRM_PROD_LOADTEST=yes bash "$runner" smoke
+  capture "${base_runner_env[@]}" "${production_policy_env[@]}" CONFIRM_PROD_LOADTEST=yes bash "$runner" smoke
   expect_status 0 "confirmed production smoke"
   for production_scenario in mixed-read books-search-global seed; do
-    capture "${base_runner_env[@]}" K6_ENV=prod BASE_URL=https://api.example.com CONFIRM_PROD_LOADTEST=yes \
+    capture "${base_runner_env[@]}" "${production_policy_env[@]}" CONFIRM_PROD_LOADTEST=yes \
       bash "$runner" "$production_scenario" jps1
     expect_status 2 "production $production_scenario remains denied"
   done
@@ -194,19 +213,20 @@ if [[ "$focus" != "routes" ]]; then
     PATH="$fake_bin:$PATH"
     K6_ENV=local
     BASE_URL=http://host.docker.internal:8080
+    MANAGEMENT_BASE_URL=http://host.docker.internal:8080
     K6_SCRIPT=performance/k6/scenarios/smoke.js
   )
   capture "${entrypoint_env[@]}" sh "$entrypoint" run performance/k6/scenarios/smoke.js
   expect_status 0 "entrypoint local smoke"
-  capture "${entrypoint_env[@]}" BASE_URL=https://staging-api.example.com sh "$entrypoint" run performance/k6/scenarios/smoke.js
+  capture "${entrypoint_env[@]}" K6_ENV=staging BASE_URL=https://staging-api.example.com MANAGEMENT_BASE_URL=http://staging-api.example.com:9091 K6_BASE_URL_PATTERN='^https://staging-api[.]example[.]com(:[0-9]+)?(/|$)' K6_MANAGEMENT_BASE_URL_PATTERN='^http://staging-api[.]example[.]com:9091(/|$)' sh "$entrypoint" run performance/k6/scenarios/smoke.js
   expect_status 2 "entrypoint remote confirmation"
-  capture "${entrypoint_env[@]}" BASE_URL=https://staging-api.example.com CONFIRM_PROD_LOADTEST=yes \
+  capture "${entrypoint_env[@]}" K6_ENV=staging BASE_URL=https://staging-api.example.com MANAGEMENT_BASE_URL=http://staging-api.example.com:9091 K6_BASE_URL_PATTERN='^https://staging-api[.]example[.]com(:[0-9]+)?(/|$)' K6_MANAGEMENT_BASE_URL_PATTERN='^http://staging-api[.]example[.]com:9091(/|$)' CONFIRM_PROD_LOADTEST=yes \
     K6_SCRIPT=performance/k6/scenarios/prepare-seed.js sh "$entrypoint" run performance/k6/scenarios/prepare-seed.js
   expect_status 2 "entrypoint remote seed"
-  capture "${entrypoint_env[@]}" K6_ENV=prod BASE_URL=https://api.example.com CONFIRM_PROD_LOADTEST=yes \
+  capture "${entrypoint_env[@]}" K6_ENV=prod BASE_URL=https://api.example.com MANAGEMENT_BASE_URL=http://management.example.internal:9091 K6_BASE_URL_PATTERN='^https://api[.]example[.]com(:[0-9]+)?(/|$)' K6_MANAGEMENT_BASE_URL_PATTERN='^http://management[.]example[.]internal:9091(/|$)' CONFIRM_PROD_LOADTEST=yes \
     K6_SCRIPT=performance/k6/scenarios/mixed-read-journey.js sh "$entrypoint" run performance/k6/scenarios/mixed-read-journey.js
   expect_status 2 "entrypoint production mixed-read"
-  capture "${entrypoint_env[@]}" K6_ENV=prod BASE_URL=https://api.example.com CONFIRM_PROD_LOADTEST=yes \
+  capture "${entrypoint_env[@]}" K6_ENV=prod BASE_URL=https://api.example.com MANAGEMENT_BASE_URL=http://management.example.internal:9091 K6_BASE_URL_PATTERN='^https://api[.]example[.]com(:[0-9]+)?(/|$)' K6_MANAGEMENT_BASE_URL_PATTERN='^http://management[.]example[.]internal:9091(/|$)' CONFIRM_PROD_LOADTEST=yes \
     K6_SCRIPT=performance/k6/scenarios/smoke.js sh "$entrypoint" run performance/k6/scenarios/smoke.js
   expect_status 0 "entrypoint production smoke"
 fi
