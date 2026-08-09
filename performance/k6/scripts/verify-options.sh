@@ -8,12 +8,14 @@ expected_scenarios=(
   books-search-global.js
   books-search-library.js
   books-user.js
+  cleanup-seed.js
   mixed-read-journey.js
   onboarding.js
   prepare-seed.js
   smoke.js
   timeline-core.js
   timeline-producers.js
+  verify-seed.js
 )
 
 test_dir="$(mktemp -d)"

@@ -1,4 +1,4 @@
-import { runId as envRunId } from "./env.js";
+import { runId as envRunId, stringEnv } from "./env.js";
 
 const RUN_ID = envRunId();
 
@@ -32,6 +32,18 @@ export function scenarioUser(prefix) {
   return {
     email: uniqueEmail(prefix),
     nickName: uniqueNickname(prefix),
+  };
+}
+
+export function seedUser() {
+  const namespace = stringEnv("SEED_NAMESPACE", RUN_ID).replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!namespace) {
+    throw new Error("SEED_NAMESPACE must contain letters, numbers, underscores, or hyphens");
+  }
+
+  return {
+    email: stringEnv("K6_USER_EMAIL", `seed-${namespace}@test.com`),
+    nickName: stringEnv("K6_USER_NICKNAME", `seed${namespace}`.replace(/[^a-zA-Z0-9가-힣]/g, "").slice(0, 20)),
   };
 }
 

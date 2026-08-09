@@ -18,9 +18,22 @@ function sanitize(value) {
 }
 
 export function createSummary(data) {
-  const name = reportName(stringEnv("K6_SCENARIO_NAME", "summary"));
+  const name = reportName(stringEnv("K6_REPORT_NAME", "summary"));
   const path = `performance/k6/reports/${name}-${runId()}.json`;
-  const sanitizedData = sanitize(data);
+  const metadata = {
+    run_id: runId(),
+    test_name: name,
+    k6_env: stringEnv("K6_ENV", "unknown"),
+    base_url: stringEnv("BASE_URL", "unknown"),
+    git_commit_sha: stringEnv("K6_GIT_COMMIT_SHA", "unknown"),
+    seed_git_commit_sha: stringEnv("SEED_GIT_COMMIT_SHA"),
+    seed_profile: stringEnv("SEED_PROFILE"),
+    seed_namespace: stringEnv("SEED_NAMESPACE"),
+  };
+  const sanitizedData = sanitize({
+    ...data,
+    metadata,
+  });
 
   return {
     [path]: JSON.stringify(sanitizedData, null, 2),

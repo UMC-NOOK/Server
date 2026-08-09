@@ -11,8 +11,8 @@ K6_ENV_FILE := performance/k6/env/$(K6_ENV).env
 K6_MIXED_READ_PROFILE := jps$(JOURNEYS_PER_SECOND)
 K6_RUN = K6_ENV="$(K6_ENV)" K6_ENV_FILE="$(K6_ENV_FILE)" RUN_PREFIX="$(K6_ENV)" ENV_FILE="$(ENV_FILE)" GRAFANA_PORT="$(GRAFANA_PORT)" $(K6_RUNNER)
 
-.PHONY: k6-up k6-down k6-smoke k6-seed k6-mixed-read k6-dry-mixed-read k6-global-search k6-scenario k6-env-init \
-	k6-test k6-test-syntax k6-test-runner k6-test-options k6-test-compose
+.PHONY: k6-up k6-down k6-smoke k6-seed k6-seed-cleanup k6-mixed-read k6-dry-mixed-read k6-global-search k6-scenario k6-env-init \
+	k6-test k6-test-syntax k6-test-runner k6-test-seed k6-test-summary k6-test-options k6-test-compose
 
 k6-env-init:
 	@mkdir -p performance/k6/env performance/k6/state
@@ -37,7 +37,10 @@ k6-smoke: k6-env-init
 	@$(K6_RUN) smoke
 
 k6-seed: k6-env-init
-	@$(K6_RUN) seed
+	@$(K6_RUN) seed "$${SEED_PROFILE:-normal}"
+
+k6-seed-cleanup: k6-env-init
+	@$(K6_RUN) cleanup-seed
 
 k6-mixed-read: k6-env-init
 	@$(K6_RUN) mixed-read $(K6_MIXED_READ_PROFILE)
@@ -55,14 +58,20 @@ k6-scenario: k6-env-init
 k6-dry-mixed-read: k6-env-init
 	@K6_DRY_RUN=1 $(K6_RUN) mixed-read $(K6_MIXED_READ_PROFILE)
 
-k6-test: k6-test-syntax k6-test-runner k6-test-options k6-test-compose
+k6-test: k6-test-syntax k6-test-runner k6-test-seed k6-test-summary k6-test-options k6-test-compose
 
 k6-test-syntax:
-	@bash -n performance/k6/scripts/run-k6.sh performance/k6/scripts/verify-runner.sh performance/k6/scripts/verify-options.sh
+	@bash -n performance/k6/scripts/run-k6.sh performance/k6/scripts/seed-state.sh performance/k6/scripts/verify-runner.sh performance/k6/scripts/verify-seed-runner.sh performance/k6/scripts/verify-summary.sh performance/k6/scripts/verify-options.sh
 	@sh -n performance/k6/scripts/target-policy.sh performance/k6/scripts/k6-entrypoint.sh
 
 k6-test-runner:
 	@performance/k6/scripts/verify-runner.sh
+
+k6-test-seed:
+	@performance/k6/scripts/verify-seed-runner.sh
+
+k6-test-summary:
+	@performance/k6/scripts/verify-summary.sh
 
 k6-test-options:
 	@ENV_FILE="$(ENV_FILE)" bash performance/k6/scripts/verify-options.sh

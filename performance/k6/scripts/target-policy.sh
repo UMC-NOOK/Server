@@ -41,7 +41,7 @@ k6_is_local_base_url() {
 
 k6_is_seed_script() {
   case "$1" in
-    */prepare-seed.js | performance/k6/scenarios/prepare-seed.js) return 0 ;;
+    */prepare-seed.js | */verify-seed.js | */cleanup-seed.js) return 0 ;;
     *) return 1 ;;
   esac
 }

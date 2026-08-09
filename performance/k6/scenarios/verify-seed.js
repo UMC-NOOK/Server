@@ -1,21 +1,19 @@
 import { seedOptions } from "../config/profiles.js";
-import { authenticateNewDevUser } from "../lib/auth.js";
+import { authenticateExistingUser } from "../lib/auth.js";
 import { seedUser } from "../lib/data.js";
 import { checkExactSeedCounts, readSeedCounts } from "../lib/seedCardinality.js";
-import { seedUserDataset } from "../lib/seed.js";
 import { createSummary } from "../lib/summary.js";
 
 export const options = seedOptions;
 
 export function setup() {
-  return authenticateNewDevUser(seedUser());
+  return authenticateExistingUser(seedUser());
 }
 
 export default function (auth) {
-  seedUserDataset(auth);
-  const countsOk = checkExactSeedCounts(readSeedCounts(auth.accessToken), "seed create");
+  const countsOk = checkExactSeedCounts(readSeedCounts(auth.accessToken), "seed reuse");
   if (!countsOk) {
-    throw new Error("seed create cardinality verification failed");
+    throw new Error("seed reuse cardinality verification failed");
   }
 }
 
