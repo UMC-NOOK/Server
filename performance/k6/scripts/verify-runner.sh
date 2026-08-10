@@ -188,6 +188,8 @@ if [[ "$focus" != "routes" ]]; then
   expect_status 2 "remote seed remains denied"
   capture "${base_runner_env[@]}" K6_ENV=staging BASE_URL=https://service.example.internal MANAGEMENT_BASE_URL=https://service.example.internal K6_BASE_URL_PATTERN='^https://staging-api[.]example[.]com(:[0-9]+)?(/|$)' CONFIRM_PROD_LOADTEST=yes bash "$runner" mixed-read jps1
   expect_status 2 "unlisted remote target remains denied"
+  capture "${base_runner_env[@]}" K6_ENV=staging BASE_URL=https://service.example.internal MANAGEMENT_BASE_URL=https://service.example.internal K6_BASE_URL_PATTERN=--help K6_MANAGEMENT_BASE_URL_PATTERN=--help CONFIRM_PROD_LOADTEST=yes bash "$runner" smoke
+  expect_status 2 "option-like allowlist pattern remains denied"
   capture "${base_runner_env[@]}" "${staging_policy_env[@]}" MANAGEMENT_BASE_URL=https://management.example.internal CONFIRM_PROD_LOADTEST=yes bash "$runner" smoke
   expect_status 2 "unlisted management target remains denied"
 
@@ -229,6 +231,17 @@ if [[ "$focus" != "routes" ]]; then
   capture "${entrypoint_env[@]}" K6_ENV=prod BASE_URL=https://api.example.com MANAGEMENT_BASE_URL=http://management.example.internal:9091 K6_BASE_URL_PATTERN='^https://api[.]example[.]com(:[0-9]+)?(/|$)' K6_MANAGEMENT_BASE_URL_PATTERN='^http://management[.]example[.]internal:9091(/|$)' CONFIRM_PROD_LOADTEST=yes \
     K6_SCRIPT=performance/k6/scenarios/smoke.js sh "$entrypoint" run performance/k6/scenarios/smoke.js
   expect_status 0 "entrypoint production smoke"
+
+  capture make -n k6-smoke K6_ENV=local
+  expect_status 2 "Make command-line runtime values"
+  expect_contains "Pass runtime values through the process environment" "Make command-line guidance"
+
+  capture env 'K6_ENV=$(shell printf K6_MAKE_PROCESS_ENV_EVALUATED >&2)' make -n k6-smoke
+  expect_status 0 "Make process-environment runtime value"
+  expect_absent "K6_MAKE_PROCESS_ENV_EVALUATED" "Make process-environment evaluation"
+
+  capture make -n k6-test-compose
+  expect_contains "performance/k6/env/monitoring.env.example" "Make clean-checkout Compose verification"
 fi
 
 if (( failures > 0 )); then

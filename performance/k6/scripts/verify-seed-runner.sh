@@ -151,4 +151,13 @@ expect_failure "cleanup token override" "${base_env[@]}" K6_ACCESS_TOKEN=test-to
 expect_failure "failed seed command" "${base_env[@]}" FAKE_DOCKER_EXIT=7 RUN_ID=verify-failed SEED_NAMESPACE=failed "$runner" seed light
 test ! -e "$state_dir/seeds/seed-local-failed.env"
 
+K6_DOCKER_USER="$(id -u):$(id -g)" \
+  ENV_FILE=performance/k6/env/monitoring.env.example \
+  docker compose -f docker-compose.monitoring.yml --profile loadtest run --rm --no-deps \
+    --entrypoint k6 k6 run --quiet \
+    -e SEED_BOOKS=5 \
+    -e SEED_RECORDS_PER_BOOK=2 \
+    -e SEED_FOCUS_SESSIONS=2 \
+    /workspace/performance/k6/tests/seed-cardinality.js >/dev/null
+
 printf 'verified seed profiles, manifests, reuse, mixed-read identity, cleanup, and failure recovery\n'

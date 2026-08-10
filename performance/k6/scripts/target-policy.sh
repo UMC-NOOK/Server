@@ -9,7 +9,7 @@ k6_matches() {
   k6_match_value="$1"
   k6_match_pattern="$2"
   [ -n "$k6_match_pattern" ] || return 1
-  printf '%s\n' "$k6_match_value" | grep -Eq "$k6_match_pattern"
+  printf '%s\n' "$k6_match_value" | grep -Eq -- "$k6_match_pattern"
 }
 
 k6_normalize_base_url() {

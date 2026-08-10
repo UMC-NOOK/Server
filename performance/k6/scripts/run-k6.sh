@@ -7,7 +7,7 @@ Usage: performance/k6/scripts/run-k6.sh <scenario> [profile]
 
 Scenarios:
   smoke, seed, cleanup-seed, mixed-read, books-user, books-search-library,
-  books-search-global, onboarding, timeline-core, timeline-producers
+  books-search-global, onboarding, timeline-core, timeline-producers, api-*
 
 Set K6_ENV=local|staging|prod to select performance/k6/env/<name>.env.
 Every non-local HTTP target requires CONFIRM_PROD_LOADTEST=yes.
@@ -50,6 +50,49 @@ configure_internal() {
   MAX_DURATION="${MAX_DURATION:-2m}"
   P95_THRESHOLD_MS="${P95_THRESHOLD_MS:-800}"
   FAILED_RATE_THRESHOLD="${FAILED_RATE_THRESHOLD:-0.01}"
+}
+
+configure_single_api() {
+  local scenario_name="$1"
+  local profile_name="$2"
+
+  case "$scenario_name" in
+    api-timeline-list | api-timeline-summary | api-timeline-detail | \
+      api-library-books-recent-focused | api-library-books-record-count-desc | \
+      api-library-books-record-count-asc | api-library-books-alphabetical | \
+      api-records-list | api-records-book-list | api-records-emotions | api-records-detail) ;;
+    *) die "unknown single-API scenario '$scenario_name'" ;;
+  esac
+
+  K6_READ_TARGET="${scenario_name#api-}"
+  K6_SINGLE_API_PROFILE="$profile_name"
+  K6_SCRIPT="performance/k6/scenarios/single-api-read.js"
+  K6_REPORT_NAME="$scenario_name"
+  RUN_ID="${RUN_ID:-${run_prefix}-${scenario_name}-${profile_name}-${timestamp}}"
+  P95_THRESHOLD_MS="${P95_THRESHOLD_MS:-1000}"
+  FAILED_RATE_THRESHOLD="${FAILED_RATE_THRESHOLD:-0.01}"
+  MAX_DROPPED_ITERATIONS="${MAX_DROPPED_ITERATIONS:-0}"
+  PRE_ALLOCATED_VUS="${PRE_ALLOCATED_VUS:-20}"
+  MAX_VUS="${MAX_VUS:-200}"
+  [[ "$MAX_DROPPED_ITERATIONS" =~ ^[0-9]+$ ]] || die "MAX_DROPPED_ITERATIONS must be a non-negative integer"
+
+  case "$profile_name" in
+    arrival)
+      TARGET_RPS="${TARGET_RPS:-10}"
+      DURATION="${DURATION:-10m}"
+      [[ "$TARGET_RPS" =~ ^[1-9][0-9]*$ ]] || die "TARGET_RPS must be a positive integer"
+      ;;
+    ramping)
+      START_RPS="${START_RPS:-1}"
+      RPS_STAGES="${RPS_STAGES:-10:2m,20:2m,40:2m,0:30s}"
+      [[ "$START_RPS" =~ ^[0-9]+$ ]] || die "START_RPS must be a non-negative integer"
+      ;;
+    *) die "unknown single-API profile '$profile_name' (expected arrival or ramping)" ;;
+  esac
+
+  prepare_mixed_seed_identity
+  [[ -n "${K6_ACCESS_TOKEN:-}" || -n "${TOKEN:-}" || -n "${K6_USER_EMAIL:-}" ]] \
+    || die "single-API scenario needs a token, K6_USER_EMAIL, or reusable seed manifest; run seed first"
 }
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -146,6 +189,10 @@ case "$scenario" in
   onboarding) configure_internal "onboarding" ;;
   timeline-core) configure_internal "timeline-core" ;;
   timeline-producers) configure_internal "timeline-producers" ;;
+  api-*)
+    profile="${profile:-${K6_SINGLE_API_PROFILE:-arrival}}"
+    configure_single_api "$scenario" "$profile"
+    ;;
   *) die "unknown scenario '$scenario'" ;;
 esac
 
@@ -154,9 +201,10 @@ k6_assert_target_allowed "$K6_SCRIPT"
 forwarded_names=(
   BASE_URL MANAGEMENT_BASE_URL K6_SCRIPT RUN_ID K6_REPORT_NAME
   P95_THRESHOLD_MS FAILED_RATE_THRESHOLD MAX_DROPPED_ITERATIONS
-  VUS ITERATIONS MAX_DURATION JOURNEYS_PER_SECOND TARGET_RPS DURATION PRE_ALLOCATED_VUS MAX_VUS
+  VUS ITERATIONS MAX_DURATION JOURNEYS_PER_SECOND TARGET_RPS START_RPS RPS_STAGES DURATION PRE_ALLOCATED_VUS MAX_VUS
   K6_ENV RUN_PREFIX K6_BASE_URL_PATTERN K6_MANAGEMENT_BASE_URL_PATTERN CONFIRM_PROD_LOADTEST
   K6_ENABLE_EXTERNAL_API K6_GLOBAL_SEARCH_KEYWORDS K6_GLOBAL_USER_POOL_SIZE
+  K6_READ_TARGET K6_SINGLE_API_PROFILE
   K6_GIT_COMMIT_SHA SEED_GIT_COMMIT_SHA SEED_PROFILE SEED_NAMESPACE SEED_RUN_ID
   SEED_BOOKS SEED_RECORDS_PER_BOOK SEED_FOCUS_SESSIONS
   K6_USER_EMAIL K6_USER_NICKNAME K6_ACCESS_TOKEN K6_REFRESH_TOKEN TOKEN
@@ -186,6 +234,13 @@ fi
 if [[ "$scenario" == "mixed-read" ]]; then
   printf 'journeys_per_second=%s\nmax_requests_per_journey=18\nexpected_max_http_rps=%s\n' \
     "$JOURNEYS_PER_SECOND" "$((JOURNEYS_PER_SECOND * 18))"
+elif [[ "$scenario" == api-* ]]; then
+  printf 'single_api_profile=%s\nread_target=%s\n' "$K6_SINGLE_API_PROFILE" "$K6_READ_TARGET"
+  if [[ "$K6_SINGLE_API_PROFILE" == "arrival" ]]; then
+    printf 'target_rps=%s\n' "$TARGET_RPS"
+  else
+    printf 'start_rps=%s\nrps_stages=%s\n' "$START_RPS" "$RPS_STAGES"
+  fi
 fi
 if [[ "${K6_DRY_RUN:-}" == "1" ]]; then
   printf 'dry_run_command='

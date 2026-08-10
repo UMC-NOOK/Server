@@ -12,6 +12,7 @@ expected_scenarios=(
   mixed-read-journey.js
   onboarding.js
   prepare-seed.js
+  single-api-read.js
   smoke.js
   timeline-core.js
   timeline-producers.js
@@ -29,10 +30,18 @@ fi
 
 for scenario_file in "${expected_scenarios[@]}"; do
   output_file="$test_dir/${scenario_file%.js}.json"
+  scenario_env=()
+  if [[ "$scenario_file" == "single-api-read.js" ]]; then
+    scenario_env=(
+      -e K6_READ_TARGET=timeline-list
+      -e K6_SINGLE_API_PROFILE=arrival
+    )
+  fi
   K6_DOCKER_USER="$(id -u):$(id -g)" \
     ENV_FILE="${ENV_FILE:-performance/k6/env/monitoring.env.example}" \
     docker compose -f docker-compose.monitoring.yml --profile loadtest run --rm --no-deps \
       --entrypoint k6 k6 inspect --execution-requirements \
+      "${scenario_env[@]}" \
       "/workspace/performance/k6/scenarios/$scenario_file" > "$output_file"
   jq -e '.thresholds | type == "object"' "$output_file" >/dev/null
   printf 'inspected %s\n' "$scenario_file"

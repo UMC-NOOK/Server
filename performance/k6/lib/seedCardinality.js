@@ -3,6 +3,7 @@ import { check } from "k6";
 import { requireApiResponse } from "./checks.js";
 import { intEnv } from "./env.js";
 import { authHeaders, get, withQuery } from "./http.js";
+import { timelineItems } from "./timeline.js";
 
 function nonNegativeInt(value, label) {
   if (!Number.isInteger(value) || value < 0) {
@@ -11,15 +12,29 @@ function nonNegativeInt(value, label) {
   return value;
 }
 
-function expectedSeedCounts() {
+function positiveInt(value, label) {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return value;
+}
+
+export function expectedSeedCounts() {
   const books = nonNegativeInt(intEnv("SEED_BOOKS", -1), "SEED_BOOKS");
   const recordsPerBook = nonNegativeInt(intEnv("SEED_RECORDS_PER_BOOK", -1), "SEED_RECORDS_PER_BOOK");
+  const records = books * recordsPerBook;
+  const focuses = nonNegativeInt(intEnv("SEED_FOCUS_SESSIONS", -1), "SEED_FOCUS_SESSIONS");
 
   return {
     books,
-    records: books * recordsPerBook,
-    focuses: nonNegativeInt(intEnv("SEED_FOCUS_SESSIONS", -1), "SEED_FOCUS_SESSIONS"),
+    records,
+    focuses,
+    timelines: books + records + focuses,
   };
+}
+
+export function countTimelineItems(timelinePreview) {
+  return timelineItems(timelinePreview).length;
 }
 
 function liveCount(params, path, resultPath, label, requestName) {
@@ -73,6 +88,77 @@ function liveFocusCount(params) {
   }
 }
 
+function liveLibraryBookIds(params) {
+  const bookIds = [];
+  let cursor;
+  let page = 0;
+
+  while (true) {
+    const response = get(withQuery("/api/v1/library/books", {
+      sort: "ALPHABETICAL",
+      cursor,
+      size: 100,
+    }), {
+      ...params,
+      tags: { name: "seed-verify:library-books" },
+    });
+    requireApiResponse(response, {
+      label: "seed verify library books",
+      statuses: [200],
+      requireResult: true,
+    });
+
+    const items = response.json("result.items");
+    if (!Array.isArray(items)) {
+      throw new Error("seed verify library books items must be an array");
+    }
+    items.forEach((item) => {
+      bookIds.push(positiveInt(item?.bookId, "seed verify library bookId"));
+    });
+
+    if (response.json("result.hasNext") !== true) {
+      return bookIds;
+    }
+
+    const nextCursor = response.json("result.nextCursor");
+    if (typeof nextCursor !== "string" || nextCursor.length === 0 || nextCursor === cursor) {
+      throw new Error("seed verify library books returned an invalid nextCursor");
+    }
+    cursor = nextCursor;
+    page += 1;
+    if (page > 10000) {
+      throw new Error("seed verify library books exceeded the pagination safety limit");
+    }
+  }
+}
+
+function liveTimelineCount(params) {
+  return liveLibraryBookIds(params).reduce((total, bookId) => {
+    const book = get(`/api/v1/books/id/${bookId}`, {
+      ...params,
+      tags: { name: "seed-verify:book-detail" },
+    });
+    requireApiResponse(book, {
+      label: "seed verify book detail",
+      statuses: [200],
+      requireResult: true,
+    });
+    const libraryId = positiveInt(book.json("result.libraryId"), "seed verify libraryId");
+
+    const timeline = get(`/api/v1/library/${libraryId}/timeline`, {
+      ...params,
+      tags: { name: "seed-verify:timeline-count" },
+    });
+    requireApiResponse(timeline, {
+      label: "seed verify timeline count",
+      statuses: [200],
+      requireResult: true,
+    });
+
+    return total + countTimelineItems(timeline.json("result"));
+  }, 0);
+}
+
 export function readSeedCounts(accessToken) {
   const params = {
     headers: authHeaders(accessToken),
@@ -95,6 +181,7 @@ export function readSeedCounts(accessToken) {
         "seed-verify:record-count"
       ),
       focuses: liveFocusCount(params),
+      timelines: liveTimelineCount(params),
     },
     expected: expectedSeedCounts(),
   };
@@ -105,5 +192,6 @@ export function checkExactSeedCounts(seedCounts, label) {
     [`${label}: book count is exact`]: (value) => value.actual.books === value.expected.books,
     [`${label}: record count is exact`]: (value) => value.actual.records === value.expected.records,
     [`${label}: focus count is exact`]: (value) => value.actual.focuses === value.expected.focuses,
+    [`${label}: timeline count is exact`]: (value) => value.actual.timelines === value.expected.timelines,
   });
 }
