@@ -19,9 +19,10 @@ function sanitize(value) {
 
 export function createSummary(data) {
   const name = reportName(stringEnv("K6_REPORT_NAME", "summary"));
-  const path = `performance/k6/reports/${name}-${runId()}.json`;
+  const id = runId();
+  const path = `performance/k6/reports/${name}-${id}.json`;
   const metadata = {
-    run_id: runId(),
+    run_id: id,
     test_name: name,
     k6_env: stringEnv("K6_ENV", "unknown"),
     base_url: stringEnv("BASE_URL", "unknown"),

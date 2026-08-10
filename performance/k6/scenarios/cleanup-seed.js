@@ -10,7 +10,10 @@ import { createSummary } from "../lib/summary.js";
 export const options = seedOptions;
 
 export function setup() {
-  return authenticateExistingUser(seedUser(), { allowNotFound: true });
+  return authenticateExistingUser(seedUser(), {
+    allowNotFound: true,
+    allowConfiguredToken: false,
+  });
 }
 
 export default function (auth) {

@@ -195,6 +195,7 @@ make k6-mixed-read
 ## 검증과 시나리오 추가
 
 Docker와 `jq`가 준비된 환경에서 전체 정적·실행 경계 검증을 수행합니다.
+macOS에서는 Docker Desktop과 `jq`를 준비하며, 검증 스크립트는 macOS 기본 Bash에서도 실행할 수 있습니다.
 
 ```bash
 make k6-test

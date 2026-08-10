@@ -28,29 +28,29 @@ k6-down:
 		docker compose -f docker-compose.monitoring.yml down
 
 k6-smoke: k6-env-init
-	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" RUN_PREFIX="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) smoke
+	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) smoke
 
 k6-seed: k6-env-init
-	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" RUN_PREFIX="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) seed "$${SEED_PROFILE:-normal}"
+	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) seed
 
 k6-seed-cleanup: k6-env-init
-	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" RUN_PREFIX="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) cleanup-seed
+	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) cleanup-seed
 
 k6-mixed-read: k6-env-init
-	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" RUN_PREFIX="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) mixed-read "jps$${JOURNEYS_PER_SECOND:-1}"
+	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) mixed-read "jps$${JOURNEYS_PER_SECOND:-1}"
 
 k6-global-search: k6-env-init
-	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" RUN_PREFIX="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) books-search-global
+	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) books-search-global
 
 k6-scenario: k6-env-init
 	@if [[ -z "$${SCENARIO:-}" ]]; then \
 		echo "error: SCENARIO is required. Example: SCENARIO=books-user make k6-scenario" >&2; \
 		exit 2; \
 	fi
-	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" RUN_PREFIX="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) "$${SCENARIO}"
+	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" $(K6_RUNNER) "$${SCENARIO}"
 
 k6-dry-mixed-read: k6-env-init
-	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" RUN_PREFIX="$${K6_ENV:-$${ENV:-local}}" K6_DRY_RUN=1 $(K6_RUNNER) mixed-read "jps$${JOURNEYS_PER_SECOND:-1}"
+	@K6_ENV="$${K6_ENV:-$${ENV:-local}}" K6_DRY_RUN=1 $(K6_RUNNER) mixed-read "jps$${JOURNEYS_PER_SECOND:-1}"
 
 k6-test: k6-test-syntax k6-test-runner k6-test-seed k6-test-summary k6-test-single-api k6-test-options k6-test-compose
 

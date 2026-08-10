@@ -5,7 +5,8 @@ server_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$server_dir"
 
 report="performance/k6/reports/summary-contract-verify-summary.json"
-trap 'rm -f "$report"' EXIT
+fallback_report="performance/k6/reports/summary-fallback-1001.json"
+trap 'rm -f "$report" "$fallback_report"' EXIT
 
 K6_DOCKER_USER="$(id -u):$(id -g)" \
   ENV_FILE="${ENV_FILE:-performance/k6/env/monitoring.env.example}" \
@@ -35,6 +36,19 @@ jq -e '
   }
 ' "$report" >/dev/null || {
   printf 'summary report is missing reproducibility metadata\n' >&2
+  exit 1
+}
+
+K6_DOCKER_USER="$(id -u):$(id -g)" \
+  ENV_FILE="${ENV_FILE:-performance/k6/env/monitoring.env.example}" \
+  docker compose -f docker-compose.monitoring.yml --profile loadtest run --rm --no-deps \
+    --entrypoint k6 k6 run --quiet \
+    -e K6_REPORT_NAME=summary-fallback \
+    -e K6_TEST_INCREMENTING_CLOCK=yes \
+    /workspace/performance/k6/tests/summary-metadata.js >/dev/null
+
+jq -e '.metadata.run_id == "1001"' "$fallback_report" >/dev/null || {
+  printf 'summary fallback run ID does not match its report filename\n' >&2
   exit 1
 }
 

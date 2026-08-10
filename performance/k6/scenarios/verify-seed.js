@@ -7,7 +7,7 @@ import { createSummary } from "../lib/summary.js";
 export const options = seedOptions;
 
 export function setup() {
-  return authenticateExistingUser(seedUser());
+  return authenticateExistingUser(seedUser(), { allowConfiguredToken: false });
 }
 
 export default function (auth) {

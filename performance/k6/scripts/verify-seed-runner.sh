@@ -108,7 +108,8 @@ create_output="$(
 manifest="$state_dir/seeds/seed-local-$namespace.env"
 pointer="$state_dir/last-seed-local"
 test -f "$manifest"
-test "$(stat -c '%a' "$manifest")" = "600"
+manifest_permissions="$(LC_ALL=C ls -ld "$manifest" | cut -c2-10)"
+test "$manifest_permissions" = "rw-------"
 grep -Fxq 'SEED_NAMESPACE=lifecycle-light' "$manifest"
 grep -Fxq 'SEED_PROFILE=light' "$manifest"
 grep -Fxq 'SEED_RUN_ID=verify-create' "$manifest"
@@ -159,5 +160,12 @@ K6_DOCKER_USER="$(id -u):$(id -g)" \
     -e SEED_RECORDS_PER_BOOK=2 \
     -e SEED_FOCUS_SESSIONS=2 \
     /workspace/performance/k6/tests/seed-cardinality.js >/dev/null
+
+K6_DOCKER_USER="$(id -u):$(id -g)" \
+  ENV_FILE=performance/k6/env/monitoring.env.example \
+  docker compose -f docker-compose.monitoring.yml --profile loadtest run --rm --no-deps \
+    --entrypoint k6 k6 run --quiet \
+    -e K6_ACCESS_TOKEN=configured-token \
+    /workspace/performance/k6/tests/seed-auth-policy.js >/dev/null
 
 printf 'verified seed profiles, manifests, reuse, mixed-read identity, cleanup, and failure recovery\n'

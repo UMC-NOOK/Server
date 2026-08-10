@@ -107,10 +107,13 @@ export function authenticateDevUser(user = smokeUser(), { useConfiguredUser = tr
 
 export function authenticateExistingUser(
   user = smokeUser(),
-  { useConfiguredUser = true, allowNotFound = false } = {}
+  { useConfiguredUser = true, allowNotFound = false, allowConfiguredToken = true } = {}
 ) {
   const authUser = resolveAuthUser(user, { useConfiguredUser });
   const auth = configuredAuth(authUser);
+  if (auth && !allowConfiguredToken) {
+    throw new Error("existing DEV user authentication does not accept a configured token");
+  }
   if (auth) {
     return auth;
   }
