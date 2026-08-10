@@ -69,8 +69,19 @@ expect_absent() {
   fi
 }
 
-base_runner_env=(
+clean_runtime_env=(
   env
+  -u TOKEN
+  -u K6_ACCESS_TOKEN
+  -u K6_REFRESH_TOKEN
+  -u RUN_ID
+  -u RUN_PREFIX
+  -u SEED_PROFILE
+  -u SEED_NAMESPACE
+)
+
+base_runner_env=(
+  "${clean_runtime_env[@]}"
   PATH="$fake_bin:$PATH"
   K6_ENV_FILE=/dev/null
   ENV_FILE=/dev/null
@@ -188,6 +199,8 @@ if [[ "$focus" != "routes" ]]; then
   expect_status 2 "remote seed remains denied"
   capture "${base_runner_env[@]}" K6_ENV=staging BASE_URL=https://service.example.internal MANAGEMENT_BASE_URL=https://service.example.internal K6_BASE_URL_PATTERN='^https://staging-api[.]example[.]com(:[0-9]+)?(/|$)' CONFIRM_PROD_LOADTEST=yes bash "$runner" mixed-read jps1
   expect_status 2 "unlisted remote target remains denied"
+  capture "${base_runner_env[@]}" K6_ENV=staging BASE_URL=https://service.example.internal MANAGEMENT_BASE_URL=https://service.example.internal K6_BASE_URL_PATTERN=--help K6_MANAGEMENT_BASE_URL_PATTERN=--help CONFIRM_PROD_LOADTEST=yes bash "$runner" smoke
+  expect_status 2 "option-like allowlist pattern remains denied"
   capture "${base_runner_env[@]}" "${staging_policy_env[@]}" MANAGEMENT_BASE_URL=https://management.example.internal CONFIRM_PROD_LOADTEST=yes bash "$runner" smoke
   expect_status 2 "unlisted management target remains denied"
 
@@ -229,6 +242,38 @@ if [[ "$focus" != "routes" ]]; then
   capture "${entrypoint_env[@]}" K6_ENV=prod BASE_URL=https://api.example.com MANAGEMENT_BASE_URL=http://management.example.internal:9091 K6_BASE_URL_PATTERN='^https://api[.]example[.]com(:[0-9]+)?(/|$)' K6_MANAGEMENT_BASE_URL_PATTERN='^http://management[.]example[.]internal:9091(/|$)' CONFIRM_PROD_LOADTEST=yes \
     K6_SCRIPT=performance/k6/scenarios/smoke.js sh "$entrypoint" run performance/k6/scenarios/smoke.js
   expect_status 0 "entrypoint production smoke"
+
+  capture make -n k6-smoke K6_ENV=local
+  expect_status 2 "Make command-line runtime values"
+  expect_contains "Pass runtime values through the process environment" "Make command-line guidance"
+
+  capture env 'K6_ENV=$(shell printf K6_MAKE_PROCESS_ENV_EVALUATED >&2)' make -n k6-smoke
+  expect_status 0 "Make process-environment runtime value"
+  expect_absent "K6_MAKE_PROCESS_ENV_EVALUATED" "Make process-environment evaluation"
+
+  capture "${clean_runtime_env[@]}" PATH="$fake_bin:$PATH" K6_ENV_FILE=/dev/null ENV_FILE=/dev/null K6_STATE_DIR="$state_dir" \
+    K6_DRY_RUN=1 K6_ENV=local RUN_PREFIX=nightly BASE_URL=http://host.docker.internal:8080 \
+    MANAGEMENT_BASE_URL=http://host.docker.internal:8080 make --no-print-directory k6-smoke
+  expect_status 0 "Make RUN_PREFIX process environment"
+  expect_contains "run_id=nightly-smoke-" "Make RUN_PREFIX run ID"
+  expect_contains "RUN_PREFIX=nightly" "Make RUN_PREFIX Docker environment"
+
+  make_seed_env="$test_dir/make-seed.env"
+  printf '%s\n' \
+    'RUN_PREFIX=make-env' \
+    'SEED_PROFILE=light' \
+    'SEED_NAMESPACE=make-env-light' > "$make_seed_env"
+  capture "${clean_runtime_env[@]}" \
+    PATH="$fake_bin:$PATH" K6_ENV_FILE="$make_seed_env" ENV_FILE=/dev/null K6_STATE_DIR="$state_dir" \
+    K6_DRY_RUN=1 K6_ENV=local RUN_ID=verify-make-seed BASE_URL=http://host.docker.internal:8080 \
+    MANAGEMENT_BASE_URL=http://host.docker.internal:8080 make --no-print-directory k6-seed
+  expect_status 0 "Make seed profile env file"
+  expect_contains "seed_profile=light" "Make seed profile env file"
+  expect_contains "seed_namespace=make-env-light" "Make seed namespace env file"
+  expect_contains "RUN_PREFIX=make-env" "Make RUN_PREFIX env file"
+
+  capture make -n k6-test-compose
+  expect_contains "performance/k6/env/monitoring.env.example" "Make clean-checkout Compose verification"
 fi
 
 if (( failures > 0 )); then

@@ -3,15 +3,15 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: performance/k6/scripts/run-k6.sh <scenario> [jps<positive integer>]
+Usage: performance/k6/scripts/run-k6.sh <scenario> [profile]
 
 Scenarios:
-  smoke, seed, mixed-read, books-user, books-search-library,
-  books-search-global, onboarding, timeline-core, timeline-producers
+  smoke, seed, cleanup-seed, mixed-read, books-user, books-search-library,
+  books-search-global, onboarding, timeline-core, timeline-producers, api-*
 
 Set K6_ENV=local|staging|prod to select performance/k6/env/<name>.env.
 Every non-local HTTP target requires CONFIRM_PROD_LOADTEST=yes.
-Seed is local-only; production allows smoke only. Set K6_DRY_RUN=1 to inspect.
+Seed lifecycle commands are local-only; production allows smoke only. Set K6_DRY_RUN=1 to inspect.
 USAGE
 }
 
@@ -52,14 +52,57 @@ configure_internal() {
   FAILED_RATE_THRESHOLD="${FAILED_RATE_THRESHOLD:-0.01}"
 }
 
+configure_single_api() {
+  local scenario_name="$1"
+  local profile_name="$2"
+
+  case "$scenario_name" in
+    api-timeline-list | api-timeline-summary | api-timeline-detail | \
+      api-library-books-recent-focused | api-library-books-record-count-desc | \
+      api-library-books-record-count-asc | api-library-books-alphabetical | \
+      api-records-list | api-records-book-list | api-records-emotions | api-records-detail) ;;
+    *) die "unknown single-API scenario '$scenario_name'" ;;
+  esac
+
+  K6_READ_TARGET="${scenario_name#api-}"
+  K6_SINGLE_API_PROFILE="$profile_name"
+  K6_SCRIPT="performance/k6/scenarios/single-api-read.js"
+  K6_REPORT_NAME="$scenario_name"
+  RUN_ID="${RUN_ID:-${run_prefix}-${scenario_name}-${profile_name}-${timestamp}}"
+  P95_THRESHOLD_MS="${P95_THRESHOLD_MS:-1000}"
+  FAILED_RATE_THRESHOLD="${FAILED_RATE_THRESHOLD:-0.01}"
+  MAX_DROPPED_ITERATIONS="${MAX_DROPPED_ITERATIONS:-0}"
+  PRE_ALLOCATED_VUS="${PRE_ALLOCATED_VUS:-20}"
+  MAX_VUS="${MAX_VUS:-200}"
+  [[ "$MAX_DROPPED_ITERATIONS" =~ ^[0-9]+$ ]] || die "MAX_DROPPED_ITERATIONS must be a non-negative integer"
+
+  case "$profile_name" in
+    arrival)
+      TARGET_RPS="${TARGET_RPS:-10}"
+      DURATION="${DURATION:-10m}"
+      [[ "$TARGET_RPS" =~ ^[1-9][0-9]*$ ]] || die "TARGET_RPS must be a positive integer"
+      ;;
+    ramping)
+      START_RPS="${START_RPS:-1}"
+      RPS_STAGES="${RPS_STAGES:-10:2m,20:2m,40:2m,0:30s}"
+      [[ "$START_RPS" =~ ^[0-9]+$ ]] || die "START_RPS must be a non-negative integer"
+      ;;
+    *) die "unknown single-API profile '$profile_name' (expected arrival or ramping)" ;;
+  esac
+
+  prepare_mixed_seed_identity
+  [[ -n "${K6_ACCESS_TOKEN:-}" || -n "${TOKEN:-}" || -n "${K6_USER_EMAIL:-}" ]] \
+    || die "single-API scenario needs a token, K6_USER_EMAIL, or reusable seed manifest; run seed first"
+}
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 server_dir="$(cd "$script_dir/../../.." && pwd)"
 cd "$server_dir"
 source "$script_dir/target-policy.sh"
+source "$script_dir/seed-state.sh"
 
 scenario="${1:-}"
-profile="${2:-jps1}"
-[[ "$profile" =~ ^[0-9]+$ ]] && profile="jps$profile"
+profile="${2:-}"
 if [[ -z "$scenario" || "$scenario" == "-h" || "$scenario" == "--help" ]]; then
   usage
   exit 0
@@ -79,6 +122,7 @@ MANAGEMENT_BASE_URL="${MANAGEMENT_BASE_URL:-$BASE_URL}"
 timestamp="$(date +%Y%m%d-%H%M%S)-$$"
 run_prefix="${RUN_PREFIX:-$K6_ENV}"
 RUN_PREFIX="$run_prefix"
+K6_GIT_COMMIT_SHA="${K6_GIT_COMMIT_SHA:-$(git rev-parse HEAD 2>/dev/null || printf unknown)}"
 
 case "$scenario" in
   smoke)
@@ -87,14 +131,26 @@ case "$scenario" in
     RUN_ID="${RUN_ID:-${run_prefix}-smoke-${timestamp}}"
     ;;
   seed | prepare-seed)
-    K6_SCRIPT="performance/k6/scenarios/prepare-seed.js"
+    profile="${profile:-${SEED_PROFILE:-normal}}"
+    apply_seed_profile_defaults "$profile"
+    prepare_seed_create_or_reuse "$profile"
+    if [[ "$SEED_MODE" == "reuse" ]]; then
+      K6_SCRIPT="performance/k6/scenarios/verify-seed.js"
+    else
+      K6_SCRIPT="performance/k6/scenarios/prepare-seed.js"
+    fi
     K6_REPORT_NAME="seed"
     RUN_ID="${RUN_ID:-${run_prefix}-seed-${timestamp}}"
-    SEED_BOOKS="${SEED_BOOKS:-30}"
-    SEED_RECORDS_PER_BOOK="${SEED_RECORDS_PER_BOOK:-3}"
-    SEED_FOCUS_SESSIONS="${SEED_FOCUS_SESSIONS:-10}"
+    ;;
+  cleanup-seed)
+    prepare_seed_cleanup
+    K6_SCRIPT="performance/k6/scenarios/cleanup-seed.js"
+    K6_REPORT_NAME="seed-cleanup"
+    RUN_ID="${RUN_ID:-${run_prefix}-seed-cleanup-${timestamp}}"
     ;;
   mixed-read)
+    profile="${profile:-jps1}"
+    [[ "$profile" =~ ^[0-9]+$ ]] && profile="jps$profile"
     K6_SCRIPT="performance/k6/scenarios/mixed-read-journey.js"
     K6_REPORT_NAME="mixed-read-journey"
     [[ "$profile" =~ ^jps([1-9][0-9]*)$ ]] || die "unknown mixed-read profile '$profile' (expected jps<positive integer>)"
@@ -110,11 +166,10 @@ case "$scenario" in
     RUN_ID="${RUN_ID:-${run_prefix}-mixed-read-jps${JOURNEYS_PER_SECOND}-${timestamp}}"
     P95_THRESHOLD_MS="${P95_THRESHOLD_MS:-1000}"
     FAILED_RATE_THRESHOLD="${FAILED_RATE_THRESHOLD:-0.01}"
+    prepare_mixed_seed_identity
     if [[ -z "${K6_ACCESS_TOKEN:-}" && -z "${TOKEN:-}" && -z "${K6_USER_EMAIL:-}" ]]; then
-      [[ -n "${SEED_RUN_ID:-}" || ! -f "$K6_SEED_STATE_FILE" ]] || SEED_RUN_ID="$(<"$K6_SEED_STATE_FILE")"
       [[ -n "${SEED_RUN_ID:-}" ]] || die "mixed-read needs a token, K6_USER_EMAIL, or SEED_RUN_ID; run seed first or provide one"
-      K6_USER_EMAIL="seed-${SEED_RUN_ID}-0-0@test.com"
-      K6_USER_NICKNAME="${K6_USER_NICKNAME:-k6read}"
+      set_legacy_seed_identity
     fi
     ;;
   books-user) configure_internal "books-user" ;;
@@ -134,6 +189,10 @@ case "$scenario" in
   onboarding) configure_internal "onboarding" ;;
   timeline-core) configure_internal "timeline-core" ;;
   timeline-producers) configure_internal "timeline-producers" ;;
+  api-*)
+    profile="${profile:-${K6_SINGLE_API_PROFILE:-arrival}}"
+    configure_single_api "$scenario" "$profile"
+    ;;
   *) die "unknown scenario '$scenario'" ;;
 esac
 
@@ -142,9 +201,11 @@ k6_assert_target_allowed "$K6_SCRIPT"
 forwarded_names=(
   BASE_URL MANAGEMENT_BASE_URL K6_SCRIPT RUN_ID K6_REPORT_NAME
   P95_THRESHOLD_MS FAILED_RATE_THRESHOLD MAX_DROPPED_ITERATIONS
-  VUS ITERATIONS MAX_DURATION JOURNEYS_PER_SECOND TARGET_RPS DURATION PRE_ALLOCATED_VUS MAX_VUS
+  VUS ITERATIONS MAX_DURATION JOURNEYS_PER_SECOND TARGET_RPS START_RPS RPS_STAGES DURATION PRE_ALLOCATED_VUS MAX_VUS
   K6_ENV RUN_PREFIX K6_BASE_URL_PATTERN K6_MANAGEMENT_BASE_URL_PATTERN CONFIRM_PROD_LOADTEST
   K6_ENABLE_EXTERNAL_API K6_GLOBAL_SEARCH_KEYWORDS K6_GLOBAL_USER_POOL_SIZE
+  K6_READ_TARGET K6_SINGLE_API_PROFILE
+  K6_GIT_COMMIT_SHA SEED_GIT_COMMIT_SHA SEED_PROFILE SEED_NAMESPACE SEED_RUN_ID
   SEED_BOOKS SEED_RECORDS_PER_BOOK SEED_FOCUS_SESSIONS
   K6_USER_EMAIL K6_USER_NICKNAME K6_ACCESS_TOKEN K6_REFRESH_TOKEN TOKEN
   K6_BOOK_ID K6_LIBRARY_ID K6_RECORD_ID K6_TIMELINE_ID K6_SEARCH_KEYWORD
@@ -167,9 +228,19 @@ export ENV_FILE GRAFANA_PORT K6_DOCKER_USER
 printf 'k6_env=%s\nscenario=%s\nrun_id=%s\nscript=%s\nbase_url=%s\n' \
   "$K6_ENV" "$scenario" "$RUN_ID" "$K6_SCRIPT" "$BASE_URL"
 [[ ! -f "$K6_ENV_FILE" ]] || printf 'k6_env_file=%s\n' "$K6_ENV_FILE"
+if [[ -n "${SEED_MODE:-}" ]]; then
+  printf 'seed_mode=%s\nseed_profile=%s\nseed_namespace=%s\n' "$SEED_MODE" "$SEED_PROFILE" "$SEED_NAMESPACE"
+fi
 if [[ "$scenario" == "mixed-read" ]]; then
   printf 'journeys_per_second=%s\nmax_requests_per_journey=18\nexpected_max_http_rps=%s\n' \
     "$JOURNEYS_PER_SECOND" "$((JOURNEYS_PER_SECOND * 18))"
+elif [[ "$scenario" == api-* ]]; then
+  printf 'single_api_profile=%s\nread_target=%s\n' "$K6_SINGLE_API_PROFILE" "$K6_READ_TARGET"
+  if [[ "$K6_SINGLE_API_PROFILE" == "arrival" ]]; then
+    printf 'target_rps=%s\n' "$TARGET_RPS"
+  else
+    printf 'start_rps=%s\nrps_stages=%s\n' "$START_RPS" "$RPS_STAGES"
+  fi
 fi
 if [[ "${K6_DRY_RUN:-}" == "1" ]]; then
   printf 'dry_run_command='
@@ -179,8 +250,11 @@ if [[ "${K6_DRY_RUN:-}" == "1" ]]; then
 fi
 
 "${compose_cmd[@]}"
-if [[ "$scenario" == "seed" || "$scenario" == "prepare-seed" ]]; then
-  mkdir -p "$K6_STATE_DIR"
-  printf '%s\n' "$RUN_ID" > "$K6_SEED_STATE_FILE"
-  printf 'saved_seed_run_id=%s\n' "$K6_SEED_STATE_FILE"
-fi
+case "${SEED_MODE:-}" in
+  create) save_seed_manifest ;;
+  reuse)
+    mark_seed_manifest_latest
+    printf 'reused_seed_manifest=%s\n' "$K6_SEED_MANIFEST_FILE"
+    ;;
+  cleanup) remove_seed_manifest ;;
+esac

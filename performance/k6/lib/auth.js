@@ -76,15 +76,24 @@ function resolveAuthUser(user, { useConfiguredUser = true } = {}) {
   };
 }
 
+function configuredAuth(user) {
+  const accessToken = stringEnv("TOKEN") || stringEnv("K6_ACCESS_TOKEN");
+  if (!accessToken) {
+    return null;
+  }
+
+  return {
+    user,
+    accessToken,
+    refreshToken: stringEnv("K6_REFRESH_TOKEN") || null,
+  };
+}
+
 export function authenticateDevUser(user = smokeUser(), { useConfiguredUser = true } = {}) {
   const authUser = resolveAuthUser(user, { useConfiguredUser });
-  const accessToken = stringEnv("TOKEN") || stringEnv("K6_ACCESS_TOKEN");
-  if (accessToken) {
-    return {
-      user: authUser,
-      accessToken,
-      refreshToken: stringEnv("K6_REFRESH_TOKEN") || null,
-    };
+  const auth = configuredAuth(authUser);
+  if (auth) {
+    return auth;
   }
 
   const existingUserAuth = loginDevUser(authUser, { allowNotFound: true });
@@ -93,5 +102,39 @@ export function authenticateDevUser(user = smokeUser(), { useConfiguredUser = tr
   }
 
   signupDevUser(authUser, { allowDuplicate: true });
+  return loginDevUser(authUser);
+}
+
+export function authenticateExistingUser(
+  user = smokeUser(),
+  { useConfiguredUser = true, allowNotFound = false, allowConfiguredToken = true } = {}
+) {
+  const authUser = resolveAuthUser(user, { useConfiguredUser });
+  const auth = configuredAuth(authUser);
+  if (auth && !allowConfiguredToken) {
+    throw new Error("existing DEV user authentication does not accept a configured token");
+  }
+  if (auth) {
+    return auth;
+  }
+
+  const existingUserAuth = loginDevUser(authUser, { allowNotFound: true });
+  if (!existingUserAuth && !allowNotFound) {
+    throw new Error(`DEV user does not exist. email=${authUser.email}`);
+  }
+  return existingUserAuth;
+}
+
+export function authenticateNewDevUser(user = smokeUser(), { useConfiguredUser = true } = {}) {
+  const authUser = resolveAuthUser(user, { useConfiguredUser });
+  if (configuredAuth(authUser)) {
+    throw new Error("new DEV user authentication does not accept a configured token");
+  }
+
+  if (loginDevUser(authUser, { allowNotFound: true })) {
+    throw new Error(`DEV user already exists. Run cleanup-seed before retrying. email=${authUser.email}`);
+  }
+
+  signupDevUser(authUser);
   return loginDevUser(authUser);
 }

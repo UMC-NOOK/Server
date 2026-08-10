@@ -28,12 +28,21 @@ const MIXED_READ_REQUEST_NAMES = [
   "read:timeline-detail",
 ];
 
-function commonThresholds({ p95Ms, failedRate, requestNames = [], maxDroppedIterations }) {
+function commonThresholds({
+  p95Ms,
+  failedRate,
+  requestNames = [],
+  maxDroppedIterations,
+  aggregateRequestThresholds = true,
+}) {
   const thresholds = {
-    http_req_failed: [`rate<${failedRate}`],
-    http_req_duration: [`p(95)<${p95Ms}`],
     checks: ["rate>0.99"],
   };
+
+  if (aggregateRequestThresholds) {
+    thresholds.http_req_failed = [`rate<${failedRate}`];
+    thresholds.http_req_duration = [`p(95)<${p95Ms}`];
+  }
 
   if (maxDroppedIterations !== undefined) {
     thresholds.dropped_iterations = [`count<=${maxDroppedIterations}`];
@@ -44,6 +53,20 @@ function commonThresholds({ p95Ms, failedRate, requestNames = [], maxDroppedIter
     [`http_req_duration{name:${requestName}}`]: [`p(95)<${p95Ms}`],
     [`http_req_failed{name:${requestName}}`]: [`rate<${failedRate}`],
   }), thresholds);
+}
+
+function singleApiThresholds(requestName) {
+  if (!requestName) {
+    throw new Error("single-API options require a request name tag");
+  }
+
+  return commonThresholds({
+    failedRate: floatEnv("FAILED_RATE_THRESHOLD", 0.01),
+    p95Ms: intEnv("P95_THRESHOLD_MS", 1000),
+    requestNames: [requestName],
+    maxDroppedIterations: intEnv("MAX_DROPPED_ITERATIONS", 0),
+    aggregateRequestThresholds: false,
+  });
 }
 
 function commonTags() {
@@ -120,41 +143,39 @@ export const seedOptions = {
   }),
 };
 
-export const singleApiRampingArrivalRateOptions = {
-  tags: commonTags(),
-  scenarios: {
-    api_bottleneck: {
-      executor: "ramping-arrival-rate",
-      startRate: intEnv("START_RPS", 1),
-      timeUnit: stringEnv("TIME_UNIT", "1s"),
-      preAllocatedVUs: intEnv("PRE_ALLOCATED_VUS", 20),
-      maxVUs: intEnv("MAX_VUS", 200),
-      stages: parseStages(stringEnv("RPS_STAGES")),
+export function singleApiRampingArrivalRateOptions(requestName) {
+  return {
+    tags: commonTags(),
+    scenarios: {
+      api_bottleneck: {
+        executor: "ramping-arrival-rate",
+        startRate: intEnv("START_RPS", 1),
+        timeUnit: "1s",
+        preAllocatedVUs: intEnv("PRE_ALLOCATED_VUS", 20),
+        maxVUs: intEnv("MAX_VUS", 200),
+        stages: parseStages(stringEnv("RPS_STAGES")),
+      },
     },
-  },
-  thresholds: commonThresholds({
-    failedRate: floatEnv("FAILED_RATE_THRESHOLD", 0.01),
-    p95Ms: intEnv("P95_THRESHOLD_MS", 1000),
-  }),
-};
+    thresholds: singleApiThresholds(requestName),
+  };
+}
 
-export const singleApiArrivalRateOptions = {
-  tags: commonTags(),
-  scenarios: {
-    steady_state: {
-      executor: "constant-arrival-rate",
-      rate: intEnv("TARGET_RPS", 10),
-      timeUnit: stringEnv("TIME_UNIT", "1s"),
-      duration: stringEnv("DURATION", "10m"),
-      preAllocatedVUs: intEnv("PRE_ALLOCATED_VUS", 20),
-      maxVUs: intEnv("MAX_VUS", 200),
+export function singleApiArrivalRateOptions(requestName) {
+  return {
+    tags: commonTags(),
+    scenarios: {
+      steady_state: {
+        executor: "constant-arrival-rate",
+        rate: intEnv("TARGET_RPS", 10),
+        timeUnit: "1s",
+        duration: stringEnv("DURATION", "10m"),
+        preAllocatedVUs: intEnv("PRE_ALLOCATED_VUS", 20),
+        maxVUs: intEnv("MAX_VUS", 200),
+      },
     },
-  },
-  thresholds: commonThresholds({
-    failedRate: floatEnv("FAILED_RATE_THRESHOLD", 0.01),
-    p95Ms: intEnv("P95_THRESHOLD_MS", 1000),
-  }),
-};
+    thresholds: singleApiThresholds(requestName),
+  };
+}
 
 export const mixedReadJourneyOptions = {
   tags: commonTags(),

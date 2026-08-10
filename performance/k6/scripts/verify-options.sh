@@ -8,18 +8,23 @@ expected_scenarios=(
   books-search-global.js
   books-search-library.js
   books-user.js
+  cleanup-seed.js
   mixed-read-journey.js
   onboarding.js
   prepare-seed.js
+  single-api-read.js
   smoke.js
   timeline-core.js
   timeline-producers.js
+  verify-seed.js
 )
 
 test_dir="$(mktemp -d)"
 trap 'rm -rf "$test_dir"' EXIT
 printf '%s\n' "${expected_scenarios[@]}" | sort > "$test_dir/expected-scenarios"
-find performance/k6/scenarios -maxdepth 1 -type f -name '*.js' -printf '%f\n' | sort > "$test_dir/actual-scenarios"
+for scenario_path in performance/k6/scenarios/*.js; do
+  basename "$scenario_path"
+done | sort > "$test_dir/actual-scenarios"
 if ! diff -u "$test_dir/expected-scenarios" "$test_dir/actual-scenarios"; then
   printf 'supported scenario list does not match the files on disk\n' >&2
   exit 1
@@ -27,10 +32,18 @@ fi
 
 for scenario_file in "${expected_scenarios[@]}"; do
   output_file="$test_dir/${scenario_file%.js}.json"
+  scenario_env=()
+  if [[ "$scenario_file" == "single-api-read.js" ]]; then
+    scenario_env=(
+      -e K6_READ_TARGET=timeline-list
+      -e K6_SINGLE_API_PROFILE=arrival
+    )
+  fi
   K6_DOCKER_USER="$(id -u):$(id -g)" \
     ENV_FILE="${ENV_FILE:-performance/k6/env/monitoring.env.example}" \
     docker compose -f docker-compose.monitoring.yml --profile loadtest run --rm --no-deps \
       --entrypoint k6 k6 inspect --execution-requirements \
+      "${scenario_env[@]}" \
       "/workspace/performance/k6/scenarios/$scenario_file" > "$output_file"
   jq -e '.thresholds | type == "object"' "$output_file" >/dev/null
   printf 'inspected %s\n' "$scenario_file"
@@ -43,7 +56,10 @@ if ! jq -e '.thresholds.dropped_iterations == ["count<=0"]' <<<"$options_json" >
   exit 1
 fi
 
-mapfile -t request_names < <(
+request_names=()
+while IFS= read -r request_name; do
+  request_names+=("$request_name")
+done < <(
   sed -nE 's/.*tags: \{ name: "(read:[^"]+)" \}.*/\1/p' \
     performance/k6/scenarios/mixed-read-journey.js | sort -u
 )

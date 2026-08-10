@@ -148,8 +148,7 @@ export function createFocusSessions(params, books, count) {
 
   const theme = (themes.json("result.themes") || [])[0];
   if (!theme?.themeId) {
-    console.warn("No focus themes found. Skipping seed focus sessions.");
-    return [];
+    throw new Error("seed focus sessions require at least one focus theme");
   }
 
   const sessions = [];

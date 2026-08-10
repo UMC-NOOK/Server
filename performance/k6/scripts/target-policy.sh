@@ -9,7 +9,7 @@ k6_matches() {
   k6_match_value="$1"
   k6_match_pattern="$2"
   [ -n "$k6_match_pattern" ] || return 1
-  printf '%s\n' "$k6_match_value" | grep -Eq "$k6_match_pattern"
+  printf '%s\n' "$k6_match_value" | grep -Eq -- "$k6_match_pattern"
 }
 
 k6_normalize_base_url() {
@@ -41,7 +41,7 @@ k6_is_local_base_url() {
 
 k6_is_seed_script() {
   case "$1" in
-    */prepare-seed.js | performance/k6/scenarios/prepare-seed.js) return 0 ;;
+    */prepare-seed.js | */verify-seed.js | */cleanup-seed.js) return 0 ;;
     *) return 1 ;;
   esac
 }
