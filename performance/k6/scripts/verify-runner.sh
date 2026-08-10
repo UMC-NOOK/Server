@@ -69,8 +69,19 @@ expect_absent() {
   fi
 }
 
-base_runner_env=(
+clean_runtime_env=(
   env
+  -u TOKEN
+  -u K6_ACCESS_TOKEN
+  -u K6_REFRESH_TOKEN
+  -u RUN_ID
+  -u RUN_PREFIX
+  -u SEED_PROFILE
+  -u SEED_NAMESPACE
+)
+
+base_runner_env=(
+  "${clean_runtime_env[@]}"
   PATH="$fake_bin:$PATH"
   K6_ENV_FILE=/dev/null
   ENV_FILE=/dev/null
@@ -240,7 +251,7 @@ if [[ "$focus" != "routes" ]]; then
   expect_status 0 "Make process-environment runtime value"
   expect_absent "K6_MAKE_PROCESS_ENV_EVALUATED" "Make process-environment evaluation"
 
-  capture env PATH="$fake_bin:$PATH" K6_ENV_FILE=/dev/null ENV_FILE=/dev/null K6_STATE_DIR="$state_dir" \
+  capture "${clean_runtime_env[@]}" PATH="$fake_bin:$PATH" K6_ENV_FILE=/dev/null ENV_FILE=/dev/null K6_STATE_DIR="$state_dir" \
     K6_DRY_RUN=1 K6_ENV=local RUN_PREFIX=nightly BASE_URL=http://host.docker.internal:8080 \
     MANAGEMENT_BASE_URL=http://host.docker.internal:8080 make --no-print-directory k6-smoke
   expect_status 0 "Make RUN_PREFIX process environment"
@@ -252,12 +263,13 @@ if [[ "$focus" != "routes" ]]; then
     'RUN_PREFIX=make-env' \
     'SEED_PROFILE=light' \
     'SEED_NAMESPACE=make-env-light' > "$make_seed_env"
-  capture env -u RUN_PREFIX -u SEED_PROFILE -u SEED_NAMESPACE \
+  capture "${clean_runtime_env[@]}" \
     PATH="$fake_bin:$PATH" K6_ENV_FILE="$make_seed_env" ENV_FILE=/dev/null K6_STATE_DIR="$state_dir" \
     K6_DRY_RUN=1 K6_ENV=local RUN_ID=verify-make-seed BASE_URL=http://host.docker.internal:8080 \
     MANAGEMENT_BASE_URL=http://host.docker.internal:8080 make --no-print-directory k6-seed
   expect_status 0 "Make seed profile env file"
   expect_contains "seed_profile=light" "Make seed profile env file"
+  expect_contains "seed_namespace=make-env-light" "Make seed namespace env file"
   expect_contains "RUN_PREFIX=make-env" "Make RUN_PREFIX env file"
 
   capture make -n k6-test-compose

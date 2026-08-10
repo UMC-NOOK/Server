@@ -16,6 +16,11 @@ chmod +x "$fake_bin/docker"
 
 base_env=(
   env
+  -u TOKEN
+  -u K6_ACCESS_TOKEN
+  -u K6_REFRESH_TOKEN
+  -u SEED_PROFILE
+  -u SEED_NAMESPACE
   PATH="$fake_bin:$PATH"
   K6_ENV=local
   K6_ENV_FILE=/dev/null
@@ -99,7 +104,9 @@ assert_command_env "$profile_output" "SEED_FOCUS_SESSIONS=2"
 
 expect_failure "unknown seed profile" "${base_env[@]}" K6_DRY_RUN=1 "$runner" seed unknown
 expect_failure "invalid seed namespace" "${base_env[@]}" K6_DRY_RUN=1 SEED_NAMESPACE='invalid namespace' "$runner" seed light
-expect_failure "seed token override" "${base_env[@]}" K6_DRY_RUN=1 K6_ACCESS_TOKEN=test-token "$runner" seed light
+for token_name in TOKEN K6_ACCESS_TOKEN; do
+  expect_failure "seed $token_name override" "${base_env[@]}" K6_DRY_RUN=1 "$token_name=test-token" "$runner" seed light
+done
 
 namespace="lifecycle-light"
 create_output="$(
@@ -147,7 +154,9 @@ test ! -e "$pointer"
 
 "${base_env[@]}" RUN_ID=verify-recovery SEED_NAMESPACE=recovery "$runner" cleanup-seed >/dev/null
 expect_failure "remote cleanup" "${base_env[@]}" K6_ENV=staging BASE_URL=https://staging.example.test MANAGEMENT_BASE_URL=https://staging.example.test CONFIRM_PROD_LOADTEST=yes SEED_NAMESPACE=recovery "$runner" cleanup-seed
-expect_failure "cleanup token override" "${base_env[@]}" K6_ACCESS_TOKEN=test-token SEED_NAMESPACE=recovery "$runner" cleanup-seed
+for token_name in TOKEN K6_ACCESS_TOKEN; do
+  expect_failure "cleanup $token_name override" "${base_env[@]}" "$token_name=test-token" SEED_NAMESPACE=recovery "$runner" cleanup-seed
+done
 
 expect_failure "failed seed command" "${base_env[@]}" FAKE_DOCKER_EXIT=7 RUN_ID=verify-failed SEED_NAMESPACE=failed "$runner" seed light
 test ! -e "$state_dir/seeds/seed-local-failed.env"
@@ -161,11 +170,20 @@ K6_DOCKER_USER="$(id -u):$(id -g)" \
     -e SEED_FOCUS_SESSIONS=2 \
     /workspace/performance/k6/tests/seed-cardinality.js >/dev/null
 
-K6_DOCKER_USER="$(id -u):$(id -g)" \
-  ENV_FILE=performance/k6/env/monitoring.env.example \
-  docker compose -f docker-compose.monitoring.yml --profile loadtest run --rm --no-deps \
-    --entrypoint k6 k6 run --quiet \
-    -e K6_ACCESS_TOKEN=configured-token \
-    /workspace/performance/k6/tests/seed-auth-policy.js >/dev/null
+for token_name in TOKEN K6_ACCESS_TOKEN; do
+  if [[ "$token_name" == TOKEN ]]; then
+    other_token_name=K6_ACCESS_TOKEN
+  else
+    other_token_name=TOKEN
+  fi
+
+  K6_DOCKER_USER="$(id -u):$(id -g)" \
+    ENV_FILE=performance/k6/env/monitoring.env.example \
+    docker compose -f docker-compose.monitoring.yml --profile loadtest run --rm --no-deps \
+      --entrypoint k6 k6 run --quiet \
+      -e "$token_name=configured-token" \
+      -e "$other_token_name=" \
+      /workspace/performance/k6/tests/seed-auth-policy.js >/dev/null
+done
 
 printf 'verified seed profiles, manifests, reuse, mixed-read identity, cleanup, and failure recovery\n'

@@ -70,6 +70,9 @@ inspect_options() {
 
 base_env=(
   env
+  -u TOKEN
+  -u K6_ACCESS_TOKEN
+  -u K6_REFRESH_TOKEN
   K6_ENV=local
   K6_ENV_FILE=/dev/null
   K6_STATE_DIR="$state_dir"
@@ -159,8 +162,7 @@ jq -e '
 expect_failure "TARGET_RPS=0" "${base_env[@]}" TARGET_RPS=0 "$runner" api-timeline-list arrival
 expect_failure "unknown API target" "${base_env[@]}" "$runner" api-unknown arrival
 expect_failure "unknown API profile" "${base_env[@]}" "$runner" api-timeline-list unknown
-expect_failure "missing seed manifest" env K6_ENV=local K6_ENV_FILE=/dev/null K6_STATE_DIR="$state_dir" \
-  ENV_FILE=/dev/null BASE_URL=http://host.docker.internal:8080 MANAGEMENT_BASE_URL=http://host.docker.internal:8080 \
-  K6_DRY_RUN=1 SEED_NAMESPACE=missing "$runner" api-timeline-list arrival
+expect_failure "missing seed manifest" "${base_env[@]}" SEED_NAMESPACE=missing \
+  "$runner" api-timeline-list arrival
 
 printf 'verified %s single-API routes with arrival and ramping options\n' "${#scenarios[@]}"
