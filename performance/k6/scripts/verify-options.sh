@@ -8,6 +8,7 @@ expected_scenarios=(
   books-search-global.js
   books-search-library.js
   books-user.js
+  cache-stats.js
   cleanup-seed.js
   mixed-read-journey.js
   onboarding.js
@@ -37,6 +38,11 @@ for scenario_file in "${expected_scenarios[@]}"; do
     scenario_env=(
       -e K6_READ_TARGET=timeline-list
       -e K6_SINGLE_API_PROFILE=arrival
+    )
+  elif [[ "$scenario_file" == "cache-stats.js" ]]; then
+    scenario_env=(
+      -e K6_CACHE_TARGET=monthly
+      -e K6_CACHE_PHASE=cold
     )
   fi
   K6_DOCKER_USER="$(id -u):$(id -g)" \

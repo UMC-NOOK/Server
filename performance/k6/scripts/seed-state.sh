@@ -162,6 +162,17 @@ prepare_mixed_seed_identity() {
   fi
 }
 
+prepare_cache_seed_identity() {
+  [[ -z "${TOKEN:-}" && -z "${K6_ACCESS_TOKEN:-}" && -z "${K6_USER_EMAIL:-}" && -z "${K6_USER_NICKNAME:-}" ]] \
+    || die "cache scenarios require an unmodified reusable seed manifest and do not accept configured credentials"
+
+  prepare_mixed_seed_identity
+
+  [[ -n "${SEED_NAMESPACE:-}" && -n "${K6_SEED_MANIFEST_FILE:-}" && -f "$K6_SEED_MANIFEST_FILE" ]] \
+    || die "cache scenarios require a reusable namespace seed manifest; run seed first"
+  validate_seed_identity
+}
+
 mark_seed_manifest_latest() {
   mkdir -p "$K6_STATE_DIR"
   printf '%s\n' "$SEED_NAMESPACE" > "$K6_SEED_STATE_FILE"

@@ -177,6 +177,38 @@ export function singleApiArrivalRateOptions(requestName) {
   };
 }
 
+export function cacheColdOptions(requestName) {
+  return {
+    tags: commonTags(),
+    scenarios: {
+      cache_cold: {
+        executor: "shared-iterations",
+        vus: intEnv("VUS", 1),
+        iterations: intEnv("ITERATIONS", 1),
+        maxDuration: stringEnv("MAX_DURATION", "1m"),
+      },
+    },
+    thresholds: singleApiThresholds(requestName),
+  };
+}
+
+export function cacheWarmOptions(requestName) {
+  return {
+    tags: commonTags(),
+    scenarios: {
+      cache_warm: {
+        executor: "constant-arrival-rate",
+        rate: intEnv("TARGET_RPS", 10),
+        timeUnit: "1s",
+        duration: stringEnv("DURATION", "10m"),
+        preAllocatedVUs: intEnv("PRE_ALLOCATED_VUS", 20),
+        maxVUs: intEnv("MAX_VUS", 200),
+      },
+    },
+    thresholds: singleApiThresholds(requestName),
+  };
+}
+
 export const mixedReadJourneyOptions = {
   tags: commonTags(),
   scenarios: {

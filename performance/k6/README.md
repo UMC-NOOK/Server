@@ -11,6 +11,8 @@ NOOK 서버의 인증 이후 API 흐름을 검증하고 조회 병목 후보를 
 | `make k6-seed-cleanup` | 로컬 정리 작업 | namespace에 속한 테스트 사용자와 데이터를 함께 삭제 |
 | `JOURNEYS_PER_SECOND=1 make k6-mixed-read` | arrival-rate | 주요 조회 흐름의 지연, 실패율, dropped iteration 확인 |
 | `SCENARIO=api-timeline-list TARGET_RPS=10 make k6-scenario` | 단일 API arrival-rate | 조회 API 하나의 RPS별 병목 확인 |
+| `SCENARIO=cache-monthly-cold SEED_NAMESPACE=<이름> make k6-scenario` | cache cold | 정확한 통계 캐시 키를 제거한 뒤 최초 요청 한 번 측정 |
+| `SCENARIO=cache-monthly-warm SEED_NAMESPACE=<이름> make k6-scenario` | cache warm | 같은 요청으로 캐시를 채운 뒤 일정 RPS로 측정 |
 | `make k6-global-search` | 낮은 arrival-rate | GLOBAL 검색과 Aladin 외부 연동 확인 |
 | `SCENARIO=<이름> make k6-scenario` | 기능 journey | 도메인 흐름을 1 VU, 1 iteration으로 검증 |
 
@@ -142,6 +144,57 @@ make k6-scenario
 
 각 실행은 목표 API의 p95, 실패율, checks, dropped iteration을 독립적으로 판정합니다. 기본 기준은 p95 1000ms, 실패율 1% 미만, dropped iteration 0개이며 staging baseline 전의 임시 engineering gate입니다. 로컬 breakpoint를 운영 수용량으로 해석하지 않습니다.
 
+## 통계 캐시 cold/warm 부하
+
+월별 도서 통계와 월별 집중 통계는 cache miss와 hit 표본이 섞이지 않도록 target과 phase별로 별도 실행합니다. 두 시나리오 모두 현재 로컬 환경과 기존 seed manifest만 허용하며, 임의 토큰이나 사용자 ID를 받지 않습니다.
+
+지원하는 시나리오는 다음 네 가지입니다.
+
+| 시나리오 | 대상과 동작 |
+|---|---|
+| `cache-monthly-cold` | 월별 도서 통계 키 3개를 제거한 뒤 요청 1회 |
+| `cache-monthly-warm` | 월별 도서 통계를 먼저 prime한 뒤 arrival-rate 실행 |
+| `cache-focus-monthly-cold` | 월별 집중 통계 키 2개를 제거한 뒤 요청 1회 |
+| `cache-focus-monthly-warm` | 월별 집중 통계를 먼저 prime한 뒤 arrival-rate 실행 |
+
+먼저 전용 namespace를 준비한 뒤 같은 namespace로 실행합니다. seed가 현재 시각으로 집중 데이터를 생성하므로 기본 조회 월은 현재 월이며, 다른 월을 조회할 때는 `K6_STATS_YEAR_MONTH=yyyy-MM`을 지정합니다.
+
+```bash
+SEED_PROFILE=normal SEED_NAMESPACE=local-cache make k6-seed
+
+SEED_NAMESPACE=local-cache \
+K6_STATS_YEAR_MONTH=2026-08 \
+SCENARIO=cache-monthly-cold \
+make k6-scenario
+
+SEED_NAMESPACE=local-cache \
+K6_STATS_YEAR_MONTH=2026-08 \
+SCENARIO=cache-focus-monthly-cold \
+make k6-scenario
+```
+
+cold 실행은 manifest의 DEV 사용자로 로그인해 API 요청에 사용될 사용자 ID를 해석합니다. 그 ID와 연월로 만든 정확한 키만 Redis에서 삭제하고, 삭제 전 개수·삭제 개수·삭제 후 잔여 개수가 일치할 때만 k6 요청을 시작합니다. 이미 키가 없는 경우에도 삭제 후 잔여 개수가 0이면 cold 상태로 실행할 수 있습니다. cold 측정은 `VUS=1`, `ITERATIONS=1`로 고정됩니다.
+
+warm 실행은 setup에서 같은 API를 `cache-prime:*` request name으로 한 번 호출한 뒤 목표 요청만 `cache:*:warm` 이름으로 측정합니다.
+
+```bash
+SEED_NAMESPACE=local-cache \
+K6_STATS_YEAR_MONTH=2026-08 \
+TARGET_RPS=10 \
+DURATION=10m \
+SCENARIO=cache-monthly-warm \
+make k6-scenario
+
+SEED_NAMESPACE=local-cache \
+K6_STATS_YEAR_MONTH=2026-08 \
+TARGET_RPS=10 \
+DURATION=10m \
+SCENARIO=cache-focus-monthly-warm \
+make k6-scenario
+```
+
+기본 run ID와 request name에는 target과 cold/warm phase가 포함됩니다. 결과 JSON에는 `cache_target`, `cache_phase`, `stats_year_month`와 기존 seed profile·namespace·commit 정보가 함께 기록됩니다. cache 실행은 seed manifest와 마지막 namespace 포인터를 수정하거나 cleanup하지 않습니다.
+
 ## 원격 환경 안전 정책
 
 staging 등 모든 비로컬 HTTP 대상은 정확히 `CONFIRM_PROD_LOADTEST=yes`를 전달해야 합니다. 팀의 안전한 공유 채널에서 실제 `staging.env` 또는 `prod.env`를 받아 `performance/k6/env/`에 배치합니다. 각 파일에는 승인된 `BASE_URL`, `MANAGEMENT_BASE_URL` 정규식 허용 목록을 설정해야 하며, 둘 중 하나라도 목록과 맞지 않으면 실행하지 않습니다. `*.env.example`은 필요한 키를 확인하는 참고 자료일 뿐 실제 실행값으로 사용하지 않습니다.
@@ -201,7 +254,7 @@ macOS에서는 Docker Desktop과 `jq`를 준비하며, 검증 스크립트는 ma
 make k6-test
 ```
 
-이 명령은 셸 구문, 러너의 시나리오 매핑과 원격 안전 정책, 12개 시나리오의 k6 options 파싱, seed profile·manifest 생명주기, 단일 API 11개 route와 arrival/ramping threshold, 결과 메타데이터, mixed-read 18개 요청별 threshold, Compose 구성을 검사합니다.
+이 명령은 셸 구문, 러너의 시나리오 매핑과 원격 안전 정책, 13개 시나리오의 k6 options 파싱, seed profile·manifest 생명주기, 단일 API 11개 route와 arrival/ramping threshold, 통계 캐시 4개 route와 exact eviction 계약, 결과 메타데이터, mixed-read 18개 요청별 threshold, Compose 구성을 검사합니다.
 
 시나리오를 추가할 때는 다음만 수정합니다.
 
