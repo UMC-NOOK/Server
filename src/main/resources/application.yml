@@ -27,6 +27,11 @@ spring:
       max-file-size: 5MB
       max-request-size: 5MB
 
+server:
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
 file:
   cover-upload-dir: uploads/covers
   profile-upload-dir: uploads/profiles

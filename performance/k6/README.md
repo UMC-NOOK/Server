@@ -32,7 +32,7 @@ state/       seed manifest와 마지막 namespace 포인터; Git 제외
 
 ## 준비와 로컬 실행
 
-백엔드를 먼저 실행합니다. k6는 컨테이너에서 실행되므로 기본 API 주소는 `http://host.docker.internal:8080`입니다.
+`make k6-up`은 로컬 PostgreSQL·Redis를 준비하고 `pg_stat_statements` extension을 확인한 뒤 Prometheus·Grafana·Redis exporter·PostgreSQL exporter를 실행합니다. Spring 백엔드는 별도로 실행해야 합니다. k6는 컨테이너에서 실행되므로 기본 API 주소는 `http://host.docker.internal:8080`입니다.
 
 ```bash
 make k6-up
@@ -42,6 +42,18 @@ JOURNEYS_PER_SECOND=1 make k6-mixed-read
 ```
 
 Grafana는 기본적으로 `http://localhost:3001`에서 확인합니다. 계정 설정은 팀에서 안전하게 공유한 `performance/k6/env/monitoring.env`에 두며 실제 env 파일은 커밋하지 않습니다. 실제 실행 명령은 이 파일이 없으면 중단하고, `make k6-test`의 정적 Compose 검증만 비밀값이 없는 `monitoring.env.example`을 사용합니다.
+
+기존 `NOOK API Observability` 대시보드에서 다음 지표를 같은 시간 범위로 확인합니다.
+
+- k6 run ID별 API p95·p99, 실패율, checks, dropped iteration
+- Spring HTTP latency/rate, Hikari connection/timeout
+- Redis keyspace hit/miss와 hit ratio, command latency/rate, client connection, command/connection error
+- PostgreSQL connection/lock/transaction과 상위 query ID별 평균 실행 시간
+- JVM GC pause와 Tomcat thread
+
+대시보드 첫 화면의 `Run Summary`와 subsystem 상태 타일에서 선택한 실행 범위의 k6 최악값·총합, 애플리케이션 포화도, Hikari, Redis, PostgreSQL 핵심값을 먼저 확인합니다. 빨강·주황은 조사할 신호를 강조하고 파랑·보라는 중립적인 값 구분에 사용하며, 어느 색상도 실행 전체의 보편적인 PASS/FAIL 판정이 아닙니다. 정확한 threshold 결과는 실행별 JSON report를 함께 확인합니다. 상세 원본 시계열은 접힌 k6, Spring/JVM/Tomcat, Hikari, Redis, PostgreSQL row를 펼쳐 확인합니다.
+
+cold와 warm의 `run_id`를 함께 선택하고 두 실행을 포함하도록 Grafana 시간 범위를 맞추면 요약 카드는 선택 범위의 최악값·총합을 보여주고, API p95 순위표는 각 `run_id`를 유지해 직접 비교할 수 있습니다. 이 구조는 cold/warm뿐 아니라 mixed-read와 단일 API 실행에도 동일하게 사용합니다. PostgreSQL query 지표는 로컬 `pg_stat_statements`의 query ID를 사용하며 SQL 원문이나 운영 데이터는 대시보드에 노출하지 않습니다. `make k6-down`은 monitoring Compose만 종료하며 PostgreSQL과 Redis는 그대로 둡니다.
 
 seed는 `SEED_NAMESPACE`별 전용 DEV 사용자를 만들고, 성공한 뒤에만 `performance/k6/state/seeds/`에 manifest를 저장합니다. 같은 profile과 namespace로 다시 실행하면 데이터를 추가하지 않고 실제 책·기록·집중·타임라인 개수가 manifest의 profile과 정확히 같은지 검증합니다. mixed-read는 명시한 namespace 또는 마지막으로 성공한 namespace를 재사용합니다.
 
@@ -254,7 +266,7 @@ macOS에서는 Docker Desktop과 `jq`를 준비하며, 검증 스크립트는 ma
 make k6-test
 ```
 
-이 명령은 셸 구문, 러너의 시나리오 매핑과 원격 안전 정책, 13개 시나리오의 k6 options 파싱, seed profile·manifest 생명주기, 단일 API 11개 route와 arrival/ramping threshold, 통계 캐시 4개 route와 exact eviction 계약, 결과 메타데이터, mixed-read 18개 요청별 threshold, Compose 구성을 검사합니다.
+이 명령은 셸 구문, 러너의 시나리오 매핑과 원격 안전 정책, 13개 시나리오의 k6 options 파싱, seed profile·manifest 생명주기, 단일 API 11개 route와 arrival/ramping threshold, 통계 캐시 4개 route와 exact eviction 계약, 결과 메타데이터, mixed-read 18개 요청별 threshold, exporter·Prometheus·Actuator·Grafana 계약과 Compose 구성을 검사합니다.
 
 시나리오를 추가할 때는 다음만 수정합니다.
 
@@ -276,4 +288,4 @@ make k6-test
 
 threshold를 넘으면 k6와 Make가 non-zero로 종료됩니다. JSON 결과에는 실행 ID, 테스트 이름, 환경, 대상 URL, 코드 commit, seed commit/profile/namespace가 함께 기록됩니다. 파일은 `performance/k6/reports/`에 저장되며 Git에서 제외됩니다.
 
-Grafana에서는 k6 API별 latency·failure·dropped iteration과 같은 시간대의 Spring HTTP latency, Hikari connection 사용량과 timeout을 함께 확인합니다. 로컬 측정값은 코드 변경 전후의 상대 비교와 시나리오 검증에만 사용합니다.
+Grafana에서는 k6 API별 latency·failure·dropped iteration과 같은 시간대의 Spring HTTP, Redis, PostgreSQL, Hikari, JVM, Tomcat 지표를 함께 확인합니다. 로컬 측정값은 코드 변경 전후의 상대 비교와 시나리오 검증에만 사용합니다.
