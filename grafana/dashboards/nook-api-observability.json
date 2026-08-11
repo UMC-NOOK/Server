@@ -901,7 +901,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Peak connections, long-running transactions, deadlocks, and slowest statement mean time for the selected database and time range.",
+      "description": "Peak connections, long-running transactions, deadlocks, and the slowest statement mean over the selected dashboard time range.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1052,7 +1052,7 @@
           "refId": "C"
         },
         {
-          "expr": "topk(1, 1000 * sum by (datname, queryid) (increase(pg_stat_statements_seconds_total{application=\"nook-postgres\",datname=~\"${database:regex}\"}[$__range])) / clamp_min(sum by (datname, queryid) (increase(pg_stat_statements_calls_total{application=\"nook-postgres\",datname=~\"${database:regex}\"}[$__range])), 1))",
+          "expr": "topk(1, 1000 * sum by (datname, queryid) (increase(pg_stat_statements_seconds_total{application=\"nook-postgres\",datname=~\"${database:regex}\"}[$__range])) / clamp_min(sum by (datname, queryid) (increase(pg_stat_statements_calls_total{application=\"nook-postgres\",datname=~\"${database:regex}\"}[$__range])), 1e-9))",
           "instant": true,
           "legendFormat": "slowest mean",
           "range": false,
@@ -2172,7 +2172,7 @@
           ],
           "title": "PostgreSQL Statement Mean Time",
           "type": "timeseries",
-          "description": "Top statement query IDs by mean execution time from pg_stat_statements. SQL text is intentionally not exposed."
+          "description": "Top statement query IDs by rolling 5-minute mean execution time from pg_stat_statements. SQL text is intentionally not exposed."
         }
       ],
       "title": "PostgreSQL",

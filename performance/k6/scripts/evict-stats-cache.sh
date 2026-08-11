@@ -29,6 +29,8 @@ login_payload="$(jq -nc \
   --arg nickName "$K6_USER_NICKNAME" \
   '{email: $email, nickName: $nickName}')"
 login_response="$(curl --fail --silent --show-error \
+  --connect-timeout 5 \
+  --max-time 30 \
   -H 'Content-Type: application/json' \
   --data "$login_payload" \
   "$host_base_url/api/v1/auth/dev/login")" \

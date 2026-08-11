@@ -107,14 +107,18 @@ done
 jq -e '
   def panel($title): [.. | objects | select(.title? == $title)][0];
   (panel("Redis Keyspace Hits, Misses, and Ratio") |
-    (.targets[] | select(.refId == "C").expr | contains("clamp_min") | not) and
-    (.fieldConfig.overrides[] | select(.matcher.options == "C") |
+    any(.targets[]; .refId == "C") and
+    all(.targets[] | select(.refId == "C"); .expr | contains("clamp_min") | not) and
+    any(.fieldConfig.overrides[]; .matcher.options == "C") and
+    all(.fieldConfig.overrides[] | select(.matcher.options == "C");
       any(.properties[]; .id == "unit" and .value == "percentunit"))) and
   (panel("Redis Commands and Connections") |
-    (.fieldConfig.overrides[] | select(.matcher.options == "B") |
+    any(.fieldConfig.overrides[]; .matcher.options == "B") and
+    all(.fieldConfig.overrides[] | select(.matcher.options == "B");
       any(.properties[]; .id == "unit" and .value == "short"))) and
   (panel("Redis Errors") |
-    (.fieldConfig.overrides[] | select(.matcher.options == "C") |
+    any(.fieldConfig.overrides[]; .matcher.options == "C") and
+    all(.fieldConfig.overrides[] | select(.matcher.options == "C");
       any(.properties[]; .id == "unit" and .value == "bool"))) and
   (panel("PostgreSQL Connections") |
     any(.targets[]; .expr | contains(">= 0")))
@@ -162,6 +166,8 @@ jq -e '
     any(.targets[]; .expr | contains("pg_stat_database_deadlocks")) and
     any(.targets[];
       (.expr | contains("pg_stat_statements_seconds_total")) and
+      (.expr | contains("[$__range]")) and
+      (.expr | contains(", 1e-9)")) and
       .legendFormat == "slowest mean")) and
   (panel("Top API Offenders by p95") |
     .type == "table" and
@@ -178,12 +184,18 @@ jq -e '
       any(.properties[]; .id == "unit" and .value == "none"))) and
   (panel("k6 Failure Rate and Checks") |
     (.gridPos.h >= 10) and
-    (.targets[] | select(.legendFormat | startswith("checks")) |
+    any(.targets[]; ((.legendFormat // "") | startswith("checks"))) and
+    all(.targets[] | select((.legendFormat // "") | startswith("checks"));
       (.expr | contains("avg by (run_id, group)")) and
-      (.legendFormat | contains("{{run_id}}")))) and
+      ((.legendFormat // "") | contains("{{run_id}}")))) and
   (panel("k6 API Latency by Name") | .gridPos.h >= 10) and
   (panel("Redis Command Mean Latency") | .gridPos.h >= 16) and
-  (panel("PostgreSQL Statement Mean Time") | .gridPos.h >= 16)
+  (panel("PostgreSQL Statement Mean Time") |
+    .gridPos.h >= 16 and
+    (.description | contains("rolling 5-minute")) and
+    any(.targets[];
+      (.expr | contains("[5m]")) and
+      (.expr | contains(", 1e-9)"))))
 ' "$dashboard" >/dev/null || fail "dashboard summary semantics, cold/warm identity, or diagnostic layout are invalid"
 
 printf 'verified local exporters, Prometheus jobs, application metrics, dashboard summary, and diagnostic rows\n'

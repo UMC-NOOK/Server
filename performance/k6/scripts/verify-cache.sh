@@ -64,9 +64,20 @@ assert_command_env() {
 
 expect_failure() {
   local label="$1"
+  local expected_message=""
+  local output
   shift
-  if "$@" >/dev/null 2>&1; then
+  if [[ "${1:-}" == "--message" ]]; then
+    expected_message="$2"
+    shift 2
+  fi
+  if output="$("$@" 2>&1)"; then
     printf 'expected failure: %s\n' "$label" >&2
+    exit 1
+  fi
+  if [[ -n "$expected_message" ]] && ! grep -Fq -- "$expected_message" <<<"$output"; then
+    printf 'unexpected failure reason for %s; expected: %s\n%s\n' \
+      "$label" "$expected_message" "$output" >&2
     exit 1
   fi
 }
@@ -82,6 +93,8 @@ inspect_options() {
       -e "K6_CACHE_PHASE=$phase" \
       -e TARGET_RPS=13 \
       -e DURATION=7s \
+      -e PRE_ALLOCATED_VUS=17 \
+      -e MAX_VUS=33 \
       "/workspace/$cache_script"
 }
 
@@ -168,6 +181,8 @@ for target in monthly focus-monthly; do
       .scenarios.cache_warm.rate == 13 and
       .scenarios.cache_warm.timeUnit == "1s" and
       .scenarios.cache_warm.duration == "7s" and
+      .scenarios.cache_warm.preAllocatedVUs == 17 and
+      .scenarios.cache_warm.maxVUs == 33 and
       .thresholds.dropped_iterations == ["count<=0"] and
       .thresholds[$duration_key] == ["p(95)<1000"] and
       .thresholds[$failure_key] == ["rate<0.01"] and
@@ -183,10 +198,22 @@ expect_failure "cold VUS override" "${base_env[@]}" VUS=2 "$runner" cache-monthl
 expect_failure "cold iterations override" "${base_env[@]}" ITERATIONS=2 "$runner" cache-monthly-cold
 expect_failure "invalid year-month" "${base_env[@]}" K6_STATS_YEAR_MONTH=2026-8 "$runner" cache-monthly-cold
 expect_failure "missing seed manifest" "${base_env[@]}" SEED_NAMESPACE=missing "$runner" cache-monthly-cold
-expect_failure "configured access token" "${base_env[@]}" K6_ACCESS_TOKEN=forbidden "$runner" cache-monthly-cold
-expect_failure "configured user identity" "${base_env[@]}" K6_USER_EMAIL=other@test.com "$runner" cache-monthly-cold
+expect_failure "configured access token" \
+  --message "cache scenarios require an unmodified reusable seed manifest" \
+  "${base_env[@]}" K6_ACCESS_TOKEN=forbidden "$runner" cache-monthly-cold
+expect_failure "configured user identity" \
+  --message "cache scenarios require an unmodified reusable seed manifest" \
+  "${base_env[@]}" K6_USER_EMAIL=other@test.com "$runner" cache-monthly-cold
 
-expect_failure "staging cache scenario" env \
+expect_failure "staging cache scenario" \
+  --message "cache scenarios are allowed only against the local k6 environment" \
+  env \
+  -u TOKEN \
+  -u K6_ACCESS_TOKEN \
+  -u K6_REFRESH_TOKEN \
+  -u K6_USER_EMAIL \
+  -u K6_USER_NICKNAME \
+  -u RUN_ID \
   K6_ENV=staging \
   K6_ENV_FILE=/dev/null \
   K6_STATE_DIR="$state_dir" \
@@ -202,6 +229,7 @@ expect_failure "staging cache scenario" env \
 
 cat > "$fake_bin/curl" <<'FAKE_CURL'
 #!/bin/sh
+printf '%s\n' "$*" >> "$FAKE_CURL_LOG"
 printf '{"result":{"id":42,"email":"%s","nickName":"%s"}}\n' \
   "${FAKE_LOGIN_EMAIL:-$K6_USER_EMAIL}" "${FAKE_LOGIN_NICKNAME:-$K6_USER_NICKNAME}"
 FAKE_CURL
@@ -231,9 +259,11 @@ run_eviction() {
   local suffix="$2"
   shift 2
   : > "$test_dir/docker-$suffix.log"
+  : > "$test_dir/curl-$suffix.log"
   rm -f "$test_dir/exists-$suffix"
   env \
     PATH="$fake_bin:$PATH" \
+    FAKE_CURL_LOG="$test_dir/curl-$suffix.log" \
     FAKE_DOCKER_LOG="$test_dir/docker-$suffix.log" \
     FAKE_EXISTS_COUNTER="$test_dir/exists-$suffix" \
     BASE_URL=http://host.docker.internal:8080 \
@@ -250,6 +280,8 @@ assert_line "$monthly_output" "cache_user_id=42"
 assert_line "$monthly_output" "cache_keys_targeted=3"
 assert_line "$monthly_output" "cache_keys_deleted=2"
 assert_line "$monthly_output" "cache_keys_remaining=0"
+assert_contains "$(<"$test_dir/curl-monthly-ok.log")" "--connect-timeout 5"
+assert_contains "$(<"$test_dir/curl-monthly-ok.log")" "--max-time 30"
 assert_contains "$(<"$test_dir/docker-monthly-ok.log")" \
   "stats:library:monthly:zset:42:2026-08 stats:library:monthly:total:42:2026-08 stats:library:monthly:exists:42:2026-08"
 
@@ -264,13 +296,21 @@ renamed_output="$(run_eviction monthly renamed-user \
   FAKE_REDIS_EXISTING=0 FAKE_REDIS_DELETED=0 FAKE_REDIS_REMAINING=0)"
 assert_line "$renamed_output" "cache_user_id=42"
 
-expect_failure "manifest login email mismatch" run_eviction monthly identity-mismatch \
+expect_failure "manifest login email mismatch" \
+  --message "DEV login identity does not match the reusable seed manifest" \
+  run_eviction monthly identity-mismatch \
   FAKE_LOGIN_EMAIL=other@test.com
-expect_failure "delete count mismatch" run_eviction monthly delete-mismatch \
+expect_failure "delete count mismatch" \
+  --message "Redis cache eviction did not delete the expected existing keys" \
+  run_eviction monthly delete-mismatch \
   FAKE_REDIS_EXISTING=2 FAKE_REDIS_DELETED=1 FAKE_REDIS_REMAINING=0
-expect_failure "keys remain after eviction" run_eviction monthly keys-remain \
+expect_failure "keys remain after eviction" \
+  --message "Redis cache eviction left target keys behind" \
+  run_eviction monthly keys-remain \
   FAKE_REDIS_EXISTING=2 FAKE_REDIS_DELETED=2 FAKE_REDIS_REMAINING=1
-expect_failure "non-local eviction" env \
+expect_failure "non-local eviction" \
+  --message "automatic cache eviction is allowed only for a local BASE_URL" \
+  env \
   PATH="$fake_bin:$PATH" \
   BASE_URL=https://staging-api.example.com \
   K6_CACHE_TARGET=monthly \
