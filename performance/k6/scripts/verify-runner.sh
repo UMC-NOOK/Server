@@ -236,6 +236,9 @@ if [[ "$focus" != "routes" ]]; then
   capture "${entrypoint_env[@]}" K6_ENV=staging BASE_URL=https://staging-api.example.com MANAGEMENT_BASE_URL=http://staging-api.example.com:9091 K6_BASE_URL_PATTERN='^https://staging-api[.]example[.]com(:[0-9]+)?(/|$)' K6_MANAGEMENT_BASE_URL_PATTERN='^http://staging-api[.]example[.]com:9091(/|$)' CONFIRM_PROD_LOADTEST=yes \
     K6_SCRIPT=performance/k6/scenarios/prepare-seed.js sh "$entrypoint" run performance/k6/scenarios/prepare-seed.js
   expect_status 2 "entrypoint remote seed"
+  capture "${entrypoint_env[@]}" K6_ENV=staging BASE_URL=https://staging-api.example.com MANAGEMENT_BASE_URL=http://staging-api.example.com:9091 K6_BASE_URL_PATTERN='^https://staging-api[.]example[.]com(:[0-9]+)?(/|$)' K6_MANAGEMENT_BASE_URL_PATTERN='^http://staging-api[.]example[.]com:9091(/|$)' CONFIRM_PROD_LOADTEST=yes \
+    K6_SCRIPT=performance/k6/scenarios/cache-stats.js sh "$entrypoint" run performance/k6/scenarios/cache-stats.js
+  expect_status 2 "entrypoint remote cache scenario"
   capture "${entrypoint_env[@]}" K6_ENV=prod BASE_URL=https://api.example.com MANAGEMENT_BASE_URL=http://management.example.internal:9091 K6_BASE_URL_PATTERN='^https://api[.]example[.]com(:[0-9]+)?(/|$)' K6_MANAGEMENT_BASE_URL_PATTERN='^http://management[.]example[.]internal:9091(/|$)' CONFIRM_PROD_LOADTEST=yes \
     K6_SCRIPT=performance/k6/scenarios/mixed-read-journey.js sh "$entrypoint" run performance/k6/scenarios/mixed-read-journey.js
   expect_status 2 "entrypoint production mixed-read"

@@ -26,6 +26,9 @@ K6_DOCKER_USER="$(id -u):$(id -g)" \
     -e SEED_GIT_COMMIT_SHA=fedcba9876543210 \
     -e SEED_PROFILE=heavy \
     -e SEED_NAMESPACE=contract-heavy \
+    -e K6_CACHE_TARGET=focus-monthly \
+    -e K6_CACHE_PHASE=warm \
+    -e K6_STATS_YEAR_MONTH=2026-08 \
     /workspace/performance/k6/tests/summary-metadata.js >/dev/null
 
 jq -e --arg run_id "$report_run_id" --arg test_name "$report_name" '
@@ -37,7 +40,10 @@ jq -e --arg run_id "$report_run_id" --arg test_name "$report_name" '
     "git_commit_sha": "0123456789abcdef",
     "seed_git_commit_sha": "fedcba9876543210",
     "seed_profile": "heavy",
-    "seed_namespace": "contract-heavy"
+    "seed_namespace": "contract-heavy",
+    "cache_target": "focus-monthly",
+    "cache_phase": "warm",
+    "stats_year_month": "2026-08"
   }
 ' "$report" >/dev/null || {
   printf 'summary report is missing reproducibility metadata\n' >&2

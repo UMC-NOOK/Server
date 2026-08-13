@@ -46,6 +46,13 @@ k6_is_seed_script() {
   esac
 }
 
+k6_is_cache_script() {
+  case "$1" in
+    */cache-stats.js | performance/k6/scenarios/cache-stats.js) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 k6_is_smoke_script() {
   case "$1" in
     */smoke.js | performance/k6/scenarios/smoke.js) return 0 ;;
@@ -89,6 +96,9 @@ k6_assert_target_allowed() {
   k6_assert_url_allowed_for_environment "MANAGEMENT_BASE_URL" "$management_base_url" "${K6_MANAGEMENT_BASE_URL_PATTERN:-${K6_BASE_URL_PATTERN:-}}"
   if k6_is_seed_script "$script" && { [ "$k6_env" != "local" ] || ! k6_is_local_base_url "$base_url"; }; then
     k6_target_die "seed is allowed only against the local k6 environment"
+  fi
+  if k6_is_cache_script "$script" && { [ "$k6_env" != "local" ] || ! k6_is_local_base_url "$base_url"; }; then
+    k6_target_die "cache scenarios are allowed only against the local k6 environment"
   fi
   if k6_is_production_environment && ! k6_is_smoke_script "$script"; then
     k6_target_die "production targets allow only the smoke scenario"

@@ -7,7 +7,9 @@ Usage: performance/k6/scripts/run-k6.sh <scenario> [profile]
 
 Scenarios:
   smoke, seed, cleanup-seed, mixed-read, books-user, books-search-library,
-  books-search-global, onboarding, timeline-core, timeline-producers, api-*
+  books-search-global, onboarding, timeline-core, timeline-producers, api-*,
+  cache-monthly-cold, cache-monthly-warm, cache-focus-monthly-cold,
+  cache-focus-monthly-warm
 
 Set K6_ENV=local|staging|prod to select performance/k6/env/<name>.env.
 Every non-local HTTP target requires CONFIRM_PROD_LOADTEST=yes.
@@ -93,6 +95,60 @@ configure_single_api() {
   prepare_mixed_seed_identity
   [[ -n "${K6_ACCESS_TOKEN:-}" || -n "${TOKEN:-}" || -n "${K6_USER_EMAIL:-}" ]] \
     || die "single-API scenario needs a token, K6_USER_EMAIL, or reusable seed manifest; run seed first"
+}
+
+configure_cache_scenario() {
+  local scenario_name="$1"
+
+  case "$scenario_name" in
+    cache-monthly-cold)
+      K6_CACHE_TARGET="monthly"
+      K6_CACHE_PHASE="cold"
+      ;;
+    cache-monthly-warm)
+      K6_CACHE_TARGET="monthly"
+      K6_CACHE_PHASE="warm"
+      ;;
+    cache-focus-monthly-cold)
+      K6_CACHE_TARGET="focus-monthly"
+      K6_CACHE_PHASE="cold"
+      ;;
+    cache-focus-monthly-warm)
+      K6_CACHE_TARGET="focus-monthly"
+      K6_CACHE_PHASE="warm"
+      ;;
+    *) die "unknown cache scenario '$scenario_name'" ;;
+  esac
+
+  K6_STATS_YEAR_MONTH="${K6_STATS_YEAR_MONTH:-$(date +%Y-%m)}"
+  [[ "$K6_STATS_YEAR_MONTH" =~ ^[0-9]{4}-(0[1-9]|1[0-2])$ ]] \
+    || die "K6_STATS_YEAR_MONTH must use yyyy-MM"
+
+  K6_SCRIPT="performance/k6/scenarios/cache-stats.js"
+  K6_REPORT_NAME="$scenario_name"
+  RUN_ID="${RUN_ID:-${run_prefix}-${scenario_name}-${timestamp}}"
+  P95_THRESHOLD_MS="${P95_THRESHOLD_MS:-1000}"
+  FAILED_RATE_THRESHOLD="${FAILED_RATE_THRESHOLD:-0.01}"
+  MAX_DROPPED_ITERATIONS="${MAX_DROPPED_ITERATIONS:-0}"
+  [[ "$MAX_DROPPED_ITERATIONS" =~ ^[0-9]+$ ]] \
+    || die "MAX_DROPPED_ITERATIONS must be a non-negative integer"
+
+  prepare_cache_seed_identity
+
+  if [[ "$K6_CACHE_PHASE" == "cold" ]]; then
+    VUS="${VUS:-1}"
+    ITERATIONS="${ITERATIONS:-1}"
+    MAX_DURATION="${MAX_DURATION:-1m}"
+    [[ "$VUS" == "1" && "$ITERATIONS" == "1" ]] \
+      || die "cold cache scenarios require VUS=1 and ITERATIONS=1"
+  else
+    TARGET_RPS="${TARGET_RPS:-10}"
+    DURATION="${DURATION:-10m}"
+    PRE_ALLOCATED_VUS="${PRE_ALLOCATED_VUS:-20}"
+    MAX_VUS="${MAX_VUS:-200}"
+    [[ "$TARGET_RPS" =~ ^[1-9][0-9]*$ ]] \
+      || die "TARGET_RPS must be a positive integer"
+  fi
 }
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -189,6 +245,7 @@ case "$scenario" in
   onboarding) configure_internal "onboarding" ;;
   timeline-core) configure_internal "timeline-core" ;;
   timeline-producers) configure_internal "timeline-producers" ;;
+  cache-*) configure_cache_scenario "$scenario" ;;
   api-*)
     profile="${profile:-${K6_SINGLE_API_PROFILE:-arrival}}"
     configure_single_api "$scenario" "$profile"
@@ -198,6 +255,18 @@ esac
 
 k6_assert_target_allowed "$K6_SCRIPT"
 
+cache_evict_output=""
+if [[ "${K6_CACHE_PHASE:-}" == "cold" && "${K6_DRY_RUN:-}" != "1" ]]; then
+  cache_evict_output="$(
+    BASE_URL="$BASE_URL" \
+      K6_CACHE_TARGET="$K6_CACHE_TARGET" \
+      K6_STATS_YEAR_MONTH="$K6_STATS_YEAR_MONTH" \
+      K6_USER_EMAIL="$K6_USER_EMAIL" \
+      K6_USER_NICKNAME="$K6_USER_NICKNAME" \
+      bash "$script_dir/evict-stats-cache.sh"
+  )"
+fi
+
 forwarded_names=(
   BASE_URL MANAGEMENT_BASE_URL K6_SCRIPT RUN_ID K6_REPORT_NAME
   P95_THRESHOLD_MS FAILED_RATE_THRESHOLD MAX_DROPPED_ITERATIONS
@@ -205,6 +274,7 @@ forwarded_names=(
   K6_ENV RUN_PREFIX K6_BASE_URL_PATTERN K6_MANAGEMENT_BASE_URL_PATTERN CONFIRM_PROD_LOADTEST
   K6_ENABLE_EXTERNAL_API K6_GLOBAL_SEARCH_KEYWORDS K6_GLOBAL_USER_POOL_SIZE
   K6_READ_TARGET K6_SINGLE_API_PROFILE
+  K6_CACHE_TARGET K6_CACHE_PHASE K6_STATS_YEAR_MONTH
   K6_GIT_COMMIT_SHA SEED_GIT_COMMIT_SHA SEED_PROFILE SEED_NAMESPACE SEED_RUN_ID
   SEED_BOOKS SEED_RECORDS_PER_BOOK SEED_FOCUS_SESSIONS
   K6_USER_EMAIL K6_USER_NICKNAME K6_ACCESS_TOKEN K6_REFRESH_TOKEN TOKEN
@@ -240,6 +310,18 @@ elif [[ "$scenario" == api-* ]]; then
     printf 'target_rps=%s\n' "$TARGET_RPS"
   else
     printf 'start_rps=%s\nrps_stages=%s\n' "$START_RPS" "$RPS_STAGES"
+  fi
+elif [[ "$scenario" == cache-* ]]; then
+  printf 'cache_target=%s\ncache_phase=%s\nstats_year_month=%s\nrequest_name=cache:%s:%s\n' \
+    "$K6_CACHE_TARGET" "$K6_CACHE_PHASE" "$K6_STATS_YEAR_MONTH" "$K6_CACHE_TARGET" "$K6_CACHE_PHASE"
+  if [[ "$K6_CACHE_PHASE" == "cold" ]]; then
+    if [[ "${K6_DRY_RUN:-}" == "1" ]]; then
+      printf 'cache_evict=planned\n'
+    else
+      printf '%s\ncache_evict=completed\n' "$cache_evict_output"
+    fi
+  else
+    printf 'target_rps=%s\n' "$TARGET_RPS"
   fi
 fi
 if [[ "${K6_DRY_RUN:-}" == "1" ]]; then

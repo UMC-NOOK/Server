@@ -21,6 +21,9 @@ export function createSummary(data) {
   const name = reportName(stringEnv("K6_REPORT_NAME", "summary"));
   const id = runId();
   const path = `performance/k6/reports/${name}-${id}.json`;
+  const cacheTarget = stringEnv("K6_CACHE_TARGET");
+  const cachePhase = stringEnv("K6_CACHE_PHASE");
+  const statsYearMonth = stringEnv("K6_STATS_YEAR_MONTH");
   const metadata = {
     run_id: id,
     test_name: name,
@@ -30,6 +33,9 @@ export function createSummary(data) {
     seed_git_commit_sha: stringEnv("SEED_GIT_COMMIT_SHA"),
     seed_profile: stringEnv("SEED_PROFILE"),
     seed_namespace: stringEnv("SEED_NAMESPACE"),
+    ...(cacheTarget ? { cache_target: cacheTarget } : {}),
+    ...(cachePhase ? { cache_phase: cachePhase } : {}),
+    ...(statsYearMonth ? { stats_year_month: statsYearMonth } : {}),
   };
   const sanitizedData = sanitize({
     ...data,

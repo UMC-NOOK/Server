@@ -2,6 +2,7 @@
   "annotations": {
     "list": []
   },
+  "description": "Start with Run Summary and Subsystem Health for the selected variables and time range, then expand the diagnostic rows. Select one run for diagnosis or multiple run IDs for comparison; cold/warm uses the same view. Colors are attention signals, not universal pass/fail.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -9,373 +10,2173 @@
   "links": [],
   "panels": [
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps"
-        },
-        "overrides": []
-      },
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 5,
+        "w": 24,
         "x": 0,
         "y": 0
       },
-      "id": 1,
+      "id": 19,
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
+        "content": "### Scope: `${run_id:text}` · `${test_name:text}` · `${api_name:text}`\nWorst/total for selected runs/time. Table keeps Run ID. Red/orange = investigate; blue/purple = neutral, not a verdict.",
+        "mode": "markdown"
       },
-      "targets": [
-        {
-          "expr": "sum by (uri, method, status) (rate(http_server_requests_seconds_count{application=\"$application\"}[5m]))",
-          "legendFormat": "{{method}} {{uri}} {{status}}"
-        }
-      ],
-      "title": "Spring HTTP Request Rate",
-      "type": "timeseries"
+      "title": "Run Summary",
+      "transparent": true,
+      "type": "text"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Worst p95 and p99 per selected run in the current time range. These values are informational because each k6 run can use different thresholds.",
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
-      "id": 2,
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.95, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m])))",
-          "legendFormat": "p95 {{method}} {{uri}}"
-        },
-        {
-          "expr": "histogram_quantile(0.99, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m])))",
-          "legendFormat": "p99 {{method}} {{uri}}"
-        }
-      ],
-      "title": "Spring HTTP Latency",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 0,
-        "y": 8
-      },
-      "id": 3,
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "expr": "process_cpu_usage{application=\"$application\"}",
-          "legendFormat": "process cpu"
-        },
-        {
-          "expr": "system_cpu_usage{application=\"$application\"}",
-          "legendFormat": "system cpu"
-        }
-      ],
-      "title": "JVM Process CPU",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 8
-      },
-      "id": 4,
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "expr": "sum by (area) (jvm_memory_used_bytes{application=\"$application\"})",
-          "legendFormat": "{{area}} used"
-        },
-        {
-          "expr": "sum by (area) (jvm_memory_max_bytes{application=\"$application\"})",
-          "legendFormat": "{{area}} max"
-        }
-      ],
-      "title": "JVM Memory",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 8
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "expr": "sum by (name) (hikaricp_connections_active{application=\"$application\"})",
-          "legendFormat": "active {{name}}"
-        },
-        {
-          "expr": "sum by (name) (hikaricp_connections_pending{application=\"$application\"})",
-          "legendFormat": "pending {{name}}"
-        },
-        {
-          "expr": "sum by (name) (hikaricp_connections_idle{application=\"$application\"})",
-          "legendFormat": "idle {{name}}"
-        }
-      ],
-      "title": "Hikari Connections",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
           "unit": "ms"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 6,
+        "w": 6,
         "x": 0,
-        "y": 16
+        "y": 5
       },
-      "id": 6,
+      "id": 20,
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
       "targets": [
         {
-          "expr": "1000 * k6_http_req_duration_p95{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\",name=~\"${api_name:regex}\"}",
-          "legendFormat": "p95 {{name}}"
+          "expr": "max(1000 * max_over_time(k6_http_req_duration_p95{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\",name=~\"${api_name:regex}\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "worst p95",
+          "range": false,
+          "refId": "A"
         },
         {
-          "expr": "1000 * k6_http_req_duration_p99{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\",name=~\"${api_name:regex}\"}",
-          "legendFormat": "p99 {{name}}"
+          "expr": "max(1000 * max_over_time(k6_http_req_duration_p99{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\",name=~\"${api_name:regex}\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "worst p99",
+          "range": false,
+          "refId": "B"
         }
       ],
-      "title": "k6 API Latency by Name",
-      "type": "timeseries"
+      "title": "k6 Latency",
+      "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Worst failure rate and check success per selected run. Orange means at least one failure or an incomplete check; compare with the threshold recorded in the JSON report.",
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
           "unit": "percentunit"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1e-9
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "orange",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 16
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 5
       },
-      "id": 7,
+      "id": 21,
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
       "targets": [
         {
-          "expr": "k6_http_req_failed_rate{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\",name=~\"${api_name:regex}\"}",
-          "legendFormat": "failed {{name}}"
+          "expr": "max(max_over_time(k6_http_req_failed_rate{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\",name=~\"${api_name:regex}\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "worst failure",
+          "range": false,
+          "refId": "A"
         },
         {
-          "expr": "avg by (group) (k6_checks_rate{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\"})",
-          "legendFormat": "checks {{group}}"
+          "expr": "min(min_over_time(k6_checks_rate{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "worst checks",
+          "range": false,
+          "refId": "B"
         }
       ],
-      "title": "k6 Failure Rate and Checks",
-      "type": "timeseries"
+      "title": "k6 Reliability",
+      "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Completed and dropped iterations per selected run. Dropped iterations above zero indicate that the configured arrival rate was not fully delivered.",
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
           "unit": "short"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 5
+      },
+      "id": 22,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(max_over_time(k6_iterations_total{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "iterations",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "expr": "sum(max_over_time(k6_dropped_iterations_total{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\"}[$__range])) or on() (0 * sum(max_over_time(k6_iterations_total{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "dropped",
+          "range": false,
+          "refId": "B"
+        }
+      ],
+      "title": "k6 Load Delivery",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Worst server-side p95 and p99 across Spring routes in the selected time range. Use the detailed HTTP row to identify the route and status.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 5
+      },
+      "id": 23,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "max_over_time((max(histogram_quantile(0.95, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m])))))[$__range:])",
+          "instant": true,
+          "legendFormat": "server p95",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "expr": "max_over_time((max(histogram_quantile(0.99, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m])))))[$__range:])",
+          "instant": true,
+          "legendFormat": "server p99",
+          "range": false,
+          "refId": "B"
+        }
+      ],
+      "title": "Spring HTTP",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Peak application CPU, heap usage, and Tomcat busy-thread ratio in the selected time range. Treat these as workload context, not universal pass/fail limits.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "cyan"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
         "x": 0,
-        "y": 24
+        "y": 11
       },
-      "id": 8,
+      "id": 24,
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
       "targets": [
         {
-          "expr": "sum by (run_id, scenario) (k6_iterations_total{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\"})",
-          "legendFormat": "iterations {{run_id}} {{scenario}}"
+          "expr": "max_over_time(process_cpu_usage{application=\"$application\"}[$__range])",
+          "instant": true,
+          "legendFormat": "process CPU",
+          "range": false,
+          "refId": "A"
         },
         {
-          "expr": "sum by (run_id, scenario) (k6_dropped_iterations_total{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\"})",
-          "legendFormat": "dropped {{run_id}} {{scenario}}"
+          "expr": "max_over_time((sum(jvm_memory_used_bytes{application=\"$application\",area=\"heap\"}) / clamp_min(sum(jvm_memory_max_bytes{application=\"$application\",area=\"heap\"}), 1))[$__range:])",
+          "instant": true,
+          "legendFormat": "heap used",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "expr": "max_over_time((sum(tomcat_threads_busy_threads{application=\"$application\"}) / clamp_min(sum(tomcat_threads_config_max_threads{application=\"$application\"}), 1))[$__range:])",
+          "instant": true,
+          "legendFormat": "Tomcat busy",
+          "range": false,
+          "refId": "C"
         }
       ],
-      "title": "k6 Iterations and Dropped Iterations",
-      "type": "timeseries"
+      "title": "App Saturation",
+      "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Peak pending connections and connection timeouts in the selected range. Any non-zero value is a direct signal to inspect the Hikari detail row.",
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
           "unit": "short"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 24
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 11
       },
-      "id": 9,
+      "id": 25,
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
       "targets": [
         {
-          "expr": "sum by (name) (hikaricp_connections_timeout_total{application=\"$application\"})",
-          "legendFormat": "timeouts {{name}}"
+          "expr": "sum(max_over_time(hikaricp_connections_pending{application=\"$application\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "pending peak",
+          "range": false,
+          "refId": "A"
         },
         {
-          "expr": "sum by (name) (increase(hikaricp_connections_timeout_total{application=\"$application\"}[5m]))",
-          "legendFormat": "timeouts +5m {{name}}"
+          "expr": "sum(increase(hikaricp_connections_timeout_total{application=\"$application\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "timeouts",
+          "range": false,
+          "refId": "B"
         }
       ],
-      "title": "Hikari Connection Timeouts",
-      "type": "timeseries"
+      "title": "Hikari Pool",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Hit ratio and Redis error signals for the selected range. No cache traffic remains No data; it is not converted into a zero-percent hit ratio.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "0": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "UP"
+                      },
+                      "1": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "DOWN"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "unit",
+                "value": "bool"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 11
+      },
+      "id": 26,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(redis_keyspace_hits_total{application=\"nook-redis\"}[$__range])) / (sum(increase(redis_keyspace_hits_total{application=\"nook-redis\"}[$__range])) + sum(increase(redis_keyspace_misses_total{application=\"nook-redis\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "hit ratio",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(redis_commands_failed_calls_total{application=\"nook-redis\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "command errors",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "expr": "sum(increase(redis_rejected_connections_total{application=\"nook-redis\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "rejected",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "expr": "max_over_time((1 - redis_up{application=\"nook-redis\"})[$__range:])",
+          "instant": true,
+          "legendFormat": "target down",
+          "range": false,
+          "refId": "D"
+        }
+      ],
+      "title": "Redis Health",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Peak connections, long-running transactions, deadlocks, and the slowest statement mean over the selected dashboard time range.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 11
+      },
+      "id": 27,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(max_over_time(pg_stat_database_numbackends{application=\"nook-postgres\",datname=~\"${database:regex}\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "backends peak",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "expr": "sum(max_over_time(pg_long_running_transactions{application=\"nook-postgres\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "long transactions",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "expr": "sum(increase(pg_stat_database_deadlocks{application=\"nook-postgres\",datname=~\"${database:regex}\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "deadlocks",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "expr": "topk(1, 1000 * sum by (datname, queryid) (increase(pg_stat_statements_seconds_total{application=\"nook-postgres\",datname=~\"${database:regex}\"}[$__range])) / clamp_min(sum by (datname, queryid) (increase(pg_stat_statements_calls_total{application=\"nook-postgres\",datname=~\"${database:regex}\"}[$__range])), 1e-9))",
+          "instant": true,
+          "legendFormat": "slowest mean",
+          "range": false,
+          "refId": "D"
+        }
+      ],
+      "title": "Postgres",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Selected request names ranked by their worst p95 in the current time range. The table includes setup or smoke request names when API Name is All; narrow the variable to focus on a target API.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Run ID"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 28,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "p95 (ms)"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "sort_desc(1000 * max_over_time(k6_http_req_duration_p95{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\",name=~\"${api_name:regex}\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "{{run_id}} {{name}}",
+          "range": false,
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "Top API Offenders by p95",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+          "excludeByName": {
+            "Time": true,
+            "__name__": true,
+            "error_code": true,
+              "expected_response": true,
+              "group": true,
+              "instance": true,
+              "job": true,
+              "method": true,
+              "proto": true,
+            "scenario": true,
+            "url": true
+            },
+            "includeByName": {},
+          "indexByName": {
+            "run_id": 0,
+            "test_name": 1,
+            "name": 2,
+            "status": 3,
+            "Value": 4
+            },
+            "renameByName": {
+            "run_id": "Run ID",
+            "test_name": "Test",
+            "name": "Request name",
+            "status": "Status",
+            "Value": "p95 (ms)"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 29,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 0,
+            "y": 25
+          },
+          "id": 6,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "1000 * k6_http_req_duration_p95{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\",name=~\"${api_name:regex}\"}",
+              "legendFormat": "p95 {{name}}"
+            },
+            {
+              "expr": "1000 * k6_http_req_duration_p99{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\",name=~\"${api_name:regex}\"}",
+              "legendFormat": "p99 {{name}}"
+            }
+          ],
+          "title": "k6 API Latency by Name",
+          "type": "timeseries",
+          "description": "Client-observed k6 p95 and p99 per request name. Cold and warm requests remain separate through their request names and run IDs."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 12,
+            "y": 25
+          },
+          "id": 7,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "k6_http_req_failed_rate{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\",name=~\"${api_name:regex}\"}",
+              "legendFormat": "failed {{name}}"
+            },
+            {
+              "expr": "avg by (run_id, group) (k6_checks_rate{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\"})",
+              "legendFormat": "checks {{run_id}} {{group}}"
+            }
+          ],
+          "title": "k6 Failure Rate and Checks",
+          "type": "timeseries",
+          "description": "k6 failure rate and checks per selected run. Consult the JSON report for the exact threshold used by that run."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 35
+          },
+          "id": 8,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum by (run_id, scenario) (k6_iterations_total{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\"})",
+              "legendFormat": "iterations {{run_id}} {{scenario}}"
+            },
+            {
+              "expr": "sum by (run_id, scenario) (k6_dropped_iterations_total{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\"})",
+              "legendFormat": "dropped {{run_id}} {{scenario}}"
+            }
+          ],
+          "title": "k6 Iterations and Dropped Iterations",
+          "type": "timeseries",
+          "description": "Completed and dropped iterations per run and scenario. Dropped iterations mean the configured arrival rate was not fully delivered."
+        }
+      ],
+      "title": "k6 Request Results",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "id": 30,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 26
+          },
+          "id": 1,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum by (uri, method, status) (rate(http_server_requests_seconds_count{application=\"$application\"}[5m]))",
+              "legendFormat": "{{method}} {{uri}} {{status}}"
+            }
+          ],
+          "title": "Spring HTTP Request Rate",
+          "type": "timeseries",
+          "description": "Spring request throughput by method, route, and status. Compare a rate change with the selected k6 run and latency panels."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 26
+          },
+          "id": 2,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m])))",
+              "legendFormat": "p95 {{method}} {{uri}}"
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m])))",
+              "legendFormat": "p99 {{method}} {{uri}}"
+            }
+          ],
+          "title": "Spring HTTP Latency",
+          "type": "timeseries",
+          "description": "Spring p95 and p99 by method and route. Use this to distinguish client-observed k6 latency from server-side request handling."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 34
+          },
+          "id": 3,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "process_cpu_usage{application=\"$application\"}",
+              "legendFormat": "process cpu"
+            },
+            {
+              "expr": "system_cpu_usage{application=\"$application\"}",
+              "legendFormat": "system cpu"
+            }
+          ],
+          "title": "JVM Process CPU",
+          "type": "timeseries",
+          "description": "Application and system CPU utilization over time. Correlate sustained peaks with latency and dropped iterations."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 34
+          },
+          "id": 4,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum by (area) (jvm_memory_used_bytes{application=\"$application\"})",
+              "legendFormat": "{{area}} used"
+            },
+            {
+              "expr": "sum by (area) (jvm_memory_max_bytes{application=\"$application\"})",
+              "legendFormat": "{{area}} max"
+            }
+          ],
+          "title": "JVM Memory",
+          "type": "timeseries",
+          "description": "JVM heap and non-heap used versus max memory. Inspect growth and recovery around the selected run."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byFrameRefID",
+                  "options": "B"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "ops"
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "custom.axisLabel",
+                    "value": "events/s"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 42
+          },
+          "id": 10,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum by (action, cause) (rate(jvm_gc_pause_seconds_sum{application=\"$application\"}[1m])) / sum by (action, cause) (rate(jvm_gc_pause_seconds_count{application=\"$application\"}[1m]))",
+              "legendFormat": "mean pause {{action}} {{cause}}",
+              "refId": "A"
+            },
+            {
+              "expr": "sum(rate(jvm_gc_pause_seconds_count{application=\"$application\"}[1m]))",
+              "legendFormat": "pause events/s",
+              "refId": "B"
+            }
+          ],
+          "title": "JVM GC Pause",
+          "type": "timeseries",
+          "description": "Mean JVM GC pause and pause-event rate. Correlate pause bursts with application latency and memory pressure."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 34
+          },
+          "id": 11,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum by (name) (tomcat_threads_busy_threads{application=\"$application\"})",
+              "legendFormat": "busy {{name}}"
+            },
+            {
+              "expr": "sum by (name) (tomcat_threads_current_threads{application=\"$application\"})",
+              "legendFormat": "current {{name}}"
+            },
+            {
+              "expr": "sum by (name) (tomcat_threads_config_max_threads{application=\"$application\"})",
+              "legendFormat": "max {{name}}"
+            }
+          ],
+          "title": "Tomcat Threads",
+          "type": "timeseries",
+          "description": "Tomcat busy, current, and configured maximum threads. Sustained busy/max convergence indicates servlet-thread saturation."
+        }
+      ],
+      "title": "Spring / JVM / Tomcat",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 31,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 27
+          },
+          "id": 5,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum by (name) (hikaricp_connections_active{application=\"$application\"})",
+              "legendFormat": "active {{name}}"
+            },
+            {
+              "expr": "sum by (name) (hikaricp_connections_pending{application=\"$application\"})",
+              "legendFormat": "pending {{name}}"
+            },
+            {
+              "expr": "sum by (name) (hikaricp_connections_idle{application=\"$application\"})",
+              "legendFormat": "idle {{name}}"
+            }
+          ],
+          "title": "Hikari Connections",
+          "type": "timeseries",
+          "description": "Hikari active, pending, and idle connections. Pending growth suggests the database pool is becoming a bottleneck."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 27
+          },
+          "id": 9,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum by (name) (hikaricp_connections_timeout_total{application=\"$application\"})",
+              "legendFormat": "timeouts {{name}}"
+            },
+            {
+              "expr": "sum by (name) (increase(hikaricp_connections_timeout_total{application=\"$application\"}[5m]))",
+              "legendFormat": "timeouts +5m {{name}}"
+            }
+          ],
+          "title": "Hikari Connection Timeouts",
+          "type": "timeseries",
+          "description": "Hikari timeout counter and five-minute increase. Any increase during a run requires connection-pool investigation."
+        }
+      ],
+      "title": "Hikari Connection Pool",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "id": 32,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byFrameRefID",
+                  "options": "C"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percentunit"
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "custom.axisLabel",
+                    "value": "hit ratio"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  },
+                  {
+                    "id": "max",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 16,
+            "w": 12,
+            "x": 0,
+            "y": 28
+          },
+          "id": 12,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "rate(redis_keyspace_hits_total{application=\"nook-redis\"}[1m])",
+              "legendFormat": "hits/s",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(redis_keyspace_misses_total{application=\"nook-redis\"}[1m])",
+              "legendFormat": "misses/s",
+              "refId": "B"
+            },
+            {
+              "expr": "rate(redis_keyspace_hits_total{application=\"nook-redis\"}[1m]) / (rate(redis_keyspace_hits_total{application=\"nook-redis\"}[1m]) + rate(redis_keyspace_misses_total{application=\"nook-redis\"}[1m]))",
+              "legendFormat": "hit ratio",
+              "refId": "C"
+            }
+          ],
+          "title": "Redis Keyspace Hits, Misses, and Ratio",
+          "type": "timeseries",
+          "description": "Redis hits, misses, and hit ratio. Cold runs should show misses; warm runs should show increased hits without mixing run IDs."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 16,
+            "w": 12,
+            "x": 12,
+            "y": 28
+          },
+          "id": 13,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "topk(10, 1000 * rate(redis_commands_duration_seconds_total{application=\"nook-redis\"}[1m]) / clamp_min(rate(redis_commands_total{application=\"nook-redis\"}[1m]), 1e-9))",
+              "legendFormat": "mean {{cmd}}"
+            }
+          ],
+          "title": "Redis Command Mean Latency",
+          "type": "timeseries",
+          "description": "Mean Redis command latency by command. Inspect the highest commands when cache operations coincide with API latency."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byFrameRefID",
+                  "options": "B"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "short"
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "custom.axisLabel",
+                    "value": "clients"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 0,
+            "y": 44
+          },
+          "id": 14,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "rate(redis_commands_processed_total{application=\"nook-redis\"}[1m])",
+              "legendFormat": "commands/s",
+              "refId": "A"
+            },
+            {
+              "expr": "redis_connected_clients{application=\"nook-redis\"}",
+              "legendFormat": "connected clients",
+              "refId": "B"
+            }
+          ],
+          "title": "Redis Commands and Connections",
+          "type": "timeseries",
+          "description": "Redis command throughput and connected clients. Use this as workload context rather than a universal health threshold."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byFrameRefID",
+                  "options": "C"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "bool"
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "custom.axisLabel",
+                    "value": "target down"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  },
+                  {
+                    "id": "max",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 12,
+            "y": 44
+          },
+          "id": 15,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum by (cmd) (rate(redis_commands_failed_calls_total{application=\"nook-redis\"}[1m]))",
+              "legendFormat": "failed {{cmd}}",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(redis_rejected_connections_total{application=\"nook-redis\"}[1m])",
+              "legendFormat": "rejected connections",
+              "refId": "B"
+            },
+            {
+              "expr": "1 - redis_up{application=\"nook-redis\"}",
+              "legendFormat": "exporter target down",
+              "refId": "C"
+            }
+          ],
+          "title": "Redis Errors",
+          "type": "timeseries",
+          "description": "Redis command failures, rejected connections, and exporter availability. Non-zero values are direct investigation signals."
+        }
+      ],
+      "title": "Redis",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "id": 33,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 0,
+            "y": 29
+          },
+          "id": 16,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "pg_stat_database_numbackends{application=\"nook-postgres\",datname=~\"${database:regex}\"}",
+              "legendFormat": "backends {{datname}}"
+            },
+            {
+              "expr": "pg_database_connection_limit{application=\"nook-postgres\",datname=~\"${database:regex}\"} >= 0",
+              "legendFormat": "limit {{datname}}"
+            },
+            {
+              "expr": "pg_long_running_transactions{application=\"nook-postgres\"}",
+              "legendFormat": "long-running transactions"
+            }
+          ],
+          "title": "PostgreSQL Connections",
+          "type": "timeseries",
+          "description": "PostgreSQL backends, configured connection limit, and long-running transactions for the selected database."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byFrameRefID",
+                  "options": "A"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "short"
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "custom.axisLabel",
+                    "value": "locks"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 12,
+            "y": 29
+          },
+          "id": 17,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum by (mode) (pg_locks_count{application=\"nook-postgres\",datname=~\"${database:regex}\"})",
+              "legendFormat": "locks {{mode}}",
+              "refId": "A"
+            },
+            {
+              "expr": "sum(rate(pg_stat_database_xact_commit{application=\"nook-postgres\",datname=~\"${database:regex}\"}[1m]))",
+              "legendFormat": "commits/s",
+              "refId": "B"
+            },
+            {
+              "expr": "sum(rate(pg_stat_database_xact_rollback{application=\"nook-postgres\",datname=~\"${database:regex}\"}[1m]))",
+              "legendFormat": "rollbacks/s",
+              "refId": "C"
+            },
+            {
+              "expr": "sum(rate(pg_stat_database_deadlocks{application=\"nook-postgres\",datname=~\"${database:regex}\"}[1m]))",
+              "legendFormat": "deadlocks/s",
+              "refId": "D"
+            }
+          ],
+          "title": "PostgreSQL Locks and Transactions",
+          "type": "timeseries",
+          "description": "PostgreSQL locks, commit/rollback rate, and deadlocks. Deadlocks are direct investigation signals; locks require workload context."
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 16,
+            "w": 24,
+            "x": 0,
+            "y": 39
+          },
+          "id": 18,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "expr": "topk(10, 1000 * rate(pg_stat_statements_seconds_total{application=\"nook-postgres\",datname=~\"${database:regex}\"}[5m]) / clamp_min(rate(pg_stat_statements_calls_total{application=\"nook-postgres\",datname=~\"${database:regex}\"}[5m]), 1e-9))",
+              "legendFormat": "{{datname}} query {{queryid}}"
+            }
+          ],
+          "title": "PostgreSQL Statement Mean Time",
+          "type": "timeseries",
+          "description": "Top statement query IDs by rolling 5-minute mean execution time from pg_stat_statements. SQL text is intentionally not exposed."
+        }
+      ],
+      "title": "PostgreSQL",
+      "type": "row"
     }
   ],
   "preload": false,
@@ -396,12 +2197,12 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(up, application)",
+        "definition": "label_values(http_server_requests_seconds_count, application)",
         "includeAll": false,
         "label": "Application",
         "name": "application",
         "query": {
-          "query": "label_values(up, application)",
+          "query": "label_values(http_server_requests_seconds_count, application)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
@@ -472,6 +2273,29 @@
         "query": {
           "query": "label_values(k6_http_req_duration_p95{run_id=~\"${run_id:regex}\",test_name=~\"${test_name:regex}\"}, name)",
           "refId": "PrometheusVariableQueryEditor-ApiName"
+        },
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "nookDB",
+          "value": "nookDB"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(pg_stat_database_numbackends, datname)",
+        "includeAll": true,
+        "label": "PostgreSQL Database",
+        "multi": true,
+        "name": "database",
+        "query": {
+          "query": "label_values(pg_stat_database_numbackends, datname)",
+          "refId": "PrometheusVariableQueryEditor-Database"
         },
         "refresh": 1,
         "type": "query"
