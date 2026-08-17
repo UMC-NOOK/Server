@@ -16,6 +16,7 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
     baseline-version: ${FLYWAY_BASELINE_VERSION:1}
+    validate-migration-naming: true
   cache:
     type: redis
   data:
