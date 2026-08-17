@@ -2,6 +2,7 @@ package app.nook.library.service;
 
 import app.nook.focus.domain.Focus;
 import app.nook.focus.repository.FocusRepository;
+import app.nook.focus.service.FocusDailyTimeCalculator;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
@@ -26,6 +27,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -45,6 +47,8 @@ public class LibraryQueryService {
     private final FocusRepository focusRepository;
     private final PresignedUrlService presignedUrlService;
     private final UserRepository userRepository;
+    private final FocusDailyTimeCalculator focusDailyTimeCalculator;
+    private final Clock clock;
 
     public LibraryViewDto.BookCountResponseDto getBookCount(Long userId) {
         return new LibraryViewDto.BookCountResponseDto(libraryRepository.countByUserId(userId));
@@ -104,6 +108,7 @@ public class LibraryQueryService {
         // 날짜별 포커스 기록도 커서 기반으로 한 건 더 조회한다
         User user = getUser(userId);
         Pageable pageable = PageRequest.of(0, size + 1);
+        LocalDateTime serverNow = LocalDateTime.now(clock);
 
         Slice<Focus> focuses = focusRepository.findByLibraryWithCursorByDate(
                 user,
@@ -122,7 +127,12 @@ public class LibraryQueryService {
                         focus.getLibrary().getBook().getId(),
                         focus.getLibrary().getBook().getTitle(),
                         focus.getLibrary().getBook().getAuthor(),
-                        FocusTimeUtil.formatFocusTime(focus.getDurationSec() == null ? 0 : focus.getDurationSec()),
+                        FocusTimeUtil.formatFocusTime(Math.toIntExact(focusDailyTimeCalculator.calculateForDate(
+                                focus.getStartedAt(),
+                                focus.getEndedAt(),
+                                serverNow,
+                                date
+                        ))),
                         presignedUrlService.resolveImageUrl(userId, focus.getLibrary().getBook().getCoverImageKey())
                 ))
                 .toList();

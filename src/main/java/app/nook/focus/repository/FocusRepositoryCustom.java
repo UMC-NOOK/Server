@@ -2,8 +2,6 @@ package app.nook.focus.repository;
 
 import app.nook.focus.domain.Focus;
 import app.nook.focus.repository.dto.FocusRangeStatsDto;
-import app.nook.focus.repository.dto.FocusTimeStatsDto;
-import app.nook.focus.repository.dto.MonthlyFocusStatsDto;
 import app.nook.user.domain.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -14,21 +12,9 @@ import java.util.List;
 
 public interface FocusRepositoryCustom {
 
-    List<MonthlyFocusStatsDto> findMonthlyFocusStats(
-            Long userId,
-            LocalDate startDate,
-            LocalDate endDate
-    );
-
     List<LocalDate> findDistinctFocusDatesByLibraryAndUser(
             Long libraryId,
             Long userId
-    );
-
-    List<FocusTimeStatsDto> findFocusTimeStats(
-            Long userId,
-            LocalDate startDate,
-            LocalDate endDate
     );
 
     List<FocusRangeStatsDto> findOverlappingFocusRanges(

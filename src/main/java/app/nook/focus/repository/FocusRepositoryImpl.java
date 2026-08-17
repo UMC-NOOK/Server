@@ -4,15 +4,10 @@ import app.nook.book.domain.QBook;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.domain.QFocus;
 import app.nook.focus.repository.dto.FocusRangeStatsDto;
-import app.nook.focus.repository.dto.FocusTimeStatsDto;
-import app.nook.focus.repository.dto.MonthlyFocusStatsDto;
 import app.nook.focus.repository.dto.QFocusRangeStatsDto;
-import app.nook.focus.repository.dto.QFocusTimeStatsDto;
-import app.nook.focus.repository.dto.QMonthlyFocusStatsDto;
 import app.nook.library.domain.QLibrary;
 import app.nook.user.domain.User;
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -37,39 +32,6 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<MonthlyFocusStatsDto> findMonthlyFocusStats(
-            Long userId,
-            LocalDate startDate,
-            LocalDate endDate
-    ) {
-        BooleanBuilder builder = new BooleanBuilder()
-                .and(focus.library.user.id.eq(userId))
-                .and(focus.focusDate.goe(startDate))
-                .and(focus.focusDate.lt(endDate));
-
-        NumberExpression<Long> totalSecExpr = focus.durationSec.sum().longValue();
-
-        List<MonthlyFocusStatsDto> rows = queryFactory
-                .select(new QMonthlyFocusStatsDto(
-                        focus.focusDate,
-                        focus.library.book.id,
-                        focus.library.book.coverImageKey,
-                        totalSecExpr
-                ))
-                .from(focus)
-                .where(builder)
-                .groupBy(
-                        focus.focusDate,
-                        focus.library.book.id,
-                        focus.library.book.coverImageKey
-                )
-                .orderBy(totalSecExpr.desc())
-                .fetch();
-
-        return rows;
-    }
-
-    @Override
     public List<LocalDate> findDistinctFocusDatesByLibraryAndUser(Long libraryId, Long userId) {
         BooleanBuilder builder = new BooleanBuilder()
                 .and(focus.library.id.eq(libraryId))
@@ -84,50 +46,28 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
     }
 
     @Override
-    public List<FocusTimeStatsDto> findFocusTimeStats(
-            Long userId,
-            LocalDate startDate,
-            LocalDate endDate
-    ) {
-        BooleanBuilder builder = new BooleanBuilder()
-                .and(focus.library.user.id.eq(userId))
-                .and(focus.focusDate.goe(startDate))
-                .and(focus.focusDate.lt(endDate));
-
-        NumberExpression<Long> totalSecExpr = focus.durationSec.sum().longValue();
-
-        List<FocusTimeStatsDto> rows = queryFactory
-                .select(new QFocusTimeStatsDto(
-                        focus.focusDate,
-                        totalSecExpr
-                ))
-                .from(focus)
-                .where(builder)
-                .groupBy(focus.focusDate)
-                .fetch();
-
-        return rows;
-    }
-
-    @Override
     public List<FocusRangeStatsDto> findOverlappingFocusRanges(
             Long userId,
             LocalDateTime start,
             LocalDateTime end
     ) {
         BooleanBuilder builder = new BooleanBuilder()
-                .and(focus.library.user.id.eq(userId))
-                .and(focus.endedAt.isNotNull())
+                .and(library.user.id.eq(userId))
                 .and(focus.startedAt.lt(end))
-                .and(focus.endedAt.gt(start));
+                .and(focus.endedAt.isNull().or(focus.endedAt.gt(start)));
 
         List<FocusRangeStatsDto> rows = queryFactory
                 .select(new QFocusRangeStatsDto(
                         focus.startedAt,
-                        focus.endedAt
+                        focus.endedAt,
+                        book.id,
+                        book.coverImageKey
                 ))
                 .from(focus)
+                .join(focus.library, library)
+                .join(library.book, book)
                 .where(builder)
+                .orderBy(focus.startedAt.asc(), focus.id.asc())
                 .fetch();
 
         return rows;
@@ -140,9 +80,12 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
             Long cursor,
             Pageable pageable
     ) {
+        LocalDateTime dayStart = focusDate.atStartOfDay();
+        LocalDateTime nextDayStart = focusDate.plusDays(1).atStartOfDay();
         BooleanBuilder builder = new BooleanBuilder()
                 .and(focus.library.user.eq(user))
-                .and(focus.focusDate.eq(focusDate));
+                .and(focus.startedAt.lt(nextDayStart))
+                .and(focus.endedAt.isNull().or(focus.endedAt.gt(dayStart)));
 
         if (cursor != null) {
             builder.and(focus.id.lt(cursor));

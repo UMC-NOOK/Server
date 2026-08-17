@@ -4,7 +4,7 @@ import app.nook.NookApplication;
 import app.nook.book.domain.Book;
 import app.nook.book.repository.BookRepository;
 import app.nook.focus.repository.FocusRepository;
-import app.nook.focus.repository.dto.MonthlyFocusStatsDto;
+import app.nook.focus.repository.dto.FocusRangeStatsDto;
 import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.CacheConfig;
 import app.nook.global.common.security.WithCustomUser;
@@ -27,6 +27,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -90,23 +91,28 @@ class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
 
         libraryStatsService.viewMonthly(userId, yearMonth);
 
-        verify(focusRepository, never()).findMonthlyFocusStats(any(), any(), any());
+        verify(focusRepository, never()).findOverlappingFocusRanges(any(), any(), any());
     }
 
     @Test
     void viewMonthly_redisMiss면_db조회후_zset에_저장한다() {
         Long userId = currentUserId();
         YearMonth yearMonth = YearMonth.of(2026, 2);
-        LocalDate start = yearMonth.atDay(1);
-        LocalDate end = yearMonth.plusMonths(1).atDay(1);
+        LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
+        LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
 
         given(redisZSETService.loadMonthlyBooks(userId, yearMonth)).willReturn(null);
-        given(focusRepository.findMonthlyFocusStats(eq(userId), eq(start), eq(end)))
-                .willReturn(List.of(monthlyProjection(LocalDate.of(2026, 2, 1), 10L, "cover-10", 1200L)));
+        given(focusRepository.findOverlappingFocusRanges(eq(userId), eq(start), eq(end)))
+                .willReturn(List.of(focusRange(
+                        LocalDateTime.of(2026, 2, 1, 10, 0),
+                        LocalDateTime.of(2026, 2, 1, 10, 20),
+                        10L,
+                        "cover-10"
+                )));
 
         libraryStatsService.viewMonthly(userId, yearMonth);
 
-        verify(focusRepository, times(1)).findMonthlyFocusStats(eq(userId), eq(start), eq(end));
+        verify(focusRepository, times(1)).findOverlappingFocusRanges(eq(userId), eq(start), eq(end));
         verify(redisZSETService, times(1)).saveMonthlyBooks(eq(userId), eq(yearMonth), anyInt(), any());
     }
 
@@ -213,12 +219,12 @@ class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
         return principal.getUser();
     }
 
-    private MonthlyFocusStatsDto monthlyProjection(
-            LocalDate dateValue,
+    private FocusRangeStatsDto focusRange(
+            LocalDateTime startedAt,
+            LocalDateTime endedAt,
             Long bookId,
-            String coverImageUrl,
-            Long totalSec
+            String coverImageKey
     ) {
-        return new MonthlyFocusStatsDto(dateValue, bookId, coverImageUrl, totalSec);
+        return new FocusRangeStatsDto(startedAt, endedAt, bookId, coverImageKey);
     }
 }

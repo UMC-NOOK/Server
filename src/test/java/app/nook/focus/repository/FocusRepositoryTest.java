@@ -4,6 +4,7 @@ import app.nook.book.domain.Book;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.domain.Theme;
 import app.nook.focus.domain.enums.ThemeName;
+import app.nook.focus.repository.dto.FocusRangeStatsDto;
 import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.QueryDslConfig;
 import app.nook.library.domain.Library;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -576,5 +578,187 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         assertThat(result.get(1).getLibrary().getBook().getTitle()).isEqualTo("B 책");
         assertThat(result.get(0).getId()).isEqualTo(secondA.getId());
         assertThat(result.get(1).getId()).isEqualTo(focusB.getId());
+    }
+
+    @Test
+    @DisplayName("조회 구간과 겹치는 완료 및 진행 중 포커스만 조회한다")
+    void findOverlappingFocusRanges_반개구간() {
+        User owner = persistUser("range-owner");
+        User other = persistUser("range-other");
+        Book book = persistBook("구간 책", "book/users/1/range.jpg");
+        Library ownerLibrary = persistLibrary(owner, book);
+        Library otherLibrary = persistLibrary(other, book);
+        Theme theme = persistTheme();
+        LocalDateTime rangeStart = LocalDateTime.of(2026, 8, 2, 0, 0);
+        LocalDateTime rangeEnd = LocalDateTime.of(2026, 8, 3, 0, 0);
+
+        persistFocus(
+                ownerLibrary,
+                theme,
+                LocalDateTime.of(2026, 8, 1, 23, 0),
+                rangeStart
+        );
+        persistFocus(
+                ownerLibrary,
+                theme,
+                LocalDateTime.of(2026, 8, 1, 23, 55),
+                LocalDateTime.of(2026, 8, 2, 0, 10)
+        );
+        persistFocus(
+                ownerLibrary,
+                theme,
+                rangeStart,
+                LocalDateTime.of(2026, 8, 2, 0, 30)
+        );
+        persistFocus(
+                ownerLibrary,
+                theme,
+                LocalDateTime.of(2026, 8, 2, 12, 0),
+                null
+        );
+        persistFocus(
+                ownerLibrary,
+                theme,
+                rangeEnd,
+                LocalDateTime.of(2026, 8, 3, 0, 30)
+        );
+        persistFocus(
+                otherLibrary,
+                theme,
+                LocalDateTime.of(2026, 8, 2, 10, 0),
+                LocalDateTime.of(2026, 8, 2, 10, 30)
+        );
+
+        em.flush();
+        em.clear();
+
+        List<FocusRangeStatsDto> result = focusRepository.findOverlappingFocusRanges(
+                owner.getId(),
+                rangeStart,
+                rangeEnd
+        );
+
+        assertThat(result).hasSize(3);
+        assertThat(result).extracting(FocusRangeStatsDto::getStartedAt)
+                .containsExactly(
+                        LocalDateTime.of(2026, 8, 1, 23, 55),
+                        rangeStart,
+                        LocalDateTime.of(2026, 8, 2, 12, 0)
+                );
+        assertThat(result.get(2).getEndedAt()).isNull();
+        assertThat(result).allMatch(row -> row.getBookId().equals(book.getId()));
+        assertThat(result).allMatch(row -> row.getCoverImageKey().equals("book/users/1/range.jpg"));
+    }
+
+    @Test
+    @DisplayName("날짜별 기록은 자정 반개구간과 겹치는 포커스만 조회한다")
+    void findByLibraryWithCursorByDate_반개구간() {
+        User user = persistUser("daily-owner");
+        Book book = persistBook("날짜 책", "book/users/1/daily.jpg");
+        Library library = persistLibrary(user, book);
+        Theme theme = persistTheme();
+        LocalDate date = LocalDate.of(2026, 8, 2);
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime nextDayStart = date.plusDays(1).atStartOfDay();
+
+        Focus endedAtDayStart = persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 1, 23, 0),
+                dayStart
+        );
+        Focus acrossMidnight = persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 1, 23, 55),
+                LocalDateTime.of(2026, 8, 2, 0, 10)
+        );
+        Focus startedAtDayStart = persistFocus(
+                library,
+                theme,
+                dayStart,
+                LocalDateTime.of(2026, 8, 2, 0, 30)
+        );
+        Focus inProgress = persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 2, 12, 0),
+                null
+        );
+        Focus startedAtNextDay = persistFocus(
+                library,
+                theme,
+                nextDayStart,
+                LocalDateTime.of(2026, 8, 3, 0, 30)
+        );
+
+        em.flush();
+        em.clear();
+
+        Slice<Focus> result = focusRepository.findByLibraryWithCursorByDate(
+                user,
+                date,
+                null,
+                PageRequest.of(0, 10)
+        );
+
+        assertThat(result.getContent()).extracting(Focus::getId)
+                .containsExactly(inProgress.getId(), startedAtDayStart.getId(), acrossMidnight.getId())
+                .doesNotContain(endedAtDayStart.getId(), startedAtNextDay.getId());
+    }
+
+    private User persistUser(String suffix) {
+        User user = User.builder()
+                .email(suffix + "@example.com")
+                .nickName(suffix)
+                .provider("google")
+                .providerId(suffix)
+                .role(UserRole.USER)
+                .build();
+        em.persist(user);
+        return user;
+    }
+
+    private Book persistBook(String title, String coverImageKey) {
+        Book book = Book.builder()
+                .title(title)
+                .author("테스트 작가")
+                .coverImageKey(coverImageKey)
+                .build();
+        em.persist(book);
+        return book;
+    }
+
+    private Library persistLibrary(User user, Book book) {
+        Library library = Library.builder()
+                .user(user)
+                .book(book)
+                .build();
+        em.persist(library);
+        return library;
+    }
+
+    private Theme persistTheme() {
+        return themeRepository.save(Theme.builder()
+                .name(ThemeName.THEME1)
+                .imageUrl("https://cdn.nook.com/themes/theme1.png")
+                .build());
+    }
+
+    private Focus persistFocus(
+            Library library,
+            Theme theme,
+            LocalDateTime startedAt,
+            LocalDateTime endedAt
+    ) {
+        Focus focus = Focus.builder()
+                .library(library)
+                .theme(theme)
+                .startedAt(startedAt)
+                .endedAt(endedAt)
+                .durationSec(endedAt == null ? 0 : (int) java.time.Duration.between(startedAt, endedAt).getSeconds())
+                .build();
+        em.persist(focus);
+        return focus;
     }
 }

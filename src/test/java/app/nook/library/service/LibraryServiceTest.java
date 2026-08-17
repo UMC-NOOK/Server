@@ -6,6 +6,7 @@ import app.nook.book.repository.BookRepository;
 import app.nook.book.service.BookAccessService;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.repository.FocusRepository;
+import app.nook.focus.service.FocusDailyTimeCalculator;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
 import app.nook.global.fixture.BookFixture;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -43,8 +45,10 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -91,6 +95,12 @@ class LibraryServiceTest {
     @Mock
     private BookAccessService bookAccessService;
 
+    @Mock
+    private Clock clock;
+
+    @Spy
+    private FocusDailyTimeCalculator focusDailyTimeCalculator = new FocusDailyTimeCalculator();
+
     @InjectMocks
     private LibraryCommandService libraryCommandService;
 
@@ -101,6 +111,10 @@ class LibraryServiceTest {
     void setUp() {
         lenient().when(presignedUrlService.resolveImageUrl(anyLong(), any()))
                 .thenAnswer(invocation -> invocation.getArgument(1));
+        ZoneId kst = ZoneId.of("Asia/Seoul");
+        LocalDateTime serverNow = LocalDateTime.of(2026, 3, 2, 12, 0);
+        lenient().when(clock.instant()).thenReturn(serverNow.atZone(kst).toInstant());
+        lenient().when(clock.getZone()).thenReturn(kst);
     }
 
     @Nested
@@ -717,11 +731,15 @@ class LibraryServiceTest {
             Focus focus1 = new Focus();
             ReflectionTestUtils.setField(focus1, "id", 30L);
             ReflectionTestUtils.setField(focus1, "library", library1);
+            ReflectionTestUtils.setField(focus1, "startedAt", LocalDateTime.of(2026, 3, 1, 10, 0));
+            ReflectionTestUtils.setField(focus1, "endedAt", LocalDateTime.of(2026, 3, 1, 10, 2));
             ReflectionTestUtils.setField(focus1, "durationSec", 120);
 
             Focus focus2 = new Focus();
             ReflectionTestUtils.setField(focus2, "id", 29L);
             ReflectionTestUtils.setField(focus2, "library", library2);
+            ReflectionTestUtils.setField(focus2, "startedAt", LocalDateTime.of(2026, 3, 1, 11, 0));
+            ReflectionTestUtils.setField(focus2, "endedAt", LocalDateTime.of(2026, 3, 1, 11, 30));
             ReflectionTestUtils.setField(focus2, "durationSec", null);
 
             int size = 1;
@@ -756,6 +774,8 @@ class LibraryServiceTest {
             Focus focus = new Focus();
             ReflectionTestUtils.setField(focus, "id", 10L);
             ReflectionTestUtils.setField(focus, "library", library);
+            ReflectionTestUtils.setField(focus, "startedAt", LocalDateTime.of(2026, 3, 1, 12, 0));
+            ReflectionTestUtils.setField(focus, "endedAt", LocalDateTime.of(2026, 3, 1, 12, 0));
             ReflectionTestUtils.setField(focus, "durationSec", null);
 
             int size = 2;
@@ -771,6 +791,36 @@ class LibraryServiceTest {
             assertThat(result.nextCursor()).isNull();
             assertThat(result.items()).hasSize(1);
             assertThat(result.items().get(0).focusTime()).isEqualTo("00:00:00");
+        }
+
+        @Test
+        @DisplayName("자정을 넘긴 포커스는 요청 날짜에 해당하는 시간만 반환한다")
+        void viewFocusRecordByDate_자정분할() {
+            User user = UserFixture.user();
+            LocalDate date = LocalDate.of(2026, 3, 1);
+            Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
+            ReflectionTestUtils.setField(book, "title", "도서1");
+            ReflectionTestUtils.setField(book, "author", "작가1");
+            ReflectionTestUtils.setField(book, "coverImageKey", "cover1");
+            Library library = LibraryFixture.library(user, book);
+
+            Focus focus = new Focus();
+            ReflectionTestUtils.setField(focus, "id", 10L);
+            ReflectionTestUtils.setField(focus, "library", library);
+            ReflectionTestUtils.setField(focus, "startedAt", LocalDateTime.of(2026, 2, 28, 23, 55));
+            ReflectionTestUtils.setField(focus, "endedAt", LocalDateTime.of(2026, 3, 1, 0, 10));
+            ReflectionTestUtils.setField(focus, "durationSec", 900);
+
+            Slice<Focus> slice = new SliceImpl<>(List.of(focus), PageRequest.of(0, 3), false);
+            given(focusRepository.findByLibraryWithCursorByDate(eq(user), eq(date), isNull(), any(PageRequest.class)))
+                    .willReturn(slice);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+
+            var result = libraryQueryService.getFocusRecordsByDate(1L, date, null, 2);
+
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.items().get(0).focusTime()).isEqualTo("00:10:00");
         }
     }
 
