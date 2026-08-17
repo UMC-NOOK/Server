@@ -109,9 +109,7 @@ validate_repository_files() {
       || fail "missing legacy migration: ${legacy_migration}"
   done
 
-  shopt -s nullglob
-  for migration_file in "$migration_directory"/*; do
-    [[ -f "$migration_file" ]] || continue
+  while IFS= read -r -d '' migration_file; do
     filename="$(basename "$migration_file")"
     validate_filename "$filename"
 
@@ -128,8 +126,7 @@ validate_repository_files() {
 
     seen_versions+="${version} "
     ((migration_count += 1))
-  done
-  shopt -u nullglob
+  done < <(find "$migration_directory" -type f -print0)
 
   (( migration_count > 0 )) || fail "no migration files found"
   printf '%s\n' "$migration_count"
@@ -166,6 +163,7 @@ base_max_version() {
 validate_changes_from_base() {
   local ref="$1"
   local path
+  local repository_path
   local filename
   local version
   local max_version
@@ -187,12 +185,11 @@ validate_changes_from_base() {
     fi
   done < <(git -C "$repository_root" ls-tree -r --name-only "$ref" -- "$migration_relative_path")
 
-  shopt -s nullglob
-  for path in "$migration_directory"/*; do
-    [[ -f "$path" ]] || continue
+  while IFS= read -r -d '' path; do
+    repository_path="${path#"$repository_root"/}"
     filename="$(basename "$path")"
 
-    if git -C "$repository_root" cat-file -e "${ref}:${migration_relative_path}/${filename}" 2>/dev/null; then
+    if git -C "$repository_root" cat-file -e "${ref}:${repository_path}" 2>/dev/null; then
       continue
     fi
 
@@ -206,8 +203,7 @@ validate_changes_from_base() {
     fi
 
     ((added_count += 1))
-  done
-  shopt -u nullglob
+  done < <(find "$migration_directory" -type f -print0)
 
   printf '%s\n' "$added_count"
 }
