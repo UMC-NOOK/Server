@@ -262,7 +262,6 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
         LibraryViewDto.StatusBookResponseDto response =
                 new LibraryViewDto.StatusBookResponseDto(
                         ReadingStatus.READING,
-                        1,
                         cursorResponse
                 );
 
@@ -287,7 +286,6 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                         ),
                         responseFields(ApiResponseSnippet.withResult(
                                 fieldWithPath("result.readingStatus").type(STRING).description("독서 상태"),
-                                fieldWithPath("result.totalBookNum").type(NUMBER).description("해당 상태의 전체 책 수 (첫 조회 시만 제공)"),
                                 fieldWithPath("result.bookItems").type(OBJECT).description("커서 기반 응답"),
                                 fieldWithPath("result.bookItems.items[]").type(ARRAY).description("도서 목록"),
                                 fieldWithPath("result.bookItems.items[].bookId").type(NUMBER).description("도서 ID"),
@@ -300,6 +298,33 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                 fieldWithPath("result.bookItems.hasNext").type(BOOLEAN).description("다음 페이지 존재 여부")
                         ))
                 ));
+    }
+
+    @Test
+    @DisplayName("서재 상태별 책 개수 조회 성공")
+    @WithCustomUser
+    void 서재_상태별_책_개수_조회_성공() throws Exception {
+        given(libraryQueryService.getBookCountsByStatus(1L))
+                .willReturn(new LibraryViewDto.StatusBookCountsResponseDto(3L, 1L, 5L));
+
+        mockMvc.perform(
+                        get("/api/v1/library/status-counts")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.before").value(3))
+                .andExpect(jsonPath("$.result.reading").value(1))
+                .andExpect(jsonPath("$.result.finished").value(5))
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        responseFields(ApiResponseSnippet.withResult(
+                                fieldWithPath("result.before").type(NUMBER).description("읽기 전 도서 수"),
+                                fieldWithPath("result.reading").type(NUMBER).description("읽는 중 도서 수"),
+                                fieldWithPath("result.finished").type(NUMBER).description("완독 도서 수")
+                        ))
+                ));
+
+        verify(libraryQueryService).getBookCountsByStatus(1L);
     }
 
     @Test
@@ -324,7 +349,6 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
         LibraryViewDto.StatusBookResponseDto response =
                 new LibraryViewDto.StatusBookResponseDto(
                         ReadingStatus.READING,
-                        1,
                         CursorResponse.of(List.of(), null, false)
                 );
 

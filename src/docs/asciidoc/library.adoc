@@ -30,6 +30,13 @@ include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/q
 include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/http-response.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/response-fields.adoc[]
 
+=== 서재 상태별 책 개수 조회
+
+include::{snippets}/library-controller-test/서재_상태별_책_개수_조회_성공/http-request.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_개수_조회_성공/request-headers.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_개수_조회_성공/http-response.adoc[]
+include::{snippets}/library-controller-test/서재_상태별_책_개수_조회_성공/response-fields.adoc[]
+
 ==== 실패 케이스
 
 ===== status 누락 (400)

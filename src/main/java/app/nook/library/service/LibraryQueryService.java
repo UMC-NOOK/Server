@@ -29,7 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -70,13 +72,23 @@ public class LibraryQueryService {
         CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse =
                 toResolvedCursorResponse(userId, libraries.getContent(), size);
 
-        int totalCount = 0;
-        if (cursor == null) {
-            // 첫 페이지에서만 전체 개수를 함께 내려준다
-            totalCount = (int) libraryRepository.countByUserIdAndReadingStatus(userId, status);
-        }
+        return LibraryConverter.toStatusBookResponse(status, cursorResponse);
+    }
 
-        return LibraryConverter.toStatusBookResponse(status, totalCount, cursorResponse);
+    // 상태별 책 개수 조회
+    public LibraryViewDto.StatusBookCountsResponseDto getBookCountsByStatus(Long userId) {
+        Map<ReadingStatus, Long> counts = new EnumMap<>(ReadingStatus.class);
+        for (ReadingStatus status : ReadingStatus.values()) {
+            counts.put(status, 0L);
+        }
+        libraryRepository.countByUserIdGroupByReadingStatus(userId)
+                .forEach(count -> counts.put(count.readingStatus(), count.count()));
+
+        return new LibraryViewDto.StatusBookCountsResponseDto(
+                counts.get(ReadingStatus.BEFORE),
+                counts.get(ReadingStatus.READING),
+                counts.get(ReadingStatus.FINISHED)
+        );
     }
 
     public Set<String> getOwnedIsbns(Long userId, List<String> isbns) {
@@ -185,7 +197,7 @@ public class LibraryQueryService {
 
     public LibraryViewDto.YearResponseDto getReadingYears(Long userId) {
         User user = getUser(userId);
-        // 가입 연도부터 현재 연도까지 연속된 선택 범위를 만든다
+        // 가입 연도부터 현재 연도까지 연속된 선택 범위 생성
         int startYear = user.getCreatedDate().getYear();
         int currentYear = LocalDateTime.now().getYear();
         List<Integer> years = IntStream.rangeClosed(startYear, currentYear)
