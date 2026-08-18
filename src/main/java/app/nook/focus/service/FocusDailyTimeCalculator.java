@@ -20,12 +20,14 @@ public class FocusDailyTimeCalculator {
             LocalDateTime endedAt,
             LocalDateTime serverNow
     ) {
+        // 진행 중인 포커스는 서버 현재 시각을 종료 시각으로 간주
         LocalDateTime effectiveEnd = endedAt == null ? serverNow : endedAt;
         if (!startedAt.isBefore(effectiveEnd)) {
             return Set.of();
         }
 
         YearMonth firstMonth = YearMonth.from(startedAt);
+        // 종료 시각은 집계에 포함하지 않으므로 월초 자정에 끝난 포커스를 다음 달에서 제외
         YearMonth lastMonth = YearMonth.from(effectiveEnd.minusNanos(1));
         Set<YearMonth> affectedMonths = new LinkedHashSet<>();
         for (YearMonth month = firstMonth; !month.isAfter(lastMonth); month = month.plusMonths(1)) {
@@ -41,6 +43,7 @@ public class FocusDailyTimeCalculator {
             LocalDateTime rangeStart,
             LocalDateTime rangeEnd
     ) {
+        // 세션과 조회 범위가 실제로 겹치는 구간만 날짜별로 분할
         LocalDateTime effectiveEnd = endedAt == null ? serverNow : endedAt;
         LocalDateTime segmentStart = laterOf(startedAt, rangeStart);
         LocalDateTime sessionEnd = earlierOf(effectiveEnd, rangeEnd);

@@ -82,6 +82,7 @@ public class LibraryCommandService {
                 .orElseThrow(() -> new CustomException(LibraryErrorCode.BOOK_NOT_EXIST));
 
         boolean evictOnboardingGoal = library.getReadingStatus() == ReadingStatus.FINISHED;
+        // 서재 삭제 시 포커스도 함께 삭제되므로 삭제 전에 모든 영향 월 계산
         Set<YearMonth> affectedYearMonths = focusRepository.findAllByLibraryIdAndLibraryUserId(library.getId(), userId)
                 .stream()
                 .flatMap(focus -> focusDailyTimeCalculator

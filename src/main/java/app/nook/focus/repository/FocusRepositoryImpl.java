@@ -37,6 +37,7 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
             LocalDateTime start,
             LocalDateTime end
     ) {
+        // 조회 범위와 겹치는 포커스만 반개구간 [start, end) 기준으로 조회
         BooleanBuilder builder = new BooleanBuilder()
                 .and(library.user.id.eq(userId))
                 .and(focus.startedAt.lt(end))
@@ -69,6 +70,7 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
     ) {
         LocalDateTime dayStart = focusDate.atStartOfDay();
         LocalDateTime nextDayStart = focusDate.plusDays(1).atStartOfDay();
+        // 오늘은 현재 시각까지만 조회하고 미래 날짜는 빈 범위로 처리
         LocalDateTime effectiveEnd = nextDayStart.isBefore(serverNow) ? nextDayStart : serverNow;
         if (!dayStart.isBefore(effectiveEnd)) {
             return new SliceImpl<>(List.of(), pageable, false);

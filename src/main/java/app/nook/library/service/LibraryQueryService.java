@@ -108,6 +108,7 @@ public class LibraryQueryService {
         // 날짜별 포커스 기록도 커서 기반으로 한 건 더 조회한다
         User user = getUser(userId);
         Pageable pageable = PageRequest.of(0, size + 1);
+        // 조회와 시간 계산에 동일한 현재 시각을 사용해 진행 중인 포커스의 기준 시점 통일
         LocalDateTime serverNow = LocalDateTime.now(clock);
 
         Slice<Focus> focuses = focusRepository.findByLibraryWithCursorByDate(

@@ -192,6 +192,7 @@ public class LibraryStatsService {
         LocalDateTime rangeStart = yearMonth.atDay(1).atStartOfDay();
         LocalDateTime rangeEnd = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
 
+        // 진행 중인 포커스가 조회 월과 겹치면 통계가 변하므로 캐시를 사용하지 않음
         return focusRepository.findByLibraryUserIdAndEndedAtIsNull(userId)
                 .map(focus -> !focusDailyTimeCalculator.overlaps(
                         focus.getStartedAt(),
