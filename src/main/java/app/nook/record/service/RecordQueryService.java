@@ -68,6 +68,7 @@ public class RecordQueryService {
         List<BookRecordDto.BookRecordItemDto> resolvedPageContent = pageContent.stream()
                 .map(item -> new BookRecordDto.BookRecordItemDto(
                         item.bookId(),
+                        item.recordId(),
                         item.title(),
                         item.author(),
                         item.recordContent(),

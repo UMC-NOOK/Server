@@ -23,6 +23,7 @@ include::{snippets}/record-controller-test/기록_수정_성공/http-response.ad
 include::{snippets}/record-controller-test/기록_수정_성공/response-fields.adoc[]
 
 === 기록 삭제
+삭제된 기록 ID를 함께 반환합니다.
 include::{snippets}/record-controller-test/기록_삭제_성공/http-request.adoc[]
 include::{snippets}/record-controller-test/기록_삭제_성공/request-headers.adoc[]
 include::{snippets}/record-controller-test/기록_삭제_성공/path-parameters.adoc[]

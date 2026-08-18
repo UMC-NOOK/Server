@@ -74,13 +74,13 @@ public class RecordController {
     }
 
     @PostMapping("/books/{bookId}")
-    public ApiResponse<Void> saveRecord(
+    public ApiResponse<RecordResponseDto.RecordIdDto> saveRecord(
             @CurrentUser User user,
             @PathVariable Long bookId,
             @Valid @RequestBody RecordRequestDto requestDto
             ) {
-        recordCommandService.createRecord(user, bookId, requestDto);
-        return ApiResponse.onSuccess(null, SuccessCode.CREATED);
+        Long recordId = recordCommandService.createRecord(user, bookId, requestDto);
+        return ApiResponse.onSuccess(new RecordResponseDto.RecordIdDto(recordId), SuccessCode.CREATED);
     }
 
     @PutMapping("/{recordId}")
@@ -94,12 +94,12 @@ public class RecordController {
     }
 
     @DeleteMapping("/{recordId}")
-    public ApiResponse<Void> deleteRecord(
+    public ApiResponse<RecordResponseDto.RecordIdDto> deleteRecord(
             @CurrentUser User user,
             @PathVariable Long recordId
     ) {
-        recordCommandService.deleteRecord(user, recordId);
-        return ApiResponse.onSuccess(null, SuccessCode.NO_CONTENT);
+        Long deletedRecordId = recordCommandService.deleteRecord(user, recordId);
+        return ApiResponse.onSuccess(new RecordResponseDto.RecordIdDto(deletedRecordId), SuccessCode.OK);
     }
 
     @GetMapping("/count")
