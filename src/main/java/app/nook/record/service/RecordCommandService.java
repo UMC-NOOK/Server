@@ -46,7 +46,7 @@ public class RecordCommandService {
 
     // 기록 생성
     @Transactional
-    public void createRecord(
+    public Long createRecord(
             User user,
             Long bookId,
             RecordRequestDto requestDto
@@ -87,6 +87,7 @@ public class RecordCommandService {
         }
 
         timelineCommandService.appendRecordCreated(newRecord, imageKeys.size());
+        return newRecord.getId();
     }
 
     // 기록 수정
@@ -113,7 +114,7 @@ public class RecordCommandService {
 
     // 기록 삭제
     @Transactional
-    public void deleteRecord(
+    public Long deleteRecord(
             User user,
             Long recordId
     ) {
@@ -132,6 +133,7 @@ public class RecordCommandService {
         record.getImages().clear();
         recordRepository.delete(record);
         eventPublisher.publishEvent(new RecordDeletedEvent(recordId, keysToDelete));
+        return recordId;
     }
 
     public RecordResponseDto.RecordCountDto countRecords(Long userId) {
