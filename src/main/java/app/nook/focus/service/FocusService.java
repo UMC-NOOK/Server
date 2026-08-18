@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.HashSet;
 import java.util.Set;
 
 @Service
@@ -36,6 +35,7 @@ public class FocusService {
     private final ThemeRepository themeRepository;
     private final TimelineCommandService timelineCommandService;
     private final ApplicationEventPublisher eventPublisher;
+    private final FocusDailyTimeCalculator focusDailyTimeCalculator;
     private final Clock clock;
 
     public FocusResponseDto.FocusStart startFocus(User user, FocusRequestDto.FocusStart request) {
@@ -106,17 +106,6 @@ public class FocusService {
     }
 
     private Set<YearMonth> affectedYearMonths(LocalDateTime startedAt, LocalDateTime endedAt) {
-        if (!startedAt.isBefore(endedAt)) {
-            return Set.of();
-        }
-
-        YearMonth lastAffectedYearMonth = YearMonth.from(endedAt.minusNanos(1));
-        Set<YearMonth> affectedYearMonths = new HashSet<>();
-        for (YearMonth yearMonth = YearMonth.from(startedAt);
-             !yearMonth.isAfter(lastAffectedYearMonth);
-             yearMonth = yearMonth.plusMonths(1)) {
-            affectedYearMonths.add(yearMonth);
-        }
-        return affectedYearMonths;
+        return focusDailyTimeCalculator.affectedYearMonths(startedAt, endedAt, endedAt);
     }
 }

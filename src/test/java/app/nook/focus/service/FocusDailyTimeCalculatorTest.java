@@ -5,7 +5,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -118,5 +120,68 @@ class FocusDailyTimeCalculatorTest {
         assertThat(result).extracting(FocusDailyTimeCalculator.DailyFocusTime::date)
                 .startsWith(LocalDate.of(2026, 8, 1))
                 .endsWith(LocalDate.of(2026, 8, 31));
+    }
+
+    @Test
+    void affectedYearMonths_sameMonth() {
+        LocalDateTime startedAt = LocalDateTime.of(2026, 1, 15, 10, 0);
+        LocalDateTime endedAt = LocalDateTime.of(2026, 1, 15, 11, 0);
+
+        assertThat(calculator.affectedYearMonths(startedAt, endedAt, endedAt))
+                .containsExactly(YearMonth.of(2026, 1));
+    }
+
+    @Test
+    void affectedYearMonths_crossMonth() {
+        LocalDateTime startedAt = LocalDateTime.of(2026, 1, 31, 23, 30);
+        LocalDateTime endedAt = LocalDateTime.of(2026, 2, 1, 0, 30);
+
+        assertThat(calculator.affectedYearMonths(startedAt, endedAt, endedAt))
+                .containsExactly(YearMonth.of(2026, 1), YearMonth.of(2026, 2));
+    }
+
+    @Test
+    void affectedYearMonths_exactMidnightExcludesNextMonth() {
+        LocalDateTime startedAt = LocalDateTime.of(2026, 1, 31, 23, 30);
+        LocalDateTime endedAt = LocalDateTime.of(2026, 2, 1, 0, 0);
+
+        assertThat(calculator.affectedYearMonths(startedAt, endedAt, endedAt))
+                .containsExactly(YearMonth.of(2026, 1));
+    }
+
+    @Test
+    void affectedYearMonths_multiMonth() {
+        LocalDateTime startedAt = LocalDateTime.of(2026, 1, 15, 10, 0);
+        LocalDateTime endedAt = LocalDateTime.of(2026, 4, 2, 10, 0);
+
+        assertThat(calculator.affectedYearMonths(startedAt, endedAt, endedAt))
+                .containsExactly(
+                        YearMonth.of(2026, 1),
+                        YearMonth.of(2026, 2),
+                        YearMonth.of(2026, 3),
+                        YearMonth.of(2026, 4)
+                );
+    }
+
+    @Test
+    void affectedYearMonths_ongoingUsesServerNow() {
+        LocalDateTime startedAt = LocalDateTime.of(2026, 1, 31, 23, 30);
+        LocalDateTime serverNow = LocalDateTime.of(2026, 2, 1, 0, 30);
+
+        assertThat(calculator.affectedYearMonths(startedAt, null, serverNow))
+                .containsExactly(YearMonth.of(2026, 1), YearMonth.of(2026, 2));
+    }
+
+    @Test
+    void affectedYearMonths_nonPositiveIntervalReturnsEmpty() {
+        LocalDateTime startedAt = LocalDateTime.of(2026, 2, 1, 0, 0);
+        LocalDateTime sameTime = startedAt;
+        LocalDateTime earlier = startedAt.minusMinutes(1);
+
+        Set<YearMonth> zeroDuration = calculator.affectedYearMonths(startedAt, sameTime, sameTime);
+        Set<YearMonth> negativeDuration = calculator.affectedYearMonths(startedAt, earlier, sameTime);
+
+        assertThat(zeroDuration).isEmpty();
+        assertThat(negativeDuration).isEmpty();
     }
 }

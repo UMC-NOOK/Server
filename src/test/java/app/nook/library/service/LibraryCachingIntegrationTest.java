@@ -2,6 +2,7 @@ package app.nook.library.service;
 
 import app.nook.NookApplication;
 import app.nook.book.domain.Book;
+import app.nook.focus.domain.Focus;
 import app.nook.book.repository.BookRepository;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.focus.repository.dto.FocusRangeStatsDto;
@@ -21,17 +22,23 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -40,10 +47,12 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @SpringBootTest(classes = NookApplication.class)
 @ActiveProfiles("test")
 @WithCustomUser(userId = 1L)
+@Import(LibraryCachingIntegrationTest.FixedKstClockConfig.class)
 class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
 
     @Autowired
@@ -117,37 +126,86 @@ class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
     }
 
     @Test
-    void deleteByBookId_후_월별_zset_무효화가_호출된다() {
+    void deleteByBookId_crossMonthEvictsJanuaryAndFebruary() {
         Long userId = currentUserId();
         Long bookId = 100L;
         User user = currentUser();
 
-        Book book = Book.builder()
-                .isbn13("9780000000001")
-                .title("book")
-                .build();
-        ReflectionTestUtils.setField(book, "id", bookId);
+        Book book = book(bookId);
 
-        Library library = new Library(user, book);
-        ReflectionTestUtils.setField(library, "id", 999L);
+        Library library = library(user, book);
 
         given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
         given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(Optional.of(library));
-        given(focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId))
-                .willReturn(List.of(
-                        LocalDate.of(2026, 2, 1),
-                        LocalDate.of(2026, 2, 15),
-                        LocalDate.of(2026, 3, 1)
-                ));
+        given(focusRepository.findAllByLibraryIdAndLibraryUserId(library.getId(), userId))
+                .willReturn(List.of(focus(
+                        library,
+                        LocalDateTime.of(2026, 1, 31, 23, 30),
+                        LocalDateTime.of(2026, 2, 1, 0, 30)
+                )));
 
         libraryCommandService.deleteByBookId(userId, bookId);
 
-        for (YearMonth affectedYearMonth : Set.of(YearMonth.of(2026, 2), YearMonth.of(2026, 3))) {
-            verify(redisZSETService, times(1)).evictMonthlyBooks(userId, affectedYearMonth);
-            verify(redisZSETService, times(1)).evictMonthlyFocusTime(userId, affectedYearMonth);
-            verify(redisZSETService, times(1)).evictMonthlyHourlyFocus(userId, affectedYearMonth);
-        }
+        verifyMonthlyCacheEviction(userId, YearMonth.of(2026, 1));
+        verifyMonthlyCacheEviction(userId, YearMonth.of(2026, 2));
+        verifyNoMoreInteractions(redisZSETService);
         verify(cacheManager, never()).getCache(CacheConfig.ONBOARDING_GOAL_CACHE);
+    }
+
+    @Test
+    void deleteByBookId_exactMidnightExcludesNextMonthCacheEviction() {
+        Long userId = currentUserId();
+        Long bookId = 100L;
+        User user = currentUser();
+
+        Book book = book(bookId);
+
+        Library library = library(user, book);
+
+        given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
+        given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(Optional.of(library));
+        given(focusRepository.findAllByLibraryIdAndLibraryUserId(library.getId(), userId))
+                .willReturn(List.of(focus(
+                        library,
+                        LocalDateTime.of(2026, 1, 31, 23, 30),
+                        LocalDateTime.of(2026, 2, 1, 0, 0)
+                )));
+
+        libraryCommandService.deleteByBookId(userId, bookId);
+
+        YearMonth january = YearMonth.of(2026, 1);
+        YearMonth february = YearMonth.of(2026, 2);
+        verifyMonthlyCacheEviction(userId, january);
+        verify(redisZSETService, never()).evictMonthlyBooks(userId, february);
+        verify(redisZSETService, never()).evictMonthlyFocusTime(userId, february);
+        verify(redisZSETService, never()).evictMonthlyHourlyFocus(userId, february);
+        verifyNoMoreInteractions(redisZSETService);
+    }
+
+    @Test
+    void deleteByBookId_ongoingUsesKstServerNowForCacheEviction() {
+        Long userId = currentUserId();
+        Long bookId = 100L;
+        User user = currentUser();
+
+        Book book = book(bookId);
+
+        Library library = library(user, book);
+
+        given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
+        given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(Optional.of(library));
+        given(focusRepository.findAllByLibraryIdAndLibraryUserId(library.getId(), userId))
+                .willReturn(List.of(focus(
+                        library,
+                        LocalDateTime.of(2026, 1, 31, 23, 30),
+                        null
+                )));
+
+        libraryCommandService.deleteByBookId(userId, bookId);
+
+        verifyMonthlyCacheEviction(userId, YearMonth.of(2026, 1));
+        verifyMonthlyCacheEviction(userId, YearMonth.of(2026, 2));
+        verifyNoMoreInteractions(redisZSETService);
     }
 
     @Test
@@ -156,28 +214,24 @@ class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
         Long bookId = 100L;
         User user = currentUser();
 
-        Book book = Book.builder()
-                .isbn13("9780000000001")
-                .title("book")
-                .build();
-        ReflectionTestUtils.setField(book, "id", bookId);
+        Book book = book(bookId);
 
-        Library library = new Library(user, book);
-        ReflectionTestUtils.setField(library, "id", 999L);
+        Library library = library(user, book);
         ReflectionTestUtils.setField(library, "readingStatus", ReadingStatus.FINISHED);
 
         given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
         given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(Optional.of(library));
-        given(focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId))
-                .willReturn(List.of(LocalDate.of(2026, 2, 1)));
+        given(focusRepository.findAllByLibraryIdAndLibraryUserId(library.getId(), userId))
+                .willReturn(List.of(focus(
+                        library,
+                        LocalDateTime.of(2026, 2, 1, 10, 0),
+                        LocalDateTime.of(2026, 2, 1, 10, 30)
+                )));
         given(cacheManager.getCache(CacheConfig.ONBOARDING_GOAL_CACHE)).willReturn(cache);
 
         libraryCommandService.deleteByBookId(userId, bookId);
 
-        YearMonth affectedYearMonth = YearMonth.of(2026, 2);
-        verify(redisZSETService).evictMonthlyBooks(userId, affectedYearMonth);
-        verify(redisZSETService).evictMonthlyFocusTime(userId, affectedYearMonth);
-        verify(redisZSETService).evictMonthlyHourlyFocus(userId, affectedYearMonth);
+        verifyMonthlyCacheEviction(userId, YearMonth.of(2026, 2));
         verify(cache).evict(userId);
     }
 
@@ -187,14 +241,9 @@ class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
         Long bookId = 100L;
         User user = currentUser();
 
-        Book book = Book.builder()
-                .isbn13("9780000000001")
-                .title("book")
-                .build();
-        ReflectionTestUtils.setField(book, "id", bookId);
+        Book book = book(bookId);
 
-        Library library = new Library(user, book);
-        ReflectionTestUtils.setField(library, "id", 999L);
+        Library library = library(user, book);
 
         given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
         given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(Optional.of(library));
@@ -206,6 +255,36 @@ class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
         );
 
         verify(cache).evict(userId);
+    }
+
+    private Book book(Long bookId) {
+        Book book = Book.builder()
+                .isbn13("9780000000001")
+                .title("book")
+                .build();
+        ReflectionTestUtils.setField(book, "id", bookId);
+        return book;
+    }
+
+    private Library library(User user, Book book) {
+        Library library = new Library(user, book);
+        ReflectionTestUtils.setField(library, "id", 999L);
+        return library;
+    }
+
+    private Focus focus(Library library, LocalDateTime startedAt, LocalDateTime endedAt) {
+        return Focus.builder()
+                .library(library)
+                .startedAt(startedAt)
+                .endedAt(endedAt)
+                .durationSec(1800)
+                .build();
+    }
+
+    private void verifyMonthlyCacheEviction(Long userId, YearMonth yearMonth) {
+        verify(redisZSETService, times(1)).evictMonthlyBooks(userId, yearMonth);
+        verify(redisZSETService, times(1)).evictMonthlyFocusTime(userId, yearMonth);
+        verify(redisZSETService, times(1)).evictMonthlyHourlyFocus(userId, yearMonth);
     }
 
     private Long currentUserId() {
@@ -226,5 +305,17 @@ class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
             String coverImageKey
     ) {
         return new FocusRangeStatsDto(startedAt, endedAt, bookId, coverImageKey);
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class FixedKstClockConfig {
+
+        private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
+        @Bean
+        @Primary
+        Clock fixedKstClock() {
+            return Clock.fixed(Instant.parse("2026-01-31T15:30:00Z"), KST);
+        }
     }
 }

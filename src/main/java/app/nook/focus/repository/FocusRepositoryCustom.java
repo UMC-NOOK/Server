@@ -12,11 +12,6 @@ import java.util.List;
 
 public interface FocusRepositoryCustom {
 
-    List<LocalDate> findDistinctFocusDatesByLibraryAndUser(
-            Long libraryId,
-            Long userId
-    );
-
     List<FocusRangeStatsDto> findOverlappingFocusRanges(
             Long userId,
             LocalDateTime start,
@@ -26,6 +21,7 @@ public interface FocusRepositoryCustom {
     Slice<Focus> findByLibraryWithCursorByDate(
             User user,
             LocalDate focusDate,
+            LocalDateTime serverNow,
             Long cursor,
             Pageable pageable
     );

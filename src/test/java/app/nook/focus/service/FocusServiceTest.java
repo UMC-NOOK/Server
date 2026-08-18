@@ -91,6 +91,7 @@ class FocusServiceTest {
                 themeRepository,
                 timelineCommandService,
                 eventPublisher,
+                new FocusDailyTimeCalculator(),
                 clock
         );
     }

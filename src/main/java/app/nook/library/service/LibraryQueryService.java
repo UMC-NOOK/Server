@@ -113,6 +113,7 @@ public class LibraryQueryService {
         Slice<Focus> focuses = focusRepository.findByLibraryWithCursorByDate(
                 user,
                 date,
+                serverNow,
                 cursor,
                 pageable
         );

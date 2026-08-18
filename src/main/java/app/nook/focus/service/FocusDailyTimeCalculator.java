@@ -5,11 +5,34 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class FocusDailyTimeCalculator {
+
+    public Set<YearMonth> affectedYearMonths(
+            LocalDateTime startedAt,
+            LocalDateTime endedAt,
+            LocalDateTime serverNow
+    ) {
+        LocalDateTime effectiveEnd = endedAt == null ? serverNow : endedAt;
+        if (!startedAt.isBefore(effectiveEnd)) {
+            return Set.of();
+        }
+
+        YearMonth firstMonth = YearMonth.from(startedAt);
+        YearMonth lastMonth = YearMonth.from(effectiveEnd.minusNanos(1));
+        Set<YearMonth> affectedMonths = new LinkedHashSet<>();
+        for (YearMonth month = firstMonth; !month.isAfter(lastMonth); month = month.plusMonths(1)) {
+            affectedMonths.add(month);
+        }
+        return Collections.unmodifiableSet(affectedMonths);
+    }
 
     public List<DailyFocusTime> splitByDate(
             LocalDateTime startedAt,

@@ -4,6 +4,7 @@ import app.nook.book.domain.Book;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.service.BookAccessService;
+import app.nook.focus.service.FocusDailyTimeCalculator;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.global.response.AuthErrorCode;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.Clock;
 import java.time.YearMonth;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -41,6 +43,8 @@ public class LibraryCommandService {
     private final ApplicationEventPublisher eventPublisher;
     private final UserRepository userRepository;
     private final BookAccessService bookAccessService;
+    private final FocusDailyTimeCalculator focusDailyTimeCalculator;
+    private final Clock clock;
 
     @Transactional
     public LibraryViewDto.BookStatusResponseDto registerBook(Long userId, Long bookId) {
@@ -70,6 +74,7 @@ public class LibraryCommandService {
 
     @Transactional
     public LibraryViewDto.BookStatusResponseDto deleteByBookId(Long userId, Long bookId) {
+        LocalDateTime serverNow = LocalDateTime.now(clock);
         // 삭제 대상 도서와 서재 등록 여부 확인
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
@@ -77,9 +82,11 @@ public class LibraryCommandService {
                 .orElseThrow(() -> new CustomException(LibraryErrorCode.BOOK_NOT_EXIST));
 
         boolean evictOnboardingGoal = library.getReadingStatus() == ReadingStatus.FINISHED;
-        Set<YearMonth> affectedYearMonths = focusRepository.findDistinctFocusDatesByLibraryAndUser(library.getId(), userId)
+        Set<YearMonth> affectedYearMonths = focusRepository.findAllByLibraryIdAndLibraryUserId(library.getId(), userId)
                 .stream()
-                .map(YearMonth::from)
+                .flatMap(focus -> focusDailyTimeCalculator
+                        .affectedYearMonths(focus.getStartedAt(), focus.getEndedAt(), serverNow)
+                        .stream())
                 .collect(Collectors.toSet());
 
         libraryRepository.delete(library);

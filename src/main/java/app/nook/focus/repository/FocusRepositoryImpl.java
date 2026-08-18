@@ -32,20 +32,6 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<LocalDate> findDistinctFocusDatesByLibraryAndUser(Long libraryId, Long userId) {
-        BooleanBuilder builder = new BooleanBuilder()
-                .and(focus.library.id.eq(libraryId))
-                .and(focus.library.user.id.eq(userId));
-
-        return queryFactory
-                .select(focus.focusDate)
-                .distinct()
-                .from(focus)
-                .where(builder)
-                .fetch();
-    }
-
-    @Override
     public List<FocusRangeStatsDto> findOverlappingFocusRanges(
             Long userId,
             LocalDateTime start,
@@ -77,14 +63,20 @@ public class FocusRepositoryImpl implements FocusRepositoryCustom {
     public Slice<Focus> findByLibraryWithCursorByDate(
             User user,
             LocalDate focusDate,
+            LocalDateTime serverNow,
             Long cursor,
             Pageable pageable
     ) {
         LocalDateTime dayStart = focusDate.atStartOfDay();
         LocalDateTime nextDayStart = focusDate.plusDays(1).atStartOfDay();
+        LocalDateTime effectiveEnd = nextDayStart.isBefore(serverNow) ? nextDayStart : serverNow;
+        if (!dayStart.isBefore(effectiveEnd)) {
+            return new SliceImpl<>(List.of(), pageable, false);
+        }
+
         BooleanBuilder builder = new BooleanBuilder()
                 .and(focus.library.user.eq(user))
-                .and(focus.startedAt.lt(nextDayStart))
+                .and(focus.startedAt.lt(effectiveEnd))
                 .and(focus.endedAt.isNull().or(focus.endedAt.gt(dayStart)));
 
         if (cursor != null) {

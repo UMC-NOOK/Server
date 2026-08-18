@@ -21,6 +21,7 @@ public interface FocusRepository extends JpaRepository<Focus, Long>, FocusReposi
         order by f.id desc
     """)
     List<Focus> findRecentByUser(@Param("user") User user, Pageable pageable);
+    List<Focus> findAllByLibraryIdAndLibraryUserId(Long libraryId, Long userId);
     Optional<Focus> findByLibraryUserIdAndEndedAtIsNull(Long userId);
     Optional<Focus> findByIdAndLibraryUserId(Long focusId, Long userId);
     int countByLibrary(Library library);

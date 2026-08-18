@@ -99,6 +99,40 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
     }
 
     @Test
+    void findAllByLibraryIdAndLibraryUserId_filtersByOwnership() {
+        User owner = persistUser("focus-owner");
+        User otherUser = persistUser("focus-other-user");
+        Book ownerBook = persistBook("소유자 책", null);
+        Book otherBook = persistBook("다른 사용자 책", null);
+        Library ownerLibrary = persistLibrary(owner, ownerBook);
+        Library otherLibrary = persistLibrary(otherUser, otherBook);
+        Theme theme = persistTheme();
+        Focus ownedFocus = persistFocus(
+                ownerLibrary,
+                theme,
+                LocalDateTime.of(2026, 3, 1, 10, 0),
+                LocalDateTime.of(2026, 3, 1, 10, 30)
+        );
+        persistFocus(
+                otherLibrary,
+                theme,
+                LocalDateTime.of(2026, 3, 1, 11, 0),
+                LocalDateTime.of(2026, 3, 1, 11, 30)
+        );
+        em.flush();
+        em.clear();
+
+        List<Focus> ownedFocuses = focusRepository.findAllByLibraryIdAndLibraryUserId(ownerLibrary.getId(), owner.getId());
+        List<Focus> otherUsersFocuses = focusRepository.findAllByLibraryIdAndLibraryUserId(
+                ownerLibrary.getId(),
+                otherUser.getId()
+        );
+
+        assertThat(ownedFocuses).extracting(Focus::getId).containsExactly(ownedFocus.getId());
+        assertThat(otherUsersFocuses).isEmpty();
+    }
+
+    @Test
     @DisplayName("유저의 진행 중인 포커스가 없으면 빈 Optional을 반환한다")
     void findByLibraryUserIdAndEndedAtIsNull_없음() {
         // given
@@ -698,6 +732,7 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         Slice<Focus> result = focusRepository.findByLibraryWithCursorByDate(
                 user,
                 date,
+                nextDayStart,
                 null,
                 PageRequest.of(0, 10)
         );
@@ -705,6 +740,91 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         assertThat(result.getContent()).extracting(Focus::getId)
                 .containsExactly(inProgress.getId(), startedAtDayStart.getId(), acrossMidnight.getId())
                 .doesNotContain(endedAtDayStart.getId(), startedAtNextDay.getId());
+    }
+
+    @Test
+    void findByLibraryWithCursorByDate_futureWindowReturnsEmpty() {
+        User user = persistUser("future-window-owner");
+        Book book = persistBook("미래 기록 책", "book/users/1/future.jpg");
+        Library library = persistLibrary(user, book);
+        Theme theme = persistTheme();
+        LocalDateTime serverNow = LocalDateTime.of(2026, 8, 18, 12, 0);
+
+        persistFocus(library, theme, LocalDateTime.of(2026, 8, 18, 10, 0), null);
+        em.flush();
+        em.clear();
+
+        Slice<Focus> result = focusRepository.findByLibraryWithCursorByDate(
+                user,
+                LocalDate.of(2026, 8, 19),
+                serverNow,
+                null,
+                PageRequest.of(0, 1)
+        );
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.hasNext()).isFalse();
+    }
+
+    @Test
+    void findByLibraryWithCursorByDate_ongoingTodayAndPast() {
+        User user = persistUser("ongoing-window-owner");
+        Book book = persistBook("진행 중 기록 책", "book/users/1/ongoing.jpg");
+        Library library = persistLibrary(user, book);
+        Theme theme = persistTheme();
+        LocalDateTime serverNow = LocalDateTime.of(2026, 8, 18, 12, 0);
+
+        Focus pastOngoing = persistFocus(library, theme, LocalDateTime.of(2026, 8, 17, 10, 0), null);
+        Focus todayOngoing = persistFocus(library, theme, LocalDateTime.of(2026, 8, 18, 10, 0), null);
+        em.flush();
+        em.clear();
+
+        Slice<Focus> today = focusRepository.findByLibraryWithCursorByDate(
+                user,
+                LocalDate.of(2026, 8, 18),
+                serverNow,
+                null,
+                PageRequest.of(0, 10)
+        );
+        Slice<Focus> past = focusRepository.findByLibraryWithCursorByDate(
+                user,
+                LocalDate.of(2026, 8, 17),
+                serverNow,
+                null,
+                PageRequest.of(0, 10)
+        );
+
+        assertThat(today.getContent()).extracting(Focus::getId).containsExactly(todayOngoing.getId(), pastOngoing.getId());
+        assertThat(past.getContent()).extracting(Focus::getId).containsExactly(pastOngoing.getId());
+    }
+
+    @Test
+    void findByLibraryWithCursorByDate_cursorAppliedAfterServerNowOverlap() {
+        User user = persistUser("cursor-window-owner");
+        Book book = persistBook("커서 기록 책", "book/users/1/cursor.jpg");
+        Library library = persistLibrary(user, book);
+        Theme theme = persistTheme();
+        LocalDate date = LocalDate.of(2026, 8, 18);
+        LocalDateTime serverNow = LocalDateTime.of(2026, 8, 18, 12, 0);
+
+        Focus olderOngoing = persistFocus(library, theme, LocalDateTime.of(2026, 8, 18, 9, 0), null);
+        Focus currentOngoing = persistFocus(library, theme, LocalDateTime.of(2026, 8, 18, 10, 0), null);
+        Focus futureOngoing = persistFocus(library, theme, LocalDateTime.of(2026, 8, 18, 13, 0), null);
+        em.flush();
+        em.clear();
+
+        Slice<Focus> result = focusRepository.findByLibraryWithCursorByDate(
+                user,
+                date,
+                serverNow,
+                futureOngoing.getId() + 1,
+                PageRequest.of(0, 1)
+        );
+
+        assertThat(result.getContent()).extracting(Focus::getId).containsExactly(currentOngoing.getId());
+        assertThat(result.hasNext()).isTrue();
+        assertThat(result.getContent()).extracting(Focus::getId).doesNotContain(futureOngoing.getId());
+        assertThat(olderOngoing.getId()).isLessThan(currentOngoing.getId());
     }
 
     private User persistUser(String suffix) {

@@ -254,8 +254,20 @@ class LibraryServiceTest {
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
-            given(focusRepository.findDistinctFocusDatesByLibraryAndUser(10L, 1L))
-                    .willReturn(List.of(LocalDate.of(2026, 2, 1), LocalDate.of(2026, 3, 1)));
+            Focus februaryFocus = Focus.builder()
+                    .library(library)
+                    .startedAt(LocalDateTime.of(2026, 2, 1, 10, 0))
+                    .endedAt(LocalDateTime.of(2026, 2, 1, 10, 30))
+                    .durationSec(1800)
+                    .build();
+            Focus marchFocus = Focus.builder()
+                    .library(library)
+                    .startedAt(LocalDateTime.of(2026, 3, 1, 10, 0))
+                    .endedAt(LocalDateTime.of(2026, 3, 1, 10, 30))
+                    .durationSec(1800)
+                    .build();
+            given(focusRepository.findAllByLibraryIdAndLibraryUserId(10L, 1L))
+                    .willReturn(List.of(februaryFocus, marchFocus));
 
             libraryCommandService.deleteByBookId(1L, 1L);
 
@@ -282,13 +294,148 @@ class LibraryServiceTest {
 
             given(bookRepository.findById(1L)).willReturn(Optional.of(book));
             given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
-            given(focusRepository.findDistinctFocusDatesByLibraryAndUser(10L, 1L))
-                    .willReturn(List.of(LocalDate.of(2026, 2, 1)));
+            Focus focus = Focus.builder()
+                    .library(library)
+                    .startedAt(LocalDateTime.of(2026, 2, 1, 10, 0))
+                    .endedAt(LocalDateTime.of(2026, 2, 1, 10, 30))
+                    .durationSec(1800)
+                    .build();
+            given(focusRepository.findAllByLibraryIdAndLibraryUserId(10L, 1L)).willReturn(List.of(focus));
 
             libraryCommandService.deleteByBookId(1L, 1L);
 
-            verify(focusRepository).findDistinctFocusDatesByLibraryAndUser(10L, 1L);
+            verify(focusRepository).findAllByLibraryIdAndLibraryUserId(10L, 1L);
             verify(libraryRepository).delete(library);
+        }
+
+        @Test
+        @DisplayName("삭제 시 자정을 넘긴 포커스의 모든 영향 월을 포함한다")
+        void deleteByBookId_usesFocusIntervalsForAffectedMonths() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
+            Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "id", 10L);
+
+            Focus focus = Focus.builder()
+                    .library(library)
+                    .startedAt(LocalDateTime.of(2026, 1, 31, 23, 30))
+                    .endedAt(LocalDateTime.of(2026, 2, 1, 0, 30))
+                    .durationSec(3600)
+                    .build();
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+            given(focusRepository.findAllByLibraryIdAndLibraryUserId(10L, 1L)).willReturn(List.of(focus));
+
+            libraryCommandService.deleteByBookId(1L, 1L);
+
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.affectedYearMonths().equals(Set.of(
+                            java.time.YearMonth.of(2026, 1),
+                            java.time.YearMonth.of(2026, 2)
+                    ))
+            ));
+        }
+
+        @Test
+        @DisplayName("정확히 월초 자정에 종료된 포커스는 다음 달에 포함하지 않는다")
+        void deleteByBookId_exactMidnightExcludesNextMonth() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
+            Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "id", 10L);
+
+            Focus focus = Focus.builder()
+                    .library(library)
+                    .startedAt(LocalDateTime.of(2026, 3, 31, 23, 30))
+                    .endedAt(LocalDateTime.of(2026, 4, 1, 0, 0))
+                    .durationSec(1800)
+                    .build();
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+            given(focusRepository.findAllByLibraryIdAndLibraryUserId(10L, 1L)).willReturn(List.of(focus));
+
+            libraryCommandService.deleteByBookId(1L, 1L);
+
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.affectedYearMonths().equals(Set.of(java.time.YearMonth.of(2026, 3)))
+            ));
+        }
+
+        @Test
+        @DisplayName("여러 포커스가 영향을 주는 월을 중복 없이 합산한다")
+        void deleteByBookId_multiMonthUnion() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
+            Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "id", 10L);
+
+            Focus first = Focus.builder()
+                    .library(library)
+                    .startedAt(LocalDateTime.of(2026, 1, 15, 10, 0))
+                    .endedAt(LocalDateTime.of(2026, 3, 1, 10, 0))
+                    .durationSec(0)
+                    .build();
+            Focus second = Focus.builder()
+                    .library(library)
+                    .startedAt(LocalDateTime.of(2026, 3, 31, 23, 30))
+                    .endedAt(LocalDateTime.of(2026, 5, 1, 0, 0))
+                    .durationSec(0)
+                    .build();
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+            given(focusRepository.findAllByLibraryIdAndLibraryUserId(10L, 1L)).willReturn(List.of(first, second));
+
+            libraryCommandService.deleteByBookId(1L, 1L);
+
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.affectedYearMonths().equals(Set.of(
+                            java.time.YearMonth.of(2026, 1),
+                            java.time.YearMonth.of(2026, 2),
+                            java.time.YearMonth.of(2026, 3),
+                            java.time.YearMonth.of(2026, 4)
+                    ))
+            ));
+        }
+
+        @Test
+        @DisplayName("진행 중 포커스의 영향 월은 KST 서버 현재 시각으로 계산한다")
+        void deleteByBookId_ongoingUsesKstServerNow() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
+            Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "id", 10L);
+
+            Focus focus = Focus.builder()
+                    .library(library)
+                    .startedAt(LocalDateTime.of(2026, 2, 28, 23, 30))
+                    .endedAt(null)
+                    .durationSec(0)
+                    .build();
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+            given(focusRepository.findAllByLibraryIdAndLibraryUserId(10L, 1L)).willReturn(List.of(focus));
+
+            libraryCommandService.deleteByBookId(1L, 1L);
+
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.affectedYearMonths().equals(Set.of(
+                            java.time.YearMonth.of(2026, 2),
+                            java.time.YearMonth.of(2026, 3)
+                    ))
+            ));
+            verify(focusDailyTimeCalculator).affectedYearMonths(
+                    focus.getStartedAt(),
+                    null,
+                    LocalDateTime.of(2026, 3, 2, 12, 0)
+            );
         }
     }
 
@@ -744,7 +891,13 @@ class LibraryServiceTest {
 
             int size = 1;
             Slice<Focus> slice = new SliceImpl<>(List.of(focus1, focus2), PageRequest.of(0, size + 1), true);
-            given(focusRepository.findByLibraryWithCursorByDate(eq(user), eq(date), isNull(), any(PageRequest.class)))
+            given(focusRepository.findByLibraryWithCursorByDate(
+                    eq(user),
+                    eq(date),
+                    eq(LocalDateTime.of(2026, 3, 2, 12, 0)),
+                    isNull(),
+                    any(PageRequest.class)
+            ))
                     .willReturn(slice);
 
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
@@ -780,7 +933,13 @@ class LibraryServiceTest {
 
             int size = 2;
             Slice<Focus> slice = new SliceImpl<>(List.of(focus), PageRequest.of(0, size + 1), false);
-            given(focusRepository.findByLibraryWithCursorByDate(eq(user), eq(date), eq(100L), any(PageRequest.class)))
+            given(focusRepository.findByLibraryWithCursorByDate(
+                    eq(user),
+                    eq(date),
+                    eq(LocalDateTime.of(2026, 3, 2, 12, 0)),
+                    eq(100L),
+                    any(PageRequest.class)
+            ))
                     .willReturn(slice);
 
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
@@ -813,7 +972,13 @@ class LibraryServiceTest {
             ReflectionTestUtils.setField(focus, "durationSec", 900);
 
             Slice<Focus> slice = new SliceImpl<>(List.of(focus), PageRequest.of(0, 3), false);
-            given(focusRepository.findByLibraryWithCursorByDate(eq(user), eq(date), isNull(), any(PageRequest.class)))
+            given(focusRepository.findByLibraryWithCursorByDate(
+                    eq(user),
+                    eq(date),
+                    eq(LocalDateTime.of(2026, 3, 2, 12, 0)),
+                    isNull(),
+                    any(PageRequest.class)
+            ))
                     .willReturn(slice);
             given(userRepository.findById(1L)).willReturn(Optional.of(user));
 
@@ -821,6 +986,102 @@ class LibraryServiceTest {
 
             assertThat(result.items()).hasSize(1);
             assertThat(result.items().get(0).focusTime()).isEqualTo("00:10:00");
+        }
+
+        @Test
+        @DisplayName("미래 날짜의 포커스 기록 조회는 빈 결과를 반환한다")
+        void viewFocusRecordByDate_futureDateReturnsEmpty() {
+            User user = UserFixture.user();
+            LocalDate futureDate = LocalDate.of(2026, 3, 3);
+            LocalDateTime serverNow = LocalDateTime.of(2026, 3, 2, 12, 0);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(focusRepository.findByLibraryWithCursorByDate(
+                    eq(user), eq(futureDate), eq(serverNow), isNull(), any(PageRequest.class)
+            )).willReturn(new SliceImpl<>(List.of(), PageRequest.of(0, 2), false));
+
+            CursorResponse<LibraryViewDto.UserBookResponseDto, Long> result =
+                    libraryQueryService.getFocusRecordsByDate(1L, futureDate, null, 1);
+
+            assertThat(result.items()).isEmpty();
+            assertThat(result.nextCursor()).isNull();
+            assertThat(result.hasNext()).isFalse();
+            verify(presignedUrlService, never()).resolveImageUrl(anyLong(), any());
+        }
+
+        @Test
+        @DisplayName("커서가 있어도 미래 날짜의 포커스 기록 조회는 빈 결과를 반환한다")
+        void viewFocusRecordByDate_futureDateWithCursorReturnsEmpty() {
+            User user = UserFixture.user();
+            LocalDate futureDate = LocalDate.of(2026, 3, 3);
+            LocalDateTime serverNow = LocalDateTime.of(2026, 3, 2, 12, 0);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(focusRepository.findByLibraryWithCursorByDate(
+                    eq(user), eq(futureDate), eq(serverNow), eq(99L), any(PageRequest.class)
+            )).willReturn(new SliceImpl<>(List.of(), PageRequest.of(0, 2), false));
+
+            CursorResponse<LibraryViewDto.UserBookResponseDto, Long> result =
+                    libraryQueryService.getFocusRecordsByDate(1L, futureDate, 99L, 1);
+
+            assertThat(result.items()).isEmpty();
+            assertThat(result.nextCursor()).isNull();
+            assertThat(result.hasNext()).isFalse();
+            verify(presignedUrlService, never()).resolveImageUrl(anyLong(), any());
+        }
+
+        @Test
+        @DisplayName("오늘과 과거의 진행 중 포커스 기록은 페이지네이션을 유지한다")
+        void viewFocusRecordByDate_todayAndPastOngoingPreservePagination() {
+            User user = UserFixture.user();
+            LocalDate today = LocalDate.of(2026, 3, 2);
+            LocalDate past = LocalDate.of(2026, 3, 1);
+            LocalDateTime serverNow = LocalDateTime.of(2026, 3, 2, 12, 0);
+            Book todayBook = BookFixture.book();
+            Book pastBook = BookFixture.book();
+            Library todayLibrary = LibraryFixture.library(user, todayBook);
+            Library pastLibrary = LibraryFixture.library(user, pastBook);
+            Focus todayMostRecent = new Focus();
+            Focus todayOlder = new Focus();
+            Focus pastMostRecent = new Focus();
+            Focus pastOlder = new Focus();
+            ReflectionTestUtils.setField(todayMostRecent, "id", 60L);
+            ReflectionTestUtils.setField(todayMostRecent, "library", todayLibrary);
+            ReflectionTestUtils.setField(todayMostRecent, "startedAt", LocalDateTime.of(2026, 3, 2, 10, 0));
+            ReflectionTestUtils.setField(todayMostRecent, "endedAt", null);
+            ReflectionTestUtils.setField(todayOlder, "id", 59L);
+            ReflectionTestUtils.setField(todayOlder, "library", todayLibrary);
+            ReflectionTestUtils.setField(todayOlder, "startedAt", LocalDateTime.of(2026, 3, 2, 9, 0));
+            ReflectionTestUtils.setField(todayOlder, "endedAt", null);
+            ReflectionTestUtils.setField(pastMostRecent, "id", 50L);
+            ReflectionTestUtils.setField(pastMostRecent, "library", pastLibrary);
+            ReflectionTestUtils.setField(pastMostRecent, "startedAt", LocalDateTime.of(2026, 3, 1, 10, 0));
+            ReflectionTestUtils.setField(pastMostRecent, "endedAt", null);
+            ReflectionTestUtils.setField(pastOlder, "id", 49L);
+            ReflectionTestUtils.setField(pastOlder, "library", pastLibrary);
+            ReflectionTestUtils.setField(pastOlder, "startedAt", LocalDateTime.of(2026, 3, 1, 9, 0));
+            ReflectionTestUtils.setField(pastOlder, "endedAt", null);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(focusRepository.findByLibraryWithCursorByDate(
+                    eq(user), eq(today), eq(serverNow), isNull(), any(PageRequest.class)
+            )).willReturn(new SliceImpl<>(List.of(todayMostRecent, todayOlder), PageRequest.of(0, 2), true));
+            given(focusRepository.findByLibraryWithCursorByDate(
+                    eq(user), eq(past), eq(serverNow), eq(51L), any(PageRequest.class)
+            )).willReturn(new SliceImpl<>(List.of(pastMostRecent, pastOlder), PageRequest.of(0, 2), true));
+
+            CursorResponse<LibraryViewDto.UserBookResponseDto, Long> todayResult =
+                    libraryQueryService.getFocusRecordsByDate(1L, today, null, 1);
+            CursorResponse<LibraryViewDto.UserBookResponseDto, Long> pastResult =
+                    libraryQueryService.getFocusRecordsByDate(1L, past, 51L, 1);
+
+            assertThat(todayResult.items()).singleElement()
+                    .extracting(LibraryViewDto.UserBookResponseDto::focusTime)
+                    .isEqualTo("02:00:00");
+            assertThat(todayResult.nextCursor()).isEqualTo(60L);
+            assertThat(todayResult.hasNext()).isTrue();
+            assertThat(pastResult.items()).singleElement()
+                    .extracting(LibraryViewDto.UserBookResponseDto::focusTime)
+                    .isEqualTo("14:00:00");
+            assertThat(pastResult.nextCursor()).isEqualTo(50L);
+            assertThat(pastResult.hasNext()).isTrue();
         }
     }
 
