@@ -24,21 +24,24 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.YearMonth;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,8 +63,10 @@ class FocusServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
-    @InjectMocks
     private FocusService focusService;
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final LocalDateTime DEFAULT_NOW = LocalDateTime.of(2026, 3, 22, 14, 34, 26);
 
     private User user;
     private Library library;
@@ -75,6 +80,23 @@ class FocusServiceTest {
         library = LibraryFixture.library(user, book);
         theme = ThemeFixture.theme();
         focus = FocusFixture.focus(library, theme);
+        useClock(DEFAULT_NOW);
+    }
+
+    private void useClock(LocalDateTime now) {
+        Clock clock = Clock.fixed(now.atZone(KST).toInstant(), KST);
+        focusService = new FocusService(
+                focusRepository,
+                libraryRepository,
+                themeRepository,
+                timelineCommandService,
+                eventPublisher,
+                clock
+        );
+    }
+
+    private void setFocusStartedAt(LocalDateTime startedAt) {
+        ReflectionTestUtils.setField(focus, "startedAt", startedAt);
     }
 
     @Nested
@@ -109,7 +131,7 @@ class FocusServiceTest {
             assertThat(result.author()).isEqualTo("권혁일");
             assertThat(result.themeId()).isEqualTo(theme.getId());
             assertThat(result.themeName()).isEqualTo("THEME1");
-            assertThat(result.startedAt()).isNotNull();
+            assertThat(result.startedAt()).isEqualTo(DEFAULT_NOW);
             assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
         }
 
@@ -191,7 +213,7 @@ class FocusServiceTest {
                     event instanceof LibraryCacheInvalidateEvent cacheEvent
                             && cacheEvent.userId().equals(user.getId())
                             && cacheEvent.evictOnboardingGoal()
-                            && cacheEvent.affectedYearMonths().isEmpty()
+                            && cacheEvent.affectedYearMonths().equals(Set.of(YearMonth.of(2026, 3)))
             ));
         }
 
@@ -211,7 +233,97 @@ class FocusServiceTest {
             assertThat(focus.getEndPage()).isEqualTo(45);
             assertThat(result.readingStatus()).isEqualTo("READING");
             verify(timelineCommandService).appendFocusCompleted(focus);
-            verify(eventPublisher, never()).publishEvent(any());
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.userId().equals(user.getId())
+                            && !cacheEvent.evictOnboardingGoal()
+                            && cacheEvent.affectedYearMonths().equals(Set.of(YearMonth.of(2026, 3)))
+            ));
+        }
+
+        @Test
+        @DisplayName("성공 - 종료의 기존 부수 효과를 유지한다")
+        void 성공_종료의기존부수효과유지() {
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 45, false);
+
+            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+                    .willReturn(Optional.of(focus));
+
+            FocusResponseDto.FocusEnd result = focusService.endFocus(user.getId(), request);
+
+            assertThat(focus.getEndedAt()).isEqualTo(result.endedAt());
+            assertThat(library.getFocusSec()).isEqualTo(result.durationSec().longValue());
+            assertThat(library.getPage()).isEqualTo(45);
+            assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
+            verify(timelineCommandService, times(1)).appendFocusCompleted(focus);
+        }
+
+        @Test
+        @DisplayName("성공 - 월초 자정 종료는 새 달 캐시를 무효화하지 않는다")
+        void 성공_월초자정종료는새달제외() {
+            setFocusStartedAt(LocalDateTime.of(2026, 3, 31, 23, 30));
+            useClock(LocalDateTime.of(2026, 4, 1, 0, 0));
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 45, false);
+
+            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+                    .willReturn(Optional.of(focus));
+
+            focusService.endFocus(user.getId(), request);
+
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.userId().equals(user.getId())
+                            && !cacheEvent.evictOnboardingGoal()
+                            && cacheEvent.affectedYearMonths().equals(Set.of(YearMonth.of(2026, 3)))
+            ));
+        }
+
+        @Test
+        @DisplayName("성공 - 연도 경계 세션은 양쪽 달 캐시를 무효화한다")
+        void 성공_연도경계세션은양쪽달무효화() {
+            setFocusStartedAt(LocalDateTime.of(2025, 12, 31, 23, 30));
+            useClock(LocalDateTime.of(2026, 1, 1, 0, 30));
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 45, false);
+
+            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+                    .willReturn(Optional.of(focus));
+
+            focusService.endFocus(user.getId(), request);
+
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.userId().equals(user.getId())
+                            && !cacheEvent.evictOnboardingGoal()
+                            && cacheEvent.affectedYearMonths().equals(Set.of(
+                                    YearMonth.of(2025, 12),
+                                    YearMonth.of(2026, 1)
+                            ))
+            ));
+        }
+
+        @Test
+        @DisplayName("성공 - 여러 달 세션은 양의 겹침을 가진 모든 달 캐시를 무효화한다")
+        void 성공_여러달세션은모든겹침달무효화() {
+            setFocusStartedAt(LocalDateTime.of(2026, 1, 15, 10, 0));
+            useClock(LocalDateTime.of(2026, 4, 2, 10, 0));
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 45, false);
+
+            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+                    .willReturn(Optional.of(focus));
+
+            focusService.endFocus(user.getId(), request);
+
+            verify(eventPublisher).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.userId().equals(user.getId())
+                            && !cacheEvent.evictOnboardingGoal()
+                            && cacheEvent.affectedYearMonths().equals(Set.of(
+                                    YearMonth.of(2026, 1),
+                                    YearMonth.of(2026, 2),
+                                    YearMonth.of(2026, 3),
+                                    YearMonth.of(2026, 4)
+                            ))
+            ));
         }
 
         @Test

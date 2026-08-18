@@ -20,7 +20,11 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +36,7 @@ public class FocusService {
     private final ThemeRepository themeRepository;
     private final TimelineCommandService timelineCommandService;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     public FocusResponseDto.FocusStart startFocus(User user, FocusRequestDto.FocusStart request) {
 
@@ -53,7 +58,7 @@ public class FocusService {
         Focus focus = Focus.builder()
                 .library(library)
                 .theme(theme)
-                .startedAt(LocalDateTime.now())
+                .startedAt(LocalDateTime.now(clock))
                 .endedAt(null)
                 .durationSec(0)
                 .build();
@@ -76,21 +81,42 @@ public class FocusService {
             throw new CustomException(FocusErrorCode.FOCUS_ALREADY_ENDED);
         }
 
-        focus.endFocus(LocalDateTime.now(), request.page());
+        LocalDateTime endedAt = LocalDateTime.now(clock);
+        focus.endFocus(endedAt, request.page());
 
         Library library = focus.getLibrary();
         library.recordFocus(focus.getDurationSec());
         library.recordPage(request.page());
 
-        if (Boolean.TRUE.equals(request.isFinished())) {
+        boolean isFinished = Boolean.TRUE.equals(request.isFinished());
+        if (isFinished) {
             library.updateStatus(ReadingStatus.FINISHED);
-            eventPublisher.publishEvent(LibraryCacheInvalidateEvent.onboardingGoal(userId));
         } else if (library.getReadingStatus() == ReadingStatus.BEFORE) {
             library.updateStatus(ReadingStatus.READING);
         }
 
+        Set<YearMonth> affectedYearMonths = affectedYearMonths(focus.getStartedAt(), endedAt);
+        eventPublisher.publishEvent(isFinished
+                ? LibraryCacheInvalidateEvent.monthlyAndOnboardingGoal(userId, affectedYearMonths)
+                : LibraryCacheInvalidateEvent.monthly(userId, affectedYearMonths));
+
         timelineCommandService.appendFocusCompleted(focus);
 
         return FocusConverter.toFocusEndResponse(focus);
+    }
+
+    private Set<YearMonth> affectedYearMonths(LocalDateTime startedAt, LocalDateTime endedAt) {
+        if (!startedAt.isBefore(endedAt)) {
+            return Set.of();
+        }
+
+        YearMonth lastAffectedYearMonth = YearMonth.from(endedAt.minusNanos(1));
+        Set<YearMonth> affectedYearMonths = new HashSet<>();
+        for (YearMonth yearMonth = YearMonth.from(startedAt);
+             !yearMonth.isAfter(lastAffectedYearMonth);
+             yearMonth = yearMonth.plusMonths(1)) {
+            affectedYearMonths.add(yearMonth);
+        }
+        return affectedYearMonths;
     }
 }
