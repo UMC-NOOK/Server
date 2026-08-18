@@ -22,6 +22,7 @@ import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.library.repository.dto.LibraryBookQueryResult;
+import app.nook.library.repository.dto.LibraryStatusCount;
 import app.nook.library.util.LibraryBookCursorCodec;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.service.TimelineCommandService;
@@ -395,8 +396,8 @@ class LibraryServiceTest {
     class ViewBooksByStatus {
 
         @Test
-        @DisplayName("첫 조회면 전체 개수를 포함한다")
-        void viewBooksByStatus_첫조회_전체개수포함() {
+        @DisplayName("첫 조회도 목록만 반환하고 전체 개수를 조회하지 않는다")
+        void viewBooksByStatus_첫조회_목록만반환() {
             User user = UserFixture.user();
 
             Book book1 = BookFixture.book();
@@ -426,7 +427,6 @@ class LibraryServiceTest {
             Slice<Library> slice = new SliceImpl<>(List.of(library1, library2), PageRequest.of(0, size + 1), true);
 
             given(libraryRepository.findByUserIdAndStatusWithCursor(anyLong(), any(), any(), any())).willReturn(slice);
-            given(libraryRepository.countByUserIdAndReadingStatus(anyLong(), any())).willReturn(10L);
             willReturn("https://r2.example.com/cover1.png")
                     .given(presignedUrlService)
                     .resolveImageUrl(1L, "book/users/1/cover1.png");
@@ -435,38 +435,28 @@ class LibraryServiceTest {
                     libraryQueryService.getBooksByStatus(1L, ReadingStatus.READING, null, size);
 
             assertThat(response.readingStatus()).isEqualTo(ReadingStatus.READING);
-            assertThat(response.totalBookNum()).isEqualTo(10);
             assertThat(response.bookItems().items()).hasSize(1);
             assertThat(response.bookItems().items().get(0).coverUrl())
                     .isEqualTo("https://r2.example.com/cover1.png");
-            verify(libraryRepository).countByUserIdAndReadingStatus(1L, ReadingStatus.READING);
+            verify(libraryRepository, never()).countByUserIdGroupByReadingStatus(anyLong());
             verify(presignedUrlService).resolveImageUrl(1L, "book/users/1/cover1.png");
         }
 
         @Test
-        @DisplayName("커서 조회면 전체 개수를 포함하지 않는다")
-        void viewBooksByStatus_커서조회_전체개수미포함() {
-            User user = UserFixture.user();
-            Book book = BookFixture.book();
-            ReflectionTestUtils.setField(book, "id", 1L);
-            ReflectionTestUtils.setField(book, "author", "작가");
-            ReflectionTestUtils.setField(book, "coverImageKey", "https://example.com/cover.jpg");
+        @DisplayName("상태별 책 개수는 한 번의 집계 결과로 반환하고 없는 상태는 0으로 반환한다")
+        void getBookCountsByStatus_상태별개수반환() {
+            given(libraryRepository.countByUserIdGroupByReadingStatus(1L)).willReturn(List.of(
+                    new LibraryStatusCount(ReadingStatus.BEFORE, 3L),
+                    new LibraryStatusCount(ReadingStatus.READING, 1L)
+            ));
 
-            Library library = LibraryFixture.library(user, book);
-            ReflectionTestUtils.setField(library, "id", 8L);
-            ReflectionTestUtils.setField(library, "readingStatus", ReadingStatus.READING);
-            ReflectionTestUtils.setField(library, "startedAt", LocalDate.of(2025, 1, 1));
+            LibraryViewDto.StatusBookCountsResponseDto response =
+                    libraryQueryService.getBookCountsByStatus(1L);
 
-            int size = 1;
-            Slice<Library> slice = new SliceImpl<>(List.of(library), PageRequest.of(0, size + 1), false);
-
-            given(libraryRepository.findByUserIdAndStatusWithCursor(anyLong(), any(), anyLong(), any())).willReturn(slice);
-
-            LibraryViewDto.StatusBookResponseDto response =
-                    libraryQueryService.getBooksByStatus(1L, ReadingStatus.READING, 100L, size);
-
-            assertThat(response.totalBookNum()).isZero();
-            verify(libraryRepository, never()).countByUserIdAndReadingStatus(anyLong(), any());
+            assertThat(response.before()).isEqualTo(3L);
+            assertThat(response.reading()).isEqualTo(1L);
+            assertThat(response.finished()).isZero();
+            verify(libraryRepository).countByUserIdGroupByReadingStatus(1L);
         }
     }
 

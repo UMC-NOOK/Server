@@ -84,12 +84,10 @@ public class LibraryConverter {
 
     public static LibraryViewDto.StatusBookResponseDto toStatusBookResponse(
             ReadingStatus readingStatus,
-            int totalBookNum,
             CursorResponse<LibraryViewDto.UserStatusBookItem, Long> cursorResponse
     ) {
         return new LibraryViewDto.StatusBookResponseDto(
                 readingStatus,
-                totalBookNum,
                 cursorResponse
         );
     }

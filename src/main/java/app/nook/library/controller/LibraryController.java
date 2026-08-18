@@ -82,6 +82,16 @@ public class LibraryController {
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 
+    // 서재 상태별 책 개수 조회
+    @GetMapping("/status-counts")
+    public ApiResponse<LibraryViewDto.StatusBookCountsResponseDto> viewBookCountsByStatus(
+            @CurrentUser User user
+    ) {
+        LibraryViewDto.StatusBookCountsResponseDto response =
+                libraryQueryService.getBookCountsByStatus(user.getId());
+        return ApiResponse.onSuccess(response, SuccessCode.OK);
+    }
+
     // 서재 책 개수 조회
     @GetMapping("/count")
     public ApiResponse<LibraryViewDto.BookCountResponseDto> viewBookCount(
