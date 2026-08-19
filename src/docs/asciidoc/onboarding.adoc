@@ -8,6 +8,14 @@ include::{snippets}/onboarding-controller-test/온보딩완료_성공/http-respo
 include::{snippets}/onboarding-controller-test/온보딩완료_성공/response-fields.adoc[]
 include::{snippets}/onboarding-controller-test/온보딩완료_성공/request-fields.adoc[]
 
+==== 실패 케이스
+
+include::{snippets}/onboarding-controller-test/온보딩완료_실패_categories누락/http-response.adoc[]
+include::{snippets}/onboarding-controller-test/온보딩완료_실패_goal범위초과/http-response.adoc[]
+include::{snippets}/common-error-response/validation/response-fields.adoc[]
+include::{snippets}/onboarding-controller-test/인증없음_complete_401/http-response.adoc[]
+include::{snippets}/common-error-response/unauthorized/response-fields.adoc[]
+
 === 온보딩 상태 조회
 현재 사용자가 온보딩이 필요한 상태인지 조회합니다.
  +
@@ -35,3 +43,12 @@ include::{snippets}/onboarding-controller-test/독서목표_수정_성공/http-r
 include::{snippets}/onboarding-controller-test/독서목표_수정_성공/request-fields.adoc[]
 include::{snippets}/onboarding-controller-test/독서목표_수정_성공/http-response.adoc[]
 include::{snippets}/onboarding-controller-test/독서목표_수정_성공/response-fields.adoc[]
+
+==== 목표값 오류 및 인증 실패
+
+include::{snippets}/onboarding-controller-test/독서목표_수정_실패_goal0/http-response.adoc[]
+include::{snippets}/common-error-response/validation/response-fields.adoc[]
+include::{snippets}/onboarding-controller-test/인증없음_goal_get_401/http-response.adoc[]
+include::{snippets}/onboarding-controller-test/인증없음_goal_patch_401/http-response.adoc[]
+include::{snippets}/onboarding-controller-test/인증없음_status_401/http-response.adoc[]
+include::{snippets}/common-error-response/unauthorized/response-fields.adoc[]

@@ -5,6 +5,9 @@
 :toclevels: 2
 :seclinks:
 
+== 공통 오류 응답
+include::error.adoc[]
+
 == 사용자
 include::user.adoc[]
 

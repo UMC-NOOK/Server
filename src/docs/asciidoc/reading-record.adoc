@@ -22,6 +22,13 @@ include::{snippets}/record-controller-test/기록_수정_성공/request-fields.a
 include::{snippets}/record-controller-test/기록_수정_성공/http-response.adoc[]
 include::{snippets}/record-controller-test/기록_수정_성공/response-fields.adoc[]
 
+==== 실패 케이스
+
+include::{snippets}/record-controller-test/기록_수정_실패_기록없음/http-response.adoc[]
+include::{snippets}/common-error-response/not-found/response-fields.adoc[]
+include::{snippets}/record-controller-test/기록_수정_실패_권한없음/http-response.adoc[]
+include::{snippets}/common-error-response/forbidden/response-fields.adoc[]
+
 === 기록 삭제
 삭제된 기록 ID를 함께 반환합니다.
 include::{snippets}/record-controller-test/기록_삭제_성공/http-request.adoc[]

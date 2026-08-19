@@ -37,24 +37,28 @@ include::{snippets}/library-controller-test/서재_상태별_책_조회_성공/r
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_status_누락/http-request.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_status_누락/request-headers.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_status_누락/http-response.adoc[]
+include::{snippets}/common-error-response/bad-request/response-fields.adoc[]
 
 ===== cursor 음수 (400)
 
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_cursor_음수/http-request.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_cursor_음수/request-headers.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_cursor_음수/http-response.adoc[]
+include::{snippets}/common-error-response/bad-request/response-fields.adoc[]
 
 ===== size 최소값 미만 (400)
 
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_size_최소값미만/http-request.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_size_최소값미만/request-headers.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_size_최소값미만/http-response.adoc[]
+include::{snippets}/common-error-response/bad-request/response-fields.adoc[]
 
 ===== size 최대값 초과 (400)
 
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_size_최대값초과/http-request.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_size_최대값초과/request-headers.adoc[]
 include::{snippets}/library-controller-test/서재_상태별_책_조회_실패_size_최대값초과/http-response.adoc[]
+include::{snippets}/common-error-response/bad-request/response-fields.adoc[]
 
 === 서재 전체 책 목록 조회(독서기록에서 진입)
 
@@ -75,11 +79,13 @@ include::{snippets}/view-all-books/서재_전체_책_목록_조회_빈목록이�
 
 include::{snippets}/view-all-books/서재_전체_책_목록_조회_실패_cursor_형식오류/http-request.adoc[]
 include::{snippets}/view-all-books/서재_전체_책_목록_조회_실패_cursor_형식오류/http-response.adoc[]
+include::{snippets}/common-error-response/bad-request/response-fields.adoc[]
 
 ===== size 최대값 초과 (400)
 
 include::{snippets}/view-all-books/서재_전체_책_목록_조회_실패_size_최대값초과/http-request.adoc[]
 include::{snippets}/view-all-books/서재_전체_책_목록_조회_실패_size_최대값초과/http-response.adoc[]
+include::{snippets}/common-error-response/bad-request/response-fields.adoc[]
 
 === 읽기 전 상태의 책 5권 조회
 
@@ -113,6 +119,7 @@ include::{snippets}/success/focus-record-by-date/response-fields.adoc[]
 include::{snippets}/failure/invalid-date-format/http-request.adoc[]
 include::{snippets}/failure/invalid-date-format/request-headers.adoc[]
 include::{snippets}/failure/invalid-date-format/http-response.adoc[]
+include::{snippets}/common-error-response/bad-request/response-fields.adoc[]
 
 === 최근 포커스 기록 조회 (홈-이어서 포커스하기)
 
