@@ -92,6 +92,7 @@
           mockMvc.perform(get("/api/v1/books/{isbn13}", isbn13).header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.title").value("채식주의자"))
+                  .andExpect(jsonPath("$.result.publicationDate").value("2007.10.30"))
                   .andExpect(jsonPath("$.result.bookShelfId").value(nullValue()))
                   .andExpect(jsonPath("$.result.libraryId").value(nullValue()))
                   .andExpect(jsonPath("$.result.readingStatus").value("UNREGISTERED"))
@@ -104,7 +105,7 @@
                                   fieldWithPath("result.title").description("도서 제목"),
                                   fieldWithPath("result.author").description("저자"),
                                   fieldWithPath("result.publisher").description("출판사"),
-                                  fieldWithPath("result.publicationDate").description("출판일"),
+                                  fieldWithPath("result.publicationDate").description("출판일 (yyyy.MM.dd)"),
                                   fieldWithPath("result.mallType").description("상품 유형"),
                                   fieldWithPath("result.mallTypeCode").description("상품 유형 코드"),
                                   fieldWithPath("result.category").description("카테고리"),
@@ -169,6 +170,7 @@
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.bookId").value(1L))
                   .andExpect(jsonPath("$.result.title").value("테스트책"))
+                  .andExpect(jsonPath("$.result.publicationDate").value("2023.03.21"))
                   .andExpect(jsonPath("$.result.bookShelfId").value(3L))
                   .andExpect(jsonPath("$.result.libraryId").value(3L))
                   .andExpect(jsonPath("$.result.readingStatus").value("READING"))
@@ -181,7 +183,7 @@
                                   fieldWithPath("result.title").description("도서 제목"),
                                   fieldWithPath("result.author").description("저자"),
                                   fieldWithPath("result.publisher").description("출판사").optional(),
-                                  fieldWithPath("result.publicationDate").description("출판일").optional(),
+                                  fieldWithPath("result.publicationDate").description("출판일 (yyyy.MM.dd)").optional(),
                                   fieldWithPath("result.mallType").description("상품 유형").optional(),
                                   fieldWithPath("result.mallTypeCode").description("상품 유형 코드").optional(),
                                   fieldWithPath("result.category").description("카테고리").optional(),
@@ -368,6 +370,7 @@
                           .header(AUTH_HEADER, AUTH_TOKEN))
                   .andExpect(status().isOk())
                   .andExpect(jsonPath("$.result.bookId").value(101L))
+                  .andExpect(jsonPath("$.result.publicationDate").value("2012-02-03"))
                   .andExpect(jsonPath("$.result.bookShelfId").value(5L))
                   .andExpect(jsonPath("$.result.libraryId").value(5L))
                   .andExpect(jsonPath("$.result.readingStatus").value("READING"))
