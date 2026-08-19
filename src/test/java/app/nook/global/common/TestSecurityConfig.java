@@ -1,8 +1,9 @@
 package app.nook.global.common;
 
+import app.nook.global.response.AuthErrorCode;
+import app.nook.user.handler.SecurityErrorResponseWriter;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -19,7 +20,7 @@ public class TestSecurityConfig {
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) ->
-                                response.sendError(HttpStatus.UNAUTHORIZED.value()))
+                                SecurityErrorResponseWriter.write(response, AuthErrorCode.UNAUTHORIZED))
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()

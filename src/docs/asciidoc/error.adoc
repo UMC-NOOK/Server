@@ -1,0 +1,46 @@
+=== 공통 오류 응답
+
+모든 오류 응답은 `isSuccess`, `code`, `message`, `result` 형식의 `ApiResponse`를 사용합니다.
+일반 오류의 `result`는 응답에서 제외되며, 요청값 검증 오류는 필드별 상세 오류 정보를 반환할 수 있습니다.
+
+==== 잘못된 요청 (400)
+
+include::{snippets}/common-error-response/bad-request/http-request.adoc[]
+include::{snippets}/common-error-response/bad-request/http-response.adoc[]
+include::{snippets}/common-error-response/bad-request/response-fields.adoc[]
+
+==== 요청값 검증 실패 (400)
+
+include::{snippets}/common-error-response/validation/http-request.adoc[]
+include::{snippets}/common-error-response/validation/http-response.adoc[]
+include::{snippets}/common-error-response/validation/response-fields.adoc[]
+
+==== 인증 필요 (401)
+
+include::{snippets}/common-error-response/unauthorized/http-request.adoc[]
+include::{snippets}/common-error-response/unauthorized/http-response.adoc[]
+include::{snippets}/common-error-response/unauthorized/response-fields.adoc[]
+
+==== 권한 없음 (403)
+
+include::{snippets}/common-error-response/forbidden/http-request.adoc[]
+include::{snippets}/common-error-response/forbidden/http-response.adoc[]
+include::{snippets}/common-error-response/forbidden/response-fields.adoc[]
+
+==== 리소스 없음 (404)
+
+include::{snippets}/common-error-response/not-found/http-request.adoc[]
+include::{snippets}/common-error-response/not-found/http-response.adoc[]
+include::{snippets}/common-error-response/not-found/response-fields.adoc[]
+
+==== 요청 충돌 (409)
+
+include::{snippets}/common-error-response/conflict/http-request.adoc[]
+include::{snippets}/common-error-response/conflict/http-response.adoc[]
+include::{snippets}/common-error-response/conflict/response-fields.adoc[]
+
+==== 서버 오류 (500)
+
+include::{snippets}/common-error-response/internal-server-error/http-request.adoc[]
+include::{snippets}/common-error-response/internal-server-error/http-response.adoc[]
+include::{snippets}/common-error-response/internal-server-error/response-fields.adoc[]

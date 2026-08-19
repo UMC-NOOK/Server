@@ -19,6 +19,12 @@ include::{snippets}/image-upload-controller-test/단건_업로드_URL_발급_성
 include::{snippets}/image-upload-controller-test/단건_업로드_URL_발급_성공/http-response.adoc[]
 include::{snippets}/image-upload-controller-test/단건_업로드_URL_발급_성공/response-fields.adoc[]
 
+==== 실패 케이스
+
+include::{snippets}/failure/단건_업로드_url_발급_실패_유효하지않은_업로드타입/http-response.adoc[]
+include::{snippets}/failure/단건_업로드_url_발급_실패_유효하지않은_파일타입/http-response.adoc[]
+include::{snippets}/common-error-response/bad-request/response-fields.adoc[]
+
 단건 업로드도 프론트 흐름은 동일합니다.
 
 - 먼저 업로드 URL 발급 API 호출
