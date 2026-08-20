@@ -1,3 +1,21 @@
+=== 최근 열람 도서 조회 (마이페이지)
+최근 열람 도서를 최신 열람 순으로 조회합니다.
+ +
+최대 5건을 반환하며, 열람 이력이 없으면 ``result: []``를 반환합니다.
+
+include::{snippets}/book-controller-test/최근_열람_도서_조회_성공/http-request.adoc[]
+include::{snippets}/book-controller-test/최근_열람_도서_조회_성공/http-response.adoc[]
+include::{snippets}/book-controller-test/최근_열람_도서_조회_성공/response-fields.adoc[]
+
+==== 열람 이력이 없는 경우
+
+include::{snippets}/book-controller-test/최근_열람_도서_조회_이력없음/http-response.adoc[]
+
+==== 인증 실패 (401)
+
+include::{snippets}/book-controller-test/최근_열람_도서_조회_미인증/http-response.adoc[]
+include::{snippets}/common-error-response/unauthorized/response-fields.adoc[]
+
 === 도서 상세 조회 (ISBN)
 ISBN13으로 도서 상세 정보를 조회합니다.
  +

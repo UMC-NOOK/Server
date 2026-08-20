@@ -8,6 +8,7 @@
   import app.nook.book.exception.BookErrorCode;
   import app.nook.book.facade.UserBookFacade;
   import app.nook.book.service.BookService;
+  import app.nook.book.service.BookViewHistoryService;
   import app.nook.global.common.AbstractWebMvcRestDocsTests;
   import app.nook.global.common.security.WithCustomUser;
   import app.nook.global.config.WebSecurityConfig;
@@ -29,6 +30,7 @@
   import java.util.List;
 
   import static org.hamcrest.Matchers.nullValue;
+  import static org.hamcrest.Matchers.aMapWithSize;
   import static org.mockito.ArgumentMatchers.*;
   import static org.mockito.BDDMockito.given;
   import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
@@ -60,6 +62,69 @@
 
       @MockitoBean
       private UserBookFacade userBookFacade;
+
+      @MockitoBean
+      private BookViewHistoryService bookViewHistoryService;
+
+      @Test
+      @WithCustomUser
+      @DisplayName("최근 열람 도서 조회 성공 - 정확한 네 필드 응답")
+      void 최근_열람_도서_조회_성공() throws Exception {
+          List<BookResponseDto.RecentlyViewedBookDto> response = List.of(
+                  new BookResponseDto.RecentlyViewedBookDto(
+                          101L, "채식주의자", "한강", "http://example.com/cover1.jpg"),
+                  new BookResponseDto.RecentlyViewedBookDto(
+                          102L, "소년이 온다", "한강", "http://example.com/cover2.jpg")
+          );
+          given(bookViewHistoryService.getRecentlyViewedBooks(any())).willReturn(response);
+
+          mockMvc.perform(get("/api/v1/books/recently-viewed")
+                          .header(AUTH_HEADER, AUTH_TOKEN))
+                  .andExpect(status().isOk())
+                  .andExpect(jsonPath("$", aMapWithSize(4)))
+                  .andExpect(jsonPath("$.isSuccess").value(true))
+                  .andExpect(jsonPath("$.code").value("SUCCESS-200"))
+                  .andExpect(jsonPath("$.message").isNotEmpty())
+                  .andExpect(jsonPath("$.result", org.hamcrest.Matchers.hasSize(2)))
+                  .andExpect(jsonPath("$.result[0]", aMapWithSize(4)))
+                  .andExpect(jsonPath("$.result[0].bookId").value(101L))
+                  .andExpect(jsonPath("$.result[0].title").value("채식주의자"))
+                  .andExpect(jsonPath("$.result[0].author").value("한강"))
+                  .andExpect(jsonPath("$.result[0].coverImageUrl").value("http://example.com/cover1.jpg"))
+                  .andExpect(jsonPath("$.result[1]", aMapWithSize(4)))
+                  .andExpect(jsonPath("$.result[1].bookId").value(102L))
+                  .andExpect(jsonPath("$.result[1].coverImageUrl").value("http://example.com/cover2.jpg"))
+                  .andDo(documentWithAuth(
+                          "{class-name}/{method-name}",
+                          responseFields(ApiResponseSnippet.withResult(
+                                  fieldWithPath("result[].bookId").description("도서 ID"),
+                                  fieldWithPath("result[].title").description("도서 제목"),
+                                  fieldWithPath("result[].author").description("저자"),
+                                  fieldWithPath("result[].coverImageUrl").description("표지 이미지 URL").optional()
+                          ))
+                  ));
+      }
+
+      @Test
+      @WithCustomUser
+      @DisplayName("최근 열람 도서가 없으면 빈 result 배열을 반환한다")
+      void 최근_열람_도서_조회_이력없음() throws Exception {
+          given(bookViewHistoryService.getRecentlyViewedBooks(any())).willReturn(Collections.emptyList());
+
+          mockMvc.perform(get("/api/v1/books/recently-viewed")
+                          .header(AUTH_HEADER, AUTH_TOKEN))
+                  .andExpect(status().isOk())
+                  .andExpect(jsonPath("$", aMapWithSize(4)))
+                  .andExpect(jsonPath("$.result").isArray())
+                  .andExpect(jsonPath("$.result", org.hamcrest.Matchers.hasSize(0)));
+      }
+
+      @Test
+      @DisplayName("최근 열람 도서 조회는 인증이 필요하다")
+      void 최근_열람_도서_조회_미인증() throws Exception {
+          mockMvc.perform(get("/api/v1/books/recently-viewed"))
+                  .andExpect(status().isUnauthorized());
+      }
 
       @Test
       @WithCustomUser

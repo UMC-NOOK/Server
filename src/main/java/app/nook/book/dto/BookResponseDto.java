@@ -72,4 +72,11 @@ public class BookResponseDto {
             Integer nextCursor,
             List<BookSearchDto> books
     ) {}
+
+    public record RecentlyViewedBookDto(
+            Long bookId,
+            String title,
+            String author,
+            String coverImageUrl
+    ) {}
 }
