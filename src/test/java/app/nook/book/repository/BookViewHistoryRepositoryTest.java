@@ -7,14 +7,21 @@ import app.nook.global.config.QueryDslConfig;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +40,9 @@ class BookViewHistoryRepositoryTest extends AbstractPostgresContainerTests {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private User testUser;
     private Book firstBook;
@@ -75,41 +85,54 @@ class BookViewHistoryRepositoryTest extends AbstractPostgresContainerTests {
     }
 
     @Test
-    @DisplayName("최근 조회 이력을 최신순으로 조회")
-    void findAllRecent_최신순_조회() {
+    @DisplayName("최근 조회 이력은 사용자별 최신 5건을 동률 시 ID 내림차순과 초기화된 도서로 조회")
+    void findAllRecent_사용자별_최신5건_동률시_ID내림차순_도서FetchJoin() {
         // given
-        BookViewHistory firstHistory = bookViewHistoryRepository.save(createBookViewHistory(firstBook));
-        BookViewHistory secondHistory = bookViewHistoryRepository.save(createBookViewHistory(secondBook));
-
-        // when
-        List<BookViewHistory> histories = bookViewHistoryRepository.findAllRecent(testUser);
-
-        // then
-        assertThat(histories).hasSize(2);
-        assertThat(histories.get(0).getId()).isEqualTo(secondHistory.getId());
-        assertThat(histories.get(1).getId()).isEqualTo(firstHistory.getId());
-    }
-
-    @Test
-    @DisplayName("다른 유저의 도서 조회 이력은 조회되지 않음")
-    void 다른유저_도서조회이력_분리() {
-        // given
+        List<BookViewHistory> userHistories = new ArrayList<>();
+        for (int index = 1; index <= 7; index++) {
+            Book book = bookRepository.save(createBook("사용자 책 " + index));
+            userHistories.add(bookViewHistoryRepository.save(createBookViewHistory(book)));
+        }
         User anotherUser = userRepository.save(createUser("another@example.com", "provider-2"));
-        bookViewHistoryRepository.save(createBookViewHistory(firstBook));
-        bookViewHistoryRepository.save(BookViewHistory.builder()
+        BookViewHistory anotherUserHistory = bookViewHistoryRepository.save(BookViewHistory.builder()
                 .user(anotherUser)
-                .book(secondBook)
+                .book(bookRepository.save(createBook("다른 사용자 책")))
                 .build());
 
+        entityManager.flush();
+        LocalDateTime sameModifiedDate = LocalDateTime.of(2026, 8, 20, 12, 0);
+        entityManager.createNativeQuery("UPDATE book_view_history SET modified_date = :modifiedDate")
+                .setParameter("modifiedDate", Timestamp.valueOf(sameModifiedDate))
+                .executeUpdate();
+        entityManager.clear();
+
+        List<Long> expectedHistoryIds = userHistories.stream()
+                .map(BookViewHistory::getId)
+                .sorted(Comparator.reverseOrder())
+                .toList();
+
         // when
-        List<BookViewHistory> testUserHistories = bookViewHistoryRepository.findAllRecent(testUser);
-        List<BookViewHistory> anotherUserHistories = bookViewHistoryRepository.findAllRecent(anotherUser);
+        List<BookViewHistory> histories = bookViewHistoryRepository.findAllRecent(testUser, PageRequest.of(0, 5));
 
         // then
-        assertThat(testUserHistories).hasSize(1);
-        assertThat(testUserHistories.get(0).getBook()).isEqualTo(firstBook);
-        assertThat(anotherUserHistories).hasSize(1);
-        assertThat(anotherUserHistories.get(0).getBook()).isEqualTo(secondBook);
+        assertThat(histories).hasSize(5);
+        assertThat(histories)
+                .extracting(BookViewHistory::getId)
+                .containsExactlyElementsOf(expectedHistoryIds.subList(0, 5));
+        assertThat(histories).allSatisfy(history -> {
+            assertThat(history.getUser().getId()).isEqualTo(testUser.getId());
+            assertThat(Hibernate.isInitialized(history.getBook())).isTrue();
+        });
+        assertThat(histories)
+                .extracting(BookViewHistory::getId)
+                .doesNotContain(anotherUserHistory.getId());
+        System.out.printf(
+                "DATA_SURFACE recent-history historyIds=%s bookIds=%s size=%d otherUserHistoryExcluded=%s bookAssociationsInitialized=%s%n",
+                histories.stream().map(BookViewHistory::getId).toList(),
+                histories.stream().map(history -> history.getBook().getId()).toList(),
+                histories.size(),
+                histories.stream().noneMatch(history -> history.getId().equals(anotherUserHistory.getId())),
+                histories.stream().allMatch(history -> Hibernate.isInitialized(history.getBook())));
     }
 
     private BookViewHistory createBookViewHistory(Book book) {

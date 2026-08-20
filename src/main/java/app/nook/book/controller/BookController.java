@@ -5,6 +5,7 @@ import app.nook.book.dto.BookRequestDto;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.facade.UserBookFacade;
 import app.nook.book.service.BookService;
+import app.nook.book.service.BookViewHistoryService;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.user.annotation.CurrentUser;
@@ -26,6 +27,15 @@ import java.util.List;
 public class BookController {
     private final BookService bookService;
     private final UserBookFacade userBookFacade;
+    private final BookViewHistoryService bookViewHistoryService;
+
+    @GetMapping("/recently-viewed")
+    public ApiResponse<List<BookResponseDto.RecentlyViewedBookDto>> getRecentlyViewedBooks(
+            @CurrentUser User user
+    ) {
+        return ApiResponse.onSuccess(
+                bookViewHistoryService.getRecentlyViewedBooks(user), SuccessCode.OK);
+    }
 
     // ISBN 기반 상세조회: ALADIN 도서 조회 진입점
     @GetMapping("/{isbn13}")
