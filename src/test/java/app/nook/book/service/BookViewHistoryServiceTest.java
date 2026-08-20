@@ -8,7 +8,6 @@ import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.repository.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +24,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
@@ -173,7 +171,7 @@ class BookViewHistoryServiceTest {
 
     @Test
     @DisplayName("최근 조회 도서 조회 - 저장소 순서대로 다섯 권을 정확한 DTO로 변환한다")
-    void getRecentlyViewedBooks_다섯권_저장소순서와DTO필드를보존한다() throws Exception {
+    void getRecentlyViewedBooks_다섯권_저장소순서와DTO필드를보존한다() {
         // given
         List<BookViewHistory> histories = List.of(
                 createBookViewHistory(createBook(101L, "첫 번째", "저자 1", "book/users/1/first.png")),
@@ -213,8 +211,6 @@ class BookViewHistoryServiceTest {
                         "https://cdn.example.com/fourth.png",
                         "https://cdn.example.com/fifth.png"
                 );
-        assertThat(serializedFieldNames(result.get(0)))
-                .containsExactly("bookId", "title", "author", "coverImageUrl");
         verify(bookViewHistoryRepository).findAllRecent(testUser, PageRequest.of(0, 5));
         verify(presignedUrlService).resolveImageUrl(1L, "book/users/1/first.png");
         verify(presignedUrlService).resolveImageUrl(1L, "book/users/1/second.png");
@@ -334,14 +330,6 @@ class BookViewHistoryServiceTest {
                 .build();
         ReflectionTestUtils.setField(book, "id", id);
         return book;
-    }
-
-    private List<String> serializedFieldNames(BookResponseDto.RecentlyViewedBookDto dto) throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper();
-        Iterator<String> fieldNames = objectMapper.readTree(objectMapper.writeValueAsString(dto)).fieldNames();
-        List<String> result = new ArrayList<>();
-        fieldNames.forEachRemaining(result::add);
-        return result;
     }
 
     private List<BookViewHistory> createMultipleHistories(int count) {

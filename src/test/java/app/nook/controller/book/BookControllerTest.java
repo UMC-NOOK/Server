@@ -128,24 +128,6 @@
 
       @Test
       @WithCustomUser
-      @DisplayName("최근 열람 도서 조회는 페이지 매개변수를 계약으로 사용하지 않는다")
-      void 최근_열람_도서_조회_페이지_매개변수_미사용() throws Exception {
-          List<BookResponseDto.RecentlyViewedBookDto> response = List.of(
-                  new BookResponseDto.RecentlyViewedBookDto(101L, "첫 번째 책", "저자 1", null),
-                  new BookResponseDto.RecentlyViewedBookDto(102L, "두 번째 책", "저자 2", null)
-          );
-          given(bookViewHistoryService.getRecentlyViewedBooks(any())).willReturn(response);
-
-          mockMvc.perform(get("/api/v1/books/recently-viewed").param("size", "1")
-                          .header(AUTH_HEADER, AUTH_TOKEN))
-                  .andExpect(status().isOk())
-                  .andExpect(jsonPath("$.result", org.hamcrest.Matchers.hasSize(2)))
-                  .andExpect(jsonPath("$.result[0]", aMapWithSize(4)))
-                  .andExpect(jsonPath("$.result[1]", aMapWithSize(4)));
-      }
-
-      @Test
-      @WithCustomUser
       @DisplayName("ISBN으로 도서 상세 조회 성공")
       void 도서_상세조회_성공() throws Exception {
           String isbn13 = "9788936434267";

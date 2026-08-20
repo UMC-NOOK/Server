@@ -126,13 +126,6 @@ class BookViewHistoryRepositoryTest extends AbstractPostgresContainerTests {
         assertThat(histories)
                 .extracting(BookViewHistory::getId)
                 .doesNotContain(anotherUserHistory.getId());
-        System.out.printf(
-                "DATA_SURFACE recent-history historyIds=%s bookIds=%s size=%d otherUserHistoryExcluded=%s bookAssociationsInitialized=%s%n",
-                histories.stream().map(BookViewHistory::getId).toList(),
-                histories.stream().map(history -> history.getBook().getId()).toList(),
-                histories.size(),
-                histories.stream().noneMatch(history -> history.getId().equals(anotherUserHistory.getId())),
-                histories.stream().allMatch(history -> Hibernate.isInitialized(history.getBook())));
     }
 
     private BookViewHistory createBookViewHistory(Book book) {
