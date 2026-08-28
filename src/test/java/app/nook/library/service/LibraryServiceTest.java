@@ -956,8 +956,8 @@ class LibraryServiceTest {
         }
 
         @Test
-        @DisplayName("마지막 페이지면 hasNext=false이며 null duration은 0으로 반환한다")
-        void viewFocusRecordByDate_마지막페이지_및_null_duration_처리() {
+        @DisplayName("마지막 페이지면 hasNext=false이며 시작·종료 시각이 같은 포커스는 00:00:00을 반환한다")
+        void viewFocusRecordByDate_마지막페이지_및_길이가0인포커스_처리() {
             User user = UserFixture.user();
             LocalDate date = LocalDate.of(2026, 3, 1);
 
@@ -974,7 +974,6 @@ class LibraryServiceTest {
             ReflectionTestUtils.setField(focus, "library", library);
             ReflectionTestUtils.setField(focus, "startedAt", LocalDateTime.of(2026, 3, 1, 12, 0));
             ReflectionTestUtils.setField(focus, "endedAt", LocalDateTime.of(2026, 3, 1, 12, 0));
-            ReflectionTestUtils.setField(focus, "durationSec", null);
 
             int size = 2;
             Slice<Focus> slice = new SliceImpl<>(List.of(focus), PageRequest.of(0, size + 1), false);
