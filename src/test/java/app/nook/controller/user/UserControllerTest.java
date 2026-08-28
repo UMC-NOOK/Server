@@ -107,20 +107,20 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
     @DisplayName("닉네임 수정 성공")
     void 닉네임_수정_성공() throws Exception {
         UserProfileDto.NickNameUpdateResponse response =
-                new UserProfileDto.NickNameUpdateResponse("새닉네임");
+                new UserProfileDto.NickNameUpdateResponse("새 닉네임");
 
         given(userProfileService.updateNickName(anyLong(), anyString())).willReturn(response);
 
         mockMvc.perform(patch("/api/v1/users/me/nickname")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("nickName", "새닉네임")))
+                        .content(objectMapper.writeValueAsString(Map.of("nickName", "새 닉네임")))
                         .header(AUTH_HEADER, AUTH_TOKEN))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.nickName").value("새닉네임"))
+                .andExpect(jsonPath("$.result.nickName").value("새 닉네임"))
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         requestFields(
-                                fieldWithPath("nickName").description("수정할 닉네임 (2~20자, 영문·숫자·한글)")
+                                fieldWithPath("nickName").description("수정할 닉네임 (2~20자, 영문·숫자·한글·공백)")
                         ),
                         responseFields(
                                 ApiResponseSnippet.withResult(
