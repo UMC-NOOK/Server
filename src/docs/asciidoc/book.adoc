@@ -1,3 +1,21 @@
+=== 최근 열람 도서 조회 (마이페이지)
+최근 열람 도서를 최신 열람 순으로 조회합니다.
+ +
+최대 5건을 반환하며, 열람 이력이 없으면 ``result: []``를 반환합니다.
+
+include::{snippets}/book-controller-test/최근_열람_도서_조회_성공/http-request.adoc[]
+include::{snippets}/book-controller-test/최근_열람_도서_조회_성공/http-response.adoc[]
+include::{snippets}/book-controller-test/최근_열람_도서_조회_성공/response-fields.adoc[]
+
+==== 열람 이력이 없는 경우
+
+include::{snippets}/book-controller-test/최근_열람_도서_조회_이력없음/http-response.adoc[]
+
+==== 인증 실패 (401)
+
+include::{snippets}/book-controller-test/최근_열람_도서_조회_미인증/http-response.adoc[]
+include::{snippets}/common-error-response/unauthorized/response-fields.adoc[]
+
 === 도서 상세 조회 (ISBN)
 ISBN13으로 도서 상세 정보를 조회합니다.
  +
@@ -9,6 +27,13 @@ include::{snippets}/book-controller-test/도서_상세조회_성공/http-request
 include::{snippets}/book-controller-test/도서_상세조회_성공/path-parameters.adoc[]
 include::{snippets}/book-controller-test/도서_상세조회_성공/http-response.adoc[]
 include::{snippets}/book-controller-test/도서_상세조회_성공/response-fields.adoc[]
+
+==== 실패 케이스
+
+include::{snippets}/book-controller-test/도서_상세조회_실패_잘못된_isbn_형식/http-response.adoc[]
+include::{snippets}/common-error-response/bad-request/response-fields.adoc[]
+include::{snippets}/book-controller-test/도서_상세조회_실패_존재하지않는_도서/http-response.adoc[]
+include::{snippets}/common-error-response/not-found/response-fields.adoc[]
 
 === 도서 상세 조회 (bookId)
 도서 ID(``bookId``)로 도서 상세 정보를 조회합니다.
@@ -48,6 +73,11 @@ include::{snippets}/book-controller-test/추천베스트셀러_조회_성공/res
 include::{snippets}/category-controller-test/도서카테고리_조회_성공/http-request.adoc[]
 include::{snippets}/category-controller-test/도서카테고리_조회_성공/http-response.adoc[]
 include::{snippets}/category-controller-test/도서카테고리_조회_성공/response-fields.adoc[]
+
+==== 인증 실패 (401)
+
+include::{snippets}/category-controller-test/도서카테고리_조회_인증없음_401/http-response.adoc[]
+include::{snippets}/common-error-response/unauthorized/response-fields.adoc[]
 
 === 사용자 도서 등록
 사용자가 직접 도서를 등록합니다.

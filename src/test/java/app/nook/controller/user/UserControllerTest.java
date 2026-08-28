@@ -246,4 +246,52 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
                         )))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("프로필 정보 수정 성공")
+    void 프로필정보_수정_성공() throws Exception {
+        UserProfileDto.ProfileUpdateResponse response =
+                new UserProfileDto.ProfileUpdateResponse(
+                        "새닉네임",
+                        "https://presigned-url.example.com/profile.png"
+                );
+        given(userProfileService.updateProfile(anyLong(), anyString(), anyString())).willReturn(response);
+
+        mockMvc.perform(patch("/api/v1/users/me/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "nickName", "새닉네임",
+                                "profileImageKey", "profile/users/1/uuid.png"
+                        )))
+                        .header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS-200"))
+                .andExpect(jsonPath("$.result.nickName").value("새닉네임"))
+                .andExpect(jsonPath("$.result.profileImageUrl").value("https://presigned-url.example.com/profile.png"))
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        requestFields(
+                                fieldWithPath("nickName").description("수정할 닉네임 (2~20자, 영문·숫자·한글)"),
+                                fieldWithPath("profileImageKey").description("업로드된 프로필 이미지 key")
+                        ),
+                        responseFields(ApiResponseSnippet.withResult(
+                                fieldWithPath("result.nickName").description("수정된 닉네임"),
+                                fieldWithPath("result.profileImageUrl").description("수정된 프로필 이미지 CDN URL")
+                        ))
+                ));
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("프로필 정보 수정 실패 - 닉네임 누락")
+    void 프로필정보_수정_실패_닉네임누락() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/me/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "profileImageKey", "profile/users/1/uuid.png"
+                        )))
+                        .header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isBadRequest());
+    }
 }

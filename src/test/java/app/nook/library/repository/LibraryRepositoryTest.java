@@ -16,6 +16,7 @@ import app.nook.library.domain.enums.LibrarySortType;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.dto.LibraryBookCursor;
 import app.nook.library.repository.dto.LibraryBookQueryResult;
+import app.nook.library.repository.dto.LibraryStatusCount;
 import app.nook.record.domain.Record;
 import app.nook.record.domain.enums.Emotion;
 
@@ -235,7 +236,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
     }
 
     @Test
-    void countByUserAndReadingStatus_상태별개수를반환한다() {
+    void countByUserIdGroupByReadingStatus_상태별개수를한번에반환한다() {
         User user = User.builder()
                 .email("count-status@library.com")
                 .nickName("count-status")
@@ -256,8 +257,15 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .author("작가")
                 .sourceType(SourceType.ALADIN)
                 .build();
+        Book finishedBook = Book.builder()
+                .isbn13("6666666666663")
+                .title("finished")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
         bookRepository.save(beforeBook);
         bookRepository.save(readingBook);
+        bookRepository.save(finishedBook);
 
         Library beforeLibrary = Library.builder().user(user).book(beforeBook).build();
         ReflectionTestUtils.setField(beforeLibrary, "readingStatus", ReadingStatus.BEFORE);
@@ -267,11 +275,17 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
         ReflectionTestUtils.setField(readingLibrary, "readingStatus", ReadingStatus.READING);
         libraryRepository.save(readingLibrary);
 
-        long readingCount = libraryRepository.countByUserAndReadingStatus(user, ReadingStatus.READING);
-        long beforeCount = libraryRepository.countByUserAndReadingStatus(user, ReadingStatus.BEFORE);
+        Library finishedLibrary = Library.builder().user(user).book(finishedBook).build();
+        ReflectionTestUtils.setField(finishedLibrary, "readingStatus", ReadingStatus.FINISHED);
+        libraryRepository.save(finishedLibrary);
 
-        assertThat(readingCount).isEqualTo(1);
-        assertThat(beforeCount).isEqualTo(1);
+        List<LibraryStatusCount> counts = libraryRepository.countByUserIdGroupByReadingStatus(user.getId());
+
+        assertThat(counts).containsExactlyInAnyOrder(
+                new LibraryStatusCount(ReadingStatus.BEFORE, 1L),
+                new LibraryStatusCount(ReadingStatus.READING, 1L),
+                new LibraryStatusCount(ReadingStatus.FINISHED, 1L)
+        );
     }
 
     @Test

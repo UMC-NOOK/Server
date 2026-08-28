@@ -8,6 +8,11 @@ include::{snippets}/user-controller-test/내정보_조회_성공/request-headers
 include::{snippets}/user-controller-test/내정보_조회_성공/http-response.adoc[]
 include::{snippets}/user-controller-test/내정보_조회_성공/response-fields.adoc[]
 
+==== 인증 실패 (401)
+
+include::{snippets}/user-controller-test/인증없음_내정보조회_401/http-response.adoc[]
+include::{snippets}/common-error-response/unauthorized/response-fields.adoc[]
+
 === 닉네임 수정
 로그인한 사용자의 닉네임을 수정합니다.
  +
@@ -18,6 +23,16 @@ include::{snippets}/user-controller-test/닉네임_수정_성공/request-headers
 include::{snippets}/user-controller-test/닉네임_수정_성공/request-fields.adoc[]
 include::{snippets}/user-controller-test/닉네임_수정_성공/http-response.adoc[]
 include::{snippets}/user-controller-test/닉네임_수정_성공/response-fields.adoc[]
+
+==== 실패 케이스
+
+include::{snippets}/user-controller-test/닉네임_수정_실패_빈값/http-response.adoc[]
+include::{snippets}/user-controller-test/닉네임_수정_실패_패턴불일치/http-response.adoc[]
+include::{snippets}/common-error-response/validation/response-fields.adoc[]
+include::{snippets}/user-controller-test/닉네임_수정_실패_유저없음/http-response.adoc[]
+include::{snippets}/common-error-response/not-found/response-fields.adoc[]
+include::{snippets}/user-controller-test/인증없음_닉네임수정_401/http-response.adoc[]
+include::{snippets}/common-error-response/unauthorized/response-fields.adoc[]
 
 === 프로필 이미지 수정
 로그인한 사용자의 프로필 이미지를 수정합니다.
@@ -30,6 +45,31 @@ include::{snippets}/user-controller-test/프로필이미지_수정_성공/reques
 include::{snippets}/user-controller-test/프로필이미지_수정_성공/request-fields.adoc[]
 include::{snippets}/user-controller-test/프로필이미지_수정_성공/http-response.adoc[]
 include::{snippets}/user-controller-test/프로필이미지_수정_성공/response-fields.adoc[]
+
+==== 실패 케이스
+
+include::{snippets}/user-controller-test/프로필이미지_수정_실패_빈키/http-response.adoc[]
+include::{snippets}/common-error-response/validation/response-fields.adoc[]
+include::{snippets}/user-controller-test/프로필이미지_수정_실패_유저없음/http-response.adoc[]
+include::{snippets}/common-error-response/not-found/response-fields.adoc[]
+include::{snippets}/user-controller-test/인증없음_프로필이미지수정_401/http-response.adoc[]
+include::{snippets}/common-error-response/unauthorized/response-fields.adoc[]
+
+=== 프로필 정보 수정
+로그인한 사용자의 닉네임과 프로필 이미지를 함께 수정합니다. +
+이미지는 별도 업로드 API를 통해 먼저 업로드한 뒤 발급받은 `profileImageKey`만 전달합니다. +
+기존 이미지는 비동기로 삭제됩니다.
+
+include::{snippets}/user-controller-test/프로필정보_수정_성공/http-request.adoc[]
+include::{snippets}/user-controller-test/프로필정보_수정_성공/request-headers.adoc[]
+include::{snippets}/user-controller-test/프로필정보_수정_성공/request-fields.adoc[]
+include::{snippets}/user-controller-test/프로필정보_수정_성공/http-response.adoc[]
+include::{snippets}/user-controller-test/프로필정보_수정_성공/response-fields.adoc[]
+
+==== 닉네임 누락 (400)
+
+include::{snippets}/user-controller-test/프로필정보_수정_실패_닉네임누락/http-response.adoc[]
+include::{snippets}/common-error-response/validation/response-fields.adoc[]
 
 === 소셜 로그인
 
@@ -45,6 +85,11 @@ include::{snippets}/auth-controller-test/소셜로그인_성공/request-fields.a
 include::{snippets}/auth-controller-test/소셜로그인_성공/http-response.adoc[]
 include::{snippets}/auth-controller-test/소셜로그인_성공/response-fields.adoc[]
 
+==== 잘못된 OAuth 제공자 (400)
+
+include::{snippets}/auth-controller-test/소셜로그인_실패_잘못된_프로바이더/http-response.adoc[]
+include::{snippets}/common-error-response/bad-request/response-fields.adoc[]
+
 === DEV 로그인
 
 include::{snippets}/auth-controller-test/dev로그인_성공/http-request.adoc[]
@@ -52,12 +97,22 @@ include::{snippets}/auth-controller-test/dev로그인_성공/request-fields.adoc
 include::{snippets}/auth-controller-test/dev로그인_성공/http-response.adoc[]
 include::{snippets}/auth-controller-test/dev로그인_성공/response-fields.adoc[]
 
+==== 사용자를 찾을 수 없음 (404)
+
+include::{snippets}/auth-controller-test/dev로그인_실패_유저없음/http-response.adoc[]
+include::{snippets}/common-error-response/not-found/response-fields.adoc[]
+
 === DEV 회원가입
 
 include::{snippets}/auth-controller-test/dev회원가입_성공/http-request.adoc[]
 include::{snippets}/auth-controller-test/dev회원가입_성공/request-fields.adoc[]
 include::{snippets}/auth-controller-test/dev회원가입_성공/http-response.adoc[]
 include::{snippets}/auth-controller-test/dev회원가입_성공/response-fields.adoc[]
+
+==== 이메일 중복 (409)
+
+include::{snippets}/auth-controller-test/dev회원가입_실패_이메일중복/http-response.adoc[]
+include::{snippets}/common-error-response/conflict/response-fields.adoc[]
 
 === 내 정보 조회
 

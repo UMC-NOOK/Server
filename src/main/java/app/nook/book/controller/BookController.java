@@ -5,6 +5,7 @@ import app.nook.book.dto.BookRequestDto;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.facade.UserBookFacade;
 import app.nook.book.service.BookService;
+import app.nook.book.service.BookViewHistoryService;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.user.annotation.CurrentUser;
@@ -26,6 +27,15 @@ import java.util.List;
 public class BookController {
     private final BookService bookService;
     private final UserBookFacade userBookFacade;
+    private final BookViewHistoryService bookViewHistoryService;
+
+    @GetMapping("/recently-viewed")
+    public ApiResponse<List<BookResponseDto.RecentlyViewedBookDto>> getRecentlyViewedBooks(
+            @CurrentUser User user
+    ) {
+        return ApiResponse.onSuccess(
+                bookViewHistoryService.getRecentlyViewedBooks(user), SuccessCode.OK);
+    }
 
     // ISBN 기반 상세조회: ALADIN 도서 조회 진입점
     @GetMapping("/{isbn13}")
@@ -33,7 +43,7 @@ public class BookController {
             @CurrentUser User user,
             @PathVariable @Pattern(regexp = "\\d{13}", message = "ISBN13은 13자리 숫자여야 합니다.") String isbn13) {
         return ApiResponse.onSuccess(
-                bookService.getBookDetailByIsbn(user, isbn13), SuccessCode.OK);
+                formatPublicationDate(bookService.getBookDetailByIsbn(user, isbn13)), SuccessCode.OK);
     }
 
     // 주간 베스트셀러 조회
@@ -58,7 +68,7 @@ public class BookController {
             @PathVariable @Positive(message = "bookId는 1 이상이어야 합니다.") Long bookId
     ) {
         return ApiResponse.onSuccess(
-                bookService.getBookDetailById(user, bookId), SuccessCode.OK);
+                formatPublicationDate(bookService.getBookDetailById(user, bookId)), SuccessCode.OK);
     }
 
     // 사용자 도서 등록
@@ -82,5 +92,14 @@ public class BookController {
         return ApiResponse.onSuccess(
                 userBookFacade.updateUserBook(user, bookId, request), SuccessCode.OK
         );
+    }
+
+    private static BookResponseDto.BookDetailDto formatPublicationDate(
+            BookResponseDto.BookDetailDto bookDetail) {
+        String publicationDate = bookDetail.getPublicationDate();
+        if (publicationDate != null) {
+            bookDetail.setPublicationDate(publicationDate.replace('-', '.'));
+        }
+        return bookDetail;
     }
 }

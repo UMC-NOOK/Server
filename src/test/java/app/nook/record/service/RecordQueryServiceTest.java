@@ -572,6 +572,7 @@ class RecordQueryServiceTest {
     ) {
         return new BookRecordDto.BookRecordItemDto(
                 bookId,
+                bookId * 10,
                 title,
                 "저자",
                 "내용",

@@ -86,6 +86,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
             // given
             BookRecordDto.BookRecordItemDto firstItem = new BookRecordDto.BookRecordItemDto(
                     101L,
+                    501L,
                     "작별하지 않는다",
                     "한강",
                     "가장 오래 남았던 문장을 기록한 독서 메모입니다.",
@@ -95,6 +96,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
             );
             BookRecordDto.BookRecordItemDto secondItem = new BookRecordDto.BookRecordItemDto(
                     99L,
+                    499L,
                     "소년이 온다",
                     "한강",
                     "감정이 크게 남은 부분을 짧게 정리한 기록입니다.",
@@ -121,6 +123,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                             .param("order", SortType.RECENT_RECORDED.name()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result.items[0].bookId").value(101))
+                    .andExpect(jsonPath("$.result.items[0].recordId").value(501))
                     .andExpect(jsonPath("$.result.items[0].title").value("작별하지 않는다"))
                     .andExpect(jsonPath("$.result.nextCursor").value(encodedCursor))
                     .andExpect(jsonPath("$.result.hasNext").value(true))
@@ -134,6 +137,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                             responseFields(ApiResponseSnippet.withResult(
                                     fieldWithPath("result.items").type(JsonFieldType.ARRAY).description("사용자의 독서 기록을 책 단위로 묶어 반환한 목록"),
                                     fieldWithPath("result.items[].bookId").type(JsonFieldType.NUMBER).description("독서 기록이 연결된 도서 ID"),
+                                    fieldWithPath("result.items[].recordId").type(JsonFieldType.NUMBER).description("목록 카드에 표시된 최신 기록 ID. 수정·삭제 요청에 사용"),
                                     fieldWithPath("result.items[].title").type(JsonFieldType.STRING).description("도서 제목"),
                                     fieldWithPath("result.items[].author").type(JsonFieldType.STRING).description("도서 저자명"),
                                     fieldWithPath("result.items[].recordContent").type(JsonFieldType.STRING).description("해당 도서에서 가장 최근에 작성된 기록 내용. 목록 카드에서 대표 미리보기로 사용"),
@@ -392,7 +396,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                         List.of("record/users/1/first.png")
                 );
 
-                willDoNothing().given(recordCommandService).createRecord(any(), anyLong(), any());
+                given(recordCommandService.createRecord(any(), anyLong(), any())).willReturn(10L);
 
                 // when & then
                 mockMvc.perform(post("/api/v1/records/books/{bookId}", 1L)
@@ -402,6 +406,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("SUCCESS-201"))
+                        .andExpect(jsonPath("$.result.recordId").value(10))
                         .andDo(documentWithAuth(
                                 "record-controller-test/기록_생성_성공",
                                 pathParameters(
@@ -413,7 +418,9 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("imageKeys").type(JsonFieldType.ARRAY).description("업로드 완료된 이미지 key 목록").optional(),
                                         fieldWithPath("imageKeys[]").description("업로드 완료된 record 이미지 key")
                                 ),
-                                responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                                responseFields(ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.recordId").type(JsonFieldType.NUMBER).description("생성된 기록 ID")
+                                ))
                         ));
             }
         }
@@ -579,18 +586,22 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
             @WithCustomUser
             void 기록_삭제_성공() throws Exception {
                 // given
-                willDoNothing().given(recordCommandService).deleteRecord(any(), anyLong());
+                given(recordCommandService.deleteRecord(any(), anyLong())).willReturn(10L);
 
                 // when & then
                 mockMvc.perform(delete("/api/v1/records/{recordId}", 10L)
                                 .header(AUTH_HEADER, AUTH_TOKEN))
                         .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.code").value("SUCCESS-200"))
+                        .andExpect(jsonPath("$.result.recordId").value(10))
                         .andDo(documentWithAuth(
                                 "record-controller-test/기록_삭제_성공",
                                 pathParameters(
                                         parameterWithName("recordId").description("삭제할 기록 ID")
                                 ),
-                                responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                                responseFields(ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.recordId").type(JsonFieldType.NUMBER).description("삭제된 기록 ID")
+                                ))
                         ));
             }
         }

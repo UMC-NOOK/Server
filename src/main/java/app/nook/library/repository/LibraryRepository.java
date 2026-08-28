@@ -4,6 +4,7 @@ import app.nook.book.domain.Book;
 import app.nook.book.domain.enums.MallType;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
+import app.nook.library.repository.dto.LibraryStatusCount;
 import app.nook.user.domain.User;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
@@ -71,9 +72,15 @@ public interface LibraryRepository extends JpaRepository<Library, Long>, Library
             Pageable pageable
     );
 
-    long countByUserAndReadingStatus(User user, ReadingStatus status);
+    @Query("""
+        select new app.nook.library.repository.dto.LibraryStatusCount(l.readingStatus, count(l))
+        from Library l
+        where l.user.id = :userId
+        group by l.readingStatus
+    """)
+    List<LibraryStatusCount> countByUserIdGroupByReadingStatus(@Param("userId") Long userId);
 
-    long countByUserIdAndReadingStatus(Long userId, ReadingStatus status);
+    long countByUserAndReadingStatus(User user, ReadingStatus status);
 
 
     // [전체 검색 - 서재 보유 여부 매핑용] ALADIN 소스 도서 중 ISBN 목록에 포함된 값만 반환

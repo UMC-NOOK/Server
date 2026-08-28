@@ -13,6 +13,7 @@ public record BookRecordDto(
 ) {
     public record BookRecordItemDto(
             Long bookId,
+            Long recordId,
             String title,
             String author,
             String recordContent,

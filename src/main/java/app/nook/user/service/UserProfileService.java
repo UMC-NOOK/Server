@@ -67,6 +67,29 @@ public class UserProfileService {
         });
     }
 
+    // 프로필 이미지 소유권을 검증한 뒤 닉네임과 이미지를 하나의 DB 트랜잭션에서 변경한다
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public UserProfileDto.ProfileUpdateResponse updateProfile(Long userId, String nickName, String profileImageKey) {
+        presignedUrlService.validateOwnedImageKey(userId, profileImageKey, "profile");
+
+        return new TransactionTemplate(transactionManager).execute(status -> {
+            User user = getUser(userId);
+            String oldKey = user.getProfileImageKey();
+
+            user.updateNickName(nickName);
+            user.updateProfileImage(profileImageKey);
+
+            if (oldKey != null && !oldKey.isBlank() && !oldKey.equals(profileImageKey)) {
+                eventPublisher.publishEvent(new ProfileImageCleanupEvent(oldKey));
+            }
+
+            return new UserProfileDto.ProfileUpdateResponse(
+                    user.getNickName(),
+                    presignedUrlService.resolveImageUrl(userId, profileImageKey)
+            );
+        });
+    }
+
     private User getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));

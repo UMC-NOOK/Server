@@ -51,6 +51,7 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
         List<BookRecordDto.BookRecordItemDto> items = queryFactory
                 .select(Projections.constructor(BookRecordDto.BookRecordItemDto.class,
                         record.library.book.id,
+                        Expressions.nullExpression(Long.class),
                         record.library.book.title,
                         record.library.book.author,
                         Expressions.nullExpression(String.class),
@@ -79,18 +80,19 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
             return items;
         }
 
-        // 2) 책별 최신 기록 content 조회 후 합치기
+        // 2) 책별 최신 기록 ID와 content 조회 후 합치기
         List<Long> bookIds = items.stream()
                 .map(BookRecordDto.BookRecordItemDto::bookId)
                 .toList();
-        Map<Long, String> latestContentByBook = findLatestContentByBook(userId, bookIds);
+        Map<Long, LatestRecord> latestRecordsByBook = findLatestRecordsByBook(userId, bookIds);
 
         return items.stream()
                 .map(item -> new BookRecordDto.BookRecordItemDto(
                         item.bookId(),
+                        latestRecordsByBook.get(item.bookId()).id(),
                         item.title(),
                         item.author(),
-                        latestContentByBook.get(item.bookId()),
+                        latestRecordsByBook.get(item.bookId()).content(),
                         item.coverImageUrl(),
                         item.recordCount(),
                         item.lastCreatedDate()
@@ -98,12 +100,12 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
                 .toList();
     }
 
-    // 책별 최신(생성일 기준) 기록의 content를 조회해 bookId -> content 로 매핑
-    private Map<Long, String> findLatestContentByBook(Long userId, List<Long> bookIds) {
+    // 책별 최신(생성일 기준) 기록을 조회해 bookId -> 대표 기록으로 매핑
+    private Map<Long, LatestRecord> findLatestRecordsByBook(Long userId, List<Long> bookIds) {
         QLibrary library = QLibrary.library;
 
         List<Tuple> rows = queryFactory
-                .select(record.library.book.id, record.content)
+                .select(record.library.book.id, record.id, record.content)
                 .from(record)
                 .join(record.library, library)
                 .where(
@@ -113,14 +115,20 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
                 .orderBy(record.library.book.id.asc(), record.createdDate.desc(), record.id.desc())
                 .fetch();
 
-        Map<Long, String> latestContentByBook = new HashMap<>();
+        Map<Long, LatestRecord> latestRecordsByBook = new HashMap<>();
         for (Tuple row : rows) {
             Long bookId = row.get(record.library.book.id);
-            if (!latestContentByBook.containsKey(bookId)) {
-                latestContentByBook.put(bookId, row.get(record.content));
+            if (!latestRecordsByBook.containsKey(bookId)) {
+                latestRecordsByBook.put(bookId, new LatestRecord(
+                        row.get(record.id),
+                        row.get(record.content)
+                ));
             }
         }
-        return latestContentByBook;
+        return latestRecordsByBook;
+    }
+
+    private record LatestRecord(Long id, String content) {
     }
 
     // 감정 필터

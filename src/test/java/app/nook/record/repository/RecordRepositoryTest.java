@@ -171,7 +171,7 @@ class RecordRepositoryTest extends AbstractPostgresContainerTests {
                     LocalDateTime.of(2026, 4, 1, 10, 0));
             persistRecord(library, Emotion.SAD, "중간 기록",
                     LocalDateTime.of(2026, 4, 2, 10, 0));
-            persistRecord(library, Emotion.USEFUL, "최신 기록",
+            Record latestRecord = persistRecord(library, Emotion.USEFUL, "최신 기록",
                     LocalDateTime.of(2026, 4, 3, 10, 0));
             em.flush();
             em.clear();
@@ -187,6 +187,7 @@ class RecordRepositoryTest extends AbstractPostgresContainerTests {
             // then - 책 1권으로 묶이고 count=3, content는 가장 최신 기록
             assertThat(result).hasSize(1);
             assertThat(result.get(0).bookId()).isEqualTo(book.getId());
+            assertThat(result.get(0).recordId()).isEqualTo(latestRecord.getId());
             assertThat(result.get(0).recordCount()).isEqualTo(3L);
             assertThat(result.get(0).recordContent()).isEqualTo("최신 기록");
         }

@@ -53,4 +53,19 @@ public class UserController {
     ) {
         return ApiResponse.onSuccess(userProfileService.updateProfileImage(user.getId(), request.profileImageKey()), SuccessCode.OK);
     }
+
+    /**
+     * 닉네임과 프로필 이미지 수정
+     * PATCH /users/me/profile
+     */
+    @PatchMapping("/profile")
+    public ApiResponse<UserProfileDto.ProfileUpdateResponse> updateProfile(
+            @CurrentUser User user,
+            @Valid @RequestBody UserProfileDto.ProfileUpdateRequest request
+    ) {
+        return ApiResponse.onSuccess(
+                userProfileService.updateProfile(user.getId(), request.nickName(), request.profileImageKey()),
+                SuccessCode.OK
+        );
+    }
 }

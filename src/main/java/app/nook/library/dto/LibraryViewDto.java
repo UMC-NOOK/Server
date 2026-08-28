@@ -44,8 +44,13 @@ public class LibraryViewDto {
     ){}
     public record StatusBookResponseDto(
             ReadingStatus readingStatus,
-            int totalBookNum,
             CursorResponse<UserStatusBookItem, Long> bookItems
+    ) {}
+
+    public record StatusBookCountsResponseDto(
+            long before,
+            long reading,
+            long finished
     ) {}
 
 
