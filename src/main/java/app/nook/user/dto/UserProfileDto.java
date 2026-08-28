@@ -18,7 +18,7 @@ public class UserProfileDto {
 
     public record NickNameUpdateRequest(
             @NotBlank
-            @Pattern(regexp = "^[a-zA-Z0-9가-힣]{2,20}$", message = "닉네임은 2~20자의 영문, 숫자, 한글만 사용할 수 있습니다.")
+            @Pattern(regexp = "^[a-zA-Z0-9가-힣 ]{2,20}$", message = "닉네임은 2~20자의 영문, 숫자, 한글, 공백만 사용할 수 있습니다.")
             String nickName
     ) {}
 

@@ -16,7 +16,7 @@ include::{snippets}/common-error-response/unauthorized/response-fields.adoc[]
 === 닉네임 수정
 로그인한 사용자의 닉네임을 수정합니다.
  +
-닉네임은 2~20자의 영문, 숫자, 한글만 허용합니다.
+닉네임은 2~20자의 영문, 숫자, 한글, 공백만 허용합니다.
 
 include::{snippets}/user-controller-test/닉네임_수정_성공/http-request.adoc[]
 include::{snippets}/user-controller-test/닉네임_수정_성공/request-headers.adoc[]
