@@ -2,6 +2,7 @@ package app.nook.record.dto;
 
 import app.nook.r2.dto.ImageUrlResponseDto;
 import app.nook.record.domain.enums.Emotion;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDate;
@@ -27,6 +28,7 @@ public record BookRecordDto(
             List<String> imgUrls,
             List<String> imageKeys,
             Emotion emotion,
+            @JsonFormat(pattern = "yyyy.MM.dd")
             LocalDate createdDate
     ){}
 

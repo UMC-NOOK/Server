@@ -650,6 +650,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                         .andExpect(jsonPath("$.result.content").value("가장 인상 깊었던 구절을 적어둔 기록"))
                         .andExpect(jsonPath("$.result.imageKeys[0]").value("records/1-1.png"))
                         .andExpect(jsonPath("$.result.emotion").value("FUN"))
+                        .andExpect(jsonPath("$.result.createdDate").value("2026.04.10"))
                         .andDo(documentWithAuth(
                                 "record-controller-test/기록_개별_조회_성공",
                                 pathParameters(
@@ -661,7 +662,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.imgUrls").type(JsonFieldType.ARRAY).description("기록에 연결된 이미지 조회 URL 목록. 저장된 key를 기준으로 조회 시점에 presigned GET URL로 변환"),
                                         fieldWithPath("result.imageKeys").type(JsonFieldType.ARRAY).description("기록에 연결된 원본 이미지 key 목록"),
                                         fieldWithPath("result.emotion").type(JsonFieldType.STRING).description("기록 감정 값. EMPTY, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나"),
-                                        fieldWithPath("result.createdDate").type(JsonFieldType.STRING).description("기록 작성 날짜 (yyyy-MM-dd)")
+                                        fieldWithPath("result.createdDate").type(JsonFieldType.STRING).description("기록 작성 날짜 (yyyy.MM.dd)")
                                 ))
                         ));
             }

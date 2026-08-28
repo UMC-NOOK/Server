@@ -35,7 +35,7 @@ file:
 
 cloudflare:
   r2:
-    endpoint: ${R2_ENDPOINT}
+    endpoint: ${R2_CDN_BASE_URL}
     bucket-name: ${R2_BUCKET_NAME}
     access-key: ${R2_ACCESS_KEY}
     secret-key: ${R2_SECRET_KEY}
@@ -49,6 +49,8 @@ aladin:
   ttbkey: ${ALADIN_TTB_KEY}
 
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [%X{traceId}] %-5level %logger - %msg%n"
   level:
     root: info
     app.nook: debug
