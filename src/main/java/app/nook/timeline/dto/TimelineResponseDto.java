@@ -1,6 +1,7 @@
 package app.nook.timeline.dto;
 
 import app.nook.timeline.domain.enums.TimelineType;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,7 +17,9 @@ public class TimelineResponseDto {
     ) {}
 
     public record FocusSummaryDto(
+            @JsonFormat(pattern = "yyyy.MM.dd")
             LocalDate startedAt,
+            @JsonFormat(pattern = "yyyy.MM.dd")
             LocalDate endedAt,
             Long totalFocusSec,
             int focusCount,

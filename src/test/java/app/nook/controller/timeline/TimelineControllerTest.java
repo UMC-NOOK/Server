@@ -31,6 +31,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWit
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
@@ -107,6 +108,8 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                                         .header(AUTH_HEADER, AUTH_TOKEN)
                         )
                         .andExpect(status().isOk())
+                        .andExpect(jsonPath("result.focusSummary.startedAt").value("2025.12.30"))
+                        .andExpect(jsonPath("result.focusSummary.endedAt").value("2026.01.19"))
                         .andDo(documentWithAuth(
                                 "{class-name}/{method-name}",
                                 pathParameters(
@@ -115,8 +118,8 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                                 responseFields(ApiResponseSnippet.withResult(
                                         fieldWithPath("result.libraryId").type(JsonFieldType.NUMBER).description("서재 ID"),
                                         fieldWithPath("result.focusSummary").type(JsonFieldType.OBJECT).description("포커스 요약 정보"),
-                                        fieldWithPath("result.focusSummary.startedAt").type(JsonFieldType.STRING).optional().description("독서 시작일"),
-                                        fieldWithPath("result.focusSummary.endedAt").type(JsonFieldType.STRING).optional().description("독서 종료일"),
+                                        fieldWithPath("result.focusSummary.startedAt").type(JsonFieldType.STRING).optional().description("독서 시작일 (yyyy.MM.dd)"),
+                                        fieldWithPath("result.focusSummary.endedAt").type(JsonFieldType.STRING).optional().description("독서 종료일 (yyyy.MM.dd)"),
                                         fieldWithPath("result.focusSummary.totalFocusSec").type(JsonFieldType.NUMBER).description("누적 포커스 시간(초)"),
                                         fieldWithPath("result.focusSummary.focusCount").type(JsonFieldType.NUMBER).description("포커스 횟수"),
                                         fieldWithPath("result.focusSummary.page").type(JsonFieldType.NUMBER).description("현재 페이지"),
