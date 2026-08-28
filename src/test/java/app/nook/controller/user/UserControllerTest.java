@@ -132,6 +132,23 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
 
     @Test
     @WithCustomUser
+    @DisplayName("닉네임 수정 성공 - 공백 포함")
+    void 닉네임_수정_성공_공백포함() throws Exception {
+        UserProfileDto.NickNameUpdateResponse response =
+                new UserProfileDto.NickNameUpdateResponse("새 닉네임");
+
+        given(userProfileService.updateNickName(anyLong(), anyString())).willReturn(response);
+
+        mockMvc.perform(patch("/api/v1/users/me/nickname")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("nickName", "새 닉네임")))
+                        .header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.nickName").value("새 닉네임"));
+    }
+
+    @Test
+    @WithCustomUser
     @DisplayName("닉네임 수정 실패 - 빈 값")
     void 닉네임_수정_실패_빈값() throws Exception {
         mockMvc.perform(patch("/api/v1/users/me/nickname")
