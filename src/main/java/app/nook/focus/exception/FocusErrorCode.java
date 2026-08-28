@@ -13,7 +13,8 @@ public enum FocusErrorCode implements BaseCode {
     FOCUS_NOT_FOUND(HttpStatus.NOT_FOUND, "FOCUS-002", "포커스를 찾을 수 없습니다."),
     FOCUS_ALREADY_ENDED(HttpStatus.CONFLICT, "FOCUS-003", "이미 종료된 포커스입니다."),
     LIBRARY_NOT_FOUND(HttpStatus.NOT_FOUND, "FOCUS-004", "서재의 책을 찾을 수 없습니다."),
-    THEME_NOT_FOUND(HttpStatus.NOT_FOUND, "FOCUS-005", "존재하지 않는 테마입니다.");
+    THEME_NOT_FOUND(HttpStatus.NOT_FOUND, "FOCUS-005", "존재하지 않는 테마입니다."),
+    FOCUS_DURATION_TOO_SHORT(HttpStatus.CONFLICT, "FOCUS-006", "포커스 종료 시간은 1초 이상이어야 합니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

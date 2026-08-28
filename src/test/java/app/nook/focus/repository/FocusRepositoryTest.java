@@ -4,12 +4,14 @@ import app.nook.book.domain.Book;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.domain.Theme;
 import app.nook.focus.domain.enums.ThemeName;
+import app.nook.focus.exception.FocusErrorCode;
 import app.nook.focus.repository.dto.FocusRangeStatsDto;
 import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.QueryDslConfig;
 import app.nook.library.domain.Library;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
+import jakarta.persistence.LockModeType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,8 +21,12 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -297,6 +303,108 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
     }
 
     @Test
+    @Transactional
+    void findByIdAndLibraryUserIdForUpdate_returnsOwnedFocusInsideTransaction() {
+        User owner = persistUser("end-lock-owner");
+        Book book = persistBook("종료 잠금 책", null);
+        Library library = persistLibrary(owner, book);
+        Theme theme = persistTheme();
+        Focus focus = persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 20, 10, 0),
+                null
+        );
+        em.flush();
+        em.clear();
+
+        Optional<Focus> result = focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), owner.getId());
+
+        assertThat(result).isPresent();
+        assertThat(result.orElseThrow().getId()).isEqualTo(focus.getId());
+        assertThat(result.orElseThrow().getLibrary().getUser().getId()).isEqualTo(owner.getId());
+    }
+
+    @Test
+    @Transactional
+    void findByIdAndLibraryUserIdForUpdate_rejectsAnotherUser() {
+        User owner = persistUser("end-lock-owner-only");
+        User otherUser = persistUser("end-lock-other-user");
+        Book book = persistBook("다른 사용자 종료 잠금 책", null);
+        Library library = persistLibrary(owner, book);
+        Theme theme = persistTheme();
+        Focus focus = persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 20, 10, 0),
+                null
+        );
+        em.flush();
+        em.clear();
+
+        Optional<Focus> result = focusRepository.findByIdAndLibraryUserIdForUpdate(
+                focus.getId(),
+                otherUser.getId()
+        );
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void findByIdAndLibraryUserIdForUpdate_declaresPessimisticWriteQuery() throws NoSuchMethodException {
+        java.lang.reflect.Method method = FocusRepository.class.getMethod(
+                "findByIdAndLibraryUserIdForUpdate",
+                Long.class,
+                Long.class
+        );
+
+        Lock lock = method.getAnnotation(Lock.class);
+        Query query = method.getAnnotation(Query.class);
+
+        assertThat(lock).isNotNull();
+        assertThat(lock.value()).isEqualTo(LockModeType.PESSIMISTIC_WRITE);
+        assertThat(query).isNotNull();
+        assertThat(query.value()).contains("user.id");
+    }
+
+    @Test
+    void countByLibraryAndEndedAtIsNotNull_countsOnlyCompletedFocuses() {
+        User user = persistUser("completed-focus-count");
+        Book book = persistBook("완료 포커스 카운트 책", null);
+        Library library = persistLibrary(user, book);
+        Theme theme = persistTheme();
+        persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 20, 9, 0),
+                LocalDateTime.of(2026, 8, 20, 9, 30)
+        );
+        persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 20, 10, 0),
+                LocalDateTime.of(2026, 8, 20, 10, 30)
+        );
+        persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 20, 11, 0),
+                null
+        );
+        em.flush();
+        em.clear();
+
+        int completedFocusCount = focusRepository.countByLibraryAndEndedAtIsNotNull(library);
+
+        assertThat(completedFocusCount).isEqualTo(2);
+    }
+
+    @Test
+    void focusDurationTooShortError_isAConflict() {
+        assertThat(FocusErrorCode.FOCUS_DURATION_TOO_SHORT.getHttpStatus()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
     @DisplayName("완료된 포커스를 id 내림차순으로 커서 없이 조회한다")
     void findRecentByUserWithCursor_첫페이지() {
         User user = User.builder()
@@ -416,6 +524,43 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         assertThat(result.getContent()).noneMatch(f -> f.getId().equals(focus3.getId()));
         assertThat(result.getContent().get(0).getId()).isEqualTo(focus2.getId());
         assertThat(result.getContent().get(1).getId()).isEqualTo(focus1.getId());
+    }
+
+    @Test
+    @DisplayName("일별 완료 행은 크기 1 커서에서 id 내림차순으로 한 번씩만 조회된다")
+    void findRecentByUserWithCursor_dailyRowsSizeOneHaveNoOmissionOrDuplication() {
+        User user = persistUser("daily-recent-cursor-owner");
+        Book book = persistBook("일별 최근 포커스 책", "book/users/1/daily-recent.jpg");
+        Library library = persistLibrary(user, book);
+        Theme theme = persistTheme();
+        Focus beforeMidnight = persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 1, 23, 55),
+                LocalDateTime.of(2026, 8, 2, 0, 0)
+        );
+        Focus afterMidnight = persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 2, 0, 0),
+                LocalDateTime.of(2026, 8, 2, 0, 10)
+        );
+        em.flush();
+        em.clear();
+
+        Slice<Focus> firstPage = focusRepository.findRecentByUserWithCursor(user, null, PageRequest.of(0, 1));
+        Slice<Focus> secondPage = focusRepository.findRecentByUserWithCursor(
+                user,
+                firstPage.getContent().get(0).getId(),
+                PageRequest.of(0, 1)
+        );
+
+        assertThat(firstPage.getContent()).extracting(Focus::getId).containsExactly(afterMidnight.getId());
+        assertThat(firstPage.getContent()).extracting(Focus::getDurationSec).containsExactly(600);
+        assertThat(firstPage.hasNext()).isTrue();
+        assertThat(secondPage.getContent()).extracting(Focus::getId).containsExactly(beforeMidnight.getId());
+        assertThat(secondPage.getContent()).extracting(Focus::getDurationSec).containsExactly(300);
+        assertThat(secondPage.hasNext()).isFalse();
     }
 
     @Test
@@ -740,6 +885,47 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         assertThat(result.getContent()).extracting(Focus::getId)
                 .containsExactly(inProgress.getId(), startedAtDayStart.getId(), acrossMidnight.getId())
                 .doesNotContain(endedAtDayStart.getId(), startedAtNextDay.getId());
+    }
+
+    @Test
+    @DisplayName("자정에 끝난 일별 행과 자정에 시작한 일별 행은 각각 하나의 날짜에만 속한다")
+    void findByLibraryWithCursorByDate_dailyRowsAtMidnightBelongToOneDateOnly() {
+        User user = persistUser("daily-midnight-owner");
+        Book book = persistBook("일별 자정 책", "book/users/1/daily-midnight.jpg");
+        Library library = persistLibrary(user, book);
+        Theme theme = persistTheme();
+        Focus augustFirst = persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 1, 23, 55),
+                LocalDateTime.of(2026, 8, 2, 0, 0)
+        );
+        Focus augustSecond = persistFocus(
+                library,
+                theme,
+                LocalDateTime.of(2026, 8, 2, 0, 0),
+                LocalDateTime.of(2026, 8, 2, 0, 10)
+        );
+        em.flush();
+        em.clear();
+
+        Slice<Focus> augustFirstRows = focusRepository.findByLibraryWithCursorByDate(
+                user,
+                LocalDate.of(2026, 8, 1),
+                LocalDateTime.of(2026, 8, 3, 0, 0),
+                null,
+                PageRequest.of(0, 10)
+        );
+        Slice<Focus> augustSecondRows = focusRepository.findByLibraryWithCursorByDate(
+                user,
+                LocalDate.of(2026, 8, 2),
+                LocalDateTime.of(2026, 8, 3, 0, 0),
+                null,
+                PageRequest.of(0, 10)
+        );
+
+        assertThat(augustFirstRows.getContent()).extracting(Focus::getId).containsExactly(augustFirst.getId());
+        assertThat(augustSecondRows.getContent()).extracting(Focus::getId).containsExactly(augustSecond.getId());
     }
 
     @Test

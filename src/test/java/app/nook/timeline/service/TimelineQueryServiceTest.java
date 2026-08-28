@@ -41,6 +41,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("TimelineQueryService 테스트")
@@ -159,6 +161,26 @@ class TimelineQueryServiceTest {
     class GetTimelineSummary {
 
         @Test
+        @DisplayName("요약 포커스 횟수는 완료 행만 세어 진행 중 행을 제외한다")
+        void getTimelineSummary_countsOnlyCompletedFocusRows() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(focusRepository.countByLibraryAndEndedAtIsNotNull(library)).willReturn(2);
+            given(recordRepository.countByLibraryId(12L)).willReturn(0L);
+            given(recordRepository.findRecentByLibraryId(eq(12L), any())).willReturn(List.of());
+            given(timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library)).willReturn(List.of());
+
+            TimelineResponseDto.TimelineSummaryDto result =
+                    timelineQueryService.getTimelineSummary(user, 12L);
+
+            assertThat(result.focusSummary().focusCount()).isEqualTo(2);
+            verify(focusRepository).countByLibraryAndEndedAtIsNotNull(library);
+            verify(focusRepository, never()).countByLibrary(library);
+        }
+
+        @Test
         @DisplayName("성공")
         void getTimelineSummary_성공() {
             User user = user(1L);
@@ -172,7 +194,7 @@ class TimelineQueryServiceTest {
             );
 
             given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
-            given(focusRepository.countByLibrary(library)).willReturn(39);
+            given(focusRepository.countByLibraryAndEndedAtIsNotNull(library)).willReturn(39);
             given(recordRepository.countByLibraryId(12L)).willReturn(1L);
             given(recordRepository.findRecentByLibraryId(eq(12L), any())).willReturn(List.of(record(9001L, library, "기록 preview")));
             given(timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library))
@@ -201,7 +223,7 @@ class TimelineQueryServiceTest {
             );
 
             given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
-            given(focusRepository.countByLibrary(library)).willReturn(39);
+            given(focusRepository.countByLibraryAndEndedAtIsNotNull(library)).willReturn(39);
             given(recordRepository.countByLibraryId(12L)).willReturn(1L);
             given(recordRepository.findRecentByLibraryId(eq(12L), any())).willReturn(List.of(
                     recordWithImages(9001L, library, "   ", null, List.of("a.png", "b.png", "c.png"))
@@ -230,7 +252,7 @@ class TimelineQueryServiceTest {
             );
 
             given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
-            given(focusRepository.countByLibrary(library)).willReturn(39);
+            given(focusRepository.countByLibraryAndEndedAtIsNotNull(library)).willReturn(39);
             given(recordRepository.countByLibraryId(12L)).willReturn(5L);
             given(recordRepository.findRecentByLibraryId(eq(12L), any())).willReturn(List.of(record(6L, library, "1")));
             given(timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library))
@@ -404,6 +426,157 @@ class TimelineQueryServiceTest {
         }
 
         @Test
+        @DisplayName("일별 포커스는 각 시작 날짜와 구간별 preview 및 자정 표기로 조회한다")
+        void getTimelinePreview_일별포커스_시작날짜와자정표기() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            Focus augustFirstFocus = focus(
+                    7001L,
+                    library,
+                    LocalDateTime.of(2026, 8, 1, 23, 0),
+                    LocalDateTime.of(2026, 8, 2, 0, 0),
+                    3600
+            );
+            Focus augustSecondFocus = focus(
+                    7002L,
+                    library,
+                    LocalDateTime.of(2026, 8, 2, 0, 0),
+                    LocalDateTime.of(2026, 8, 2, 0, 30),
+                    1800
+            );
+            ReflectionTestUtils.setField(augustSecondFocus, "endPage", 72);
+
+            List<Timeline> timelines = List.of(
+                    timeline(20L, library, TimelineType.FOCUS,
+                            LocalDateTime.of(2026, 8, 2, 0, 0), "30분의 포커스", 7002L),
+                    timeline(19L, library, TimelineType.FOCUS,
+                            LocalDateTime.of(2026, 8, 1, 23, 0), "1시간의 포커스", 7001L)
+            );
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library))
+                    .willReturn(timelines);
+            given(focusRepository.findAllById(List.of(7002L, 7001L)))
+                    .willReturn(List.of(augustSecondFocus, augustFirstFocus));
+
+            TimelineResponseDto.TimelinePreviewDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L);
+
+            TimelineResponseDto.TimelineDateGroupDto augustSecond = result.dateGroups().get(0);
+            TimelineResponseDto.TimelineDateGroupDto augustFirst = result.dateGroups().get(1);
+            assertThat(result.dateGroups()).extracting(TimelineResponseDto.TimelineDateGroupDto::monthDay)
+                    .containsExactly("08.02", "08.01");
+            assertThat(augustFirst.items()).singleElement().satisfies(item -> {
+                assertThat(item.targetId()).isEqualTo(7001L);
+                assertThat(item.previewText()).isEqualTo("1시간의 포커스");
+                assertThat(item.subtitle()).isEqualTo("23:00 - 24:00");
+            });
+            assertThat(augustSecond.items()).singleElement().satisfies(item -> {
+                assertThat(item.targetId()).isEqualTo(7002L);
+                assertThat(item.previewText()).isEqualTo("30분의 포커스");
+                assertThat(item.subtitle()).isEqualTo("00:00 - 00:30");
+            });
+        }
+
+        @Test
+        @DisplayName("하루 전체 포커스는 종료 시각을 24시로 표기한다")
+        void getTimelinePreview_하루전체포커스_24시표기() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            Focus fullDayFocus = focus(
+                    7001L,
+                    library,
+                    LocalDateTime.of(2026, 8, 1, 0, 0),
+                    LocalDateTime.of(2026, 8, 2, 0, 0),
+                    86400
+            );
+            List<Timeline> timelines = List.of(
+                    timeline(19L, library, TimelineType.FOCUS,
+                            LocalDateTime.of(2026, 8, 1, 0, 0), "24시간의 포커스", 7001L)
+            );
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library))
+                    .willReturn(timelines);
+            given(focusRepository.findAllById(List.of(7001L))).willReturn(List.of(fullDayFocus));
+
+            TimelineResponseDto.TimelinePreviewDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L);
+
+            assertThat(result.dateGroups().get(0).items()).singleElement()
+                    .extracting(TimelineResponseDto.TimelineItemDto::subtitle)
+                    .isEqualTo("00:00 - 24:00");
+        }
+
+        @Test
+        @DisplayName("기존 여러 날 포커스의 자정 종료는 다음 날 자정이 아니면 24시로 변환하지 않는다")
+        void getTimelinePreview_기존여러날포커스_자정종료는24시가아님() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            Focus legacyFocus = focus(
+                    7001L,
+                    library,
+                    LocalDateTime.of(2026, 8, 1, 23, 0),
+                    LocalDateTime.of(2026, 8, 3, 0, 0),
+                    90000
+            );
+            List<Timeline> timelines = List.of(
+                    timeline(19L, library, TimelineType.FOCUS,
+                            LocalDateTime.of(2026, 8, 1, 23, 0), "25시간의 포커스", 7001L)
+            );
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library))
+                    .willReturn(timelines);
+            given(focusRepository.findAllById(List.of(7001L))).willReturn(List.of(legacyFocus));
+
+            TimelineResponseDto.TimelinePreviewDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L);
+
+            assertThat(result.dateGroups().get(0).items()).singleElement()
+                    .extracting(TimelineResponseDto.TimelineItemDto::subtitle)
+                    .isEqualTo("23:00 - 00:00");
+        }
+
+        @Test
+        @DisplayName("자정 전 포커스 원본이 없으면 다른 구간의 페이지 없이 저장된 preview를 유지한다")
+        void getTimelinePreview_일별포커스_이전구간원본없음Fallback() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            Focus augustSecondFocus = focus(
+                    7002L,
+                    library,
+                    LocalDateTime.of(2026, 8, 2, 0, 0),
+                    LocalDateTime.of(2026, 8, 2, 0, 30),
+                    1800
+            );
+            ReflectionTestUtils.setField(augustSecondFocus, "endPage", 72);
+            List<Timeline> timelines = List.of(
+                    timeline(20L, library, TimelineType.FOCUS,
+                            LocalDateTime.of(2026, 8, 2, 0, 0), "30분의 포커스", 7002L),
+                    timeline(19L, library, TimelineType.FOCUS,
+                            LocalDateTime.of(2026, 8, 1, 23, 0), "1시간의 포커스", 7001L)
+            );
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library))
+                    .willReturn(timelines);
+            given(focusRepository.findAllById(List.of(7002L, 7001L)))
+                    .willReturn(List.of(augustSecondFocus));
+
+            TimelineResponseDto.TimelinePreviewDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L);
+
+            TimelineResponseDto.TimelineItemDto augustFirst = result.dateGroups().get(1).items().get(0);
+            TimelineResponseDto.TimelineItemDto augustSecond = result.dateGroups().get(0).items().get(0);
+            assertThat(augustFirst.targetId()).isEqualTo(7001L);
+            assertThat(augustFirst.previewText()).isEqualTo("1시간의 포커스");
+            assertThat(augustFirst.subtitle()).isNull();
+            assertThat(augustSecond.targetId()).isEqualTo(7002L);
+            assertThat(augustSecond.subtitle()).isEqualTo("00:00 - 00:30");
+        }
+
+        @Test
         @DisplayName("record preview가 비어 있으면 기록 규칙으로 fallback 한다")
         void getTimelinePreview_recordPreviewFallback() {
             User user = user(1L);
@@ -447,6 +620,75 @@ class TimelineQueryServiceTest {
     @Nested
     @DisplayName("독서 이력 상세 조회")
     class GetTimelineDetail {
+
+        @Test
+        @DisplayName("FOCUS 상세 조회 시 자정 전 구간은 24시로 표시하고 페이지를 반환하지 않는다")
+        void getTimelineDetail_focus_자정전구간_페이지없음() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            Timeline timeline = timeline(
+                    30L,
+                    library,
+                    TimelineType.FOCUS,
+                    LocalDateTime.of(2026, 8, 1, 23, 0),
+                    "1시간의 포커스",
+                    7001L
+            );
+            Focus focus = focus(
+                    7001L,
+                    library,
+                    LocalDateTime.of(2026, 8, 1, 23, 0),
+                    LocalDateTime.of(2026, 8, 2, 0, 0),
+                    3600
+            );
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByIdAndLibrary(30L, library)).willReturn(Optional.of(timeline));
+            given(focusRepository.findById(7001L)).willReturn(Optional.of(focus));
+
+            TimelineResponseDto.TimelineDetailDto result =
+                    timelineQueryService.getTimelineDetail(user, 12L, 30L);
+
+            TimelineResponseDto.TimelineFocusDetailDto detail =
+                    (TimelineResponseDto.TimelineFocusDetailDto) result.detail();
+            assertThat(detail.timeText()).isEqualTo("23:00 - 24:00 (1시간)");
+            assertThat(detail.page()).isNull();
+        }
+
+        @Test
+        @DisplayName("FOCUS 상세 조회 시 마지막 자정 후 구간만 마지막 페이지를 반환한다")
+        void getTimelineDetail_focus_마지막자정후구간_마지막페이지() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            Timeline timeline = timeline(
+                    31L,
+                    library,
+                    TimelineType.FOCUS,
+                    LocalDateTime.of(2026, 8, 2, 0, 0),
+                    "30분의 포커스",
+                    7002L
+            );
+            Focus focus = focus(
+                    7002L,
+                    library,
+                    LocalDateTime.of(2026, 8, 2, 0, 0),
+                    LocalDateTime.of(2026, 8, 2, 0, 30),
+                    1800
+            );
+            ReflectionTestUtils.setField(focus, "endPage", 72);
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByIdAndLibrary(31L, library)).willReturn(Optional.of(timeline));
+            given(focusRepository.findById(7002L)).willReturn(Optional.of(focus));
+
+            TimelineResponseDto.TimelineDetailDto result =
+                    timelineQueryService.getTimelineDetail(user, 12L, 31L);
+
+            TimelineResponseDto.TimelineFocusDetailDto detail =
+                    (TimelineResponseDto.TimelineFocusDetailDto) result.detail();
+            assertThat(detail.timeText()).isEqualTo("00:00 - 00:30 (30분)");
+            assertThat(detail.page()).isEqualTo(72);
+        }
 
         @Test
         @DisplayName("FOCUS 상세 조회 성공")

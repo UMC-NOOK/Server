@@ -51,7 +51,7 @@ public class TimelineQueryService {
                         library.getStartedAt(),
                         library.getEndedAt(),
                         library.getFocusSec(),
-                        focusRepository.countByLibrary(library),
+                        focusRepository.countByLibraryAndEndedAtIsNotNull(library),
                         library.getPage()
                 );
 
@@ -230,7 +230,15 @@ public class TimelineQueryService {
     private String toFocusSubtitle(Focus focus) {
         return focus.getStartedAt().format(FOCUS_TIME_FORMATTER)
                 + " - "
-                + focus.getEndedAt().format(FOCUS_TIME_FORMATTER);
+                + toFocusEndTimeText(focus);
+    }
+
+    private String toFocusEndTimeText(Focus focus) {
+        if (focus.getEndedAt().equals(focus.getStartedAt().toLocalDate().plusDays(1).atStartOfDay())) {
+            return "24:00";
+        }
+
+        return focus.getEndedAt().format(FOCUS_TIME_FORMATTER);
     }
 
     private TimelineResponseDto.TimelineItemDto toRecordTimelineItem(Timeline timeline, Map<Long, Record> recordMap) {

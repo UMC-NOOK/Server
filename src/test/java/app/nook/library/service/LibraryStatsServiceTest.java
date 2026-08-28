@@ -171,6 +171,50 @@ class LibraryStatsServiceTest {
         }
 
         @Test
+        @DisplayName("일별 완료 행은 자정 양쪽 날짜와 도서 통계에 한 번씩만 반영한다")
+        void dailyRowsContributeOnceToMonthlyBookAndFocusTimeStats() {
+            Long userId = 31L;
+            YearMonth yearMonth = YearMonth.of(2026, 2);
+            LocalDateTime rangeStart = yearMonth.atDay(1).atStartOfDay();
+            LocalDateTime rangeEnd = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
+            List<FocusRangeStatsDto> dailyRows = List.of(
+                    focusRange(
+                            LocalDateTime.of(2026, 2, 14, 23, 55),
+                            LocalDateTime.of(2026, 2, 15, 0, 0),
+                            11L,
+                            "cover-11"
+                    ),
+                    focusRange(
+                            LocalDateTime.of(2026, 2, 15, 0, 0),
+                            LocalDateTime.of(2026, 2, 15, 0, 10),
+                            11L,
+                            "cover-11"
+                    )
+            );
+
+            given(redisZSETService.loadMonthlyBooks(userId, yearMonth)).willReturn(null);
+            given(redisZSETService.loadMonthlyFocusTime(userId, yearMonth)).willReturn(null);
+            given(focusRepository.findOverlappingFocusRanges(userId, rangeStart, rangeEnd))
+                    .willReturn(dailyRows);
+
+            FocusRankDto.MonthlyBooksResponseDto monthlyBooks = libraryStatsService.viewMonthly(userId, yearMonth);
+            FocusRankDto.FocusBookResponseDto focusTime = libraryStatsService.viewFocusTimeStats(userId, yearMonth);
+
+            assertThat(monthlyBooks.totalBookCount()).isEqualTo(2);
+            assertThat(monthlyBooks.days())
+                    .extracting(FocusRankDto.DailyBookItem::date, FocusRankDto.DailyBookItem::bookCount)
+                    .containsExactlyInAnyOrder(
+                            org.assertj.core.groups.Tuple.tuple(LocalDate.of(2026, 2, 14), 1L),
+                            org.assertj.core.groups.Tuple.tuple(LocalDate.of(2026, 2, 15), 1L)
+                    );
+            assertThat(monthlyBooks.days()).allSatisfy(day -> assertThat(day.topBook().bookId()).isEqualTo(11L));
+            assertThat(focusTime.totalFocusMin()).isEqualTo(15);
+            assertThat(focusTime.focusBookItems()).extracting(FocusRankDto.FocusDateItem::date)
+                    .containsExactly(LocalDate.of(2026, 2, 14), LocalDate.of(2026, 2, 15));
+            verify(focusRepository, times(2)).findOverlappingFocusRanges(userId, rangeStart, rangeEnd);
+        }
+
+        @Test
         @DisplayName("캐시 미스면 계산 결과를 Redis ZSET에 저장한다")
         void cacheMiss() {
             Long userId = 4L;
@@ -253,8 +297,8 @@ class LibraryStatsServiceTest {
         }
 
         @Test
-        @DisplayName("진행 중 세션과 겹치는 월은 캐시를 읽거나 저장하지 않는다")
-        void bypassCacheForInProgressFocus() {
+        @DisplayName("자정을 넘는 진행 중 세션은 서버 현재 시각까지만 날짜별로 계산하고 캐시를 우회한다")
+        void activeCrossMidnightFocusUsesServerNowAndBypassesCache() {
             Long userId = 11L;
             YearMonth yearMonth = YearMonth.of(2026, 2);
             LocalDateTime rangeStart = yearMonth.atDay(1).atStartOfDay();
@@ -273,7 +317,8 @@ class LibraryStatsServiceTest {
             FocusRankDto.FocusBookResponseDto result = libraryStatsService.viewFocusTimeStats(userId, yearMonth);
 
             assertThat(result.totalFocusMin()).isEqualTo(15);
-            assertThat(result.focusBookItems()).hasSize(2);
+            assertThat(result.focusBookItems()).extracting(FocusRankDto.FocusDateItem::date)
+                    .containsExactly(LocalDate.of(2026, 2, 14), LocalDate.of(2026, 2, 15));
             verify(redisZSETService, never()).loadMonthlyFocusTime(any(), any());
             verify(redisZSETService, never()).saveMonthlyFocusTime(any(), any(), any());
         }

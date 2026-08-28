@@ -65,6 +65,7 @@ import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -399,6 +400,50 @@ class LibraryServiceTest {
                             java.time.YearMonth.of(2026, 2),
                             java.time.YearMonth.of(2026, 3),
                             java.time.YearMonth.of(2026, 4)
+                    ))
+            ));
+        }
+
+        @Test
+        @DisplayName("일별로 저장된 포커스 행은 영향 월을 중복 없이 합산한다")
+        void deleteByBookId_dailyFocusRowsUnionAffectedMonthsWithoutDuplicates() {
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 1L);
+            Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "id", 10L);
+
+            Focus januaryDailyRow = Focus.builder()
+                    .library(library)
+                    .startedAt(LocalDateTime.of(2026, 1, 31, 23, 30))
+                    .endedAt(LocalDateTime.of(2026, 2, 1, 0, 0))
+                    .durationSec(1800)
+                    .build();
+            Focus februaryDailyRow = Focus.builder()
+                    .library(library)
+                    .startedAt(LocalDateTime.of(2026, 2, 1, 0, 0))
+                    .endedAt(LocalDateTime.of(2026, 2, 1, 0, 30))
+                    .durationSec(1800)
+                    .build();
+            Focus anotherFebruaryDailyRow = Focus.builder()
+                    .library(library)
+                    .startedAt(LocalDateTime.of(2026, 2, 15, 10, 0))
+                    .endedAt(LocalDateTime.of(2026, 2, 15, 10, 30))
+                    .durationSec(1800)
+                    .build();
+            given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserIdAndBook(1L, book)).willReturn(Optional.of(library));
+            given(focusRepository.findAllByLibraryIdAndLibraryUserId(10L, 1L))
+                    .willReturn(List.of(januaryDailyRow, februaryDailyRow, anotherFebruaryDailyRow));
+
+            libraryCommandService.deleteByBookId(1L, 1L);
+
+            verify(eventPublisher, times(1)).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.userId().equals(1L)
+                            && cacheEvent.affectedYearMonths().equals(Set.of(
+                            java.time.YearMonth.of(2026, 1),
+                            java.time.YearMonth.of(2026, 2)
                     ))
             ));
         }

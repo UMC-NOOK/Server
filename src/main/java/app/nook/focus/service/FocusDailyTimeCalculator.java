@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -14,6 +15,32 @@ import java.util.Set;
 
 @Component
 public class FocusDailyTimeCalculator {
+
+    public List<CompletedFocusSegment> splitCompletedForPersistence(
+            LocalDateTime startedAt,
+            LocalDateTime endedAt
+    ) {
+        LocalDateTime normalizedStart = startedAt.truncatedTo(ChronoUnit.SECONDS);
+        LocalDateTime normalizedEnd = endedAt.truncatedTo(ChronoUnit.SECONDS);
+        if (!normalizedStart.isBefore(normalizedEnd)) {
+            return List.of();
+        }
+
+        List<CompletedFocusSegment> segments = new ArrayList<>();
+        LocalDateTime cursor = normalizedStart;
+
+        while (cursor.isBefore(normalizedEnd)) {
+            LocalDateTime segmentEnd = earlierOf(normalizedEnd, cursor.toLocalDate().plusDays(1).atStartOfDay());
+            long durationSec = Duration.between(cursor, segmentEnd).getSeconds();
+
+            if (durationSec > 0) {
+                segments.add(new CompletedFocusSegment(cursor.toLocalDate(), cursor, segmentEnd, durationSec));
+            }
+            cursor = segmentEnd;
+        }
+
+        return List.copyOf(segments);
+    }
 
     public Set<YearMonth> affectedYearMonths(
             LocalDateTime startedAt,
@@ -103,5 +130,13 @@ public class FocusDailyTimeCalculator {
     }
 
     public record DailyFocusTime(LocalDate date, long durationSec) {
+    }
+
+    public record CompletedFocusSegment(
+            LocalDate focusDate,
+            LocalDateTime startedAt,
+            LocalDateTime endedAt,
+            long durationSec
+    ) {
     }
 }

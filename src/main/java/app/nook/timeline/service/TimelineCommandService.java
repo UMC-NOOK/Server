@@ -54,7 +54,7 @@ public class TimelineCommandService {
                 focus.getLibrary(),
                 TimelineType.FOCUS,
                 focus.getId(),
-                focus.getEndedAt(),
+                focus.getStartedAt(),
                 toFocusPreviewText(focus.getDurationSec())
         );
         timelineRepository.save(timeline);

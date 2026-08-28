@@ -23,6 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -55,10 +58,11 @@ public class FocusService {
                 .orElseThrow(() -> new CustomException(FocusErrorCode.THEME_NOT_FOUND));
 
         // 4. Focus 생성
+        LocalDateTime startedAt = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
         Focus focus = Focus.builder()
                 .library(library)
                 .theme(theme)
-                .startedAt(LocalDateTime.now(clock))
+                .startedAt(startedAt)
                 .endedAt(null)
                 .durationSec(0)
                 .build();
@@ -66,7 +70,7 @@ public class FocusService {
         Focus savedFocus = focusRepository.save(focus);
 
         if (library.getReadingStatus() == ReadingStatus.BEFORE) {
-            library.updateStatus(ReadingStatus.READING);
+            library.updateStatus(ReadingStatus.READING, startedAt.toLocalDate());
         }
 
         return FocusConverter.toFocusStartResponse(savedFocus);
@@ -74,35 +78,75 @@ public class FocusService {
 
     public FocusResponseDto.FocusEnd endFocus(Long userId, FocusRequestDto.FocusEnd request) {
 
-        Focus focus = focusRepository.findByIdAndLibraryUserId(request.focusId(), userId)
+        Focus focus = focusRepository.findByIdAndLibraryUserIdForUpdate(request.focusId(), userId)
                 .orElseThrow(() -> new CustomException(FocusErrorCode.FOCUS_NOT_FOUND));
 
         if (focus.getEndedAt() != null) {
             throw new CustomException(FocusErrorCode.FOCUS_ALREADY_ENDED);
         }
 
-        LocalDateTime endedAt = LocalDateTime.now(clock);
-        focus.endFocus(endedAt, request.page());
+        Long originalFocusId = focus.getId();
+        LocalDateTime measuredStartedAt = focus.getStartedAt();
+        LocalDateTime measuredEndedAt = LocalDateTime.now(clock);
+        List<FocusDailyTimeCalculator.CompletedFocusSegment> segments =
+                focusDailyTimeCalculator.splitCompletedForPersistence(measuredStartedAt, measuredEndedAt);
+
+        if (segments.isEmpty()) {
+            throw new CustomException(FocusErrorCode.FOCUS_DURATION_TOO_SHORT);
+        }
+
+        LocalDateTime normalizedStartedAt = segments.get(0).startedAt();
+        LocalDateTime normalizedEndedAt = segments.get(segments.size() - 1).endedAt();
+        int aggregateDurationSec = Math.toIntExact(segments.stream()
+                .mapToLong(FocusDailyTimeCalculator.CompletedFocusSegment::durationSec)
+                .sum());
+        Set<YearMonth> affectedYearMonths = affectedYearMonths(normalizedStartedAt, normalizedEndedAt);
 
         Library library = focus.getLibrary();
-        library.recordFocus(focus.getDurationSec());
+        Theme theme = focus.getTheme();
+        List<Focus> completedFocuses = new ArrayList<>(segments.size());
+        for (int index = 0; index < segments.size(); index++) {
+            FocusDailyTimeCalculator.CompletedFocusSegment segment = segments.get(index);
+            Integer endPage = index == segments.size() - 1 ? request.page() : null;
+            if (index == 0) {
+                focus.completeSegment(segment.startedAt(), segment.endedAt(), endPage);
+                completedFocuses.add(focus);
+            } else {
+                completedFocuses.add(Focus.builder()
+                        .library(library)
+                        .theme(theme)
+                        .startedAt(segment.startedAt())
+                        .endedAt(segment.endedAt())
+                        .durationSec(Math.toIntExact(segment.durationSec()))
+                        .endPage(endPage)
+                        .build());
+            }
+        }
+
+        library.recordFocus(aggregateDurationSec);
         library.recordPage(request.page());
 
         boolean isFinished = Boolean.TRUE.equals(request.isFinished());
         if (isFinished) {
-            library.updateStatus(ReadingStatus.FINISHED);
+            library.updateStatus(ReadingStatus.FINISHED, normalizedEndedAt.toLocalDate());
         } else if (library.getReadingStatus() == ReadingStatus.BEFORE) {
-            library.updateStatus(ReadingStatus.READING);
+            library.updateStatus(ReadingStatus.READING, normalizedEndedAt.toLocalDate());
         }
 
-        Set<YearMonth> affectedYearMonths = affectedYearMonths(focus.getStartedAt(), endedAt);
+        focusRepository.saveAllAndFlush(completedFocuses);
+        completedFocuses.forEach(timelineCommandService::appendFocusCompleted);
+
         eventPublisher.publishEvent(isFinished
                 ? LibraryCacheInvalidateEvent.monthlyAndOnboardingGoal(userId, affectedYearMonths)
                 : LibraryCacheInvalidateEvent.monthly(userId, affectedYearMonths));
 
-        timelineCommandService.appendFocusCompleted(focus);
-
-        return FocusConverter.toFocusEndResponse(focus);
+        return FocusConverter.toFocusEndResponse(
+                originalFocusId,
+                normalizedStartedAt,
+                normalizedEndedAt,
+                aggregateDurationSec,
+                library
+        );
     }
 
     private Set<YearMonth> affectedYearMonths(LocalDateTime startedAt, LocalDateTime endedAt) {

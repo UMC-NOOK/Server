@@ -24,15 +24,20 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -41,8 +46,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FocusService 테스트")
@@ -137,6 +145,60 @@ class FocusServiceTest {
         }
 
         @Test
+        @DisplayName("성공 - 저장 시작 시각을 초 단위로 정규화한다")
+        void 성공_시작시각초단위정규화() {
+            LocalDateTime serverNow = LocalDateTime.of(2026, 8, 1, 23, 55, 12, 987_654_321);
+            LocalDateTime normalizedNow = LocalDateTime.of(2026, 8, 1, 23, 55, 12);
+            useClock(serverNow);
+            FocusRequestDto.FocusStart request = new FocusRequestDto.FocusStart(library.getId(), theme.getId());
+            ArgumentCaptor<Focus> focusCaptor = ArgumentCaptor.forClass(Focus.class);
+
+            given(focusRepository.findByLibraryUserIdAndEndedAtIsNull(user.getId()))
+                    .willReturn(Optional.empty());
+            given(libraryRepository.findByIdAndUserId(library.getId(), user.getId()))
+                    .willReturn(Optional.of(library));
+            given(themeRepository.findById(theme.getId()))
+                    .willReturn(Optional.of(theme));
+            given(focusRepository.save(any(Focus.class)))
+                    .willAnswer(invocation -> {
+                        Focus saved = invocation.getArgument(0);
+                        ReflectionTestUtils.setField(saved, "id", 101L);
+                        return saved;
+                    });
+
+            FocusResponseDto.FocusStart result = focusService.startFocus(user, request);
+
+            verify(focusRepository).save(focusCaptor.capture());
+            Focus saved = focusCaptor.getValue();
+            assertThat(saved.getStartedAt()).isEqualTo(normalizedNow);
+            assertThat(saved.getFocusDate()).isEqualTo(LocalDate.of(2026, 8, 1));
+            assertThat(saved.getStartedTime()).isEqualTo(normalizedNow.toLocalTime());
+            assertThat(result.startedAt()).isEqualTo(normalizedNow);
+        }
+
+        @Test
+        @DisplayName("성공 - BEFORE에서 READING 전환 시 주입된 시작 날짜를 서재에 저장한다")
+        void 성공_시작시서재시작날짜는주입된시각기준() {
+            LocalDateTime serverNow = LocalDateTime.of(2026, 8, 1, 23, 55, 12, 987_654_321);
+            useClock(serverNow);
+            FocusRequestDto.FocusStart request = new FocusRequestDto.FocusStart(library.getId(), theme.getId());
+
+            given(focusRepository.findByLibraryUserIdAndEndedAtIsNull(user.getId()))
+                    .willReturn(Optional.empty());
+            given(libraryRepository.findByIdAndUserId(library.getId(), user.getId()))
+                    .willReturn(Optional.of(library));
+            given(themeRepository.findById(theme.getId()))
+                    .willReturn(Optional.of(theme));
+            given(focusRepository.save(any(Focus.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+            FocusResponseDto.FocusStart result = focusService.startFocus(user, request);
+
+            assertThat(result.startedAt()).isEqualTo(LocalDateTime.of(2026, 8, 1, 23, 55, 12));
+            assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
+            assertThat(library.getStartedAt()).isEqualTo(LocalDate.of(2026, 8, 1));
+        }
+
+        @Test
         @DisplayName("실패 - 이미 진행 중인 포커스가 있음")
         void 실패_이미진행중() {
             FocusRequestDto.FocusStart request = new FocusRequestDto.FocusStart(library.getId(), theme.getId());
@@ -190,11 +252,211 @@ class FocusServiceTest {
     class EndFocus {
 
         @Test
+        @DisplayName("성공 - 자정을 넘은 세션을 일별 저장하고 원본 ID의 전체 응답을 반환한다")
+        void 성공_자정분할저장과전체응답() {
+            LocalDateTime startedAt = LocalDateTime.of(2026, 8, 1, 23, 55, 0, 900_000_000);
+            LocalDateTime endedAt = LocalDateTime.of(2026, 8, 2, 0, 10, 0, 100_000_000);
+            LocalDateTime normalizedStart = LocalDateTime.of(2026, 8, 1, 23, 55);
+            LocalDateTime midnight = LocalDateTime.of(2026, 8, 2, 0, 0);
+            LocalDateTime normalizedEnd = LocalDateTime.of(2026, 8, 2, 0, 10);
+            Long originalFocusId = focus.getId();
+            setFocusStartedAt(startedAt);
+            useClock(endedAt);
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(originalFocusId, 72, true);
+            List<Focus> persistedRows = stubSaveAllAndFlushWithGeneratedIds();
+
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(originalFocusId, user.getId()))
+                    .willReturn(Optional.of(focus));
+
+            FocusResponseDto.FocusEnd result = focusService.endFocus(user.getId(), request);
+
+            assertThat(persistedRows).hasSize(2);
+            Focus first = persistedRows.get(0);
+            Focus last = persistedRows.get(1);
+            assertThat(first).isSameAs(focus);
+            assertThat(first.getId()).isEqualTo(originalFocusId);
+            assertThat(first.getLibrary()).isSameAs(library);
+            assertThat(first.getTheme()).isSameAs(theme);
+            assertThat(first.getFocusDate()).isEqualTo(LocalDate.of(2026, 8, 1));
+            assertThat(first.getStartedAt()).isEqualTo(normalizedStart);
+            assertThat(first.getStartedTime()).isEqualTo(normalizedStart.toLocalTime());
+            assertThat(first.getEndedAt()).isEqualTo(midnight);
+            assertThat(first.getEndedTime()).isEqualTo(midnight.toLocalTime());
+            assertThat(first.getDurationSec()).isEqualTo(300);
+            assertThat(first.getEndPage()).isNull();
+            assertThat(last.getId()).isEqualTo(101L);
+            assertThat(last.getLibrary()).isSameAs(library);
+            assertThat(last.getTheme()).isSameAs(theme);
+            assertThat(last.getFocusDate()).isEqualTo(LocalDate.of(2026, 8, 2));
+            assertThat(last.getStartedAt()).isEqualTo(midnight);
+            assertThat(last.getStartedTime()).isEqualTo(midnight.toLocalTime());
+            assertThat(last.getEndedAt()).isEqualTo(normalizedEnd);
+            assertThat(last.getEndedTime()).isEqualTo(normalizedEnd.toLocalTime());
+            assertThat(last.getDurationSec()).isEqualTo(600);
+            assertThat(last.getEndPage()).isEqualTo(72);
+
+            assertThat(library.getFocusSec()).isEqualTo(900L);
+            assertThat(library.getPage()).isEqualTo(72);
+            assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.FINISHED);
+            assertThat(result.focusId()).isEqualTo(originalFocusId);
+            assertThat(result.libraryId()).isEqualTo(library.getId());
+            assertThat(result.startedAt()).isEqualTo(normalizedStart);
+            assertThat(result.endedAt()).isEqualTo(normalizedEnd);
+            assertThat(result.durationSec()).isEqualTo(900);
+            assertThat(result.page()).isEqualTo(72);
+            assertThat(result.totalFocusSec()).isEqualTo(900L);
+            assertThat(result.readingStatus()).isEqualTo("FINISHED");
+
+            ArgumentCaptor<Focus> timelineCaptor = ArgumentCaptor.forClass(Focus.class);
+            verify(timelineCommandService, times(2)).appendFocusCompleted(timelineCaptor.capture());
+            assertThat(timelineCaptor.getAllValues()).containsExactly(first, last);
+            InOrder persistenceBeforeTimeline = inOrder(focusRepository, timelineCommandService);
+            persistenceBeforeTimeline.verify(focusRepository).saveAllAndFlush(any());
+            persistenceBeforeTimeline.verify(timelineCommandService).appendFocusCompleted(first);
+            persistenceBeforeTimeline.verify(timelineCommandService).appendFocusCompleted(last);
+            verify(eventPublisher, times(1)).publishEvent(argThat((Object event) ->
+                    event instanceof LibraryCacheInvalidateEvent cacheEvent
+                            && cacheEvent.userId().equals(user.getId())
+                            && cacheEvent.evictOnboardingGoal()
+                            && cacheEvent.affectedYearMonths().equals(Set.of(YearMonth.of(2026, 8)))
+            ));
+        }
+
+        @Test
+        @DisplayName("성공 - 정확히 자정에 끝나면 이전 날짜 행만 저장한다")
+        void 성공_정확한자정종료() {
+            LocalDateTime startedAt = LocalDateTime.of(2026, 8, 1, 23, 55);
+            LocalDateTime endedAt = LocalDateTime.of(2026, 8, 2, 0, 0);
+            setFocusStartedAt(startedAt);
+            useClock(endedAt);
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 45, false);
+            List<Focus> persistedRows = stubSaveAllAndFlushWithGeneratedIds();
+
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
+                    .willReturn(Optional.of(focus));
+
+            FocusResponseDto.FocusEnd result = focusService.endFocus(user.getId(), request);
+
+            assertThat(persistedRows).containsExactly(focus);
+            assertThat(focus.getFocusDate()).isEqualTo(LocalDate.of(2026, 8, 1));
+            assertThat(focus.getStartedAt()).isEqualTo(startedAt);
+            assertThat(focus.getEndedAt()).isEqualTo(endedAt);
+            assertThat(focus.getDurationSec()).isEqualTo(300);
+            assertThat(focus.getEndPage()).isEqualTo(45);
+            assertThat(result.durationSec()).isEqualTo(300);
+            verify(timelineCommandService, times(1)).appendFocusCompleted(focus);
+        }
+
+        @Test
+        @DisplayName("성공 - 자정 양쪽의 마이크로초를 전체 초로 정규화한다")
+        void 성공_자정마이크로초정규화() {
+            LocalDateTime measuredStart = LocalDateTime.of(2026, 8, 1, 23, 59, 59, 500_000_000);
+            LocalDateTime measuredEnd = LocalDateTime.of(2026, 8, 2, 0, 0, 0, 500_000_000);
+            LocalDateTime normalizedStart = LocalDateTime.of(2026, 8, 1, 23, 59, 59);
+            LocalDateTime normalizedEnd = LocalDateTime.of(2026, 8, 2, 0, 0);
+            setFocusStartedAt(measuredStart);
+            useClock(measuredEnd);
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 45, false);
+            List<Focus> persistedRows = stubSaveAllAndFlushWithGeneratedIds();
+
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
+                    .willReturn(Optional.of(focus));
+
+            FocusResponseDto.FocusEnd result = focusService.endFocus(user.getId(), request);
+
+            assertThat(persistedRows).containsExactly(focus);
+            assertThat(focus.getFocusDate()).isEqualTo(LocalDate.of(2026, 8, 1));
+            assertThat(focus.getStartedAt()).isEqualTo(normalizedStart);
+            assertThat(focus.getEndedAt()).isEqualTo(normalizedEnd);
+            assertThat(focus.getDurationSec()).isEqualTo(1);
+            assertThat(result.startedAt()).isEqualTo(normalizedStart);
+            assertThat(result.endedAt()).isEqualTo(normalizedEnd);
+            assertThat(result.durationSec()).isEqualTo(1);
+            assertThat(result.totalFocusSec()).isEqualTo(1L);
+        }
+
+        @Test
+        @DisplayName("성공 - 자정 이후 완독 시 집계 종료 날짜를 서재에 저장한다")
+        void 성공_자정분할완독시서재종료날짜는집계종료시각기준() {
+            LocalDateTime measuredStart = LocalDateTime.of(2026, 8, 1, 23, 55, 12, 987_654_321);
+            LocalDateTime measuredEnd = LocalDateTime.of(2026, 8, 2, 0, 10, 34, 123_456_789);
+            setFocusStartedAt(measuredStart);
+            useClock(measuredEnd);
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 72, true);
+            stubSaveAllAndFlushWithGeneratedIds();
+
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
+                    .willReturn(Optional.of(focus));
+
+            FocusResponseDto.FocusEnd result = focusService.endFocus(user.getId(), request);
+
+            assertThat(result.endedAt()).isEqualTo(LocalDateTime.of(2026, 8, 2, 0, 10, 34));
+            assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.FINISHED);
+            assertThat(library.getEndedAt()).isEqualTo(LocalDate.of(2026, 8, 2));
+        }
+
+        @Test
+        @DisplayName("실패 - 같은 초로 정규화되면 어떤 상태나 부수 효과도 변경하지 않는다")
+        void 실패_같은정규화초는무변경() {
+            LocalDateTime measuredStart = LocalDateTime.of(2026, 8, 1, 12, 0, 0, 100_000_000);
+            LocalDateTime measuredEnd = LocalDateTime.of(2026, 8, 1, 12, 0, 0, 900_000_000);
+            setFocusStartedAt(measuredStart);
+            useClock(measuredEnd);
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 99, true);
+
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
+                    .willReturn(Optional.of(focus));
+
+            assertThatThrownBy(() -> focusService.endFocus(user.getId(), request))
+                    .isInstanceOf(CustomException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(FocusErrorCode.FOCUS_DURATION_TOO_SHORT);
+
+            assertThat(focus.getStartedAt()).isEqualTo(measuredStart);
+            assertThat(focus.getEndedAt()).isNull();
+            assertThat(focus.getDurationSec()).isZero();
+            assertThat(focus.getEndPage()).isNull();
+            assertThat(library.getFocusSec()).isZero();
+            assertThat(library.getPage()).isZero();
+            assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.BEFORE);
+            verify(focusRepository, never()).saveAllAndFlush(any());
+            verifyNoInteractions(timelineCommandService, eventPublisher);
+        }
+
+        @Test
+        @DisplayName("실패 - 순차 재종료는 일별 행과 부수 효과를 중복 생성하지 않는다")
+        void 실패_순차재종료중복없음() {
+            setFocusStartedAt(LocalDateTime.of(2026, 8, 1, 23, 55));
+            useClock(LocalDateTime.of(2026, 8, 2, 0, 10));
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 72, true);
+            stubSaveAllAndFlushWithGeneratedIds();
+
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
+                    .willReturn(Optional.of(focus));
+
+            FocusResponseDto.FocusEnd firstResult = focusService.endFocus(user.getId(), request);
+
+            assertThatThrownBy(() -> focusService.endFocus(user.getId(), request))
+                    .isInstanceOf(CustomException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(FocusErrorCode.FOCUS_ALREADY_ENDED);
+            assertThat(firstResult.durationSec()).isEqualTo(900);
+            assertThat(library.getFocusSec()).isEqualTo(900L);
+            assertThat(library.getPage()).isEqualTo(72);
+            assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.FINISHED);
+            verify(focusRepository, times(2))
+                    .findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId());
+            verify(focusRepository, times(1)).saveAllAndFlush(any());
+            verify(timelineCommandService, times(2)).appendFocusCompleted(any(Focus.class));
+            verify(eventPublisher, times(1)).publishEvent(any(LibraryCacheInvalidateEvent.class));
+        }
+
+        @Test
         @DisplayName("성공 - 완독 처리")
         void 성공_완독() {
             FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 72, true);
 
-            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
                     .willReturn(Optional.of(focus));
 
             FocusResponseDto.FocusEnd result = focusService.endFocus(user.getId(), request);
@@ -224,7 +486,7 @@ class FocusServiceTest {
             FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 45, false);
             ReflectionTestUtils.setField(library, "readingStatus", ReadingStatus.READING);
 
-            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
                     .willReturn(Optional.of(focus));
 
             FocusResponseDto.FocusEnd result = focusService.endFocus(user.getId(), request);
@@ -247,7 +509,7 @@ class FocusServiceTest {
         void 성공_종료의기존부수효과유지() {
             FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 45, false);
 
-            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
                     .willReturn(Optional.of(focus));
 
             FocusResponseDto.FocusEnd result = focusService.endFocus(user.getId(), request);
@@ -266,7 +528,7 @@ class FocusServiceTest {
             useClock(LocalDateTime.of(2026, 4, 1, 0, 0));
             FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 45, false);
 
-            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
                     .willReturn(Optional.of(focus));
 
             focusService.endFocus(user.getId(), request);
@@ -286,7 +548,7 @@ class FocusServiceTest {
             useClock(LocalDateTime.of(2026, 1, 1, 0, 30));
             FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 45, false);
 
-            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
                     .willReturn(Optional.of(focus));
 
             focusService.endFocus(user.getId(), request);
@@ -309,7 +571,7 @@ class FocusServiceTest {
             useClock(LocalDateTime.of(2026, 4, 2, 10, 0));
             FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 45, false);
 
-            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
                     .willReturn(Optional.of(focus));
 
             focusService.endFocus(user.getId(), request);
@@ -332,7 +594,7 @@ class FocusServiceTest {
         void 실패_포커스없음() {
             FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 72, false);
 
-            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
                     .willReturn(Optional.empty());
 
             assertThatThrownBy(() -> focusService.endFocus(user.getId(), request))
@@ -347,13 +609,30 @@ class FocusServiceTest {
             FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(focus.getId(), 72, false);
             ReflectionTestUtils.setField(focus, "endedAt", LocalDateTime.of(2026, 3, 22, 14, 34, 26));
 
-            given(focusRepository.findByIdAndLibraryUserId(focus.getId(), user.getId()))
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
                     .willReturn(Optional.of(focus));
 
             assertThatThrownBy(() -> focusService.endFocus(user.getId(), request))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(FocusErrorCode.FOCUS_ALREADY_ENDED);
+        }
+
+        private List<Focus> stubSaveAllAndFlushWithGeneratedIds() {
+            List<Focus> persistedRows = new ArrayList<>();
+            given(focusRepository.saveAllAndFlush(any()))
+                    .willAnswer(invocation -> {
+                        List<Focus> rows = invocation.getArgument(0);
+                        for (int index = 0; index < rows.size(); index++) {
+                            Focus row = rows.get(index);
+                            if (row.getId() == null) {
+                                ReflectionTestUtils.setField(row, "id", 100L + index);
+                            }
+                        }
+                        persistedRows.addAll(rows);
+                        return rows;
+                    });
+            return persistedRows;
         }
     }
 }

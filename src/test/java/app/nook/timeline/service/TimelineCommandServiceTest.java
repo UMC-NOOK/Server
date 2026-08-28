@@ -104,7 +104,7 @@ class TimelineCommandServiceTest {
     class AppendFocusCompleted {
 
         @Test
-        @DisplayName("성공 - 분 단위 포커스 preview를 저장한다")
+        @DisplayName("성공 - 시작 시각을 occurredAt으로 저장한다")
         void appendFocusCompleted_분단위() {
             Focus focus = focus(7001L, library, 3240, LocalDateTime.of(2026, 1, 10, 16, 54));
 
@@ -115,8 +115,23 @@ class TimelineCommandServiceTest {
             Timeline saved = timelineCaptor.getValue();
             assertThat(saved.getType()).isEqualTo(TimelineType.FOCUS);
             assertThat(saved.getTargetId()).isEqualTo(7001L);
-            assertThat(saved.getOccurredAt()).isEqualTo(LocalDateTime.of(2026, 1, 10, 16, 54));
+            assertThat(saved.getOccurredAt()).isEqualTo(LocalDateTime.of(2026, 1, 10, 16, 0));
             assertThat(saved.getPreviewText()).isEqualTo("54분의 포커스");
+        }
+
+        @Test
+        @DisplayName("성공 - 자정 전 일별 포커스의 시작 시각과 식별자를 저장한다")
+        void appendFocusCompleted_자정전일별포커스_시작시각과식별자() {
+            Focus focus = focus(8001L, library, 3600, LocalDateTime.of(2026, 8, 2, 0, 0));
+
+            timelineCommandService.appendFocusCompleted(focus);
+
+            verify(timelineRepository).save(timelineCaptor.capture());
+
+            Timeline saved = timelineCaptor.getValue();
+            assertThat(saved.getTargetId()).isEqualTo(focus.getId());
+            assertThat(saved.getOccurredAt()).isEqualTo(focus.getStartedAt());
+            assertThat(saved.getPreviewText()).isEqualTo("1시간의 포커스");
         }
 
         @Test

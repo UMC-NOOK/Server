@@ -1,7 +1,6 @@
 package app.nook.focus.domain;
 
 import app.nook.global.common.BaseEntity;
-import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import jakarta.persistence.*;
 import lombok.*;
@@ -91,5 +90,12 @@ public class Focus extends BaseEntity {
         this.endPage = endPage;
         this.endedTime = endedAt.toLocalTime();
         this.durationSec = (int) Duration.between(this.startedAt, endedAt).getSeconds();
+    }
+
+    public void completeSegment(LocalDateTime startedAt, LocalDateTime endedAt, Integer endPage) {
+        this.startedAt = startedAt;
+        this.focusDate = startedAt.toLocalDate();
+        this.startedTime = startedAt.toLocalTime();
+        endFocus(endedAt, endPage);
     }
 }

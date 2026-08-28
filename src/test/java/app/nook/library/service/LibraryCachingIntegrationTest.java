@@ -12,6 +12,7 @@ import app.nook.global.common.security.WithCustomUser;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.dto.ReadingStatusRequestDto;
+import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.redis.service.RedisZSETService;
 import app.nook.timeline.service.TimelineCommandService;
@@ -23,6 +24,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -30,6 +32,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -39,14 +43,17 @@ import java.time.ZoneId;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @SpringBootTest(classes = NookApplication.class)
@@ -60,6 +67,12 @@ class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
 
     @Autowired
     private LibraryCommandService libraryCommandService;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @MockitoBean
     private RedisZSETService redisZSETService;
@@ -153,6 +166,43 @@ class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
     }
 
     @Test
+    void deleteByBookId_dailyFocusRowsUnionMonthsAndEvictEachFamilyOnce() {
+        Long userId = currentUserId();
+        Long bookId = 100L;
+        User user = currentUser();
+        Book book = book(bookId);
+        Library library = library(user, book);
+
+        given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
+        given(libraryRepository.findByUserIdAndBook(userId, book)).willReturn(Optional.of(library));
+        given(focusRepository.findAllByLibraryIdAndLibraryUserId(library.getId(), userId))
+                .willReturn(List.of(
+                        focus(
+                                library,
+                                LocalDateTime.of(2026, 1, 31, 23, 30),
+                                LocalDateTime.of(2026, 2, 1, 0, 0)
+                        ),
+                        focus(
+                                library,
+                                LocalDateTime.of(2026, 2, 1, 0, 0),
+                                LocalDateTime.of(2026, 2, 1, 0, 30)
+                        ),
+                        focus(
+                                library,
+                                LocalDateTime.of(2026, 2, 15, 10, 0),
+                                LocalDateTime.of(2026, 2, 15, 10, 30)
+                        )
+                ));
+
+        libraryCommandService.deleteByBookId(userId, bookId);
+
+        verifyMonthlyCacheEviction(userId, YearMonth.of(2026, 1));
+        verifyMonthlyCacheEviction(userId, YearMonth.of(2026, 2));
+        verifyNoMoreInteractions(redisZSETService);
+        verify(cacheManager, never()).getCache(CacheConfig.ONBOARDING_GOAL_CACHE);
+    }
+
+    @Test
     void deleteByBookId_exactMidnightExcludesNextMonthCacheEviction() {
         Long userId = currentUserId();
         Long bookId = 100L;
@@ -232,7 +282,46 @@ class LibraryCachingIntegrationTest extends AbstractPostgresContainerTests {
         libraryCommandService.deleteByBookId(userId, bookId);
 
         verifyMonthlyCacheEviction(userId, YearMonth.of(2026, 2));
-        verify(cache).evict(userId);
+        verify(cache, times(1)).evict(userId);
+    }
+
+    @Test
+    void cacheInvalidationEvent_evictsOnlyAfterCommitForItsUserAndMonths() {
+        Long userId = currentUserId();
+        YearMonth january = YearMonth.of(2026, 1);
+        YearMonth february = YearMonth.of(2026, 2);
+        given(cacheManager.getCache(CacheConfig.ONBOARDING_GOAL_CACHE)).willReturn(cache);
+        clearInvocations(cacheManager, cache, redisZSETService);
+
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            eventPublisher.publishEvent(LibraryCacheInvalidateEvent.monthlyAndOnboardingGoal(
+                    userId,
+                    Set.of(january, february)
+            ));
+
+            verifyNoInteractions(redisZSETService, cacheManager, cache);
+        });
+
+        verifyMonthlyCacheEviction(userId, january);
+        verifyMonthlyCacheEviction(userId, february);
+        verify(cacheManager, times(1)).getCache(CacheConfig.ONBOARDING_GOAL_CACHE);
+        verify(cache, times(1)).evict(userId);
+        verifyNoMoreInteractions(redisZSETService, cacheManager, cache);
+    }
+
+    @Test
+    void cacheInvalidationEvent_doesNotEvictWhenTransactionRollsBack() {
+        Long userId = currentUserId();
+
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            eventPublisher.publishEvent(LibraryCacheInvalidateEvent.monthlyAndOnboardingGoal(
+                    userId,
+                    Set.of(YearMonth.of(2026, 2))
+            ));
+            status.setRollbackOnly();
+        });
+
+        verifyNoInteractions(redisZSETService, cacheManager, cache);
     }
 
     @Test
