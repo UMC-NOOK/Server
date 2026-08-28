@@ -81,10 +81,6 @@ public class Focus extends BaseEntity {
         this.library = library;
     }
 
-    public void endFocus(LocalDateTime endedAt) {
-        endFocus(endedAt, null);
-    }
-
     public void endFocus(LocalDateTime endedAt, Integer endPage) {
         this.endedAt = endedAt;
         this.endPage = endPage;

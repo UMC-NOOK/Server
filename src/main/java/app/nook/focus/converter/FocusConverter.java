@@ -36,20 +36,6 @@ public class FocusConverter {
         );
     }
 
-    public static FocusResponseDto.FocusEnd toFocusEndResponse(Focus focus) {
-        return new FocusResponseDto.FocusEnd(
-                focus.getId(),
-                focus.getLibrary().getId(),
-                focus.getStartedAt(),
-                focus.getEndedAt(),
-                focus.getDurationSec(),
-                FocusTimeUtil.formatFocusTime(focus.getDurationSec() == null ? 0 : focus.getDurationSec()),
-                focus.getLibrary().getPage(),
-                focus.getLibrary().getFocusSec(),
-                focus.getLibrary().getReadingStatus().name()
-        );
-    }
-
     public static FocusResponseDto.FocusEnd toFocusEndResponse(
             Long originalFocusId,
             LocalDateTime startedAt,

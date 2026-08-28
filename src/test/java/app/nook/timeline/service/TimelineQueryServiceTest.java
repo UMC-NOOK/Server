@@ -177,7 +177,6 @@ class TimelineQueryServiceTest {
 
             assertThat(result.focusSummary().focusCount()).isEqualTo(2);
             verify(focusRepository).countByLibraryAndEndedAtIsNotNull(library);
-            verify(focusRepository, never()).countByLibrary(library);
         }
 
         @Test

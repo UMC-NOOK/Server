@@ -25,7 +25,6 @@ public interface FocusRepository extends JpaRepository<Focus, Long>, FocusReposi
     List<Focus> findRecentByUser(@Param("user") User user, Pageable pageable);
     List<Focus> findAllByLibraryIdAndLibraryUserId(Long libraryId, Long userId);
     Optional<Focus> findByLibraryUserIdAndEndedAtIsNull(Long userId);
-    Optional<Focus> findByIdAndLibraryUserId(Long focusId, Long userId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
@@ -40,6 +39,5 @@ public interface FocusRepository extends JpaRepository<Focus, Long>, FocusReposi
             @Param("userId") Long userId
     );
 
-    int countByLibrary(Library library);
     int countByLibraryAndEndedAtIsNotNull(Library library);
 }
