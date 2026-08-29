@@ -114,6 +114,17 @@ include::{snippets}/auth-controller-test/dev회원가입_성공/response-fields.
 include::{snippets}/auth-controller-test/dev회원가입_실패_이메일중복/http-response.adoc[]
 include::{snippets}/common-error-response/conflict/response-fields.adoc[]
 
+=== 토큰 재발급
+
+만료된 access token을 갱신합니다. +
+로그인 시 발급받은 refresh token을 요청 본문에 담아 보내면 새 access token과 refresh token이 함께 발급됩니다. +
+재발급 후에는 기존 refresh token을 사용할 수 없습니다.
+
+include::{snippets}/auth-controller-test/토큰_재발급_성공/http-request.adoc[]
+include::{snippets}/auth-controller-test/토큰_재발급_성공/request-fields.adoc[]
+include::{snippets}/auth-controller-test/토큰_재발급_성공/http-response.adoc[]
+include::{snippets}/auth-controller-test/토큰_재발급_성공/response-fields.adoc[]
+
 === 내 정보 조회
 
 include::{snippets}/auth-controller-test/내정보_조회_성공/http-request.adoc[]
