@@ -282,12 +282,45 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                                     fieldWithPath("result.detail").type(JsonFieldType.OBJECT).description("타입별 상세 정보"),
                                     fieldWithPath("result.detail.title").type(JsonFieldType.STRING).optional().description("STATUS 타입 상세 제목"),
                                     fieldWithPath("result.detail.description").type(JsonFieldType.STRING).optional().description("REGISTER/STATUS 타입 상세 설명"),
-                                    fieldWithPath("result.detail.timeText").type(JsonFieldType.STRING).optional().description("FOCUS 타입 상세 시간 정보"),
+                                    fieldWithPath("result.detail.timeText").type(JsonFieldType.STRING).optional().description("FOCUS 타입 상세 시간 정보 (1~59초는 '1분 미만')"),
                                     fieldWithPath("result.detail.page").type(JsonFieldType.NUMBER).optional().description("FOCUS 타입 상세 종료 시점 페이지"),
                                     fieldWithPath("result.detail.content").type(JsonFieldType.STRING).optional().description("RECORD 타입 상세 기록 본문"),
                                     fieldWithPath("result.detail.emotion").type(JsonFieldType.STRING).optional().description("RECORD 타입 상세 기록 감정 코드"),
                                     fieldWithPath("result.detail.imageUrls").type(JsonFieldType.ARRAY).optional().description("RECORD 타입 상세 기록 이미지 URL 목록")
                             ))
+                    ));
+        }
+
+        @Test
+        @DisplayName("1분 미만 FOCUS 상세 응답 예시")
+        @WithCustomUser
+        void getFocusTimelineDetail() throws Exception {
+            TimelineResponseDto.TimelineDetailDto response =
+                    new TimelineResponseDto.TimelineDetailDto(
+                            30L,
+                            TimelineType.FOCUS,
+                            LocalDateTime.of(2026, 8, 28, 18, 25, 53),
+                            new TimelineResponseDto.TimelineFocusDetailDto(
+                                    "18:25 - 18:26 (1분 미만)",
+                                    121
+                            )
+                    );
+
+            given(timelineQueryService.getTimelineDetail(any(), anyLong(), anyLong()))
+                    .willReturn(response);
+
+            mockMvc.perform(
+                            get("/api/v1/library/{libraryId}/timeline/{timelineId}", 12L, 30L)
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("result.detail.timeText").value("18:25 - 18:26 (1분 미만)"))
+                    .andDo(documentWithAuth(
+                            "get-timeline-detail/get-focus-timeline-detail",
+                            pathParameters(
+                                    parameterWithName("libraryId").description("독서 이력을 조회할 서재 ID"),
+                                    parameterWithName("timelineId").description("상세 조회할 타임라인 ID")
+                            )
                     ));
         }
     }

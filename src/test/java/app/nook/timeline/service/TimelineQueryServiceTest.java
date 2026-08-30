@@ -24,6 +24,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -483,6 +485,41 @@ class TimelineQueryServiceTest {
                     (TimelineResponseDto.TimelineFocusDetailDto) result.detail();
             assertThat(detail.timeText()).isEqualTo("16:00 - 16:54 (54분)");
             assertThat(detail.page()).isEqualTo(72);
+        }
+
+        @ParameterizedTest(name = "{0}초는 {1} 문구로 반환한다")
+        @CsvSource({
+                "0, '0분'",
+                "1, '1분 미만'",
+                "59, '1분 미만'",
+                "60, '1분'"
+        })
+        @DisplayName("FOCUS 상세 조회 시 시간 경계값에 맞는 문구를 반환한다")
+        void getTimelineDetail_focus_시간경계값(int durationSec, String expectedDurationText) {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            LocalDateTime startedAt = LocalDateTime.of(2026, 1, 10, 18, 25, 53);
+            LocalDateTime endedAt = startedAt.plusSeconds(durationSec);
+            Timeline timeline = timeline(
+                    30L,
+                    library,
+                    TimelineType.FOCUS,
+                    endedAt,
+                    expectedDurationText + "의 포커스",
+                    7001L
+            );
+            Focus focus = focus(7001L, library, startedAt, endedAt, durationSec);
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByIdAndLibrary(30L, library)).willReturn(Optional.of(timeline));
+            given(focusRepository.findById(7001L)).willReturn(Optional.of(focus));
+
+            TimelineResponseDto.TimelineDetailDto result =
+                    timelineQueryService.getTimelineDetail(user, 12L, 30L);
+
+            TimelineResponseDto.TimelineFocusDetailDto detail =
+                    (TimelineResponseDto.TimelineFocusDetailDto) result.detail();
+            assertThat(detail.timeText()).endsWith("(" + expectedDurationText + ")");
         }
 
         @Test

@@ -77,6 +77,9 @@ public class TimelineCommandService {
         if (durationSec == null || durationSec <= 0) {
             return "0분" + FOCUS_PREVIEW_SUFFIX;
         }
+        if (durationSec < 60) {
+            return "1분 미만" + FOCUS_PREVIEW_SUFFIX;
+        }
 
         int hour = durationSec / 3600;
         int minute = (durationSec % 3600) / 60;
