@@ -30,3 +30,8 @@ include::{snippets}/get-timeline-detail/get-timeline-detail/request-headers.adoc
 include::{snippets}/get-timeline-detail/get-timeline-detail/path-parameters.adoc[]
 include::{snippets}/get-timeline-detail/get-timeline-detail/http-response.adoc[]
 include::{snippets}/get-timeline-detail/get-timeline-detail/response-fields.adoc[]
+
+==== 1분 미만 FOCUS 상세 응답 예시
+1초 이상 60초 미만인 포커스 시간은 `1분 미만`으로 표시합니다.
+
+include::{snippets}/get-timeline-detail/get-focus-timeline-detail/http-response.adoc[]
