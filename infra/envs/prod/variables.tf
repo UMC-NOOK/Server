@@ -12,16 +12,18 @@ variable "project_name" {
   default = "nook"
 }
 
+variable "domain_name" {
+  description = "Public hostname for the production server."
+  type        = string
+  default     = "api.booknook.work"
+}
+
 variable "vpc_id" {
   type = string
 }
 
 variable "public_subnet_id" {
   type = string
-}
-
-variable "private_db_subnet_ids" {
-  type = list(string)
 }
 
 variable "ami_id" {
@@ -57,25 +59,4 @@ variable "monitoring_cidrs" {
   description = "Private CIDR of the monitoring server allowed to scrape port 9091."
   type        = list(string)
   default     = []
-}
-
-variable "database_name" {
-  type    = string
-  default = "nookDB"
-}
-
-variable "database_username" {
-  type    = string
-  default = "nook"
-}
-
-variable "database_instance_class" {
-  type    = string
-  default = "db.t3.micro"
-}
-
-variable "master_user_secret_kms_key_id" {
-  description = "Optional KMS key for the RDS-managed password in Secrets Manager."
-  type        = string
-  default     = null
 }

@@ -92,10 +92,13 @@ public class WebSecurityConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://localhost:8080",
-                "https://dev.reading-nook.site",
-                "https://nook-rho-ruddy.vercel.app"
+                "https://dev.booknook.work",
+                "https://nook-rho-ruddy.vercel.app",
+                "https://booknook.page",
+                "https://www.booknook.page"
         ));
         config.addExposedHeader("Authorization");
+        config.addExposedHeader("X-Trace-Id");
         config.setAllowedHeaders(List.of(
                 "Content-Type",
                 "Authorization"
