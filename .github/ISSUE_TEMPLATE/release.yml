@@ -1,0 +1,55 @@
+name: "🚀 Release"
+description: "운영 릴리즈를 위한 변경사항과 배포 점검"
+labels: ["release"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: "🚀 릴리즈 번호"
+      description: "직전 릴리즈에서 +1 합니다. 태그가 없다면 v0.1.0부터 시작합니다."
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: "📄 이번 릴리즈 요약"
+      description: "develop에 쌓인 변경사항을 기능 단위로 요약해주세요."
+      placeholder: |
+        - 마이페이지 닉네임 변경 기능 추가
+        - 식후 알림 쿨다운 로직 수정
+    validations:
+      required: true
+
+  - type: textarea
+    id: related_issues
+    attributes:
+      label: "📎 포함된 이슈 / PR"
+      placeholder: |
+        - closed #
+        - closed #
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: deployment_checklist
+    attributes:
+      label: "✅ 배포 체크리스트"
+      options:
+        - label: "DB 마이그레이션 확인 (Flyway 스크립트 유무)"
+          required: true
+        - label: "환경변수 / .env 변경사항 반영 확인"
+          required: true
+        - label: "CI 통과 확인"
+          required: true
+        - label: "스테이징 배포 및 스모크 테스트 완료"
+          required: true
+        - label: "롤백 방안 확인"
+          required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: "📝 기타 참고사항"
+      description: "리뷰어가 참고하면 좋을 추가 정보나 주의사항을 작성해주세요."
