@@ -49,12 +49,10 @@ services:
 
   alloy:
     image: grafana/alloy:v1.17.0
-    profiles:
-      - monitoring
     environment:
       DEPLOY_ENV: dev
       INSTANCE_NAME: nook-dev
-      LOKI_URL: ${LOKI_URL:-}
+      LOKI_URL: ${LOKI_URL:?LOKI_URL must be set}
     command:
       - run
       - --storage.path=/var/lib/alloy/data
