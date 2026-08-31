@@ -59,13 +59,14 @@ jobs:
           push: true
           tags: ${{ steps.image.outputs.uri }}
 
-      - name: Copy deployment files
+      - name: Sync production deployment configuration
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_PRIVATE_KEY }}
-          source: docker-compose.prod.yml,nginx,monitoring/alloy,scripts/deploy.sh,scripts/init-certificate.sh
+          # Runtime state (runtime/) and secrets (/secrets) intentionally stay on the server.
+          source: docker-compose.prod.yml,nginx,monitoring,grafana,scripts
           target: ${{ secrets.PROD_DEPLOY_PATH }}
 
       - name: Deploy prod
@@ -80,7 +81,7 @@ jobs:
             image="${{ steps.image.outputs.uri }}"
             registry="${image%%/*}"
             aws ecr get-login-password --region "${{ env.AWS_REGION }}" | docker login --username AWS --password-stdin "$registry"
-            chmod +x scripts/deploy.sh
+            chmod +x scripts/*.sh
             ./scripts/deploy.sh prod "$image"
 
       - name: Deployment summary

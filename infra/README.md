@@ -7,11 +7,10 @@ dev, prod, monitoring은 코드와 state를 완전히 분리한다. 현재 적�
 ```text
 infra/
 ├── modules/
-│   ├── ec2/
-│   └── rds/
+│   └── ec2/
 ├── envs/
 │   ├── dev/               # 기존 t3.micro EC2를 그대로 import
-│   ├── prod/              # 신규 EC2 + private PostgreSQL RDS, 적용 보류
+│   ├── prod/              # 신규 EC2, Supabase 사용, 적용 보류
 │   └── monitoring/        # 신규 EC2, 적용 보류
 └── vars/                  # 환경별 변수
 ```
@@ -21,12 +20,11 @@ infra/
 | 환경 | Terraform 리소스 | DB | 현재 실행 범위 |
 |---|---|---|---|
 | dev | 기존 `t3.micro` EC2를 import, 관리 SG/IAM/EIP | 기존 Supabase 유지 | `plan` 검토 후 `apply` |
-| prod | 신규 `t3.small`, private RDS | PostgreSQL RDS | `plan`만 |
+| prod | 신규 `t3.small` EC2 | Supabase | `plan`만 |
 | monitoring | 신규 `t3.small` | 없음 | 코드만 보관 |
 
-Supabase 접속 정보는 Terraform에서 관리하지 않는다. 서버의 `/secrets/.env.dev`에 별도로
-주입하여 Terraform state에 DB 비밀번호가 들어가지 않게 한다. prod RDS의 마스터 비밀번호는
-AWS가 생성하여 Secrets Manager에 저장한다.
+Supabase 접속 정보는 Terraform에서 관리하지 않는다. 각 서버의 `/secrets/.env.dev`,
+`/secrets/.env.prod`에 별도로 주입하여 Terraform state에 DB 비밀번호가 들어가지 않게 한다.
 
 ## 1. vars 준비
 
@@ -104,8 +102,7 @@ terraform apply dev.tfplan
 
 ## 4. prod와 monitoring은 plan까지만
 
-prod는 신규 `t3.small` EC2와 private PostgreSQL RDS를 함께 만든다. RDS는 서로 다른 AZ의
-private subnet 두 개 이상을 요구한다.
+prod는 Supabase를 사용하는 신규 `t3.small` EC2를 만든다.
 
 ```bash
 cp infra/vars/prod.tfvars.example infra/vars/prod.tfvars
@@ -133,14 +130,34 @@ monitoring을 실제 생성한 뒤 dev/prod의 `monitoring_cidrs`에 monitoring 
 - 관리자 CIDR만 허용: 22, Grafana 3000
 - monitoring private IP만 허용: Actuator 9091
 - dev/prod private IP만 허용: Loki 3100
-- prod EC2 SG만 허용: RDS 5432
 - EC2 metadata: IMDSv2 필수
-- EBS/RDS: 암호화 활성화
-- prod RDS: public access 비활성화, 삭제 방지 및 final snapshot 활성화
+- EBS: 암호화 활성화
 
-DNS는 사용하는 도메인 제공자에서 `dev.<domain>`을 dev EIP로, `api.<domain>`을 prod
-EIP로 연결한다. dev는 EC2 호스트에 이미 설치된 nginx와 Certbot을 사용하고, prod는 Docker
-nginx와 Certbot을 사용한다.
+## 도메인과 Nginx
+
+도메인은 다음처럼 고정한다.
+
+| 환경 | 도메인 | 대상 |
+|---|---|---|
+| prod | `api.booknook.work` | prod EIP |
+| dev | `dev.booknook.work` | dev EIP |
+
+도메인을 구매한 DNS 제공자에서 A 레코드를 수동으로 생성한다. `api`는 prod EIP,
+`dev`는 dev EIP를 가리켜야 한다.
+
+Terraform은 EC2와 DNS만 관리하며, 서버의 `/secrets`에 있는 런타임 비밀 파일은 관리하지
+않는다. 운영 서버의 `/secrets/.env.prod`에는 아래 값을 넣어 Docker Nginx 템플릿의
+`SERVER_NAME`을 반영한다.
+
+```dotenv
+SERVER_NAME=api.booknook.work
+CERTBOT_EMAIL=<certificate notification email>
+```
+
+그 뒤 운영 서버에서 한 번 `./scripts/init-certificate.sh prod`를 실행해 인증서를 발급하고,
+배포 시 `./scripts/deploy.sh prod <image>`가 Nginx 설정을 적용한다. dev는 EC2 호스트에
+이미 설치된 Nginx와 Certbot을 사용하므로, 해당 호스트의 server block에는
+`server_name dev.booknook.work;`를 설정한다.
 
 실제 `apply` 전에는 AWS 자격 증명과 대상 account ID가 일치하는지 확인해야 한다. provider의
 `allowed_account_ids`가 다른 계정에 실수로 적용하는 것을 한 번 더 막는다.
