@@ -3,6 +3,7 @@ package app.nook.admin.service;
 import app.nook.admin.dto.OrphanScanResult;
 import app.nook.book.repository.BookRepository;
 import app.nook.global.config.R2Properties;
+import app.nook.r2.policy.ImageStoragePolicy;
 import app.nook.record.repository.RecordImageRepository;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -28,15 +31,12 @@ import java.util.Set;
  * <p>
  * 안전장치
  * - 생성 후 {@link #SAFETY_WINDOW} 이내 객체 제외 (업로드 직후 DB 커밋 대기 파일 보호)
- * - 관리 대상 prefix({@link #MANAGED_PREFIXES}) 밖 객체 제외
+ * - 관리 대상 이미지 타입 prefix 밖 객체 제외
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrphanImageService {
-
-    /** 키 포맷: {type}/users/{id}/{file}, PresignedUrlService 업로드 타입과 일치 */
-    private static final List<String> MANAGED_PREFIXES = List.of("profile/", "record/", "book/");
 
     /** 해당 시간 이내 생성 객체 삭제 제외 — "업로드 중/커밋 대기" 간주 */
     private static final Duration SAFETY_WINDOW = Duration.ofHours(24);
@@ -63,22 +63,28 @@ public class OrphanImageService {
         List<String> orphans = findOrphanKeys(scanned);
 
         int deleted = 0;
-        for (int i = 0; i < orphans.size(); i += DELETE_BATCH_SIZE) {
-            List<String> batch = orphans.subList(i, Math.min(i + DELETE_BATCH_SIZE, orphans.size()));
-            deleted += deleteBatch(batch);
+        for (Map.Entry<String, List<String>> entry : groupKeysByBucket(orphans).entrySet()) {
+            List<String> bucketKeys = entry.getValue();
+            for (int i = 0; i < bucketKeys.size(); i += DELETE_BATCH_SIZE) {
+                List<String> batch = bucketKeys.subList(
+                        i,
+                        Math.min(i + DELETE_BATCH_SIZE, bucketKeys.size())
+                );
+                deleted += deleteBatch(entry.getKey(), batch);
+            }
         }
         log.info("[ORPHAN_CLEANUP] 스캔 {}건 중 고아 {}건, 삭제 {}건", scanned.size(), orphans.size(), deleted);
         return new OrphanScanResult(scanned.size(), deleted, List.of(), true);
     }
 
     // 최대 1000개 단위 배치 삭제, 삭제 성공 수 반환
-    private int deleteBatch(List<String> keys) {
+    private int deleteBatch(String bucketName, List<String> keys) {
         try {
             List<ObjectIdentifier> objects = keys.stream()
                     .map(key -> ObjectIdentifier.builder().key(key).build())
                     .toList();
             DeleteObjectsResponse response = s3Client.deleteObjects(DeleteObjectsRequest.builder()
-                    .bucket(r2.bucketName())
+                    .bucket(bucketName)
                     .delete(Delete.builder().objects(objects).build())
                     .build());
             response.errors().forEach(error ->
@@ -119,15 +125,24 @@ public class OrphanImageService {
 
     private List<S3Object> listManagedObjects() {
         List<S3Object> all = new ArrayList<>();
-        for (String prefix : MANAGED_PREFIXES) {
+        for (ImageStoragePolicy storagePolicy : ImageStoragePolicy.values()) {
             ListObjectsV2Request request = ListObjectsV2Request.builder()
-                    .bucket(r2.bucketName())
-                    .prefix(prefix)
+                    .bucket(storagePolicy.bucketName(r2))
+                    .prefix(storagePolicy.prefix())
                     .build();
             s3Client.listObjectsV2Paginator(request)
                     .contents()
                     .forEach(all::add);
         }
         return all;
+    }
+
+    private Map<String, List<String>> groupKeysByBucket(List<String> keys) {
+        Map<String, List<String>> keysByBucket = new LinkedHashMap<>();
+        for (String key : keys) {
+            String bucketName = ImageStoragePolicy.fromKey(key).bucketName(r2);
+            keysByBucket.computeIfAbsent(bucketName, ignored -> new ArrayList<>()).add(key);
+        }
+        return keysByBucket;
     }
 }

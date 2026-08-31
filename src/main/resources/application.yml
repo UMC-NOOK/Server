@@ -41,8 +41,9 @@ file:
 
 cloudflare:
   r2:
-    endpoint: ${R2_CDN_BASE_URL}
-    bucket-name: ${R2_BUCKET_NAME}
+    endpoint: ${R2_ENDPOINT}
+    public-bucket-name: ${R2_PUBLIC_BUCKET_NAME}
+    private-bucket-name: ${R2_PRIVATE_BUCKET_NAME}
     access-key: ${R2_ACCESS_KEY}
     secret-key: ${R2_SECRET_KEY}
     cdn-base-url: ${R2_CDN_BASE_URL}
