@@ -1,6 +1,9 @@
 name: NOOK PROD CD
 
 on:
+  push:
+    branches:
+      - production
   workflow_dispatch:
 
 permissions:

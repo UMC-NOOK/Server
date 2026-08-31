@@ -11,7 +11,7 @@ services:
       - ${ENV_FILE:-/secrets/.env.dev}
     ports:
       - "127.0.0.1:8080:8080"
-      - "${MANAGEMENT_BIND_ADDRESS:-127.0.0.1}:9091:9091"
+      - "${MANAGEMENT_BIND_ADDRESS:-0.0.0.0}:9091:9091"
     environment:
       SPRING_PROFILES_ACTIVE: dev
       SERVER_PORT: 8080
