@@ -12,6 +12,12 @@ variable "project_name" {
   default = "nook"
 }
 
+variable "domain_name" {
+  description = "Public hostname for the development server."
+  type        = string
+  default     = "dev.booknook.work"
+}
+
 variable "vpc_id" {
   type = string
 }

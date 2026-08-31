@@ -59,19 +59,3 @@ module "server" {
 
   tags = local.common_tags
 }
-
-module "database" {
-  source = "../../modules/rds"
-
-  name                          = local.name
-  vpc_id                        = var.vpc_id
-  subnet_ids                    = var.private_db_subnet_ids
-  application_security_group_id = module.server.security_group_id
-  database_name                 = var.database_name
-  database_username             = var.database_username
-  instance_class                = var.database_instance_class
-  master_user_secret_kms_key_id = var.master_user_secret_kms_key_id
-  deletion_protection           = true
-  skip_final_snapshot           = false
-  tags                          = local.common_tags
-}
