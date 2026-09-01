@@ -74,23 +74,23 @@ public class RecordController {
     }
 
     @PostMapping("/books/{bookId}")
-    public ApiResponse<RecordResponseDto.RecordIdDto> saveRecord(
+    public ApiResponse<BookRecordDto.RecordItemDto> saveRecord(
             @CurrentUser User user,
             @PathVariable Long bookId,
             @Valid @RequestBody RecordRequestDto requestDto
             ) {
         Long recordId = recordCommandService.createRecord(user, bookId, requestDto);
-        return ApiResponse.onSuccess(new RecordResponseDto.RecordIdDto(recordId), SuccessCode.CREATED);
+        return ApiResponse.onSuccess(recordQueryService.getRecordDetail(user, recordId), SuccessCode.CREATED);
     }
 
     @PutMapping("/{recordId}")
-    public ApiResponse<Void> updateRecord(
+    public ApiResponse<BookRecordDto.RecordItemDto> updateRecord(
             @CurrentUser User user,
             @PathVariable Long recordId,
             @Valid @RequestBody RecordUpdateRequestDto requestDto
     ) {
-        recordCommandService.updateRecord(user, recordId, requestDto);
-        return ApiResponse.onSuccess(null, SuccessCode.OK);
+        Long updatedRecordId = recordCommandService.updateRecord(user, recordId, requestDto);
+        return ApiResponse.onSuccess(recordQueryService.getRecordDetail(user, updatedRecordId), SuccessCode.OK);
     }
 
     @DeleteMapping("/{recordId}")

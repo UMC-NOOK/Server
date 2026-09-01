@@ -92,7 +92,7 @@ public class RecordCommandService {
 
     // 기록 수정
     @Transactional
-    public void updateRecord(
+    public Long updateRecord(
             User user,
             Long recordId,
             RecordUpdateRequestDto requestDto
@@ -110,6 +110,7 @@ public class RecordCommandService {
 
         // 이미지 업데이트 시에 동기화 처리
         syncRecordImages(record, requestedImageKeys);
+        return record.getId();
     }
 
     // 기록 삭제
