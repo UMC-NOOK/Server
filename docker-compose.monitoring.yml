@@ -28,7 +28,8 @@ services:
       - --web.listen-address=:9093
     volumes:
       - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - ${ALERTMANAGER_DISCORD_WEBHOOK_FILE:-/secrets/alertmanager-discord-webhook}:/run/secrets/discord_webhook_url:ro
+      - ${ALERTMANAGER_DISCORD_DEV_WEBHOOK_FILE:-/secrets/alertmanager-discord-dev-webhook}:/run/secrets/discord_dev_webhook_url:ro
+      - ${ALERTMANAGER_DISCORD_PROD_WEBHOOK_FILE:-/secrets/alertmanager-discord-prod-webhook}:/run/secrets/discord_prod_webhook_url:ro
       - alertmanager-data:/alertmanager
     ports:
       - "127.0.0.1:9093:9093"
