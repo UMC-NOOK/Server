@@ -69,17 +69,6 @@ services:
     networks:
       - monitoring-network
 
-  redis-exporter:
-    image: oliver006/redis_exporter:v1.84.0
-    environment:
-      REDIS_ADDR: ${REDIS_EXPORTER_ADDRESS:-redis://host.docker.internal:6379}
-      REDIS_EXPORTER_REDACT_CONFIG_METRICS: "true"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
-    networks:
-      - monitoring-network
-
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.19.1
     command:

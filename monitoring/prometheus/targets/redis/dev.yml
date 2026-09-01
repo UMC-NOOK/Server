@@ -1,0 +1,5 @@
+- targets:
+    - 172.31.41.12:9121
+  labels:
+    environment: dev
+    application: nook-redis

@@ -89,6 +89,21 @@ services:
       - app-network
     logging: *default-logging
 
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.84.0
+    environment:
+      REDIS_ADDR: redis://redis:6379
+      REDIS_EXPORTER_REDACT_CONFIG_METRICS: "true"
+    ports:
+      - "${REDIS_EXPORTER_BIND_ADDRESS:-0.0.0.0}:9121:9121"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+    logging: *default-logging
+
   alloy:
     image: grafana/alloy:v1.17.0
     environment:
