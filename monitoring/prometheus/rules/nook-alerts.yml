@@ -1,0 +1,74 @@
+groups:
+  - name: nook-production-alerts
+    interval: 15s
+    rules:
+      - alert: NookProdAppDown
+        expr: up{job="nook-app",environment="prod"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          environment: prod
+        annotations:
+          summary: "Production API target is down"
+          description: "{{ $labels.instance }} has not been reachable by Prometheus for 2 minutes."
+
+      - alert: NookProdHigh5xxRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{environment="prod",status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(http_server_requests_seconds_count{environment="prod"}[5m])), 1)
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          environment: prod
+        annotations:
+          summary: "Production API 5xx rate is above 5%"
+          description: "5xx responses have exceeded 5% of production API traffic for 5 minutes."
+
+      - alert: NookProdHighP95Latency
+        expr: |
+          histogram_quantile(0.95, sum by (le) (
+            rate(http_server_requests_seconds_bucket{environment="prod"}[5m])
+          )) > 1
+        for: 5m
+        labels:
+          severity: warning
+          environment: prod
+        annotations:
+          summary: "Production API p95 latency is above 1 second"
+          description: "Production API p95 latency has exceeded 1 second for 5 minutes."
+
+      - alert: NookProdHighJvmHeapUsage
+        expr: |
+          sum(jvm_memory_used_bytes{environment="prod",area="heap"})
+          /
+          clamp_min(sum(jvm_memory_max_bytes{environment="prod",area="heap"}), 1)
+          > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          environment: prod
+        annotations:
+          summary: "Production JVM heap usage is above 85%"
+          description: "Production JVM heap usage has exceeded 85% for 10 minutes."
+
+      - alert: NookProdHikariPoolPending
+        expr: sum(hikaricp_connections_pending{environment="prod"}) > 5
+        for: 5m
+        labels:
+          severity: warning
+          environment: prod
+        annotations:
+          summary: "Production Hikari connection requests are waiting"
+          description: "More than 5 production DB connection requests have been pending for 5 minutes."
+
+      - alert: NookProdHikariConnectionTimeout
+        expr: sum(increase(hikaricp_connections_timeout_total{environment="prod"}[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+          environment: prod
+        annotations:
+          summary: "Production Hikari connection timeout occurred"
+          description: "At least one production DB connection timeout occurred in the last 5 minutes."

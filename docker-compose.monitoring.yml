@@ -9,12 +9,29 @@ services:
       - --web.enable-remote-write-receiver
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
       - ./monitoring/prometheus/targets:/etc/prometheus/targets:ro
       - prometheus-data:/prometheus
     ports:
       - "127.0.0.1:9090:9090"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - monitoring-network
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --web.listen-address=:9093
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ${ALERTMANAGER_DISCORD_WEBHOOK_FILE:-/secrets/alertmanager-discord-webhook}:/run/secrets/discord_webhook_url:ro
+      - alertmanager-data:/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
     restart: unless-stopped
     networks:
       - monitoring-network
@@ -128,6 +145,7 @@ services:
 
 volumes:
   prometheus-data:
+  alertmanager-data:
   loki-data:
   grafana-data:
 
