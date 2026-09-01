@@ -271,7 +271,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                             queryParameters(
                                     parameterWithName("cursor").description("다음 페이지 조회에 사용할 커서 값. 첫 요청이면 전달하지 않음").optional(),
                                     parameterWithName("size").description("한 번에 조회할 기록 수. 기본값은 20").optional(),
-                                    parameterWithName("emotion").description("감정 필터. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나 사용. ALL이면 전체 반환").optional()
+                                    parameterWithName("emotion").description("감정 필터. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE, EMPTY 중 하나 사용. ALL이면 전체 반환").optional()
                             ),
                             responseFields(ApiResponseSnippet.withResult(
                                     fieldWithPath("result.items").type(JsonFieldType.ARRAY).description("특정 책에 남긴 기록 목록. 최신 기록 순으로 반환"),
@@ -318,7 +318,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                             queryParameters(
                                     parameterWithName("cursor").description("다음 페이지 조회에 사용할 커서 값. 첫 요청이면 전달하지 않음").optional(),
                                     parameterWithName("size").description("한 번에 조회할 기록 수. 기본값은 20").optional(),
-                                    parameterWithName("emotion").description("감정 필터. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나 사용. ALL이면 전체 반환").optional()
+                                    parameterWithName("emotion").description("감정 필터. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE, EMPTY 중 하나 사용. ALL이면 전체 반환").optional()
                             ),
                             responseFields(ApiResponseSnippet.withResult(
                                     fieldWithPath("result.items").type(JsonFieldType.ARRAY).description("조회된 기록 목록. 빈 결과면 빈 배열"),
@@ -346,7 +346,8 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                             new BookRecordDto.RecordEmotionDto("USEFUL", 2L),
                             new BookRecordDto.RecordEmotionDto("COMPLICATED", 0L),
                             new BookRecordDto.RecordEmotionDto("SAD", 0L),
-                            new BookRecordDto.RecordEmotionDto("UNCOMFORTABLE", 0L)
+                            new BookRecordDto.RecordEmotionDto("UNCOMFORTABLE", 0L),
+                            new BookRecordDto.RecordEmotionDto("EMPTY", 0L)
                     )
             );
 
@@ -362,16 +363,16 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                     .andExpect(jsonPath("$.result.emotionCounts[0].recordCount").value(7))
                     .andExpect(jsonPath("$.result.emotionCounts[1].emotion").value("FUN"))
                     .andExpect(jsonPath("$.result.emotionCounts[1].recordCount").value(3))
-                    .andExpect(jsonPath("$.result.emotionCounts.length()").value(7))
+                    .andExpect(jsonPath("$.result.emotionCounts.length()").value(8))
                     .andDo(documentWithAuth(
                             "record-controller-test/독서_기록_감정별_개수_조회_성공",
                             pathParameters(
                                     parameterWithName("bookId").description("감정별 기록 개수를 조회할 도서 ID")
                             ),
                             responseFields(ApiResponseSnippet.withResult(
-                                    fieldWithPath("result.totalCount").type(JsonFieldType.NUMBER).description("해당 도서에 대해 사용자가 작성한 전체 독서 기록 수. emotion 미입력으로 EMPTY 저장된 기록도 ALL(totalCount)에는 포함되지만 개별 감정 버킷에는 포함되지 않음"),
+                                    fieldWithPath("result.totalCount").type(JsonFieldType.NUMBER).description("해당 도서에 대해 사용자가 작성한 전체 독서 기록 수"),
                                     fieldWithPath("result.emotionCounts").type(JsonFieldType.ARRAY).description("해당 도서의 기록을 집계한 목록. ALL은 전체 기록 수를 뜻하고, 나머지 감정은 기록이 없어도 0으로 포함"),
-                                    fieldWithPath("result.emotionCounts[].emotion").type(JsonFieldType.STRING).description("집계 기준 값. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE 중 하나. 요청에서 emotion 미입력 시 EMPTY로 저장되지만 EMPTY 값은 별도 집계 버킷으로 제공되지 않음"),
+                                    fieldWithPath("result.emotionCounts[].emotion").type(JsonFieldType.STRING).description("집계 기준 값. ALL, FUN, EMPATHIZING, USEFUL, COMPLICATED, SAD, UNCOMFORTABLE, EMPTY 중 하나"),
                                     fieldWithPath("result.emotionCounts[].recordCount").type(JsonFieldType.NUMBER).description("해당 기준으로 집계된 기록 수")
                             ))
                     ));
@@ -397,6 +398,14 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                 );
 
                 given(recordCommandService.createRecord(any(), anyLong(), any())).willReturn(10L);
+                given(recordQueryService.getRecordDetail(any(), anyLong())).willReturn(new BookRecordDto.RecordItemDto(
+                        10L,
+                        "기록 내용입니다.",
+                        List.of("https://example.com/records/10.png"),
+                        List.of("record/users/1/first.png"),
+                        Emotion.FUN,
+                        java.time.LocalDate.of(2026, 9, 2)
+                ));
 
                 // when & then
                 mockMvc.perform(post("/api/v1/records/books/{bookId}", 1L)
@@ -407,6 +416,7 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("SUCCESS-201"))
                         .andExpect(jsonPath("$.result.recordId").value(10))
+                        .andExpect(jsonPath("$.result.content").value("기록 내용입니다."))
                         .andDo(documentWithAuth(
                                 "record-controller-test/기록_생성_성공",
                                 pathParameters(
@@ -419,7 +429,12 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("imageKeys[]").description("업로드 완료된 record 이미지 key")
                                 ),
                                 responseFields(ApiResponseSnippet.withResult(
-                                        fieldWithPath("result.recordId").type(JsonFieldType.NUMBER).description("생성된 기록 ID")
+                                        fieldWithPath("result.recordId").type(JsonFieldType.NUMBER).description("생성된 기록 ID"),
+                                        fieldWithPath("result.content").type(JsonFieldType.STRING).description("생성된 기록 내용"),
+                                        fieldWithPath("result.imgUrls").type(JsonFieldType.ARRAY).description("생성된 기록의 이미지 조회 URL 목록"),
+                                        fieldWithPath("result.imageKeys").type(JsonFieldType.ARRAY).description("생성된 기록의 원본 이미지 key 목록"),
+                                        fieldWithPath("result.emotion").type(JsonFieldType.STRING).description("생성된 기록 감정 값"),
+                                        fieldWithPath("result.createdDate").type(JsonFieldType.STRING).description("생성된 기록 날짜 (yyyy.MM.dd)")
                                 ))
                         ));
             }
@@ -470,7 +485,18 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                         )
                 );
 
-                willDoNothing().given(recordCommandService).updateRecord(any(), anyLong(), any());
+                given(recordCommandService.updateRecord(any(), anyLong(), any())).willReturn(10L);
+                given(recordQueryService.getRecordDetail(any(), anyLong())).willReturn(new BookRecordDto.RecordItemDto(
+                        10L,
+                        "수정된 기록 내용입니다.",
+                        List.of(
+                                "https://example.com/records/first.png",
+                                "https://example.com/records/second.png"
+                        ),
+                        List.of("record/users/1/first.png", "record/users/1/second.png"),
+                        Emotion.EMPATHIZING,
+                        java.time.LocalDate.of(2026, 9, 2)
+                ));
 
                 // when & then
                 mockMvc.perform(put("/api/v1/records/{recordId}", 10L)
@@ -480,6 +506,8 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("SUCCESS-200"))
+                        .andExpect(jsonPath("$.result.recordId").value(10))
+                        .andExpect(jsonPath("$.result.content").value("수정된 기록 내용입니다."))
                         .andDo(documentWithAuth(
                                 "record-controller-test/기록_수정_성공",
                                 pathParameters(
@@ -491,7 +519,14 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("imageKeys").type(JsonFieldType.ARRAY).description("수정 후 최종 이미지 key 목록").optional(),
                                         fieldWithPath("imageKeys[]").description("업로드 완료된 record 이미지 key")
                                 ),
-                                responseFields(ApiResponseSnippet.commonResponseFieldsWithNullableResult())
+                                responseFields(ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.recordId").type(JsonFieldType.NUMBER).description("수정된 기록 ID"),
+                                        fieldWithPath("result.content").type(JsonFieldType.STRING).description("수정된 기록 내용"),
+                                        fieldWithPath("result.imgUrls").type(JsonFieldType.ARRAY).description("수정된 기록의 이미지 조회 URL 목록"),
+                                        fieldWithPath("result.imageKeys").type(JsonFieldType.ARRAY).description("수정된 기록의 원본 이미지 key 목록"),
+                                        fieldWithPath("result.emotion").type(JsonFieldType.STRING).description("수정된 기록 감정 값"),
+                                        fieldWithPath("result.createdDate").type(JsonFieldType.STRING).description("수정된 기록 날짜 (yyyy.MM.dd)")
+                                ))
                         ));
             }
         }
