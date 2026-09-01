@@ -41,7 +41,7 @@ if [[ "$deploy_env" == "prod" ]]; then
 
   certificate_dir="$(pwd)/data/certbot/conf/live/${server_name}"
 
-  if [[ ! -f "${certificate_dir}/fullchain.pem" || ! -f "${certificate_dir}/privkey.pem" ]]; then
+  if ! sudo test -f "${certificate_dir}/fullchain.pem" || ! sudo test -f "${certificate_dir}/privkey.pem"; then
     echo "Missing TLS certificate for ${server_name}. Run ./scripts/init-certificate.sh prod first." >&2
     exit 1
   fi
