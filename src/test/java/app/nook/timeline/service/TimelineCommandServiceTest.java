@@ -19,6 +19,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -139,10 +141,16 @@ class TimelineCommandServiceTest {
             assertThat(saved.getPreviewText()).isEqualTo("1시간 13분의 포커스");
         }
 
-        @Test
-        @DisplayName("성공 - 0초 포커스도 preview를 저장한다")
-        void appendFocusCompleted_영초() {
-            Focus focus = focus(7003L, library, 0, LocalDateTime.of(2026, 1, 10, 10, 0));
+        @ParameterizedTest(name = "{0}초는 {1}로 저장한다")
+        @CsvSource({
+                "0, '0분의 포커스'",
+                "1, '1분 미만의 포커스'",
+                "59, '1분 미만의 포커스'",
+                "60, '1분의 포커스'"
+        })
+        @DisplayName("성공 - 포커스 시간 경계값에 맞는 preview를 저장한다")
+        void appendFocusCompleted_시간경계값(int durationSec, String expectedPreviewText) {
+            Focus focus = focus(7003L, library, durationSec, LocalDateTime.of(2026, 1, 10, 10, 0));
             given(focusRepository.findById(focus.getId())).willReturn(Optional.of(focus));
 
             timelineCommandService.appendFocusCompleted(focus.getId());
@@ -150,7 +158,7 @@ class TimelineCommandServiceTest {
             verify(timelineRepository).save(timelineCaptor.capture());
 
             Timeline saved = timelineCaptor.getValue();
-            assertThat(saved.getPreviewText()).isEqualTo("0분의 포커스");
+            assertThat(saved.getPreviewText()).isEqualTo(expectedPreviewText);
         }
     }
 

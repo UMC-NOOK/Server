@@ -348,6 +348,9 @@ public class TimelineQueryService {
         if (durationSec == null || durationSec <= 0) {
             return "0분";
         }
+        if (durationSec < 60) {
+            return "1분 미만";
+        }
 
         int hour = durationSec / 3600;
         int minute = (durationSec % 3600) / 60;

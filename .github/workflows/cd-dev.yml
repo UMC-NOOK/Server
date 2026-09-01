@@ -61,13 +61,14 @@ jobs:
           push: true
           tags: ${{ steps.image.outputs.uri }}
 
-      - name: Copy deployment files
+      - name: Sync development deployment configuration
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DEV_HOST }}
           username: ${{ secrets.DEV_USERNAME }}
           key: ${{ secrets.DEV_PRIVATE_KEY }}
-          source: docker-compose.dev.yml,monitoring/alloy,scripts/deploy.sh
+          # Secrets are fetched or maintained on the server and are never copied from GitHub.
+          source: docker-compose.dev.yml,monitoring,scripts
           target: .
 
       - name: Deploy dev
@@ -81,7 +82,7 @@ jobs:
             image="${{ steps.image.outputs.uri }}"
             registry="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
             aws ecr get-login-password --region "${{ env.AWS_REGION }}" | docker login --username AWS --password-stdin "$registry"
-            chmod +x scripts/deploy.sh
+            chmod +x scripts/*.sh
             SECRET_DIR="$HOME/secrets" ./scripts/deploy.sh dev "$image"
 
       - name: Deployment summary

@@ -1,11 +1,17 @@
 name: NOOK PROD CD
 
 on:
+  push:
+    branches:
+      - production
   workflow_dispatch:
 
 permissions:
   contents: read
-  id-token: write
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
 
 env:
   AWS_REGION: ap-northeast-2
@@ -37,7 +43,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to ECR
@@ -59,13 +66,14 @@ jobs:
           push: true
           tags: ${{ steps.image.outputs.uri }}
 
-      - name: Copy deployment files
+      - name: Sync production deployment configuration
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_PRIVATE_KEY }}
-          source: docker-compose.prod.yml,nginx,monitoring/alloy,scripts/deploy.sh,scripts/init-certificate.sh
+          # Runtime state (runtime/) and secrets (/secrets) intentionally stay on the server.
+          source: docker-compose.prod.yml,nginx,monitoring,grafana,scripts
           target: ${{ secrets.PROD_DEPLOY_PATH }}
 
       - name: Deploy prod
@@ -80,7 +88,7 @@ jobs:
             image="${{ steps.image.outputs.uri }}"
             registry="${image%%/*}"
             aws ecr get-login-password --region "${{ env.AWS_REGION }}" | docker login --username AWS --password-stdin "$registry"
-            chmod +x scripts/deploy.sh
+            chmod +x scripts/*.sh
             ./scripts/deploy.sh prod "$image"
 
       - name: Deployment summary

@@ -1,4 +1,5 @@
 aws_account_id             = "123456789012"
+domain_name                = "dev.booknook.work"
 vpc_id                     = "vpc-xxxxxxxx"
 public_subnet_id           = "subnet-xxxxxxxx"
 ami_id                     = "ami-xxxxxxxx"

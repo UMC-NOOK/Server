@@ -5,7 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "cloudflare.r2")
 public record R2Properties(
         String endpoint,
-        String bucketName,
+        String publicBucketName,
+        String privateBucketName,
         String accessKey,
         String secretKey,
         String cdnBaseUrl
@@ -14,7 +15,8 @@ public record R2Properties(
     @Override
     public String toString() {
         return "R2Properties[endpoint=" + endpoint
-                + ", bucketName=" + bucketName
+                + ", publicBucketName=" + publicBucketName
+                + ", privateBucketName=" + privateBucketName
                 + ", accessKey=****"
                 + ", secretKey=****"
                 + ", cdnBaseUrl=" + cdnBaseUrl + "]";

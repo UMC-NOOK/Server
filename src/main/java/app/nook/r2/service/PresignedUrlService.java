@@ -5,6 +5,7 @@ import app.nook.global.exception.CustomException;
 import app.nook.global.response.FileErrorCode;
 import app.nook.r2.dto.ImageUploadRequestDto;
 import app.nook.r2.dto.ImageUrlResponseDto;
+import app.nook.r2.policy.ImageStoragePolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -17,7 +18,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -34,12 +34,6 @@ public class PresignedUrlService {
     private final S3Client s3Client;
     private final R2Properties r2;
 
-    private static final Set<String> ALLOWED_UPLOAD_TYPES = Set.of(
-            "book", "profile", "record"
-    );
-    private static final Set<String> PUBLIC_UPLOAD_TYPES = Set.of(
-            "profile", "book"
-    );
     private static final Map<String, String> ALLOWED_IMAGE_CONTENT_TYPES = Map.of(
             "image/jpeg", "jpg",
             "image/png", "png",
@@ -50,7 +44,7 @@ public class PresignedUrlService {
     // presigned 다운로드
     public ImageUrlResponseDto getPresignedUrl(String key) {
         GetObjectRequest objectRequest = GetObjectRequest.builder()
-                .bucket(r2.bucketName())
+                .bucket(bucketNameForKey(key))
                 .key(key)
                 .build();
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
@@ -67,14 +61,18 @@ public class PresignedUrlService {
     public ImageUrlResponseDto generateUploadUrl(Long userId, ImageUploadRequestDto requestDto){
         validateUserId(userId);
         NormalizedUpload normalized = validateAndNormalizeUploadRequest(requestDto);
-        String key = buildObjectKey(userId, normalized.uploadType(), normalized.extension());
-        return generateUploadUrl(key, normalized.contentType());
+        String key = buildObjectKey(userId, normalized.storagePolicy(), normalized.extension());
+        return generateUploadUrl(key, normalized.contentType(), normalized.storagePolicy());
     }
 
     // 키 기반으로 presigned 업로드 url을 생성
-    private ImageUrlResponseDto generateUploadUrl(String key, String contentType) {
+    private ImageUrlResponseDto generateUploadUrl(
+            String key,
+            String contentType,
+            ImageStoragePolicy storagePolicy
+    ) {
         PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(r2.bucketName())
+                .bucket(storagePolicy.bucketName(r2))
                 .key(key)
                 .contentType(contentType)
                 .build();
@@ -100,7 +98,7 @@ public class PresignedUrlService {
         }
         try {
             ParsedKey parsed = parseKey(keyOrUrl);
-            if (PUBLIC_UPLOAD_TYPES.contains(parsed.uploadType())) {
+            if (parsed.storagePolicy().isPubliclyReadable()) {
                 return r2.cdnBaseUrl() + "/" + keyOrUrl;
             }
             return getImageUrl(userId, keyOrUrl);
@@ -116,7 +114,8 @@ public class PresignedUrlService {
         validateUserId(userId);
         ParsedKey parsedKey = parseKey(key);
 
-        if (expectedUploadType != null && !expectedUploadType.equals(parsedKey.uploadType())) {
+        if (expectedUploadType != null
+                && !expectedUploadType.equals(parsedKey.storagePolicy().uploadType())) {
             throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
         }
         if (!exists(key)) {
@@ -138,7 +137,7 @@ public class PresignedUrlService {
 
          // 파일 삭제
          DeleteObjectRequest request = DeleteObjectRequest.builder()
-                 .bucket(r2.bucketName())
+                 .bucket(bucketNameForKey(key))
                  .key(key)
                  .build();
          s3Client.deleteObject(request);
@@ -162,8 +161,8 @@ public class PresignedUrlService {
          return requestDtos.stream()
                  .map(requestDto -> {
                      NormalizedUpload normalized = validateAndNormalizeUploadRequest(requestDto);
-                     String key = buildObjectKey(userId, normalized.uploadType(), normalized.extension());
-                     return generateUploadUrl(key, normalized.contentType());
+                     String key = buildObjectKey(userId, normalized.storagePolicy(), normalized.extension());
+                     return generateUploadUrl(key, normalized.contentType(), normalized.storagePolicy());
                  })
                  .toList();
      }
@@ -176,10 +175,10 @@ public class PresignedUrlService {
         if (requestDto == null) {
             throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
         }
-        String normalizedUploadType = normalizeAndValidateUploadType(requestDto.uploadType());
+        ImageStoragePolicy storagePolicy = normalizeAndValidateUploadType(requestDto.uploadType());
         String normalizedContentType = normalizeAndValidateContentType(requestDto.contentType());
         String extension = ALLOWED_IMAGE_CONTENT_TYPES.get(normalizedContentType);
-        return new NormalizedUpload(normalizedUploadType, normalizedContentType, extension);
+        return new NormalizedUpload(storagePolicy, normalizedContentType, extension);
     }
 
     private void validateUploadRequests(List<ImageUploadRequestDto> requestDtos) {
@@ -201,15 +200,12 @@ public class PresignedUrlService {
     }
 
     // 업로드 위치 타입 정규화, 검증
-    private String normalizeAndValidateUploadType(String uploadType) {
+    private ImageStoragePolicy normalizeAndValidateUploadType(String uploadType) {
         if (uploadType == null) {
             throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
         }
         String normalized = uploadType.trim().toLowerCase(Locale.ROOT);
-        if (!ALLOWED_UPLOAD_TYPES.contains(normalized)) {
-            throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
-        }
-        return normalized;
+        return ImageStoragePolicy.fromUploadType(normalized);
     }
 
     // 이미지 MIME 타입 정규화, 검증
@@ -225,16 +221,16 @@ public class PresignedUrlService {
     }
 
      // 고유 키 생성
-     private String buildObjectKey(Long userId, String uploadType, String extension) {
+     private String buildObjectKey(Long userId, ImageStoragePolicy storagePolicy, String extension) {
          String uuid = UUID.randomUUID().toString();
-         return uploadType + "/users/" + userId + "/" + uuid + "." + extension;
+         return storagePolicy.uploadType() + "/users/" + userId + "/" + uuid + "." + extension;
      }
 
     // 파일 존재 여부 확인 - 메타데이터 확인
     public boolean exists(String key) {
         try {
             HeadObjectRequest request = HeadObjectRequest.builder()
-                    .bucket(r2.bucketName())
+                    .bucket(bucketNameForKey(key))
                     .key(key)
                     .build();
 
@@ -249,7 +245,7 @@ public class PresignedUrlService {
     // S3 메타데이터 기반 파일 크기 검증
     private void validateFileSizeByMetadata(String key) {
         HeadObjectRequest request = HeadObjectRequest.builder()
-                .bucket(r2.bucketName())
+                .bucket(bucketNameForKey(key))
                 .key(key)
                 .build();
         HeadObjectResponse response = s3Client.headObject(request);
@@ -266,14 +262,15 @@ public class PresignedUrlService {
         }
 
         String[] parts = key.split("/");
-        if (parts.length == 4 && ALLOWED_UPLOAD_TYPES.contains(parts[0]) && "users".equals(parts[1])) {
+        if (parts.length == 4 && "users".equals(parts[1])) {
+            ImageStoragePolicy storagePolicy = ImageStoragePolicy.fromUploadType(parts[0]);
             Long ownerUserId;
             try {
                 ownerUserId = Long.parseLong(parts[2]);
             } catch (NumberFormatException e) {
                 throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
             }
-            return new ParsedKey(parts[0], ownerUserId);
+            return new ParsedKey(storagePolicy, ownerUserId);
         }
 
         throw new CustomException(FileErrorCode.INVALID_FILE_TYPE);
@@ -286,7 +283,16 @@ public class PresignedUrlService {
         return userId.equals(ownerUserId);
     }
 
-    private record NormalizedUpload(String uploadType, String contentType, String extension) {}
-    private record ParsedKey(String uploadType, Long ownerUserId) {}
+    private String bucketNameForKey(String key) {
+        return parseKey(key).storagePolicy().bucketName(r2);
+    }
+
+    private record NormalizedUpload(
+            ImageStoragePolicy storagePolicy,
+            String contentType,
+            String extension
+    ) {}
+
+    private record ParsedKey(ImageStoragePolicy storagePolicy, Long ownerUserId) {}
 
 }

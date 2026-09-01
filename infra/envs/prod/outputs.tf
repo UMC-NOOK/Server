@@ -10,14 +10,10 @@ output "public_ip" {
   value = module.server.public_ip
 }
 
+output "domain_name" {
+  value = var.domain_name
+}
+
 output "security_group_id" {
   value = module.server.security_group_id
-}
-
-output "database_address" {
-  value = module.database.address
-}
-
-output "database_master_user_secret_arn" {
-  value = module.database.master_user_secret_arn
 }

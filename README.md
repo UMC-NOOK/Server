@@ -82,10 +82,10 @@ UMC 8기 데모데이
 
 <div align="center">
 
-|                                         Backend                                         |                               Backend                               |                                  Backend                                  |
-|:---------------------------------------------------------------------------------------:|:-------------------------------------------------------------------:|:-------------------------------------------------------------------------:|
-|               <img src="https://github.com/JiwonLee42.png" width="150" />               | <img src="https://github.com/kimdanha.png" width="150" /> |       <img src="https://github.com/kjhyeon0620.png" width="150" />        |
-| [이지원](https://github.com/JiwonLee42)<br />서재 및 포커스 홈 화면 통계<br> 독서기록 기능 <br>회원 관련 기능(소셜 로그인 등)<br>사진 업로드 기능 | [김단하](https://github.com/kimdanha)<br />포커스 시작/종료, 테마 조회 | [김주현](https://github.com/kjhyeon0620)<br />도서 검색 및 등록(알라딘 API 사용) <br>온보딩<br> 책 상세 및 타임라인 조회 |
+|                                         Backend                                         |                                  Backend                                  |
+|:---------------------------------------------------------------------------------------:|:-------------------------------------------------------------------------:|
+|               <img src="https://github.com/JiwonLee42.png" width="150" />               |       <img src="https://github.com/kjhyeon0620.png" width="150" />        |
+| [이지원](https://github.com/JiwonLee42)<br />서재 및 포커스 홈 화면 통계<br> 독서기록 기능 <br>회원 관련 기능(소셜 로그인 등)<br>사진 업로드 기능 | [김주현](https://github.com/kjhyeon0620)<br />도서 검색 및 등록(알라딘 API 사용) <br>온보딩<br> 책 상세 및 타임라인 조회 |
 
 </div>
 

@@ -31,9 +31,11 @@ spring:
 cloudflare:
   r2:
     endpoint: https://example.r2.cloudflarestorage.com
-    bucket-name: test-bucket
+    public-bucket-name: test-public-bucket
+    private-bucket-name: test-private-bucket
     access-key: test-access-key
     secret-key: test-secret-key
+    cdn-base-url: https://test-public.r2.dev
 
 jwt:
   secret: YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=
