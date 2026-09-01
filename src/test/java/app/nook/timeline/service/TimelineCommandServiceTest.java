@@ -5,6 +5,7 @@ import app.nook.book.domain.enums.SourceType;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.domain.Theme;
 import app.nook.focus.domain.enums.ThemeName;
+import app.nook.focus.repository.FocusRepository;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.record.domain.Record;
@@ -29,8 +30,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +42,8 @@ class TimelineCommandServiceTest {
 
     @Mock
     private TimelineRepository timelineRepository;
+    @Mock
+    private FocusRepository focusRepository;
 
     @InjectMocks
     private TimelineCommandService timelineCommandService;
@@ -106,27 +111,29 @@ class TimelineCommandServiceTest {
     class AppendFocusCompleted {
 
         @Test
-        @DisplayName("성공 - 분 단위 포커스 preview를 저장한다")
-        void appendFocusCompleted_분단위() {
-            Focus focus = focus(7001L, library, 3240, LocalDateTime.of(2026, 1, 10, 16, 54));
+        @DisplayName("성공 - 대상 Focus ID와 세그먼트 시작 시각으로 타임라인을 저장한다")
+        void appendFocusCompleted_대상ID와_세그먼트시작시각() {
+            Focus focus = focus(7001L, library, 3600, LocalDateTime.of(2026, 1, 11, 0, 0));
+            given(focusRepository.findById(focus.getId())).willReturn(Optional.of(focus));
 
-            timelineCommandService.appendFocusCompleted(focus);
+            timelineCommandService.appendFocusCompleted(focus.getId());
 
             verify(timelineRepository).save(timelineCaptor.capture());
 
             Timeline saved = timelineCaptor.getValue();
             assertThat(saved.getType()).isEqualTo(TimelineType.FOCUS);
             assertThat(saved.getTargetId()).isEqualTo(7001L);
-            assertThat(saved.getOccurredAt()).isEqualTo(LocalDateTime.of(2026, 1, 10, 16, 54));
-            assertThat(saved.getPreviewText()).isEqualTo("54분의 포커스");
+            assertThat(saved.getOccurredAt()).isEqualTo(LocalDateTime.of(2026, 1, 10, 23, 0));
+            assertThat(saved.getPreviewText()).isEqualTo("1시간의 포커스");
         }
 
         @Test
         @DisplayName("성공 - 시간과 분이 함께 있는 포커스 preview를 저장한다")
         void appendFocusCompleted_시간분() {
             Focus focus = focus(7002L, library, 4380, LocalDateTime.of(2026, 1, 10, 23, 15));
+            given(focusRepository.findById(focus.getId())).willReturn(Optional.of(focus));
 
-            timelineCommandService.appendFocusCompleted(focus);
+            timelineCommandService.appendFocusCompleted(focus.getId());
 
             verify(timelineRepository).save(timelineCaptor.capture());
 
@@ -144,8 +151,9 @@ class TimelineCommandServiceTest {
         @DisplayName("성공 - 포커스 시간 경계값에 맞는 preview를 저장한다")
         void appendFocusCompleted_시간경계값(int durationSec, String expectedPreviewText) {
             Focus focus = focus(7003L, library, durationSec, LocalDateTime.of(2026, 1, 10, 10, 0));
+            given(focusRepository.findById(focus.getId())).willReturn(Optional.of(focus));
 
-            timelineCommandService.appendFocusCompleted(focus);
+            timelineCommandService.appendFocusCompleted(focus.getId());
 
             verify(timelineRepository).save(timelineCaptor.capture());
 

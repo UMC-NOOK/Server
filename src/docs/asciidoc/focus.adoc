@@ -13,6 +13,8 @@ include::{snippets}/focus-controller-test/포커스_시작_성공/response-field
 
 === 포커스 종료
 
+POST /api/v1/focuses/end는 자정을 넘겨 일별 Focus 행으로 분할 저장되더라도, 종료를 요청한 원본 Focus ID를 기준으로 전체 종료 작업을 하나의 객체로 반환합니다. 응답의 시작 시각, 종료 시각, 집중 시간은 전체 작업의 값이며, 페이지·누적 포커스 시간·독서 상태는 작업 완료 후 최종 서재의 값입니다.
+
 include::{snippets}/focus-controller-test/포커스_종료_성공/http-request.adoc[]
 include::{snippets}/focus-controller-test/포커스_종료_성공/request-fields.adoc[]
 include::{snippets}/focus-controller-test/포커스_종료_성공/http-response.adoc[]

@@ -406,6 +406,37 @@ class TimelineQueryServiceTest {
         }
 
         @Test
+        @DisplayName("다음 날 자정에 끝난 세그먼트는 24시로 표시한다")
+        void getTimelinePreview_다음날자정_24시표시() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            Focus focus = focus(
+                    7001L,
+                    library,
+                    LocalDateTime.of(2026, 1, 10, 23, 0),
+                    LocalDateTime.of(2026, 1, 11, 0, 0),
+                    3600
+            );
+            Timeline timeline = timeline(
+                    18L,
+                    library,
+                    TimelineType.FOCUS,
+                    LocalDateTime.of(2026, 1, 10, 23, 0),
+                    "1시간의 포커스",
+                    7001L
+            );
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library)).willReturn(List.of(timeline));
+            given(focusRepository.findAllById(List.of(7001L))).willReturn(List.of(focus));
+
+            TimelineResponseDto.TimelinePreviewDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L);
+
+            assertThat(result.dateGroups().get(0).items().get(0).subtitle()).isEqualTo("23:00 - 24:00");
+        }
+
+        @Test
         @DisplayName("record preview가 비어 있으면 기록 규칙으로 fallback 한다")
         void getTimelinePreview_recordPreviewFallback() {
             User user = user(1L);

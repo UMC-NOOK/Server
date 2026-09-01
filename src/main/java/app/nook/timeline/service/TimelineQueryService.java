@@ -230,7 +230,9 @@ public class TimelineQueryService {
     private String toFocusSubtitle(Focus focus) {
         return focus.getStartedAt().format(FOCUS_TIME_FORMATTER)
                 + " - "
-                + focus.getEndedAt().format(FOCUS_TIME_FORMATTER);
+                + (focus.getEndedAt().equals(focus.getStartedAt().toLocalDate().plusDays(1).atStartOfDay())
+                ? "24:00"
+                : focus.getEndedAt().format(FOCUS_TIME_FORMATTER));
     }
 
     private TimelineResponseDto.TimelineItemDto toRecordTimelineItem(Timeline timeline, Map<Long, Record> recordMap) {
