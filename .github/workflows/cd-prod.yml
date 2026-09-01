@@ -71,7 +71,7 @@ jobs:
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ secrets.PROD_PRIVATE_KEY }}
+          key: ${{ secrets.DEV_PRIVATE_KEY }}
           # Runtime state (runtime/) and secrets (/secrets) intentionally stay on the server.
           source: docker-compose.prod.yml,nginx,monitoring,grafana,scripts
           target: ${{ secrets.PROD_DEPLOY_PATH }}
@@ -81,7 +81,7 @@ jobs:
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ secrets.PROD_PRIVATE_KEY }}
+          key: ${{ secrets.DEV_PRIVATE_KEY }}
           script: |
             set -e
             cd "${{ secrets.PROD_DEPLOY_PATH }}"
