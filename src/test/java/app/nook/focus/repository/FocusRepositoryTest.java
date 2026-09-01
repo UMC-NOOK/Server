@@ -261,6 +261,89 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
     }
 
     @Test
+    @DisplayName("종료 잠금 조회는 소유자의 포커스만 반환한다")
+    void findByIdAndLibraryUserIdForUpdate_소유포커스조회성공() {
+        // Given
+        User owner = User.builder()
+                .email("lock-owner@example.com")
+                .nickName("잠금소유자")
+                .provider("google")
+                .providerId("lock-owner-provider")
+                .role(UserRole.USER)
+                .build();
+        em.persist(owner);
+        Book book = Book.builder().title("잠금 테스트 책").author("작가").build();
+        em.persist(book);
+        Library library = Library.builder().user(owner).book(book).build();
+        em.persist(library);
+        Theme theme = themeRepository.save(Theme.builder()
+                .name(ThemeName.THEME2)
+                .imageUrl("https://cdn.nook.com/themes/theme2.png")
+                .build());
+        Focus focus = Focus.builder()
+                .library(library)
+                .theme(theme)
+                .startedAt(LocalDateTime.of(2026, 8, 1, 23, 0))
+                .durationSec(0)
+                .build();
+        em.persist(focus);
+        em.flush();
+        em.clear();
+
+        // When
+        Optional<Focus> result = focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), owner.getId());
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.orElseThrow().getId()).isEqualTo(focus.getId());
+    }
+
+    @Test
+    @DisplayName("종료 잠금 조회는 다른 유저의 포커스를 숨긴다")
+    void findByIdAndLibraryUserIdForUpdate_다른유저는조회실패() {
+        // Given
+        User owner = User.builder()
+                .email("lock-owner-foreign@example.com")
+                .nickName("잠금소유자")
+                .provider("google")
+                .providerId("lock-owner-foreign-provider")
+                .role(UserRole.USER)
+                .build();
+        User foreignUser = User.builder()
+                .email("lock-foreign@example.com")
+                .nickName("잠금외부사용자")
+                .provider("google")
+                .providerId("lock-foreign-provider")
+                .role(UserRole.USER)
+                .build();
+        em.persist(owner);
+        em.persist(foreignUser);
+        Book book = Book.builder().title("잠금 외부 테스트 책").author("작가").build();
+        em.persist(book);
+        Library library = Library.builder().user(owner).book(book).build();
+        em.persist(library);
+        Theme theme = themeRepository.save(Theme.builder()
+                .name(ThemeName.THEME3)
+                .imageUrl("https://cdn.nook.com/themes/theme3.png")
+                .build());
+        Focus focus = Focus.builder()
+                .library(library)
+                .theme(theme)
+                .startedAt(LocalDateTime.of(2026, 8, 1, 23, 0))
+                .durationSec(0)
+                .build();
+        em.persist(focus);
+        em.flush();
+        em.clear();
+
+        // When
+        Optional<Focus> result = focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), foreignUser.getId());
+
+        // Then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
     @DisplayName("완료된 포커스를 id 내림차순으로 커서 없이 조회한다")
     void findRecentByUserWithCursor_첫페이지() {
         User user = User.builder()

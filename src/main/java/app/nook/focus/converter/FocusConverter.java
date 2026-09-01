@@ -5,6 +5,7 @@ import app.nook.focus.domain.Theme;
 import app.nook.focus.dto.FocusResponseDto;
 import app.nook.library.util.FocusTimeUtil;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class FocusConverter {
@@ -45,6 +46,25 @@ public class FocusConverter {
                 focus.getLibrary().getPage(),
                 focus.getLibrary().getFocusSec(),
                 focus.getLibrary().getReadingStatus().name()
+        );
+    }
+
+    public static FocusResponseDto.FocusEnd toFocusEndResponse(
+            Focus originalFocus,
+            LocalDateTime startedAt,
+            LocalDateTime endedAt,
+            int durationSec
+    ) {
+        return new FocusResponseDto.FocusEnd(
+                originalFocus.getId(),
+                originalFocus.getLibrary().getId(),
+                startedAt,
+                endedAt,
+                durationSec,
+                FocusTimeUtil.formatFocusTime(durationSec),
+                originalFocus.getLibrary().getPage(),
+                originalFocus.getLibrary().getFocusSec(),
+                originalFocus.getLibrary().getReadingStatus().name()
         );
     }
 

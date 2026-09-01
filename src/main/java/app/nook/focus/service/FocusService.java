@@ -13,14 +13,21 @@ import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.repository.LibraryRepository;
-import app.nook.timeline.service.TimelineCommandService;
+import app.nook.timeline.event.FocusTimelineAppendEvent;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -30,8 +37,9 @@ public class FocusService {
     private final FocusRepository focusRepository;
     private final LibraryRepository libraryRepository;
     private final ThemeRepository themeRepository;
-    private final TimelineCommandService timelineCommandService;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
+    private final FocusCompletionSegmenter focusCompletionSegmenter;
 
     public FocusResponseDto.FocusStart startFocus(User user, FocusRequestDto.FocusStart request) {
 
@@ -50,10 +58,11 @@ public class FocusService {
                 .orElseThrow(() -> new CustomException(FocusErrorCode.THEME_NOT_FOUND));
 
         // 4. Focus 생성
+        LocalDateTime startedAt = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
         Focus focus = Focus.builder()
                 .library(library)
                 .theme(theme)
-                .startedAt(LocalDateTime.now())
+                .startedAt(startedAt)
                 .endedAt(null)
                 .durationSec(0)
                 .build();
@@ -61,7 +70,7 @@ public class FocusService {
         Focus savedFocus = focusRepository.save(focus);
 
         if (library.getReadingStatus() == ReadingStatus.BEFORE) {
-            library.updateStatus(ReadingStatus.READING);
+            library.updateStatus(ReadingStatus.READING, startedAt.toLocalDate());
         }
 
         return FocusConverter.toFocusStartResponse(savedFocus);
@@ -69,28 +78,84 @@ public class FocusService {
 
     public FocusResponseDto.FocusEnd endFocus(Long userId, FocusRequestDto.FocusEnd request) {
 
-        Focus focus = focusRepository.findByIdAndLibraryUserId(request.focusId(), userId)
+        Focus focus = focusRepository.findByIdAndLibraryUserIdForUpdate(request.focusId(), userId)
                 .orElseThrow(() -> new CustomException(FocusErrorCode.FOCUS_NOT_FOUND));
 
         if (focus.getEndedAt() != null) {
             throw new CustomException(FocusErrorCode.FOCUS_ALREADY_ENDED);
         }
 
-        focus.endFocus(LocalDateTime.now(), request.page());
+        LocalDateTime endedAt = LocalDateTime.now(clock);
+        List<FocusCompletionSegmenter.CompletedFocusSegment> segments =
+                focusCompletionSegmenter.split(focus.getStartedAt(), endedAt);
+        if (segments.isEmpty()) {
+            throw new IllegalStateException("Focus end time precedes start time");
+        }
+
+        LocalDateTime normalizedStartedAt = segments.get(0).startedAt();
+        LocalDateTime normalizedEndedAt = segments.get(segments.size() - 1).endedAt();
+        int totalDurationSec = Math.toIntExact(segments.stream()
+                .mapToLong(FocusCompletionSegmenter.CompletedFocusSegment::durationSec)
+                .sum());
+        Set<YearMonth> affectedYearMonths = new LinkedHashSet<>();
+        YearMonth finalAffectedMonth = normalizedStartedAt.equals(normalizedEndedAt)
+                ? YearMonth.from(normalizedStartedAt)
+                : YearMonth.from(normalizedEndedAt.minusNanos(1));
+        for (YearMonth month = YearMonth.from(normalizedStartedAt);
+             !month.isAfter(finalAffectedMonth);
+             month = month.plusMonths(1)) {
+            affectedYearMonths.add(month);
+        }
 
         Library library = focus.getLibrary();
-        library.recordFocus(focus.getDurationSec());
+        Theme theme = focus.getTheme();
+        List<Focus> completedFocuses = new ArrayList<>(segments.size());
+        for (int index = 0; index < segments.size(); index++) {
+            FocusCompletionSegmenter.CompletedFocusSegment segment = segments.get(index);
+            Integer endPage = index == segments.size() - 1 ? request.page() : null;
+            if (index == 0) {
+                focus.completeSegment(segment.startedAt(), segment.endedAt(), endPage);
+                completedFocuses.add(focus);
+            } else {
+                completedFocuses.add(Focus.builder()
+                        .library(library)
+                        .theme(theme)
+                        .startedAt(segment.startedAt())
+                        .endedAt(segment.endedAt())
+                        .durationSec(Math.toIntExact(segment.durationSec()))
+                        .endPage(endPage)
+                        .build());
+            }
+        }
+
+        library.recordFocus(totalDurationSec);
         library.recordPage(request.page());
 
         if (Boolean.TRUE.equals(request.isFinished())) {
-            library.updateStatus(ReadingStatus.FINISHED);
-            eventPublisher.publishEvent(LibraryCacheInvalidateEvent.onboardingGoal(userId));
+            library.updateStatus(ReadingStatus.FINISHED, normalizedEndedAt.toLocalDate());
         } else if (library.getReadingStatus() == ReadingStatus.BEFORE) {
-            library.updateStatus(ReadingStatus.READING);
+            library.updateStatus(ReadingStatus.READING, normalizedEndedAt.toLocalDate());
         }
 
-        timelineCommandService.appendFocusCompleted(focus);
+        List<Focus> savedFocuses = focusRepository.saveAllAndFlush(completedFocuses);
+        for (Focus savedFocus : savedFocuses) {
+            if (savedFocus.getId() == null) {
+                throw new IllegalStateException("Completed Focus ID must be generated before Timeline creation");
+            }
+        }
+        eventPublisher.publishEvent(new FocusTimelineAppendEvent(savedFocuses.stream()
+                .map(Focus::getId)
+                .toList()));
 
-        return FocusConverter.toFocusEndResponse(focus);
+        eventPublisher.publishEvent(Boolean.TRUE.equals(request.isFinished())
+                ? LibraryCacheInvalidateEvent.monthlyAndOnboardingGoal(userId, affectedYearMonths)
+                : LibraryCacheInvalidateEvent.monthly(userId, affectedYearMonths));
+
+        return FocusConverter.toFocusEndResponse(
+                focus,
+                normalizedStartedAt,
+                normalizedEndedAt,
+                totalDurationSec
+        );
     }
 }

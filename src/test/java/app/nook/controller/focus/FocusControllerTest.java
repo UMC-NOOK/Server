@@ -33,6 +33,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
@@ -44,6 +45,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.requestF
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
@@ -174,12 +176,12 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
             FocusResponseDto.FocusEnd response = new FocusResponseDto.FocusEnd(
                     100L,
                     10L,
-                    LocalDateTime.of(2026, 3, 22, 14, 0, 0),
-                    LocalDateTime.of(2026, 3, 22, 14, 34, 26),
-                    2066,
-                    "00:34:26",
+                    LocalDateTime.of(2026, 8, 1, 23, 0, 0),
+                    LocalDateTime.of(2026, 8, 2, 0, 30, 0),
+                    5400,
+                    "01:30:00",
                     72,
-                    5666L,
+                    9000L,
                     "FINISHED"
             );
 
@@ -192,6 +194,11 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
                                     .content(objectMapper.writeValueAsString(request))
                     )
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.result.*").value(hasSize(9)))
+                    .andExpect(jsonPath("$.result.focusId").value(100))
+                    .andExpect(jsonPath("$.result.startedAt").value("2026-08-01T23:00:00"))
+                    .andExpect(jsonPath("$.result.endedAt").value("2026-08-02T00:30:00"))
+                    .andExpect(jsonPath("$.result.durationSec").value(5400))
                     .andDo(documentWithAuth(
                             "focus-controller-test/포커스_종료_성공",
                             requestFields(
@@ -201,19 +208,20 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
                             ),
                             responseFields(
                                     ApiResponseSnippet.withResult(
-                                            fieldWithPath("result.focusId").description("포커스 ID"),
+                                            fieldWithPath("result.focusId").description("종료를 요청한 원본 포커스 ID"),
                                             fieldWithPath("result.libraryId").description("서재 ID"),
-                                            fieldWithPath("result.startedAt").description("포커스 시작 시각"),
-                                            fieldWithPath("result.endedAt").description("포커스 종료 시각"),
-                                            fieldWithPath("result.durationSec").description("집중 시간(초)"),
-                                            fieldWithPath("result.durationText").description("집중 시간(HH:mm:ss)"),
-                                            fieldWithPath("result.page").description("현재까지 읽은 페이지"),
-                                            fieldWithPath("result.totalFocusSec").description("누적 포커스 시간(초)"),
-                                            fieldWithPath("result.readingStatus").description("독서 상태")
+                                            fieldWithPath("result.startedAt").description("전체 종료 작업의 포커스 시작 시각"),
+                                            fieldWithPath("result.endedAt").description("전체 종료 작업의 포커스 종료 시각"),
+                                            fieldWithPath("result.durationSec").description("전체 종료 작업의 집중 시간(초)"),
+                                            fieldWithPath("result.durationText").description("전체 종료 작업의 집중 시간(HH:mm:ss)"),
+                                            fieldWithPath("result.page").description("작업 완료 후 최종 서재의 현재까지 읽은 페이지"),
+                                            fieldWithPath("result.totalFocusSec").description("작업 완료 후 최종 서재의 누적 포커스 시간(초)"),
+                                            fieldWithPath("result.readingStatus").description("작업 완료 후 최종 서재의 독서 상태")
                                     )
                             )
                     ));
         }
+
     }
 
     @Nested
