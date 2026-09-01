@@ -440,14 +440,14 @@
       },
       "targets": [
         {
-          "expr": "max_over_time((max(histogram_quantile(0.95, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m])))))[$__range:])",
+          "expr": "max_over_time((max(histogram_quantile(0.95, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\",environment=~\"${environment:regex}\"}[5m])))))[$__range:])",
           "instant": true,
           "legendFormat": "server p95",
           "range": false,
           "refId": "A"
         },
         {
-          "expr": "max_over_time((max(histogram_quantile(0.99, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m])))))[$__range:])",
+          "expr": "max_over_time((max(histogram_quantile(0.99, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\",environment=~\"${environment:regex}\"}[5m])))))[$__range:])",
           "instant": true,
           "legendFormat": "server p99",
           "range": false,
@@ -555,21 +555,21 @@
       },
       "targets": [
         {
-          "expr": "max_over_time(process_cpu_usage{application=\"$application\"}[$__range])",
+          "expr": "max_over_time(process_cpu_usage{application=\"$application\",environment=~\"${environment:regex}\"}[$__range])",
           "instant": true,
           "legendFormat": "process CPU",
           "range": false,
           "refId": "A"
         },
         {
-          "expr": "max_over_time((sum(jvm_memory_used_bytes{application=\"$application\",area=\"heap\"}) / clamp_min(sum(jvm_memory_max_bytes{application=\"$application\",area=\"heap\"}), 1))[$__range:])",
+          "expr": "max_over_time((sum(jvm_memory_used_bytes{application=\"$application\",environment=~\"${environment:regex}\",area=\"heap\"}) / clamp_min(sum(jvm_memory_max_bytes{application=\"$application\",environment=~\"${environment:regex}\",area=\"heap\"}), 1))[$__range:])",
           "instant": true,
           "legendFormat": "heap used",
           "range": false,
           "refId": "B"
         },
         {
-          "expr": "max_over_time((sum(tomcat_threads_busy_threads{application=\"$application\"}) / clamp_min(sum(tomcat_threads_config_max_threads{application=\"$application\"}), 1))[$__range:])",
+          "expr": "max_over_time((sum(tomcat_threads_busy_threads{application=\"$application\",environment=~\"${environment:regex}\"}) / clamp_min(sum(tomcat_threads_config_max_threads{application=\"$application\",environment=~\"${environment:regex}\"}), 1))[$__range:])",
           "instant": true,
           "legendFormat": "Tomcat busy",
           "range": false,
@@ -680,14 +680,14 @@
       },
       "targets": [
         {
-          "expr": "sum(max_over_time(hikaricp_connections_pending{application=\"$application\"}[$__range]))",
+          "expr": "sum(max_over_time(hikaricp_connections_pending{application=\"$application\",environment=~\"${environment:regex}\"}[$__range]))",
           "instant": true,
           "legendFormat": "pending peak",
           "range": false,
           "refId": "A"
         },
         {
-          "expr": "sum(increase(hikaricp_connections_timeout_total{application=\"$application\"}[$__range]))",
+          "expr": "sum(increase(hikaricp_connections_timeout_total{application=\"$application\",environment=~\"${environment:regex}\"}[$__range]))",
           "instant": true,
           "legendFormat": "timeouts",
           "range": false,
@@ -1381,7 +1381,7 @@
           },
           "targets": [
             {
-              "expr": "sum by (uri, method, status) (rate(http_server_requests_seconds_count{application=\"$application\"}[5m]))",
+              "expr": "sum by (uri, method, status) (rate(http_server_requests_seconds_count{application=\"$application\",environment=~\"${environment:regex}\"}[5m]))",
               "legendFormat": "{{method}} {{uri}} {{status}}"
             }
           ],
@@ -1419,11 +1419,11 @@
           },
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\",environment=~\"${environment:regex}\"}[5m])))",
               "legendFormat": "p95 {{method}} {{uri}}"
             },
             {
-              "expr": "histogram_quantile(0.99, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum by (le, uri, method) (rate(http_server_requests_seconds_bucket{application=\"$application\",environment=~\"${environment:regex}\"}[5m])))",
               "legendFormat": "p99 {{method}} {{uri}}"
             }
           ],
@@ -1461,11 +1461,11 @@
           },
           "targets": [
             {
-              "expr": "process_cpu_usage{application=\"$application\"}",
+              "expr": "process_cpu_usage{application=\"$application\",environment=~\"${environment:regex}\"}",
               "legendFormat": "process cpu"
             },
             {
-              "expr": "system_cpu_usage{application=\"$application\"}",
+              "expr": "system_cpu_usage{application=\"$application\",environment=~\"${environment:regex}\"}",
               "legendFormat": "system cpu"
             }
           ],
@@ -1503,11 +1503,11 @@
           },
           "targets": [
             {
-              "expr": "sum by (area) (jvm_memory_used_bytes{application=\"$application\"})",
+              "expr": "sum by (area) (jvm_memory_used_bytes{application=\"$application\",environment=~\"${environment:regex}\"})",
               "legendFormat": "{{area}} used"
             },
             {
-              "expr": "sum by (area) (jvm_memory_max_bytes{application=\"$application\"})",
+              "expr": "sum by (area) (jvm_memory_max_bytes{application=\"$application\",environment=~\"${environment:regex}\"})",
               "legendFormat": "{{area}} max"
             }
           ],
@@ -1566,12 +1566,12 @@
           },
           "targets": [
             {
-              "expr": "sum by (action, cause) (rate(jvm_gc_pause_seconds_sum{application=\"$application\"}[1m])) / sum by (action, cause) (rate(jvm_gc_pause_seconds_count{application=\"$application\"}[1m]))",
+              "expr": "sum by (action, cause) (rate(jvm_gc_pause_seconds_sum{application=\"$application\",environment=~\"${environment:regex}\"}[1m])) / sum by (action, cause) (rate(jvm_gc_pause_seconds_count{application=\"$application\",environment=~\"${environment:regex}\"}[1m]))",
               "legendFormat": "mean pause {{action}} {{cause}}",
               "refId": "A"
             },
             {
-              "expr": "sum(rate(jvm_gc_pause_seconds_count{application=\"$application\"}[1m]))",
+              "expr": "sum(rate(jvm_gc_pause_seconds_count{application=\"$application\",environment=~\"${environment:regex}\"}[1m]))",
               "legendFormat": "pause events/s",
               "refId": "B"
             }
@@ -1610,15 +1610,15 @@
           },
           "targets": [
             {
-              "expr": "sum by (name) (tomcat_threads_busy_threads{application=\"$application\"})",
+              "expr": "sum by (name) (tomcat_threads_busy_threads{application=\"$application\",environment=~\"${environment:regex}\"})",
               "legendFormat": "busy {{name}}"
             },
             {
-              "expr": "sum by (name) (tomcat_threads_current_threads{application=\"$application\"})",
+              "expr": "sum by (name) (tomcat_threads_current_threads{application=\"$application\",environment=~\"${environment:regex}\"})",
               "legendFormat": "current {{name}}"
             },
             {
-              "expr": "sum by (name) (tomcat_threads_config_max_threads{application=\"$application\"})",
+              "expr": "sum by (name) (tomcat_threads_config_max_threads{application=\"$application\",environment=~\"${environment:regex}\"})",
               "legendFormat": "max {{name}}"
             }
           ],
@@ -1670,15 +1670,15 @@
           },
           "targets": [
             {
-              "expr": "sum by (name) (hikaricp_connections_active{application=\"$application\"})",
+              "expr": "sum by (name) (hikaricp_connections_active{application=\"$application\",environment=~\"${environment:regex}\"})",
               "legendFormat": "active {{name}}"
             },
             {
-              "expr": "sum by (name) (hikaricp_connections_pending{application=\"$application\"})",
+              "expr": "sum by (name) (hikaricp_connections_pending{application=\"$application\",environment=~\"${environment:regex}\"})",
               "legendFormat": "pending {{name}}"
             },
             {
-              "expr": "sum by (name) (hikaricp_connections_idle{application=\"$application\"})",
+              "expr": "sum by (name) (hikaricp_connections_idle{application=\"$application\",environment=~\"${environment:regex}\"})",
               "legendFormat": "idle {{name}}"
             }
           ],
@@ -1716,11 +1716,11 @@
           },
           "targets": [
             {
-              "expr": "sum by (name) (hikaricp_connections_timeout_total{application=\"$application\"})",
+              "expr": "sum by (name) (hikaricp_connections_timeout_total{application=\"$application\",environment=~\"${environment:regex}\"})",
               "legendFormat": "timeouts {{name}}"
             },
             {
-              "expr": "sum by (name) (increase(hikaricp_connections_timeout_total{application=\"$application\"}[5m]))",
+              "expr": "sum by (name) (increase(hikaricp_connections_timeout_total{application=\"$application\",environment=~\"${environment:regex}\"}[5m]))",
               "legendFormat": "timeouts +5m {{name}}"
             }
           ],
@@ -2189,6 +2189,29 @@
   "templating": {
     "list": [
       {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "dev",
+          "value": "dev"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(http_server_requests_seconds_count, environment)",
+        "includeAll": true,
+        "label": "Environment",
+        "multi": true,
+        "name": "environment",
+        "query": {
+          "query": "label_values(http_server_requests_seconds_count, environment)",
+          "refId": "PrometheusVariableQueryEditor-Environment"
+        },
+        "refresh": 1,
+        "type": "query"
+      },
+      {
         "current": {
           "text": "nook-api",
           "value": "nook-api"
@@ -2197,12 +2220,12 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(http_server_requests_seconds_count, application)",
+        "definition": "label_values(http_server_requests_seconds_count{environment=~\"${environment:regex}\"}, application)",
         "includeAll": false,
         "label": "Application",
         "name": "application",
         "query": {
-          "query": "label_values(http_server_requests_seconds_count, application)",
+          "query": "label_values(http_server_requests_seconds_count{environment=~\"${environment:regex}\"}, application)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
