@@ -2,6 +2,15 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
 scrape_configs:
   - job_name: nook-app
     metrics_path: /actuator/prometheus
@@ -12,12 +21,10 @@ scrape_configs:
         refresh_interval: 30s
 
   - job_name: nook-redis
-    static_configs:
-      - targets:
-          - redis-exporter:9121
-        labels:
-          environment: local
-          application: nook-redis
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/redis/*.yml
+        refresh_interval: 30s
 
   - job_name: nook-postgres
     static_configs:

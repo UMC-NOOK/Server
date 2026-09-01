@@ -9,12 +9,30 @@ services:
       - --web.enable-remote-write-receiver
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
       - ./monitoring/prometheus/targets:/etc/prometheus/targets:ro
       - prometheus-data:/prometheus
     ports:
       - "127.0.0.1:9090:9090"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - monitoring-network
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --web.listen-address=:9093
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ${ALERTMANAGER_DISCORD_DEV_WEBHOOK_FILE:-/secrets/alertmanager-discord-dev-webhook}:/run/secrets/discord_dev_webhook_url:ro
+      - ${ALERTMANAGER_DISCORD_PROD_WEBHOOK_FILE:-/secrets/alertmanager-discord-prod-webhook}:/run/secrets/discord_prod_webhook_url:ro
+      - alertmanager-data:/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
     restart: unless-stopped
     networks:
       - monitoring-network
@@ -47,17 +65,6 @@ services:
     depends_on:
       - prometheus
       - loki
-    restart: unless-stopped
-    networks:
-      - monitoring-network
-
-  redis-exporter:
-    image: oliver006/redis_exporter:v1.84.0
-    environment:
-      REDIS_ADDR: ${REDIS_EXPORTER_ADDRESS:-redis://host.docker.internal:6379}
-      REDIS_EXPORTER_REDACT_CONFIG_METRICS: "true"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     networks:
       - monitoring-network
@@ -128,6 +135,7 @@ services:
 
 volumes:
   prometheus-data:
+  alertmanager-data:
   loki-data:
   grafana-data:
 

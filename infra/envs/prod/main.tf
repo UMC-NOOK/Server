@@ -45,6 +45,13 @@ module "server" {
         protocol    = "tcp"
         cidr_blocks = var.monitoring_cidrs
       }
+      redis_metrics = {
+        description = "Redis exporter metrics from monitoring server"
+        from_port   = 9121
+        to_port     = 9121
+        protocol    = "tcp"
+        cidr_blocks = var.monitoring_cidrs
+      }
     },
     length(var.admin_cidrs) == 0 ? {} : {
       ssh = {

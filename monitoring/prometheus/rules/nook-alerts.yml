@@ -1,0 +1,68 @@
+groups:
+  - name: nook-application-alerts
+    interval: 15s
+    rules:
+      - alert: NookAppDown
+        expr: up{job="nook-app",environment=~"dev|prod"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.environment }} API target is down"
+          description: "{{ $labels.instance }} has not been reachable by Prometheus for 2 minutes."
+
+      - alert: NookHigh5xxRate
+        expr: |
+          sum by (environment) (rate(http_server_requests_seconds_count{environment=~"dev|prod",status=~"5.."}[5m]))
+          /
+          clamp_min(sum by (environment) (rate(http_server_requests_seconds_count{environment=~"dev|prod"}[5m])), 1)
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.environment }} API 5xx rate is above 5%"
+          description: "5xx responses have exceeded 5% of API traffic for 5 minutes."
+
+      - alert: NookHighP95Latency
+        expr: |
+          histogram_quantile(0.95, sum by (le, environment) (
+            rate(http_server_requests_seconds_bucket{environment=~"dev|prod"}[5m])
+          )) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.environment }} API p95 latency is above 1 second"
+          description: "API p95 latency has exceeded 1 second for 5 minutes."
+
+      - alert: NookHighJvmHeapUsage
+        expr: |
+          sum by (environment) (jvm_memory_used_bytes{environment=~"dev|prod",area="heap"})
+          /
+          clamp_min(sum by (environment) (jvm_memory_max_bytes{environment=~"dev|prod",area="heap"}), 1)
+          > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.environment }} JVM heap usage is above 85%"
+          description: "JVM heap usage has exceeded 85% for 10 minutes."
+
+      - alert: NookHikariPoolPending
+        expr: sum by (environment) (hikaricp_connections_pending{environment=~"dev|prod"}) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.environment }} Hikari connection requests are waiting"
+          description: "More than 5 DB connection requests have been pending for 5 minutes."
+
+      - alert: NookHikariConnectionTimeout
+        expr: sum by (environment) (increase(hikaricp_connections_timeout_total{environment=~"dev|prod"}[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.environment }} Hikari connection timeout occurred"
+          description: "At least one DB connection timeout occurred in the last 5 minutes."

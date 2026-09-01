@@ -1,0 +1,61 @@
+name: Create Production Release
+
+on:
+  pull_request:
+    branches:
+      - production
+    types:
+      - closed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+jobs:
+  create-release:
+    if: >-
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'release')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout merged production commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Read and validate release version
+        id: version
+        shell: bash
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          if [[ "$PR_TITLE" =~ [Rr]elease[[:space:]]+(v[0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            echo "tag=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release PR title must include a version, for example: release v0.2.0" >&2
+            exit 1
+          fi
+
+      - name: Create Git tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          TARGET: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag already exists: $TAG" >&2
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" "$TARGET" -m "Release $TAG"
+          git push origin "$TAG"
+          gh release create "$TAG" --title "Release $TAG" --generate-notes
