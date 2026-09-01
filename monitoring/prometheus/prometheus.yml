@@ -21,12 +21,10 @@ scrape_configs:
         refresh_interval: 30s
 
   - job_name: nook-redis
-    static_configs:
-      - targets:
-          - redis-exporter:9121
-        labels:
-          environment: local
-          application: nook-redis
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/redis/*.yml
+        refresh_interval: 30s
 
   - job_name: nook-postgres
     static_configs:
