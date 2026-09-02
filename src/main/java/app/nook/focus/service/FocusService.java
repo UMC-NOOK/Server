@@ -2,12 +2,10 @@ package app.nook.focus.service;
 
 import app.nook.focus.converter.FocusConverter;
 import app.nook.focus.domain.Focus;
-import app.nook.focus.domain.Theme;
 import app.nook.focus.dto.FocusRequestDto;
 import app.nook.focus.dto.FocusResponseDto;
 import app.nook.focus.exception.FocusErrorCode;
 import app.nook.focus.repository.FocusRepository;
-import app.nook.focus.repository.ThemeRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
@@ -36,7 +34,6 @@ public class FocusService {
 
     private final FocusRepository focusRepository;
     private final LibraryRepository libraryRepository;
-    private final ThemeRepository themeRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
     private final FocusCompletionSegmenter focusCompletionSegmenter;
@@ -50,18 +47,12 @@ public class FocusService {
                 });
 
         // 2. 내 서재 책인지 확인
-        Library library = libraryRepository.findByIdAndUserId(request.libraryId(), user.getId())
+        Library library = libraryRepository.findByUserIdAndBookId(user.getId(), request.bookId())
                 .orElseThrow(() -> new CustomException(FocusErrorCode.LIBRARY_NOT_FOUND));
 
-        // 3. 테마 존재 여부 확인
-        Theme theme = themeRepository.findById(request.themeId())
-                .orElseThrow(() -> new CustomException(FocusErrorCode.THEME_NOT_FOUND));
-
-        // 4. Focus 생성
         LocalDateTime startedAt = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
         Focus focus = Focus.builder()
                 .library(library)
-                .theme(theme)
                 .startedAt(startedAt)
                 .endedAt(null)
                 .durationSec(0)
@@ -108,7 +99,6 @@ public class FocusService {
         }
 
         Library library = focus.getLibrary();
-        Theme theme = focus.getTheme();
         List<Focus> completedFocuses = new ArrayList<>(segments.size());
         for (int index = 0; index < segments.size(); index++) {
             FocusCompletionSegmenter.CompletedFocusSegment segment = segments.get(index);
@@ -119,7 +109,6 @@ public class FocusService {
             } else {
                 completedFocuses.add(Focus.builder()
                         .library(library)
-                        .theme(theme)
                         .startedAt(segment.startedAt())
                         .endedAt(segment.endedAt())
                         .durationSec(Math.toIntExact(segment.durationSec()))
@@ -129,7 +118,9 @@ public class FocusService {
         }
 
         library.recordFocus(totalDurationSec);
-        library.recordPage(request.page());
+        if (request.page() != null) {
+            library.recordPage(request.page());
+        }
 
         if (Boolean.TRUE.equals(request.isFinished())) {
             library.updateStatus(ReadingStatus.FINISHED, normalizedEndedAt.toLocalDate());

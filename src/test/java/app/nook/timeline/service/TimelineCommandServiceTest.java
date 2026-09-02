@@ -3,8 +3,6 @@ package app.nook.timeline.service;
 import app.nook.book.domain.Book;
 import app.nook.book.domain.enums.SourceType;
 import app.nook.focus.domain.Focus;
-import app.nook.focus.domain.Theme;
-import app.nook.focus.domain.enums.ThemeName;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
@@ -231,14 +229,8 @@ class TimelineCommandServiceTest {
     }
 
     private Focus focus(Long id, Library library, int durationSec, LocalDateTime endedAt) {
-        Theme theme = Theme.builder()
-                .name(ThemeName.THEME1)
-                .imageUrl("theme.png")
-                .build();
-
         Focus focus = Focus.builder()
                 .library(library)
-                .theme(theme)
                 .startedAt(endedAt.minusSeconds(durationSec))
                 .endedAt(endedAt)
                 .durationSec(durationSec)

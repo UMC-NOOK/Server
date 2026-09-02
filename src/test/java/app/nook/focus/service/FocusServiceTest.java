@@ -2,16 +2,13 @@ package app.nook.focus.service;
 
 import app.nook.book.domain.Book;
 import app.nook.focus.domain.Focus;
-import app.nook.focus.domain.Theme;
 import app.nook.focus.dto.FocusRequestDto;
 import app.nook.focus.dto.FocusResponseDto;
 import app.nook.focus.exception.FocusErrorCode;
 import app.nook.focus.repository.FocusRepository;
-import app.nook.focus.repository.ThemeRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.global.fixture.FocusFixture;
 import app.nook.global.fixture.LibraryFixture;
-import app.nook.global.fixture.ThemeFixture;
 import app.nook.global.fixture.UserFixture;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
@@ -60,20 +57,16 @@ class FocusServiceTest {
     @Mock
     private LibraryRepository libraryRepository;
     @Mock
-    private ThemeRepository themeRepository;
-    @Mock
     private ApplicationEventPublisher eventPublisher;
 
     private User user;
     private Library library;
-    private Theme theme;
 
     @BeforeEach
     void setUp() {
         user = UserFixture.user();
         Book book = FocusFixture.book();
         library = LibraryFixture.library(user, book);
-        theme = ThemeFixture.theme();
     }
 
     @Nested
@@ -85,10 +78,10 @@ class FocusServiceTest {
         void truncatesClockAndUsesNormalizedStartDate() {
             LocalDateTime now = LocalDateTime.of(2026, 8, 1, 23, 59, 59, 987_000_000);
             FocusService service = serviceAt(now);
-            FocusRequestDto.FocusStart request = new FocusRequestDto.FocusStart(library.getId(), theme.getId());
+            FocusRequestDto.FocusStart request = new FocusRequestDto.FocusStart(library.getBook().getId());
             given(focusRepository.findByLibraryUserIdAndEndedAtIsNull(user.getId())).willReturn(Optional.empty());
-            given(libraryRepository.findByIdAndUserId(library.getId(), user.getId())).willReturn(Optional.of(library));
-            given(themeRepository.findById(theme.getId())).willReturn(Optional.of(theme));
+            given(libraryRepository.findByUserIdAndBookId(user.getId(), library.getBook().getId()))
+                    .willReturn(Optional.of(library));
             given(focusRepository.save(any(Focus.class))).willAnswer(invocation -> {
                 Focus saved = invocation.getArgument(0);
                 ReflectionTestUtils.setField(saved, "id", 101L);
@@ -97,6 +90,10 @@ class FocusServiceTest {
 
             FocusResponseDto.FocusStart result = service.startFocus(user, request);
 
+            assertThat(result.focusId()).isEqualTo(101L);
+            assertThat(result.bookId()).isEqualTo(library.getBook().getId());
+            assertThat(result.bookTitle()).isEqualTo(library.getBook().getTitle());
+            assertThat(result.author()).isEqualTo(library.getBook().getAuthor());
             assertThat(result.startedAt()).isEqualTo(LocalDateTime.of(2026, 8, 1, 23, 59, 59));
             assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
             assertThat(library.getStartedAt()).isEqualTo(LocalDate.of(2026, 8, 1));
@@ -109,7 +106,7 @@ class FocusServiceTest {
             given(focusRepository.findByLibraryUserIdAndEndedAtIsNull(user.getId())).willReturn(Optional.of(active));
 
             assertThatThrownBy(() -> serviceAt(LocalDateTime.of(2026, 8, 1, 11, 0))
-                    .startFocus(user, new FocusRequestDto.FocusStart(library.getId(), theme.getId())))
+                    .startFocus(user, new FocusRequestDto.FocusStart(library.getBook().getId())))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(FocusErrorCode.FOCUS_ALREADY_IN_PROGRESS);
@@ -119,33 +116,49 @@ class FocusServiceTest {
         @DisplayName("소유한 서재가 없으면 거절한다")
         void rejectsMissingLibrary() {
             given(focusRepository.findByLibraryUserIdAndEndedAtIsNull(user.getId())).willReturn(Optional.empty());
-            given(libraryRepository.findByIdAndUserId(library.getId(), user.getId())).willReturn(Optional.empty());
+            given(libraryRepository.findByUserIdAndBookId(user.getId(), library.getBook().getId()))
+                    .willReturn(Optional.empty());
 
             assertThatThrownBy(() -> serviceAt(LocalDateTime.of(2026, 8, 1, 11, 0))
-                    .startFocus(user, new FocusRequestDto.FocusStart(library.getId(), theme.getId())))
+                    .startFocus(user, new FocusRequestDto.FocusStart(library.getBook().getId())))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(FocusErrorCode.LIBRARY_NOT_FOUND);
-        }
-
-        @Test
-        @DisplayName("테마가 없으면 거절한다")
-        void rejectsMissingTheme() {
-            given(focusRepository.findByLibraryUserIdAndEndedAtIsNull(user.getId())).willReturn(Optional.empty());
-            given(libraryRepository.findByIdAndUserId(library.getId(), user.getId())).willReturn(Optional.of(library));
-            given(themeRepository.findById(theme.getId())).willReturn(Optional.empty());
-
-            assertThatThrownBy(() -> serviceAt(LocalDateTime.of(2026, 8, 1, 11, 0))
-                    .startFocus(user, new FocusRequestDto.FocusStart(library.getId(), theme.getId())))
-                    .isInstanceOf(CustomException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(FocusErrorCode.THEME_NOT_FOUND);
         }
     }
 
     @Nested
     @DisplayName("포커스 종료")
     class EndFocus {
+
+        @Test
+        @DisplayName("페이지를 생략하면 기존 페이지를 보존하고 최종 분할 행의 종료 페이지도 비워 둔다")
+        void preservesExistingPageWhenPageIsOmitted() {
+            ReflectionTestUtils.setField(library, "page", 72);
+            Focus active = activeFocus(library, LocalDateTime.of(2026, 8, 1, 23, 0));
+            stubOwnedAndGeneratedIds(active);
+
+            FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 2, 0, 30))
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), null, false));
+
+            List<Focus> rows = savedRows();
+            assertThat(rows).hasSize(2);
+            assertThat(rows.get(1).getEndPage()).isNull();
+            assertThat(library.getPage()).isEqualTo(72);
+            assertThat(result.page()).isEqualTo(72);
+        }
+
+        @Test
+        @DisplayName("페이지 0 센티널은 응답에서 null로 변환한다")
+        void mapsZeroPageSentinelToNull() {
+            Focus active = activeFocus(LocalDateTime.of(2026, 8, 1, 10, 0));
+            stubOwnedAndGeneratedIds(active);
+
+            FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 1, 10, 30))
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), null, false));
+
+            assertThat(result.page()).isNull();
+        }
 
         @Test
         @DisplayName("같은 날 종료를 한 행과 한 월 이벤트로 저장한다")
@@ -157,6 +170,7 @@ class FocusServiceTest {
                     .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 30, false));
 
             assertThat(result.durationSec()).isEqualTo(1800);
+            assertThat(result.bookId()).isEqualTo(library.getBook().getId());
             assertThat(active.getDurationSec()).isEqualTo(1800);
             assertThat(active.getEndPage()).isEqualTo(30);
             verifyMonthlyEvent(Set.of(java.time.YearMonth.of(2026, 8)), false);
@@ -181,7 +195,6 @@ class FocusServiceTest {
             assertThat(rows.get(1).getDurationSec()).isEqualTo(1800);
             assertThat(rows.get(1).getEndPage()).isEqualTo(72);
             assertThat(rows.get(1).getLibrary()).isSameAs(trackedLibrary);
-            assertThat(rows.get(1).getTheme()).isSameAs(theme);
             assertThat(result.focusId()).isEqualTo(active.getId());
             assertThat(result.startedAt()).isEqualTo(LocalDateTime.of(2026, 8, 1, 23, 0));
             assertThat(result.endedAt()).isEqualTo(LocalDateTime.of(2026, 8, 2, 0, 30));
@@ -251,7 +264,7 @@ class FocusServiceTest {
         @Test
         @DisplayName("이미 종료된 포커스는 추가 저장 없이 거절한다")
         void rejectsAlreadyEndedFocus() {
-            Focus completed = FocusFixture.completedFocus(library, theme);
+            Focus completed = FocusFixture.completedFocus(library);
             given(focusRepository.findByIdAndLibraryUserIdForUpdate(completed.getId(), user.getId()))
                     .willReturn(Optional.of(completed));
 
@@ -291,7 +304,6 @@ class FocusServiceTest {
         return new FocusService(
                 focusRepository,
                 libraryRepository,
-                themeRepository,
                 eventPublisher,
                 Clock.fixed(instant, KST),
                 new FocusCompletionSegmenter()
@@ -305,7 +317,6 @@ class FocusServiceTest {
     private Focus activeFocus(Library focusLibrary, LocalDateTime startedAt) {
         Focus active = Focus.builder()
                 .library(focusLibrary)
-                .theme(theme)
                 .startedAt(startedAt)
                 .durationSec(0)
                 .build();

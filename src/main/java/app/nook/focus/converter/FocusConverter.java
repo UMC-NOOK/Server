@@ -1,36 +1,19 @@
 package app.nook.focus.converter;
 
 import app.nook.focus.domain.Focus;
-import app.nook.focus.domain.Theme;
 import app.nook.focus.dto.FocusResponseDto;
 import app.nook.library.util.FocusTimeUtil;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 public class FocusConverter {
-
-    public static FocusResponseDto.ThemeListDto toThemeListDto(List<Theme> themes) {
-        List<FocusResponseDto.ThemeItemDto> items = themes.stream()
-                .map(t -> new FocusResponseDto.ThemeItemDto(
-                        t.getId(),
-                        t.getName().name(),
-                        t.getImageUrl()
-                ))
-                .toList();
-
-        return new FocusResponseDto.ThemeListDto(items);
-    }
 
     public static FocusResponseDto.FocusStart toFocusStartResponse(Focus focus) {
         return new FocusResponseDto.FocusStart(
                 focus.getId(),
-                focus.getLibrary().getId(),
                 focus.getLibrary().getBook().getId(),
                 focus.getLibrary().getBook().getTitle(),
                 focus.getLibrary().getBook().getAuthor(),
-                focus.getTheme().getId(),
-                focus.getTheme().getName().name(),
                 focus.getStartedAt()
         );
     }
@@ -38,12 +21,12 @@ public class FocusConverter {
     public static FocusResponseDto.FocusEnd toFocusEndResponse(Focus focus) {
         return new FocusResponseDto.FocusEnd(
                 focus.getId(),
-                focus.getLibrary().getId(),
+                focus.getLibrary().getBook().getId(),
                 focus.getStartedAt(),
                 focus.getEndedAt(),
                 focus.getDurationSec(),
                 FocusTimeUtil.formatFocusTime(focus.getDurationSec() == null ? 0 : focus.getDurationSec()),
-                focus.getLibrary().getPage(),
+                toNullablePage(focus.getLibrary().getPage()),
                 focus.getLibrary().getFocusSec(),
                 focus.getLibrary().getReadingStatus().name()
         );
@@ -57,15 +40,19 @@ public class FocusConverter {
     ) {
         return new FocusResponseDto.FocusEnd(
                 originalFocus.getId(),
-                originalFocus.getLibrary().getId(),
+                originalFocus.getLibrary().getBook().getId(),
                 startedAt,
                 endedAt,
                 durationSec,
                 FocusTimeUtil.formatFocusTime(durationSec),
-                originalFocus.getLibrary().getPage(),
+                toNullablePage(originalFocus.getLibrary().getPage()),
                 originalFocus.getLibrary().getFocusSec(),
                 originalFocus.getLibrary().getReadingStatus().name()
         );
+    }
+
+    private static Integer toNullablePage(int page) {
+        return page == 0 ? null : page;
     }
 
     public static FocusResponseDto.RecentFocusItem toRecentFocusItem(Focus focus, String coverImageUrl) {

@@ -2,7 +2,6 @@ package app.nook.global.fixture;
 
 import app.nook.book.domain.Book;
 import app.nook.focus.domain.Focus;
-import app.nook.focus.domain.Theme;
 import app.nook.library.domain.Library;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -19,10 +18,9 @@ public class FocusFixture {
         return book;
     }
 
-    public static Focus focus(Library library, Theme theme) {
+    public static Focus focus(Library library) {
         Focus focus = Focus.builder()
                 .library(library)
-                .theme(theme)
                 .startedAt(LocalDateTime.of(2026, 3, 22, 14, 0, 0))
                 .durationSec(0)
                 .build();
@@ -30,10 +28,9 @@ public class FocusFixture {
         return focus;
     }
 
-    public static Focus completedFocus(Library library, Theme theme) {
+    public static Focus completedFocus(Library library) {
         Focus focus = Focus.builder()
                 .library(library)
-                .theme(theme)
                 .startedAt(LocalDateTime.of(2026, 3, 22, 14, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 3, 22, 14, 34, 26))
                 .durationSec(2066)

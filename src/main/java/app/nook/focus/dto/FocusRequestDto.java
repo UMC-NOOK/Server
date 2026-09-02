@@ -1,15 +1,17 @@
 package app.nook.focus.dto;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
 public class FocusRequestDto {
 
     public record FocusStart (
-            Long libraryId,
-            Long themeId
+            @NotNull @Positive Long bookId
     ) {}
 
     public record FocusEnd(
-            Long focusId,
-            Integer page,
-            Boolean isFinished
+            @NotNull @Positive Long focusId,
+            @Positive Integer page,
+            @NotNull Boolean isFinished
     ) {}
 }

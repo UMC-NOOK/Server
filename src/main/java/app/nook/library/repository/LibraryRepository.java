@@ -25,6 +25,8 @@ public interface LibraryRepository extends JpaRepository<Library, Long>, Library
 
     Optional<Library> findByUserIdAndBook(Long userId, Book book);
 
+    Optional<Library> findByUserIdAndBookId(Long userId, Long bookId);
+
     boolean existsByUserIdAndBookId(Long userId, Long bookId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

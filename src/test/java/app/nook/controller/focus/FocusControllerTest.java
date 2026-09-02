@@ -3,14 +3,15 @@ package app.nook.controller.focus;
 import app.nook.focus.controller.FocusController;
 import app.nook.focus.dto.FocusRequestDto;
 import app.nook.focus.dto.FocusResponseDto;
+import app.nook.focus.exception.FocusErrorCode;
 import app.nook.focus.service.FocusQueryService;
 import app.nook.focus.service.FocusService;
-import app.nook.focus.service.ThemeService;
 import app.nook.global.common.AbstractWebMvcRestDocsTests;
 import app.nook.global.common.security.WithCustomUser;
 import app.nook.global.config.WebSecurityConfig;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.global.dto.CursorResponse;
+import app.nook.global.exception.CustomException;
 import app.nook.user.domain.User;
 import app.nook.user.filter.JwtExceptionFilter;
 import app.nook.user.filter.JwtFilter;
@@ -33,6 +34,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
@@ -65,51 +67,10 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
     private FocusService focusService;
 
     @MockitoBean
-    private ThemeService themeService;
-
-    @MockitoBean
     private FocusQueryService focusQueryService;
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Nested
-    @DisplayName("테마 목록 조회")
-    class GetThemes {
-
-        @Test
-        @WithCustomUser
-        @DisplayName("성공")
-        void 성공() throws Exception {
-            FocusResponseDto.ThemeListDto response = new FocusResponseDto.ThemeListDto(
-                    List.of(
-                            new FocusResponseDto.ThemeItemDto(1L, "THEME1", "https://cdn.nook.com/themes/theme1.png"),
-                            new FocusResponseDto.ThemeItemDto(2L, "THEME2", "https://cdn.nook.com/themes/theme2.png"),
-                            new FocusResponseDto.ThemeItemDto(3L, "THEME3", "https://cdn.nook.com/themes/theme3.png"),
-                            new FocusResponseDto.ThemeItemDto(4L, "NONE", "https://cdn.nook.com/themes/none.png")
-                    )
-            );
-
-            given(themeService.getThemes()).willReturn(response);
-
-            mockMvc.perform(
-                            get("/api/v1/focuses/themes")
-                                    .header(AUTH_HEADER, AUTH_TOKEN)
-                    )
-                    .andExpect(status().isOk())
-                    .andDo(documentWithAuth(
-                            "focus-controller-test/테마_목록_조회_성공",
-                            responseFields(
-                                    ApiResponseSnippet.withResult(
-                                            fieldWithPath("result.themes[]").description("테마 목록"),
-                                            fieldWithPath("result.themes[].themeId").description("테마 ID"),
-                                            fieldWithPath("result.themes[].name").description("테마 이름(ENUM 문자열)"),
-                                            fieldWithPath("result.themes[].imageUrl").description("테마 이미지 URL")
-                                    )
-                            )
-                    ));
-        }
-    }
 
     @Nested
     @DisplayName("포커스 시작")
@@ -119,16 +80,13 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
         @WithCustomUser
         @DisplayName("성공")
         void 성공() throws Exception {
-            FocusRequestDto.FocusStart request = new FocusRequestDto.FocusStart(10L, 1L);
+            FocusRequestDto.FocusStart request = new FocusRequestDto.FocusStart(20L);
 
             FocusResponseDto.FocusStart response = new FocusResponseDto.FocusStart(
                     100L,
-                    10L,
                     20L,
                     "첫사랑의 침공",
                     "권혁일",
-                    1L,
-                    "THEME1",
                     LocalDateTime.of(2026, 3, 22, 14, 0, 0)
             );
 
@@ -141,25 +99,79 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
                                     .content(objectMapper.writeValueAsString(request))
                     )
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value("SUCCESS-201"))
+                    .andExpect(jsonPath("$.result.focusId").value(100))
+                    .andExpect(jsonPath("$.result.bookId").value(20))
+                    .andExpect(jsonPath("$.result.bookTitle").value("첫사랑의 침공"))
+                    .andExpect(jsonPath("$.result.author").value("권혁일"))
+                    .andExpect(jsonPath("$.result.startedAt").value("2026-03-22T14:00:00"))
                     .andDo(documentWithAuth(
                             "focus-controller-test/포커스_시작_성공",
                             requestFields(
-                                    fieldWithPath("libraryId").description("서재 ID"),
-                                    fieldWithPath("themeId").description("선택한 테마 ID")
+                                    fieldWithPath("bookId").description("책 ID")
                             ),
                             responseFields(
                                     ApiResponseSnippet.withResult(
                                             fieldWithPath("result.focusId").description("포커스 ID"),
-                                            fieldWithPath("result.libraryId").description("서재 ID"),
                                             fieldWithPath("result.bookId").description("책 ID"),
                                             fieldWithPath("result.bookTitle").description("책 제목"),
                                             fieldWithPath("result.author").description("저자"),
-                                            fieldWithPath("result.themeId").description("테마 ID"),
-                                            fieldWithPath("result.themeName").description("테마 이름"),
                                             fieldWithPath("result.startedAt").description("포커스 시작 시각")
                                     )
                             )
                     ));
+        }
+
+        @Test
+        @WithCustomUser
+        @DisplayName("이미 진행 중이면 FOCUS-001 충돌 응답을 반환한다")
+        void rejectsAlreadyInProgress() throws Exception {
+            FocusRequestDto.FocusStart request = new FocusRequestDto.FocusStart(20L);
+
+            willThrow(new CustomException(FocusErrorCode.FOCUS_ALREADY_IN_PROGRESS))
+                    .given(focusService)
+                    .startFocus(any(User.class), eq(request));
+
+            mockMvc.perform(
+                            post("/api/v1/focuses/start")
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request))
+                    )
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("FOCUS-001"))
+                    .andExpect(jsonPath("$.message").value("이미 진행 중인 포커스가 있습니다."))
+                    .andExpect(jsonPath("$.result").doesNotExist())
+                    .andDo(documentWithAuth(
+                            "focus-controller-test/포커스_시작_실패_이미_진행중",
+                            requestFields(
+                                    fieldWithPath("bookId").description("책 ID")
+                            ),
+                            responseFields(ApiResponseSnippet.failureResponseFields())
+                    ));
+        }
+
+        @Test
+        @WithCustomUser
+        @DisplayName("bookId의 누락 및 잘못된 경계값은 COMMON-002로 거절한다")
+        void rejectsInvalidBookIdBoundaries() throws Exception {
+            List<String> invalidRequests = List.of(
+                    "{}",
+                    "{\"bookId\": 0}"
+            );
+
+            for (String invalidRequest : invalidRequests) {
+                mockMvc.perform(
+                                post("/api/v1/focuses/start")
+                                        .header(AUTH_HEADER, AUTH_TOKEN)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(invalidRequest)
+                        )
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("COMMON-002"));
+            }
         }
     }
 
@@ -175,7 +187,7 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
 
             FocusResponseDto.FocusEnd response = new FocusResponseDto.FocusEnd(
                     100L,
-                    10L,
+                    20L,
                     LocalDateTime.of(2026, 8, 1, 23, 0, 0),
                     LocalDateTime.of(2026, 8, 2, 0, 30, 0),
                     5400,
@@ -196,6 +208,7 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result.*").value(hasSize(9)))
                     .andExpect(jsonPath("$.result.focusId").value(100))
+                    .andExpect(jsonPath("$.result.bookId").value(20))
                     .andExpect(jsonPath("$.result.startedAt").value("2026-08-01T23:00:00"))
                     .andExpect(jsonPath("$.result.endedAt").value("2026-08-02T00:30:00"))
                     .andExpect(jsonPath("$.result.durationSec").value(5400))
@@ -203,23 +216,107 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
                             "focus-controller-test/포커스_종료_성공",
                             requestFields(
                                     fieldWithPath("focusId").description("종료할 포커스 ID"),
-                                    fieldWithPath("page").description("현재까지 읽은 페이지"),
+                                    fieldWithPath("page").type(NUMBER).optional().description("현재까지 읽은 페이지 (미전달 가능, 없으면 null)"),
                                     fieldWithPath("isFinished").description("완독 여부")
                             ),
                             responseFields(
                                     ApiResponseSnippet.withResult(
                                             fieldWithPath("result.focusId").description("종료를 요청한 원본 포커스 ID"),
-                                            fieldWithPath("result.libraryId").description("서재 ID"),
+                                            fieldWithPath("result.bookId").description("책 ID"),
                                             fieldWithPath("result.startedAt").description("전체 종료 작업의 포커스 시작 시각"),
                                             fieldWithPath("result.endedAt").description("전체 종료 작업의 포커스 종료 시각"),
                                             fieldWithPath("result.durationSec").description("전체 종료 작업의 집중 시간(초)"),
                                             fieldWithPath("result.durationText").description("전체 종료 작업의 집중 시간(HH:mm:ss)"),
-                                            fieldWithPath("result.page").description("작업 완료 후 최종 서재의 현재까지 읽은 페이지"),
+                                            fieldWithPath("result.page").type(NUMBER).optional().description("작업 완료 후 최종 서재의 현재까지 읽은 페이지 (없으면 null)"),
                                             fieldWithPath("result.totalFocusSec").description("작업 완료 후 최종 서재의 누적 포커스 시간(초)"),
                                             fieldWithPath("result.readingStatus").description("작업 완료 후 최종 서재의 독서 상태")
                                     )
                             )
                     ));
+        }
+
+        @Test
+        @WithCustomUser
+        @DisplayName("page를 생략해도 종료 요청을 전달한다")
+        void acceptsOmittedPage() throws Exception {
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(100L, null, false);
+            FocusResponseDto.FocusEnd response = new FocusResponseDto.FocusEnd(
+                    100L,
+                    20L,
+                    LocalDateTime.of(2026, 8, 1, 23, 0, 0),
+                    LocalDateTime.of(2026, 8, 2, 0, 30, 0),
+                    5400,
+                    "01:30:00",
+                    null,
+                    9000L,
+                    "READING"
+            );
+            given(focusService.endFocus(anyLong(), eq(request))).willReturn(response);
+
+            mockMvc.perform(
+                            post("/api/v1/focuses/end")
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content("{\"focusId\": 100, \"isFinished\": false}")
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.result.page").doesNotExist());
+        }
+
+        @Test
+        @WithCustomUser
+        @DisplayName("이미 종료되었으면 FOCUS-003 충돌 응답을 반환한다")
+        void rejectsAlreadyEnded() throws Exception {
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(100L, 72, true);
+
+            willThrow(new CustomException(FocusErrorCode.FOCUS_ALREADY_ENDED))
+                    .given(focusService)
+                    .endFocus(anyLong(), eq(request));
+
+            mockMvc.perform(
+                            post("/api/v1/focuses/end")
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request))
+                    )
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("FOCUS-003"))
+                    .andExpect(jsonPath("$.message").value("이미 종료된 포커스입니다."))
+                    .andExpect(jsonPath("$.result").doesNotExist())
+                    .andDo(documentWithAuth(
+                            "focus-controller-test/포커스_종료_실패_이미_종료됨",
+                            requestFields(
+                                    fieldWithPath("focusId").description("종료할 포커스 ID"),
+                                    fieldWithPath("page").type(NUMBER).optional().description("현재까지 읽은 페이지 (미전달 가능, 없으면 null)"),
+                                    fieldWithPath("isFinished").description("완독 여부")
+                            ),
+                            responseFields(ApiResponseSnippet.failureResponseFields())
+                    ));
+        }
+
+        @Test
+        @WithCustomUser
+        @DisplayName("focusId, page, isFinished의 잘못된 경계값은 COMMON-002로 거절한다")
+        void rejectsInvalidEndRequestBoundaries() throws Exception {
+            List<String> invalidRequests = List.of(
+                    "{\"page\": 1, \"isFinished\": false}",
+                    "{\"focusId\": 0, \"page\": 1, \"isFinished\": false}",
+                    "{\"focusId\": 100, \"page\": 0, \"isFinished\": false}",
+                    "{\"focusId\": 100, \"page\": 1}"
+            );
+
+            for (String invalidRequest : invalidRequests) {
+                mockMvc.perform(
+                                post("/api/v1/focuses/end")
+                                        .header(AUTH_HEADER, AUTH_TOKEN)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(invalidRequest)
+                        )
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("COMMON-002"));
+            }
         }
 
     }
