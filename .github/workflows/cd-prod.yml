@@ -1,10 +1,17 @@
 name: NOOK PROD CD
 
 on:
-  push:
+  pull_request:
     branches:
       - production
+    types:
+      - closed
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "롤백할 ECR 이미지 태그 (예: prod-abcdef1)"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -18,27 +25,18 @@ env:
   ECR_REPOSITORY: nook-server
 
 jobs:
-  build-and-deploy:
+  promote-and-deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     environment: prod
 
     steps:
-      - name: Checkout
+      - name: Checkout production deployment configuration
         uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
         with:
-          java-version: "17"
-          distribution: temurin
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Build application
-        run: |
-          chmod +x ./gradlew
-          ./gradlew clean build
+          ref: production
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -51,20 +49,70 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set image metadata
+      - name: Resolve deploy image
         id: image
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
-          tag="prod-${GITHUB_SHA::7}"
-          image="${{ steps.ecr.outputs.registry }}/${ECR_REPOSITORY}:${tag}"
-          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
-          echo "uri=${image}" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
 
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.image.outputs.uri }}
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            source_tag="dev-${PR_HEAD_SHA::7}"
+            prod_tag="prod-${MERGE_SHA::7}"
+
+            digest="$(aws ecr describe-images \
+              --repository-name "$ECR_REPOSITORY" \
+              --image-ids imageTag="$source_tag" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)"
+
+            if [[ -z "$digest" || "$digest" == "None" ]]; then
+              echo "Dev image not found: $source_tag. Wait for DEV CD to finish before merging the release PR." >&2
+              exit 1
+            fi
+
+            manifest="$(aws ecr batch-get-image \
+              --repository-name "$ECR_REPOSITORY" \
+              --image-ids imageDigest="$digest" \
+              --accepted-media-types application/vnd.docker.distribution.manifest.v2+json \
+              --query 'images[0].imageManifest' \
+              --output text)"
+
+            aws ecr put-image \
+              --repository-name "$ECR_REPOSITORY" \
+              --image-tag "$prod_tag" \
+              --image-manifest "$manifest" >/dev/null
+          else
+            source_tag="$INPUT_IMAGE_TAG"
+            if [[ ! "$source_tag" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$ ]]; then
+              echo "Invalid image tag: $source_tag" >&2
+              exit 1
+            fi
+
+            digest="$(aws ecr describe-images \
+              --repository-name "$ECR_REPOSITORY" \
+              --image-ids imageTag="$source_tag" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)"
+
+            if [[ -z "$digest" || "$digest" == "None" ]]; then
+              echo "ECR image not found: $source_tag" >&2
+              exit 1
+            fi
+
+            prod_tag="$source_tag"
+          fi
+
+          image="$REGISTRY/$ECR_REPOSITORY@$digest"
+          echo "source_tag=$source_tag" >> "$GITHUB_OUTPUT"
+          echo "prod_tag=$prod_tag" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "uri=$image" >> "$GITHUB_OUTPUT"
 
       - name: Sync production deployment configuration
         uses: appleboy/scp-action@v0.1.7
@@ -94,4 +142,6 @@ jobs:
       - name: Deployment summary
         run: |
           echo "## PROD deployment" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Image: ${{ steps.image.outputs.uri }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source tag: ${{ steps.image.outputs.source_tag }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Promoted tag: ${{ steps.image.outputs.prod_tag }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image digest: ${{ steps.image.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"

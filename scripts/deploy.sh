@@ -54,16 +54,41 @@ export ENV_FILE="$env_file"
 
 docker compose --env-file "$env_file" -f "$compose_file" config --quiet
 docker compose --env-file "$env_file" -f "$compose_file" pull
-docker compose --env-file "$env_file" -f "$compose_file" up -d --remove-orphans
 
-app_container_id="$(docker compose --env-file "$env_file" -f "$compose_file" ps -q app)"
+if [[ "$deploy_env" != "prod" ]]; then
+  docker compose --env-file "$env_file" -f "$compose_file" up -d --remove-orphans
+  app_service="app"
+else
+  active_conf="nginx/conf.d/active.conf"
+  if grep -q 'server app-green:8080;' "$active_conf"; then
+    current="green"
+    target="blue"
+  elif grep -q 'server app-blue:8080;' "$active_conf"; then
+    current="blue"
+    target="green"
+  else
+    echo "Cannot determine active production upstream from $active_conf" >&2
+    exit 1
+  fi
+
+  # 첫 배포는 기본 upstream(blue)을 그대로 사용한다.
+  if ! docker compose --env-file "$env_file" -f "$compose_file" ps -q "app-$current" | grep -q .; then
+    target="$current"
+    current=""
+  fi
+
+  echo "Production deployment: ${current:-none} -> $target"
+  docker compose --env-file "$env_file" -f "$compose_file" up -d redis certbot
+  docker compose --env-file "$env_file" -f "$compose_file" up -d --no-deps "app-$target"
+  app_service="app-$target"
+fi
+
+app_container_id="$(docker compose --env-file "$env_file" -f "$compose_file" ps -q "$app_service")"
 
 for attempt in $(seq 1 20); do
   health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$app_container_id")"
   if [[ "$health" == "healthy" ]]; then
-    docker image prune -f
-    echo "${deploy_env} deployment succeeded: ${image}"
-    exit 0
+    break
   fi
 
   if [[ "$health" == "unhealthy" || "$health" == "exited" ]]; then
@@ -73,7 +98,45 @@ for attempt in $(seq 1 20); do
   sleep 6
 done
 
-docker compose --env-file "$env_file" -f "$compose_file" ps
-docker compose --env-file "$env_file" -f "$compose_file" logs --tail=200 app
-echo "${deploy_env} deployment failed health verification" >&2
-exit 1
+if [[ "${health:-}" != "healthy" ]]; then
+  docker compose --env-file "$env_file" -f "$compose_file" ps
+  docker compose --env-file "$env_file" -f "$compose_file" logs --tail=200 "$app_service"
+  echo "${deploy_env} deployment failed health verification" >&2
+  exit 1
+fi
+
+if [[ "$deploy_env" == "prod" ]]; then
+  active_conf="nginx/conf.d/active.conf"
+  temporary_conf="$(mktemp)"
+  trap 'rm -f "$temporary_conf"' EXIT
+  sed -E "s/server app-(blue|green):(8080|9091);/server app-$target:\2;/" "$active_conf" > "$temporary_conf"
+  cat "$temporary_conf" > "$active_conf"
+
+  # 기존 단일 app 컨테이너는 최초 blue/green 전환 때만 정리한다.
+  if [[ -z "$current" ]]; then
+    legacy_app_ids="$(docker ps -aq --filter 'label=com.docker.compose.service=app')"
+    if [[ -n "$legacy_app_ids" ]]; then
+      docker stop $legacy_app_ids
+      docker rm $legacy_app_ids
+    fi
+  fi
+
+  nginx_container_id="$(docker compose --env-file "$env_file" -f "$compose_file" ps -q nginx)"
+  if [[ -z "$nginx_container_id" ]]; then
+    docker compose --env-file "$env_file" -f "$compose_file" up -d --no-deps nginx
+  else
+    docker compose --env-file "$env_file" -f "$compose_file" exec -T nginx /bin/sh -c \
+      "sed 's|\${SERVER_NAME}|${server_name}|g' /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf"
+    docker compose --env-file "$env_file" -f "$compose_file" exec -T nginx nginx -t
+    docker compose --env-file "$env_file" -f "$compose_file" exec -T nginx nginx -s reload
+  fi
+
+  docker compose --env-file "$env_file" -f "$compose_file" up -d --no-deps redis-exporter alloy
+  if [[ -n "$current" ]]; then
+    sleep 5
+    docker compose --env-file "$env_file" -f "$compose_file" stop "app-$current"
+  fi
+fi
+
+docker image prune -f
+echo "${deploy_env} deployment succeeded: ${image}"
