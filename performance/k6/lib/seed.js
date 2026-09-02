@@ -133,32 +133,13 @@ export function createFocusSessions(params, books, count) {
     return [];
   }
 
-  const themes = get("/api/v1/focuses/themes", {
-    ...params,
-    tags: { name: "seed:focus-themes" },
-  });
-  const themesOk = checkApiResponse(themes, {
-    label: "seed focus themes",
-    statuses: [200],
-    requireResult: true,
-  });
-  if (!themesOk) {
-    throw new Error(`seed focus themes failed. status=${themes.status}`);
-  }
-
-  const theme = (themes.json("result.themes") || [])[0];
-  if (!theme?.themeId) {
-    throw new Error("seed focus sessions require at least one focus theme");
-  }
-
   const sessions = [];
   for (let index = 0; index < count; index += 1) {
     const book = books[index % books.length];
     const start = post(
       "/api/v1/focuses/start",
       {
-        libraryId: book.libraryId,
-        themeId: theme.themeId,
+        bookId: book.bookId,
       },
       {
         ...params,

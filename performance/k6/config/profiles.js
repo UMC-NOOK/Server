@@ -21,7 +21,6 @@ const MIXED_READ_REQUEST_NAMES = [
   "read:records-book-list",
   "read:records-emotions",
   "read:records-detail",
-  "read:focus-themes",
   "read:focus-recent",
   "read:timeline-summary",
   "read:timeline-preview",

@@ -36,10 +36,6 @@ public class Focus extends BaseEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Library library;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "theme_id", nullable = false)
-    private Theme theme;
-
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
@@ -63,14 +59,12 @@ public class Focus extends BaseEntity {
 
     @Builder
     public Focus(
-            Theme theme,
             LocalDateTime startedAt,
             LocalDateTime endedAt,
             Integer durationSec,
             Integer endPage,
             Library library
     ) {
-        this.theme = theme;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.durationSec = durationSec;

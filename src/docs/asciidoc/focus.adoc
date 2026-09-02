@@ -1,24 +1,38 @@
-=== 테마 목록 조회
-
-include::{snippets}/focus-controller-test/테마_목록_조회_성공/http-request.adoc[]
-include::{snippets}/focus-controller-test/테마_목록_조회_성공/http-response.adoc[]
-include::{snippets}/focus-controller-test/테마_목록_조회_성공/response-fields.adoc[]
-
 === 포커스 시작
+
+POST /api/v1/focuses/start는 `bookId`만 받습니다. HTTP 상태는 200이고, 응답 본문의 코드는 `SUCCESS-201`입니다.
 
 include::{snippets}/focus-controller-test/포커스_시작_성공/http-request.adoc[]
 include::{snippets}/focus-controller-test/포커스_시작_성공/request-fields.adoc[]
 include::{snippets}/focus-controller-test/포커스_시작_성공/http-response.adoc[]
 include::{snippets}/focus-controller-test/포커스_시작_성공/response-fields.adoc[]
 
+==== 이미 진행 중인 포커스
+
+이미 진행 중인 포커스가 있으면 HTTP 409와 `FOCUS-001`을 반환합니다.
+
+include::{snippets}/focus-controller-test/포커스_시작_실패_이미_진행중/http-request.adoc[]
+include::{snippets}/focus-controller-test/포커스_시작_실패_이미_진행중/request-fields.adoc[]
+include::{snippets}/focus-controller-test/포커스_시작_실패_이미_진행중/http-response.adoc[]
+include::{snippets}/focus-controller-test/포커스_시작_실패_이미_진행중/response-fields.adoc[]
+
 === 포커스 종료
 
-POST /api/v1/focuses/end는 자정을 넘겨 일별 Focus 행으로 분할 저장되더라도, 종료를 요청한 원본 Focus ID를 기준으로 전체 종료 작업을 하나의 객체로 반환합니다. 응답의 시작 시각, 종료 시각, 집중 시간은 전체 작업의 값이며, 페이지·누적 포커스 시간·독서 상태는 작업 완료 후 최종 서재의 값입니다.
+`page`는 선택 입력이며, 응답에서 현재 페이지가 없으면 `null`입니다. POST /api/v1/focuses/end는 자정을 넘겨 일별 Focus 행으로 분할 저장되더라도, 종료를 요청한 원본 Focus ID를 기준으로 전체 종료 작업을 하나의 객체로 반환합니다. 응답의 시작 시각, 종료 시각, 집중 시간은 전체 작업의 값이며, 페이지·독서 상태는 작업 완료 후 최종 서재의 값입니다. `totalFocusSec`은 이 사용자가 선택한 책에 대해 누적한 전체 포커스 시간(초)입니다.
 
 include::{snippets}/focus-controller-test/포커스_종료_성공/http-request.adoc[]
 include::{snippets}/focus-controller-test/포커스_종료_성공/request-fields.adoc[]
 include::{snippets}/focus-controller-test/포커스_종료_성공/http-response.adoc[]
 include::{snippets}/focus-controller-test/포커스_종료_성공/response-fields.adoc[]
+
+==== 이미 종료된 포커스
+
+이미 종료된 포커스를 다시 종료하면 HTTP 409와 `FOCUS-003`을 반환합니다.
+
+include::{snippets}/focus-controller-test/포커스_종료_실패_이미_종료됨/http-request.adoc[]
+include::{snippets}/focus-controller-test/포커스_종료_실패_이미_종료됨/request-fields.adoc[]
+include::{snippets}/focus-controller-test/포커스_종료_실패_이미_종료됨/http-response.adoc[]
+include::{snippets}/focus-controller-test/포커스_종료_실패_이미_종료됨/response-fields.adoc[]
 
 === 최근 포커스 조회
 

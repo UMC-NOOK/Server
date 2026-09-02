@@ -167,16 +167,6 @@ function readRecords(params, targets) {
 }
 
 function readFocus(params) {
-  const themes = get("/api/v1/focuses/themes", {
-    ...params,
-    tags: { name: "read:focus-themes" },
-  });
-  checkApiResponse(themes, {
-    label: "read focus themes",
-    statuses: [200],
-    requireResult: true,
-  });
-
   const recent = get(withQuery("/api/v1/focuses/recent", { size: 10 }), {
     ...params,
     tags: { name: "read:focus-recent" },

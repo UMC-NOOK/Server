@@ -70,8 +70,8 @@ done < <(
     performance/k6/scenarios/mixed-read-journey.js | sort -u
 )
 
-if [[ "${#request_names[@]}" -ne 18 ]]; then
-  printf 'expected 18 mixed-read request tags, found %s\n' "${#request_names[@]}" >&2
+if [[ "${#request_names[@]}" -ne 17 ]]; then
+  printf 'expected 17 mixed-read request tags, found %s\n' "${#request_names[@]}" >&2
   exit 1
 fi
 

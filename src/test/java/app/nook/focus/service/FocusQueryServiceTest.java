@@ -1,13 +1,11 @@
 package app.nook.focus.service;
 
 import app.nook.focus.domain.Focus;
-import app.nook.focus.domain.Theme;
 import app.nook.focus.dto.FocusResponseDto;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.fixture.FocusFixture;
 import app.nook.global.fixture.LibraryFixture;
-import app.nook.global.fixture.ThemeFixture;
 import app.nook.global.fixture.UserFixture;
 import app.nook.library.domain.Library;
 import app.nook.r2.service.PresignedUrlService;
@@ -45,15 +43,13 @@ class FocusQueryServiceTest {
 
     private User user;
     private Library library;
-    private Theme theme;
     private Focus completedFocus;
 
     @BeforeEach
     void setUp() {
         user = UserFixture.user();
         library = LibraryFixture.library(user, FocusFixture.book());
-        theme = ThemeFixture.theme();
-        completedFocus = FocusFixture.completedFocus(library, theme);
+        completedFocus = FocusFixture.completedFocus(library);
     }
 
     @Nested

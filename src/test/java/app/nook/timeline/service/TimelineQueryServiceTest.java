@@ -3,7 +3,6 @@ package app.nook.timeline.service;
 import app.nook.book.domain.Book;
 import app.nook.book.domain.enums.SourceType;
 import app.nook.focus.domain.Focus;
-import app.nook.focus.domain.Theme;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
@@ -100,11 +99,8 @@ class TimelineQueryServiceTest {
     }
 
     private Focus focus(Long focusId, Library library, LocalDateTime startedAt, LocalDateTime endedAt, int durationSec) {
-        Theme theme = Theme.builder().build();
-
         Focus focus = Focus.builder()
                 .library(library)
-                .theme(theme)
                 .startedAt(startedAt)
                 .endedAt(endedAt)
                 .durationSec(durationSec)

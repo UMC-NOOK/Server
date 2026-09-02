@@ -5,7 +5,6 @@ import app.nook.focus.dto.FocusRequestDto;
 import app.nook.focus.dto.FocusResponseDto;
 import app.nook.focus.service.FocusQueryService;
 import app.nook.focus.service.FocusService;
-import app.nook.focus.service.ThemeService;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
@@ -25,17 +24,8 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class FocusController {
 
-    private final ThemeService themeService;
     private final FocusService focusService;
     private final FocusQueryService focusQueryService;
-
-    @GetMapping("/themes")
-    public ApiResponse<FocusResponseDto.ThemeListDto> getThemes() {
-        return ApiResponse.onSuccess(
-                themeService.getThemes(),
-                SuccessCode.OK
-        );
-    }
 
     @PostMapping("/start")
     public ApiResponse<FocusResponseDto.FocusStart> startFocus(
