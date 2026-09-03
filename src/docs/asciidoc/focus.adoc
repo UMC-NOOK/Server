@@ -40,3 +40,12 @@ include::{snippets}/focus-controller-test/최근_포커스_조회_성공/http-re
 include::{snippets}/focus-controller-test/최근_포커스_조회_성공/query-parameters.adoc[]
 include::{snippets}/focus-controller-test/최근_포커스_조회_성공/http-response.adoc[]
 include::{snippets}/focus-controller-test/최근_포커스_조회_성공/response-fields.adoc[]
+
+=== 포커스 홈 조회
+
+`GET /api/v1/focuses/home`은 선택한 독서 상태의 서재 책 목록과 오늘의 사용자 전체 포커스 시간, 책별 오늘 포커스 시간을 한 번에 조회합니다. 책 목록은 서재 최신 등록순이며 `status`는 필수입니다. `cursor`는 다음 페이지 조회 시 전달하고, `size`의 기본값은 20, 최대값은 100입니다.
+
+include::{snippets}/focus-controller-test/포커스_홈_조회_성공/http-request.adoc[]
+include::{snippets}/focus-controller-test/포커스_홈_조회_성공/query-parameters.adoc[]
+include::{snippets}/focus-controller-test/포커스_홈_조회_성공/http-response.adoc[]
+include::{snippets}/focus-controller-test/포커스_홈_조회_성공/response-fields.adoc[]

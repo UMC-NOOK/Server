@@ -12,6 +12,7 @@ import app.nook.global.config.WebSecurityConfig;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
+import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.user.domain.User;
 import app.nook.user.filter.JwtExceptionFilter;
 import app.nook.user.filter.JwtFilter;
@@ -33,20 +34,25 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
 import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
+import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -377,6 +383,203 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
                                     )
                             )
                     ));
+        }
+    }
+
+    @Nested
+    @DisplayName("포커스 홈 조회")
+    class GetFocusHome {
+
+        @Test
+        @WithCustomUser
+        @DisplayName("성공")
+        void 성공() throws Exception {
+            FocusResponseDto.HomeResponse response = new FocusResponseDto.HomeResponse(
+                    "01:04:26",
+                    ReadingStatus.READING,
+                    CursorResponse.of(
+                            List.of(new FocusResponseDto.HomeBookItem(
+                                    20L,
+                                    "첫사랑의 침공",
+                                    "권혁일",
+                                    "https://cdn.nook.com/covers/book.jpg",
+                                    "00:34:26"
+                            )),
+                            10L,
+                            true
+                    )
+            );
+            given(focusQueryService.getFocusHome(any(User.class), eq(ReadingStatus.READING), eq(10L), eq(20)))
+                    .willReturn(response);
+
+            mockMvc.perform(
+                            get("/api/v1/focuses/home")
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                                    .param("status", "READING")
+                                    .param("cursor", "10")
+                                    .param("size", "20")
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.isSuccess").value(true))
+                    .andExpect(jsonPath("$.code").value("SUCCESS-200"))
+                    .andExpect(jsonPath("$.result.todayFocusTime").value("01:04:26"))
+                    .andExpect(jsonPath("$.result.readingStatus").value("READING"))
+                    .andExpect(jsonPath("$.result.books.items[0].bookId").value(20L))
+                    .andExpect(jsonPath("$.result.books.items[0].title").value("첫사랑의 침공"))
+                    .andExpect(jsonPath("$.result.books.items[0].author").value("권혁일"))
+                    .andExpect(jsonPath("$.result.books.items[0].coverUrl").value("https://cdn.nook.com/covers/book.jpg"))
+                    .andExpect(jsonPath("$.result.books.items[0].todayFocusTime").value("00:34:26"))
+                    .andExpect(jsonPath("$.result.books.nextCursor").value(10L))
+                    .andExpect(jsonPath("$.result.books.hasNext").value(true))
+                    .andDo(documentWithAuth(
+                            "focus-controller-test/포커스_홈_조회_성공",
+                            queryParameters(
+                                    parameterWithName("status").description("독서 상태 (BEFORE, READING, FINISHED)"),
+                                    parameterWithName("cursor").optional().description("커서(마지막 서재 ID). 최초 조회 시 미전달 또는 0"),
+                                    parameterWithName("size").optional().description("조회할 개수 (기본값: 20, 최대: 100)")
+                            ),
+                            responseFields(
+                                    ApiResponseSnippet.withResult(
+                                            fieldWithPath("result.todayFocusTime").type(STRING).description("오늘 전체 포커스 시간(HH:mm:ss)"),
+                                            fieldWithPath("result.readingStatus").type(STRING).description("조회한 독서 상태"),
+                                            fieldWithPath("result.books").type(OBJECT).description("커서 기반 책 목록"),
+                                            fieldWithPath("result.books.items[]").type(ARRAY).description("책 목록"),
+                                            fieldWithPath("result.books.items[].bookId").type(NUMBER).description("책 ID"),
+                                            fieldWithPath("result.books.items[].title").type(STRING).description("책 제목"),
+                                            fieldWithPath("result.books.items[].author").type(STRING).description("저자"),
+                                            fieldWithPath("result.books.items[].coverUrl").type(STRING).description("책 커버 이미지 URL"),
+                                            fieldWithPath("result.books.items[].todayFocusTime").type(STRING).description("책의 오늘 포커스 시간(HH:mm:ss)"),
+                                            fieldWithPath("result.books.nextCursor").type(NUMBER).optional().description("다음 커서 (다음 페이지 없으면 null)"),
+                                            fieldWithPath("result.books.hasNext").type(BOOLEAN).description("다음 페이지 존재 여부")
+                                    )
+                            )
+                    ));
+
+            verify(focusQueryService).getFocusHome(any(User.class), eq(ReadingStatus.READING), eq(10L), eq(20));
+        }
+
+        @Test
+        @WithCustomUser
+        @DisplayName("cursor를 생략하면 첫 페이지로 조회한다")
+        void treatsOmittedCursorAsFirstPage() throws Exception {
+            FocusResponseDto.HomeResponse response = new FocusResponseDto.HomeResponse(
+                    "00:00:00",
+                    ReadingStatus.BEFORE,
+                    CursorResponse.of(List.of(), null, false)
+            );
+            given(focusQueryService.getFocusHome(any(User.class), eq(ReadingStatus.BEFORE), isNull(), eq(20)))
+                    .willReturn(response);
+
+            mockMvc.perform(
+                            get("/api/v1/focuses/home")
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                                    .param("status", "BEFORE")
+                    )
+                    .andExpect(status().isOk());
+
+            verify(focusQueryService).getFocusHome(any(User.class), eq(ReadingStatus.BEFORE), isNull(), eq(20));
+        }
+
+        @Test
+        @WithCustomUser
+        @DisplayName("cursor 0은 첫 페이지로 조회한다")
+        void treatsZeroCursorAsFirstPage() throws Exception {
+            FocusResponseDto.HomeResponse response = new FocusResponseDto.HomeResponse(
+                    "00:00:00",
+                    ReadingStatus.FINISHED,
+                    CursorResponse.of(List.of(), null, false)
+            );
+            given(focusQueryService.getFocusHome(any(User.class), eq(ReadingStatus.FINISHED), isNull(), eq(20)))
+                    .willReturn(response);
+
+            mockMvc.perform(
+                            get("/api/v1/focuses/home")
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                                    .param("status", "FINISHED")
+                                    .param("cursor", "0")
+                    )
+                    .andExpect(status().isOk());
+
+            verify(focusQueryService).getFocusHome(any(User.class), eq(ReadingStatus.FINISHED), isNull(), eq(20));
+        }
+
+        @Test
+        @WithCustomUser
+        @DisplayName("양의 커서 terminal page는 null nextCursor와 false hasNext를 그대로 반환한다")
+        void preservesTerminalPageMetadataForPositiveCursor() throws Exception {
+            FocusResponseDto.HomeResponse response = new FocusResponseDto.HomeResponse(
+                    "00:00:00",
+                    ReadingStatus.FINISHED,
+                    CursorResponse.of(List.of(), null, false)
+            );
+            given(focusQueryService.getFocusHome(any(User.class), eq(ReadingStatus.FINISHED), eq(23L), eq(7)))
+                    .willReturn(response);
+
+            mockMvc.perform(
+                            get("/api/v1/focuses/home")
+                                    .header(AUTH_HEADER, AUTH_TOKEN)
+                                    .param("status", "FINISHED")
+                                    .param("cursor", "23")
+                                    .param("size", "7")
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(content().json("""
+                            {
+                              "isSuccess": true,
+                              "code": "SUCCESS-200",
+                              "message": "요청에 성공했습니다.",
+                              "result": {
+                                "todayFocusTime": "00:00:00",
+                                "readingStatus": "FINISHED",
+                                "books": {
+                                  "items": [],
+                                  "nextCursor": null,
+                                  "hasNext": false
+                                }
+                              }
+                            }
+                            """, true));
+
+            verify(focusQueryService).getFocusHome(any(User.class), eq(ReadingStatus.FINISHED), eq(23L), eq(7));
+        }
+
+        @Test
+        @WithCustomUser
+        @DisplayName("잘못된 요청은 서비스 호출 없이 거절한다")
+        void rejectsInvalidQueryParameters() throws Exception {
+            List<String[]> invalidParameters = List.of(
+                    new String[]{"size", "20"},
+                    new String[]{"status", "UNKNOWN"},
+                    new String[]{"status", "READING", "cursor", "-1"},
+                    new String[]{"status", "READING", "size", "0"},
+                    new String[]{"status", "READING", "size", "101"}
+            );
+
+            for (String[] parameters : invalidParameters) {
+                var request = get("/api/v1/focuses/home").header(AUTH_HEADER, AUTH_TOKEN);
+                for (int index = 0; index < parameters.length; index += 2) {
+                    request.param(parameters[index], parameters[index + 1]);
+                }
+
+                mockMvc.perform(request)
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("COMMON-002"));
+            }
+
+            verifyNoInteractions(focusQueryService);
+        }
+
+        @Test
+        @DisplayName("인증 없이 조회하면 401을 반환한다")
+        void rejectsUnauthenticatedRequest() throws Exception {
+            mockMvc.perform(
+                            get("/api/v1/focuses/home")
+                                    .param("status", "READING")
+                    )
+                    .andExpect(status().isUnauthorized());
+
+            verifyNoInteractions(focusQueryService);
         }
     }
 }
