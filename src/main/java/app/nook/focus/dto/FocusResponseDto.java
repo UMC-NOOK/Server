@@ -1,5 +1,8 @@
 package app.nook.focus.dto;
 
+import app.nook.global.dto.CursorResponse;
+import app.nook.library.domain.enums.ReadingStatus;
+
 import java.time.LocalDateTime;
 
 public class FocusResponseDto {
@@ -33,5 +36,19 @@ public class FocusResponseDto {
             LocalDateTime startedAt,
             LocalDateTime endedAt,
             String durationText
+    ) {}
+
+    public record HomeResponse(
+            String todayFocusTime,
+            ReadingStatus readingStatus,
+            CursorResponse<HomeBookItem, Long> books
+    ) {}
+
+    public record HomeBookItem(
+            Long bookId,
+            String title,
+            String author,
+            String coverUrl,
+            String todayFocusTime
     ) {}
 }

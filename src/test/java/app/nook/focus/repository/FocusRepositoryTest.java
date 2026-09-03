@@ -4,6 +4,7 @@ import app.nook.book.domain.Book;
 import app.nook.focus.domain.Focus;
 import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.QueryDslConfig;
+import app.nook.focus.repository.dto.MonthlyFocusStatsDto;
 import app.nook.library.domain.Library;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
@@ -19,9 +20,12 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -573,5 +577,107 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         assertThat(result.get(1).getLibrary().getBook().getTitle()).isEqualTo("B 책");
         assertThat(result.get(0).getId()).isEqualTo(secondA.getId());
         assertThat(result.get(1).getId()).isEqualTo(focusB.getId());
+    }
+
+    @Test
+    @DisplayName("유저의 날짜별 도서 포커스 시간을 합산하고 조회 범위와 소유자를 분리한다")
+    void findMonthlyFocusStats_날짜별도서합산및범위격리() {
+        // given
+        LocalDate targetDate = LocalDate.of(2026, 8, 10);
+        User owner = User.builder()
+                .email("monthly-stats-owner@example.com")
+                .nickName("통계소유자")
+                .provider("google")
+                .providerId("monthly-stats-owner-provider")
+                .role(UserRole.USER)
+                .build();
+        User other = User.builder()
+                .email("monthly-stats-other@example.com")
+                .nickName("다른통계유저")
+                .provider("google")
+                .providerId("monthly-stats-other-provider")
+                .role(UserRole.USER)
+                .build();
+        em.persist(owner);
+        em.persist(other);
+
+        Book firstBook = Book.builder().title("첫 번째 책").author("작가1").build();
+        Book secondBook = Book.builder().title("두 번째 책").author("작가2").build();
+        em.persist(firstBook);
+        em.persist(secondBook);
+
+        Library ownerFirstLibrary = Library.builder().user(owner).book(firstBook).build();
+        Library ownerSecondLibrary = Library.builder().user(owner).book(secondBook).build();
+        Library otherFirstLibrary = Library.builder().user(other).book(firstBook).build();
+        em.persist(ownerFirstLibrary);
+        em.persist(ownerSecondLibrary);
+        em.persist(otherFirstLibrary);
+
+        em.persist(Focus.builder()
+                .library(ownerFirstLibrary)
+                .startedAt(targetDate.atTime(10, 0))
+                .endedAt(targetDate.atTime(10, 20))
+                .durationSec(1_200)
+                .build());
+        em.persist(Focus.builder()
+                .library(ownerFirstLibrary)
+                .startedAt(targetDate.atTime(11, 0))
+                .endedAt(targetDate.atTime(11, 30))
+                .durationSec(1_800)
+                .build());
+        em.persist(Focus.builder()
+                .library(ownerFirstLibrary)
+                .startedAt(targetDate.atTime(12, 0))
+                .endedAt(null)
+                .durationSec(0)
+                .build());
+        em.persist(Focus.builder()
+                .library(ownerSecondLibrary)
+                .startedAt(targetDate.atTime(13, 0))
+                .endedAt(targetDate.atTime(13, 15))
+                .durationSec(900)
+                .build());
+        em.persist(Focus.builder()
+                .library(ownerFirstLibrary)
+                .startedAt(targetDate.minusDays(1).atTime(23, 0))
+                .endedAt(targetDate.minusDays(1).atTime(23, 10))
+                .durationSec(600)
+                .build());
+        em.persist(Focus.builder()
+                .library(ownerFirstLibrary)
+                .startedAt(targetDate.plusDays(1).atTime(0, 10))
+                .endedAt(targetDate.plusDays(1).atTime(0, 25))
+                .durationSec(900)
+                .build());
+        em.persist(Focus.builder()
+                .library(otherFirstLibrary)
+                .startedAt(targetDate.atTime(14, 0))
+                .endedAt(targetDate.atTime(16, 0))
+                .durationSec(7_200)
+                .build());
+
+        em.flush();
+        em.clear();
+
+        // when
+        List<MonthlyFocusStatsDto> result = focusRepository.findMonthlyFocusStats(
+                owner.getId(),
+                targetDate,
+                targetDate.plusDays(1)
+        );
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result).allSatisfy(row -> assertThat(row.getFocusDate()).isEqualTo(targetDate));
+
+        Map<Long, Long> totalsByBook = result.stream()
+                .collect(Collectors.toMap(
+                        MonthlyFocusStatsDto::getBookId,
+                        MonthlyFocusStatsDto::getTotalSec
+                ));
+        assertThat(totalsByBook).containsExactlyInAnyOrderEntriesOf(Map.of(
+                firstBook.getId(), 3_000L,
+                secondBook.getId(), 900L
+        ));
     }
 }
