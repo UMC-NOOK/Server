@@ -18,6 +18,7 @@ import app.nook.record.event.RecordDeletedEvent;
 import app.nook.record.exception.RecordErrorCode;
 import app.nook.record.repository.RecordImageRepository;
 import app.nook.record.repository.RecordRepository;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +27,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,11 +41,13 @@ public class RecordCommandService {
 
     // TODO: 기록 최대개수 임의설정, 추후 변경
     private static final int MAX_RECORD_COUNT = 1000;
+    private static final String RECORD_UPLOAD_TYPE = "record";
 
     private final RecordRepository recordRepository;
     private final LibraryRepository libraryRepository;
     private final BookRepository bookRepository;
     private final RecordImageRepository recordImageRepository;
+    private final PresignedUrlService presignedUrlService;
     private final ApplicationEventPublisher eventPublisher;
     private final TimelineCommandService timelineCommandService;
 
@@ -53,6 +60,7 @@ public class RecordCommandService {
     ) {
         // 이미지 키 리스트
         List<String> imageKeys = filterImageKeys(requestDto.imageKeys());
+        validateRecordImageKeys(user.getId(), imageKeys);
 
         // 책 존재 여부 확인
         Book book = bookRepository.findById(bookId)
@@ -106,6 +114,8 @@ public class RecordCommandService {
             throw new CustomException(RecordErrorCode.RECORD_NOT_AUTHORIZED);
         }
 
+        validateRecordImageKeys(user.getId(), requestedImageKeys);
+
         record.update(requestDto.content(), normalizeEmotion(requestDto.emotion()));
 
         // 이미지 업데이트 시에 동기화 처리
@@ -146,11 +156,22 @@ public class RecordCommandService {
             return List.of();
         }
 
-        return imageKeys.stream()
+        List<String> filteredImageKeys = imageKeys.stream()
                 .filter(Objects::nonNull)
                 .map(String::trim)
                 .filter(key -> !key.isBlank())
                 .toList();
+
+        if (filteredImageKeys.size() != new LinkedHashSet<>(filteredImageKeys).size()) {
+            throw new CustomException(RecordErrorCode.DUPLICATE_IMAGE_KEY);
+        }
+
+        return filteredImageKeys;
+    }
+
+    private void validateRecordImageKeys(Long userId, List<String> imageKeys) {
+        imageKeys.forEach(imageKey ->
+                presignedUrlService.validateOwnedImageKey(userId, imageKey, RECORD_UPLOAD_TYPE));
     }
 
     private Emotion normalizeEmotion(Emotion emotion) {
@@ -171,29 +192,36 @@ public class RecordCommandService {
     // 수정 요청에 따라 동기화
     private void syncRecordImages(Record record, List<String> requestedImageKeys) {
         List<RecordImage> existingImages = new ArrayList<>(record.getImages());
+        Map<String, RecordImage> existingImagesByKey = existingImages.stream()
+                .filter(recordImage -> recordImage.getKey() != null)
+                .collect(Collectors.toMap(RecordImage::getKey, Function.identity(), (first, ignored) -> first));
 
-        // 삭제될 이미지들을 추출
         List<String> keysToDelete = existingImages.stream()
                 .map(RecordImage::getKey)
                 .filter(Objects::nonNull)
                 .filter(key -> !requestedImageKeys.contains(key))
                 .toList();
 
-        // 기존 이미지 중 요청된 이미지 키에 없는 것들은 삭제
         existingImages.stream()
-                .filter(recordImage -> !requestedImageKeys.contains(recordImage.getKey()))
+                .filter(recordImage -> !requestedImageKeys.contains(recordImage.getKey())
+                        || existingImagesByKey.get(recordImage.getKey()) != recordImage)
                 .forEach(recordImage -> {
                     record.getImages().remove(recordImage);
                     recordImageRepository.delete(recordImage);
                 });
 
-        // 이미지 연관관계 정리
-        record.getImages().clear();
+        for (int index = 0; index < requestedImageKeys.size(); index++) {
+            String requestedImageKey = requestedImageKeys.get(index);
+            RecordImage existingImage = existingImagesByKey.get(requestedImageKey);
 
-        // 이미지 저장
-        saveRecordImages(record, requestedImageKeys);
+            if (existingImage != null) {
+                existingImage.updateOrderIndex(index);
+                continue;
+            }
 
-        // 삭제할 이미지가 있다면 삭제 이벤트 발행
+            recordImageRepository.save(new RecordImage(record, requestedImageKey, index));
+        }
+
         if (!keysToDelete.isEmpty()) {
             eventPublisher.publishEvent(new RecordDeletedEvent(record.getId(), keysToDelete));
         }

@@ -38,4 +38,8 @@ public class RecordImage extends BaseEntity {
         this.key = key;
         this.orderIndex = orderIndex;
     }
+
+    public void updateOrderIndex(int orderIndex) {
+        this.orderIndex = orderIndex;
+    }
 }

@@ -40,6 +40,7 @@ public class Record extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private Emotion emotion;
 
+    @Column(length = 1000)
     private String content;
 
     @OneToMany(mappedBy = "record")

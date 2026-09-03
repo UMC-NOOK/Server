@@ -20,6 +20,7 @@ import app.nook.record.event.RecordDeletedEvent;
 import app.nook.record.exception.RecordErrorCode;
 import app.nook.record.repository.RecordImageRepository;
 import app.nook.record.repository.RecordRepository;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import org.junit.jupiter.api.DisplayName;
@@ -54,6 +55,9 @@ class RecordServiceTest {
 
     @Mock
     private RecordImageRepository recordImageRepository;
+
+    @Mock
+    private PresignedUrlService presignedUrlService;
 
     @InjectMocks
     private RecordCommandService recordService;
@@ -143,6 +147,22 @@ class RecordServiceTest {
             verify(recordRepository).save(any(Record.class));
             verify(recordImageRepository).save(any(RecordImage.class));
             verify(timelineCommandService).appendRecordCreated(any(Record.class), eq(1));
+        }
+
+        @Test
+        @DisplayName("실패 - 중복된 imageKey가 포함되면 예외를 던진다")
+        void 기록_생성_실패_중복이미지키() {
+            // given
+            User user = UserFixture.user();
+            RecordRequestDto request = new RecordRequestDto(
+                    "내용", Emotion.FUN, List.of("record/users/1/a.png", "record/users/1/a.png"));
+
+            // when
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> recordService.createRecord(user, 10L, request));
+
+            // then
+            assertThat(ex.getErrorCode()).isEqualTo(RecordErrorCode.DUPLICATE_IMAGE_KEY);
         }
 
         @Test
@@ -350,6 +370,79 @@ class RecordServiceTest {
                 verify(recordImageRepository).save(any(RecordImage.class));
                 assertThat(record.getImages()).isEmpty();
                 verify(eventPublisher).publishEvent(any(RecordDeletedEvent.class));
+            }
+
+            @Test
+            @DisplayName("성공 - 요청에 포함된 기존 이미지는 유지하고 새 이미지만 저장한다")
+            void 기록_수정_성공_기존이미지유지_새이미지추가() {
+                // given
+                User user = UserFixture.user();
+                Book book = BookFixture.book();
+                Library library = LibraryFixture.library(user, book);
+                Record record = record(library, Emotion.FUN, "재미있는 책이었다.");
+                RecordImage firstImage = recordImage(record, "record/users/1/first.png", 0);
+                RecordImage secondImage = recordImage(record, "record/users/1/second.png", 1);
+                record.getImages().addAll(List.of(firstImage, secondImage));
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        "수정 내용", Emotion.USEFUL,
+                        List.of("record/users/1/second.png", "record/users/1/new.png", "record/users/1/first.png"));
+                given(recordRepository.findById(1L)).willReturn(Optional.of(record));
+
+                // when
+                recordService.updateRecord(user, 1L, request);
+
+                // then
+                assertThat(record.getImages()).containsExactly(firstImage, secondImage);
+                assertThat(secondImage.getOrderIndex()).isZero();
+                assertThat(firstImage.getOrderIndex()).isEqualTo(2);
+                ArgumentCaptor<RecordImage> imageCaptor = ArgumentCaptor.forClass(RecordImage.class);
+                verify(recordImageRepository).save(imageCaptor.capture());
+                assertThat(imageCaptor.getValue().getKey()).isEqualTo("record/users/1/new.png");
+                verify(recordImageRepository, never()).delete(any(RecordImage.class));
+                verify(eventPublisher, never()).publishEvent(any(RecordDeletedEvent.class));
+            }
+
+            @Test
+            @DisplayName("성공 - 기존에 중복 저장된 이미지 키는 하나만 남긴다")
+            void 기록_수정_성공_기존중복이미지키정리() {
+                // given
+                User user = UserFixture.user();
+                Book book = BookFixture.book();
+                Library library = LibraryFixture.library(user, book);
+                Record record = record(library, Emotion.FUN, "기록");
+                RecordImage firstImage = recordImage(record, "record/users/1/duplicate.png", 0);
+                RecordImage duplicatedImage = recordImage(record, "record/users/1/duplicate.png", 1);
+                record.getImages().addAll(List.of(firstImage, duplicatedImage));
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        "수정 내용", Emotion.USEFUL, List.of("record/users/1/duplicate.png"));
+                given(recordRepository.findById(1L)).willReturn(Optional.of(record));
+
+                // when
+                recordService.updateRecord(user, 1L, request);
+
+                // then
+                assertThat(record.getImages()).containsExactly(firstImage);
+                verify(recordImageRepository).delete(duplicatedImage);
+                verify(eventPublisher, never()).publishEvent(any(RecordDeletedEvent.class));
+            }
+
+            @Test
+            @DisplayName("성공 - 기록 이미지 키의 소유자와 업로드 타입을 검증한다")
+            void 기록_수정_성공_이미지키소유권검증() {
+                // given
+                User user = UserFixture.user();
+                Book book = BookFixture.book();
+                Library library = LibraryFixture.library(user, book);
+                Record record = record(library, Emotion.FUN, "기록");
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        "수정 내용", Emotion.USEFUL, List.of("record/users/1/image.png"));
+                given(recordRepository.findById(1L)).willReturn(Optional.of(record));
+
+                // when
+                recordService.updateRecord(user, 1L, request);
+
+                // then
+                verify(presignedUrlService).validateOwnedImageKey(1L, "record/users/1/image.png", "record");
             }
 
             @Test

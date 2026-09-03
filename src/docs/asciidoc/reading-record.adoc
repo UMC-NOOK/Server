@@ -2,6 +2,8 @@
 이미지 파일은 먼저 이미지 업로드 API로 업로드한 뒤, 발급받은 `key` 목록을 `imageKeys`로 전달합니다.
 `presigned URL` 자체를 기록 생성 요청에 넣지 않습니다.
 즉 프론트 순서는 `uploadUrl 받기 -> uploadUrl로 PUT 업로드 -> key를 기록 생성 API에 전달` 입니다.
+`imageKeys`에는 로그인한 사용자가 `record` 타입으로 발급받아 업로드를 완료한 key만 넣을 수 있습니다.
+동일한 key를 두 번 이상 넣으면 `400 RECORD-400` 응답을 반환합니다.
 
 include::{snippets}/record-controller-test/기록_생성_성공/http-request.adoc[]
 include::{snippets}/record-controller-test/기록_생성_성공/request-headers.adoc[]
@@ -14,6 +16,9 @@ include::{snippets}/record-controller-test/기록_생성_성공/response-fields.
 기록 수정도 동일하게 업로드 완료된 이미지의 최종 `key` 목록을 `imageKeys`로 전달합니다.
 기존 이미지를 유지하려면 해당 `key`를 그대로 포함하고, 제거할 이미지는 목록에서 제외합니다.
 즉 프론트는 새 이미지가 필요하면 먼저 `uploadUrl`을 발급받고 `PUT` 업로드를 끝낸 뒤, 최종 `imageKeys` 목록을 만들어 수정 API에 전달해야 합니다.
+요청 목록에 포함된 기존 key는 유지하고, 새 key만 추가하며, 목록에서 제외한 key만 제거합니다.
+`imageKeys`에는 로그인한 사용자가 `record` 타입으로 발급받아 업로드를 완료한 key만 넣을 수 있고, 동일 key를 두 번 이상 넣으면 `400 RECORD-400` 응답을 반환합니다.
+기존 데이터에 동일 key가 중복 저장되어 있더라도 수정 요청 시 하나만 유지합니다.
 
 include::{snippets}/record-controller-test/기록_수정_성공/http-request.adoc[]
 include::{snippets}/record-controller-test/기록_수정_성공/request-headers.adoc[]
