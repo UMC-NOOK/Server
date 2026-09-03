@@ -1,0 +1,2 @@
+ALTER TABLE records
+    ALTER COLUMN content TYPE VARCHAR(1000);
