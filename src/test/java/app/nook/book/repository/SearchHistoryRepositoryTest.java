@@ -13,12 +13,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DataJpaTest
 @ActiveProfiles("test")
@@ -183,6 +186,45 @@ class SearchHistoryRepositoryTest extends AbstractPostgresContainerTests {
 
         assertThat(anotherUserHistories).hasSize(1);
         assertThat(anotherUserHistories.get(0).getKeyword()).isEqualTo(TEST_KEYWORD_2);
+    }
+
+    @Test
+    @DisplayName("같은 검색어는 사용자나 검색 타입이 다르면 저장할 수 있다")
+    void 같은검색어_다른사용자와검색타입_저장성공() {
+        // given
+        User anotherUser = User.builder()
+                .email("another@example.com")
+                .nickName("다른유저")
+                .provider("google")
+                .providerId("provider-2")
+                .role(UserRole.USER)
+                .build();
+        userRepository.save(anotherUser);
+
+        // when & then
+        assertThatCode(() -> searchHistoryRepository.saveAllAndFlush(List.of(
+                createSearchHistory(TEST_KEYWORD_1, SearchType.GLOBAL),
+                createSearchHistory(TEST_KEYWORD_1, SearchType.LIBRARY),
+                SearchHistory.builder()
+                        .user(anotherUser)
+                        .keyword(TEST_KEYWORD_1)
+                        .searchType(SearchType.GLOBAL)
+                        .build()
+        ))).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("같은 사용자의 동일 검색 타입에는 중복 검색어를 저장할 수 없다")
+    void 같은사용자_같은검색타입_중복검색어_저장실패() {
+        // given
+        searchHistoryRepository.saveAndFlush(createSearchHistory(TEST_KEYWORD_1, SearchType.GLOBAL));
+
+        // when
+        assertThrows(
+                DataIntegrityViolationException.class,
+                () -> searchHistoryRepository.saveAndFlush(
+                        createSearchHistory(TEST_KEYWORD_1, SearchType.GLOBAL))
+        );
     }
 
     private SearchHistory createSearchHistory(String keyword, SearchType searchType) {

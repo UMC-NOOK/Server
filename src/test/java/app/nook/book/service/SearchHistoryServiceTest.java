@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -69,18 +70,22 @@ class SearchHistoryServiceTest {
     @DisplayName("검색어 저장 성공 - 새로운 검색어")
     void saveKeyword_새로운검색어_성공() {
         // given
-        given(userRepository.findById(TEST_USER_ID))
+        given(userRepository.findByIdForUpdate(TEST_USER_ID))
                 .willReturn(Optional.of(testUser));
         given(searchHistoryRepository.findExisting(testUser, TEST_KEYWORD_1, SearchType.GLOBAL))
                 .willReturn(Optional.empty()); // 중복 없음
-        given(searchHistoryRepository.findAllRecentForUpdate(testUser, SearchType.GLOBAL))
+        given(searchHistoryRepository.findAllRecent(testUser, SearchType.GLOBAL))
                 .willReturn(new ArrayList<>()); // 기존 이력 없음
 
         // when
         searchHistoryService.saveKeyword(TEST_USER_ID, TEST_KEYWORD_1, SearchType.GLOBAL);
 
         // then
-        verify(searchHistoryRepository).save(historyCaptor.capture());
+        InOrder inOrder = inOrder(userRepository, searchHistoryRepository);
+        inOrder.verify(userRepository).findByIdForUpdate(TEST_USER_ID);
+        inOrder.verify(searchHistoryRepository).findExisting(testUser, TEST_KEYWORD_1, SearchType.GLOBAL);
+        inOrder.verify(searchHistoryRepository).findAllRecent(testUser, SearchType.GLOBAL);
+        inOrder.verify(searchHistoryRepository).save(historyCaptor.capture());
         SearchHistory saved = historyCaptor.getValue();
 
         assertThat(saved.getUser()).isEqualTo(testUser);
@@ -94,21 +99,24 @@ class SearchHistoryServiceTest {
         // given
         SearchHistory existingHistory = createSearchHistory(TEST_KEYWORD_1, SearchType.GLOBAL);
 
-        given(userRepository.findById(TEST_USER_ID))
+        given(userRepository.findByIdForUpdate(TEST_USER_ID))
                 .willReturn(Optional.of(testUser));
         given(searchHistoryRepository.findExisting(testUser, TEST_KEYWORD_1, SearchType.GLOBAL))
                 .willReturn(Optional.of(existingHistory)); // 중복 존재
-        given(searchHistoryRepository.findAllRecentForUpdate(testUser, SearchType.GLOBAL))
+        given(searchHistoryRepository.findAllRecent(testUser, SearchType.GLOBAL))
                 .willReturn(new ArrayList<>());
 
         // when
         searchHistoryService.saveKeyword(TEST_USER_ID, TEST_KEYWORD_1, SearchType.GLOBAL);
 
         // then
-        verify(searchHistoryRepository).delete(existingHistory);
-
-        // 새로 저장된 객체 캡처 및 검증
-        verify(searchHistoryRepository).save(historyCaptor.capture());
+        InOrder inOrder = inOrder(userRepository, searchHistoryRepository);
+        inOrder.verify(userRepository).findByIdForUpdate(TEST_USER_ID);
+        inOrder.verify(searchHistoryRepository).findExisting(testUser, TEST_KEYWORD_1, SearchType.GLOBAL);
+        inOrder.verify(searchHistoryRepository).delete(existingHistory);
+        inOrder.verify(searchHistoryRepository).flush();
+        inOrder.verify(searchHistoryRepository).findAllRecent(testUser, SearchType.GLOBAL);
+        inOrder.verify(searchHistoryRepository).save(historyCaptor.capture());
         SearchHistory saved = historyCaptor.getValue();
 
         // 데이터 정합성 검증
@@ -124,19 +132,23 @@ class SearchHistoryServiceTest {
         List<SearchHistory> histories = createMultipleHistories(10); // 10개 꽉 찬 상태
         SearchHistory oldest = histories.get(9); // 리스트의 마지막이 가장 오래된 것
 
-        given(userRepository.findById(TEST_USER_ID))
+        given(userRepository.findByIdForUpdate(TEST_USER_ID))
                 .willReturn(Optional.of(testUser));
         given(searchHistoryRepository.findExisting(testUser, "새로운검색어", SearchType.GLOBAL))
                 .willReturn(Optional.empty());
-        given(searchHistoryRepository.findAllRecentForUpdate(testUser, SearchType.GLOBAL))
+        given(searchHistoryRepository.findAllRecent(testUser, SearchType.GLOBAL))
                 .willReturn(histories);
 
         // when
         searchHistoryService.saveKeyword(TEST_USER_ID, "새로운검색어", SearchType.GLOBAL);
 
         // then
-        verify(searchHistoryRepository).delete(oldest); // 가장 오래된 것 삭제
-        verify(searchHistoryRepository).save(any(SearchHistory.class)); // 새 검색어 저장
+        InOrder inOrder = inOrder(userRepository, searchHistoryRepository);
+        inOrder.verify(userRepository).findByIdForUpdate(TEST_USER_ID);
+        inOrder.verify(searchHistoryRepository).findExisting(testUser, "새로운검색어", SearchType.GLOBAL);
+        inOrder.verify(searchHistoryRepository).findAllRecent(testUser, SearchType.GLOBAL);
+        inOrder.verify(searchHistoryRepository).delete(oldest);
+        inOrder.verify(searchHistoryRepository).save(any(SearchHistory.class));
     }
 
     @Test
@@ -168,7 +180,7 @@ class SearchHistoryServiceTest {
     @DisplayName("검색어 저장 실패 - 존재하지 않는 유저")
     void saveKeyword_유저없음_예외발생() {
         // given
-        given(userRepository.findById(TEST_USER_ID))
+        given(userRepository.findByIdForUpdate(TEST_USER_ID))
                 .willReturn(Optional.empty());
 
         // when & then
@@ -211,7 +223,7 @@ class SearchHistoryServiceTest {
         // given
         SearchHistory history = createSearchHistory(TEST_KEYWORD_1, SearchType.GLOBAL);
 
-        given(userRepository.findById(TEST_USER_ID))
+        given(userRepository.findByIdForUpdate(TEST_USER_ID))
                 .willReturn(Optional.of(testUser));
         given(searchHistoryRepository.findExisting(testUser, TEST_KEYWORD_1, SearchType.GLOBAL))
                 .willReturn(Optional.of(history));
@@ -220,14 +232,17 @@ class SearchHistoryServiceTest {
         searchHistoryService.deleteHistory(TEST_USER_ID, TEST_KEYWORD_1, SearchType.GLOBAL);
 
         // then
-        verify(searchHistoryRepository).delete(history);
+        InOrder inOrder = inOrder(userRepository, searchHistoryRepository);
+        inOrder.verify(userRepository).findByIdForUpdate(TEST_USER_ID);
+        inOrder.verify(searchHistoryRepository).findExisting(testUser, TEST_KEYWORD_1, SearchType.GLOBAL);
+        inOrder.verify(searchHistoryRepository).delete(history);
     }
 
     @Test
     @DisplayName("특정 검색어 삭제 - 존재하지 않는 검색어는 무시")
     void deleteHistory_존재하지않는검색어_무시() {
         // given
-        given(userRepository.findById(TEST_USER_ID))
+        given(userRepository.findByIdForUpdate(TEST_USER_ID))
                 .willReturn(Optional.of(testUser));
         given(searchHistoryRepository.findExisting(testUser, "없는검색어", SearchType.GLOBAL))
                 .willReturn(Optional.empty());
@@ -236,6 +251,9 @@ class SearchHistoryServiceTest {
         searchHistoryService.deleteHistory(TEST_USER_ID, "없는검색어", SearchType.GLOBAL);
 
         // then
+        InOrder inOrder = inOrder(userRepository, searchHistoryRepository);
+        inOrder.verify(userRepository).findByIdForUpdate(TEST_USER_ID);
+        inOrder.verify(searchHistoryRepository).findExisting(testUser, "없는검색어", SearchType.GLOBAL);
         verify(searchHistoryRepository, never()).delete(any());
     }
 
@@ -243,14 +261,16 @@ class SearchHistoryServiceTest {
     @DisplayName("전체 검색 이력 삭제 성공")
     void deleteAllHistories_성공() {
         // given
-        given(userRepository.findById(TEST_USER_ID))
+        given(userRepository.findByIdForUpdate(TEST_USER_ID))
                 .willReturn(Optional.of(testUser));
 
         // when
         searchHistoryService.deleteAllHistories(TEST_USER_ID, SearchType.GLOBAL);
 
         // then
-        verify(searchHistoryRepository).deleteAllByUserAndSearchType(testUser, SearchType.GLOBAL);
+        InOrder inOrder = inOrder(userRepository, searchHistoryRepository);
+        inOrder.verify(userRepository).findByIdForUpdate(TEST_USER_ID);
+        inOrder.verify(searchHistoryRepository).deleteAllByUserAndSearchType(testUser, SearchType.GLOBAL);
     }
 
     private SearchHistory createSearchHistory(String keyword, SearchType searchType) {

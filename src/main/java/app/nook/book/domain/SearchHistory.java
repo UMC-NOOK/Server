@@ -17,10 +17,11 @@ import org.hibernate.annotations.OnDeleteAction;
 @Table(
         indexes = {
                 @Index(name = "idx_search_history_user_type",
-                        columnList = "user_id, search_type"),
-                @Index(name = "idx_search_history_user_keyword_type",
-                        columnList = "user_id, keyword, search_type")
-        }
+                        columnList = "user_id, search_type")
+        },
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_search_history_user_keyword_type",
+                columnNames = {"user_id", "keyword", "search_type"})
 )
 public class SearchHistory extends BaseEntity {
     @Id
