@@ -10,18 +10,21 @@ import app.nook.global.exception.CustomException;
 import app.nook.global.fixture.FocusFixture;
 import app.nook.global.fixture.LibraryFixture;
 import app.nook.global.fixture.UserFixture;
+import app.nook.global.response.AuthErrorCode;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.timeline.event.FocusTimelineAppendEvent;
 import app.nook.user.domain.User;
+import app.nook.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -41,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -56,6 +60,8 @@ class FocusServiceTest {
     private FocusRepository focusRepository;
     @Mock
     private LibraryRepository libraryRepository;
+    @Mock
+    private UserRepository userRepository;
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
@@ -73,6 +79,11 @@ class FocusServiceTest {
     @DisplayName("포커스 시작")
     class StartFocus {
 
+        @BeforeEach
+        void stubUserLock() {
+            given(userRepository.findByIdForUpdate(user.getId())).willReturn(Optional.of(user));
+        }
+
         @Test
         @DisplayName("고정 Clock의 현재 시각을 초 단위로 절삭하고 BEFORE 상태 날짜를 맞춘다")
         void truncatesClockAndUsesNormalizedStartDate() {
@@ -89,6 +100,11 @@ class FocusServiceTest {
             });
 
             FocusResponseDto.FocusStart result = service.startFocus(user, request);
+
+            InOrder inOrder = inOrder(userRepository, focusRepository);
+            inOrder.verify(userRepository).findByIdForUpdate(user.getId());
+            inOrder.verify(focusRepository).findByLibraryUserIdAndEndedAtIsNull(user.getId());
+            inOrder.verify(focusRepository).save(any(Focus.class));
 
             assertThat(result.focusId()).isEqualTo(101L);
             assertThat(result.bookId()).isEqualTo(library.getBook().getId());
@@ -110,6 +126,20 @@ class FocusServiceTest {
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(FocusErrorCode.FOCUS_ALREADY_IN_PROGRESS);
+            verify(focusRepository, never()).save(any(Focus.class));
+        }
+
+        @Test
+        @DisplayName("잠글 사용자가 없으면 포커스를 조회하거나 생성하지 않는다")
+        void rejectsMissingUser() {
+            given(userRepository.findByIdForUpdate(user.getId())).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> serviceAt(LocalDateTime.of(2026, 8, 1, 11, 0))
+                    .startFocus(user, new FocusRequestDto.FocusStart(library.getBook().getId())))
+                    .isInstanceOf(CustomException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(AuthErrorCode.USER_NOT_FOUND);
+            verifyNoInteractions(focusRepository, libraryRepository);
         }
 
         @Test
@@ -304,6 +334,7 @@ class FocusServiceTest {
         return new FocusService(
                 focusRepository,
                 libraryRepository,
+                userRepository,
                 eventPublisher,
                 Clock.fixed(instant, KST),
                 new FocusCompletionSegmenter()

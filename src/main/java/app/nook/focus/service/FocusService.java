@@ -7,12 +7,14 @@ import app.nook.focus.dto.FocusResponseDto;
 import app.nook.focus.exception.FocusErrorCode;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.exception.CustomException;
+import app.nook.global.response.AuthErrorCode;
 import app.nook.library.domain.Library;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.timeline.event.FocusTimelineAppendEvent;
 import app.nook.user.domain.User;
+import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -34,11 +36,15 @@ public class FocusService {
 
     private final FocusRepository focusRepository;
     private final LibraryRepository libraryRepository;
+    private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
     private final FocusCompletionSegmenter focusCompletionSegmenter;
 
     public FocusResponseDto.FocusStart startFocus(User user, FocusRequestDto.FocusStart request) {
+        // 포커스가 없는 최초 시작도 사용자 단위로 직렬화한다.
+        userRepository.findByIdForUpdate(user.getId())
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
         // 1. 이미 진행 중인 포커스가 있는지 확인
         focusRepository.findByLibraryUserIdAndEndedAtIsNull(user.getId())
