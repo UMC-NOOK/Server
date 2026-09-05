@@ -10,6 +10,7 @@ import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -32,20 +33,23 @@ public class SearchHistoryService {
      * - 중복된 키워드는 삭제 후 최신으로 갱신됨.
      * - 최대 10개까지만 저장되며, 초과 시 가장 오래된 기록이 삭제됨.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void saveKeyword(Long userId, String keyword, SearchType searchType) {
         if (keyword == null || keyword.isBlank()) {
             throw new CustomException(SearchErrorCode.INVALID_KEYWORD);
         }
 
-        User user = findUser(userId);
+        User user = findUserForUpdate(userId);
 
         // 중복 키워드 삭제
         searchHistoryRepository.findExisting(user, keyword, searchType)
-                .ifPresent(searchHistoryRepository::delete);
+                .ifPresent(history -> {
+                    searchHistoryRepository.delete(history);
+                    searchHistoryRepository.flush();
+                });
 
         List<SearchHistory> histories = searchHistoryRepository
-                .findAllRecentForUpdate(user, searchType);
+                .findAllRecent(user, searchType);
 
         // 최대 개수 초과 시 가장 오래된 기록 삭제
         if (histories.size() >= MAX_HISTORY_SIZE) {
@@ -77,7 +81,7 @@ public class SearchHistoryService {
      */
     @Transactional
     public void deleteHistory(Long userId, String keyword, SearchType searchType) {
-        User user = findUser(userId);
+        User user = findUserForUpdate(userId);
 
         searchHistoryRepository.findExisting(user, keyword, searchType)
                 .ifPresent(searchHistoryRepository::delete);
@@ -88,7 +92,7 @@ public class SearchHistoryService {
      */
     @Transactional
     public void deleteAllHistories(Long userId, SearchType searchType) {
-        User user = findUser(userId);
+        User user = findUserForUpdate(userId);
 
         searchHistoryRepository.deleteAllByUserAndSearchType(user, searchType);
     }
@@ -96,6 +100,11 @@ public class SearchHistoryService {
     // 유저 조회 헬퍼 메서드
     private User findUser(Long userId) {
         return userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+    }
+
+    private User findUserForUpdate(Long userId) {
+        return userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
     }
 }

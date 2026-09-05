@@ -46,21 +46,26 @@ public class BookSearchFacade {
             Long userId, String keyword, Integer cursor, SearchType searchType) {
 
         boolean isNewSearch = (cursor == null || cursor == 0);
-        // 첫 페이지 검색 시에만 검색 기록 저장
         if (isNewSearch) {
             log.info("[SEARCH_REQUEST] userId={}, keyword='{}', type={}", userId, keyword, searchType);
-            searchHistoryService.saveKeyword(userId, keyword, searchType);
         } else {
             log.debug("[SEARCH_SCROLL] userId={}, keyword={}, cursor={}", userId, keyword, cursor);
         }
 
+        BookResponseDto.SearchResultDto searchResult;
         if (searchType == SearchType.GLOBAL) {
-            return searchGlobalBooks(userId, keyword, cursor);
+            searchResult = searchGlobalBooks(userId, keyword, cursor);
         } else if (searchType == SearchType.LIBRARY) {
-            return searchLibraryBooks(userId, keyword, cursor);
+            searchResult = searchLibraryBooks(userId, keyword, cursor);
+        } else {
+            log.error("[SEARCH_FAIL] error='Invalid SearchType', type={}", searchType);
+            throw new CustomException(SearchErrorCode.INVALID_SEARCH_TYPE);
         }
-        log.error("[SEARCH_FAIL] error='Invalid SearchType', type={}", searchType);
-        throw new CustomException(SearchErrorCode.INVALID_SEARCH_TYPE);
+
+        if (isNewSearch) {
+            searchHistoryService.saveKeyword(userId, keyword, searchType);
+        }
+        return searchResult;
     }
 
     // 알라딘 API를 통한 전체 도서 검색
