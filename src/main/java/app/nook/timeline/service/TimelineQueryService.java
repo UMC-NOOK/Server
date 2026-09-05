@@ -182,6 +182,7 @@ public class TimelineQueryService {
 
     private TimelineResponseDto.TimelineItemDto toFocusTimelineItem(Timeline timeline, Map<Long, Focus> focusMap) {
         return Optional.ofNullable(focusMap.get(timeline.getTargetId()))
+                .filter(focus -> focus.getLibrary().getId().equals(timeline.getLibrary().getId()))
                 .filter(focus -> focus.getEndedAt() != null)
                 .map(focus -> TimelineResponseConverter.toTimelineItem(
                         timeline,
@@ -238,7 +239,8 @@ public class TimelineQueryService {
     private TimelineResponseDto.TimelineItemDto toRecordTimelineItem(Timeline timeline, Map<Long, Record> recordMap) {
         Record record = recordMap.get(timeline.getTargetId());
         String previewText = timeline.getPreviewText();
-        if ((previewText == null || previewText.isBlank()) && record != null) {
+        if ((previewText == null || previewText.isBlank()) && record != null
+                && record.getLibrary().getId().equals(timeline.getLibrary().getId())) {
             previewText = toRecordPreviewText(record);
         }
 
@@ -281,6 +283,7 @@ public class TimelineQueryService {
     private TimelineResponseDto.TimelineDetailDto toFocusTimelineDetail(Timeline timeline) {
         // 원본 포커스가 없어도 타임라인 이벤트는 유지하고, 복원 가능한 정보만 fallback으로 노출한다.
         return focusRepository.findById(timeline.getTargetId())
+                .filter(focus -> focus.getLibrary().getId().equals(timeline.getLibrary().getId()))
                 .filter(focus -> focus.getEndedAt() != null)
                 .map(focus -> TimelineResponseConverter.toTimelineDetail(
                         timeline,
@@ -302,6 +305,7 @@ public class TimelineQueryService {
     private TimelineResponseDto.TimelineDetailDto toRecordTimelineDetail(Timeline timeline, Long userId) {
         // 원본 기록이 없어도 저장된 previewText를 이용해 타임라인 상세를 최대한 유지한다.
         return recordRepository.findWithImagesById(timeline.getTargetId())
+                .filter(record -> record.getLibrary().getId().equals(timeline.getLibrary().getId()))
                 .map(record -> TimelineResponseConverter.toTimelineDetail(
                         timeline,
                         TimelineResponseConverter.toRecordDetail(

@@ -3,6 +3,9 @@
  +
 `timelinePreview`는 서버에서 최신 5개의 타임라인 아이템을 기준으로 날짜별 그룹으로 묶어 반환합니다.
 
+요약·전체·상세 조회에서 연결된 포커스 또는 기록이 다른 서재에 속하면 원본이 없는 경우와 동일하게 처리합니다.
+타임라인과 저장된 미리보기 문구는 유지하며, 해당 원본의 시간·페이지·본문·감정·이미지는 응답에 사용하지 않습니다.
+
 include::{snippets}/success/get-timeline-summary/http-request.adoc[]
 include::{snippets}/success/get-timeline-summary/request-headers.adoc[]
 include::{snippets}/success/get-timeline-summary/path-parameters.adoc[]

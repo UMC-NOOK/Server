@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -42,6 +43,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("TimelineQueryService 테스트")
@@ -150,6 +152,63 @@ class TimelineQueryServiceTest {
                 .toList();
         ReflectionTestUtils.setField(record, "images", images);
         return record;
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {1L, 2L})
+    @DisplayName("다른 서재의 원본은 소유자가 같아도 상세에 사용하지 않는다")
+    void getTimelineDetail_다른서재_원본제외(long targetUserId) {
+        User user = user(1L);
+        Library library = library(user, 12L);
+        Library otherLibrary = library(user(targetUserId), 13L);
+        LocalDateTime startedAt = LocalDateTime.of(2026, 1, 10, 16, 0);
+        Timeline focusTimeline = timeline(30L, library, TimelineType.FOCUS, startedAt, "저장된 포커스", 7001L);
+        Timeline recordTimeline = timeline(31L, library, TimelineType.RECORD, startedAt, "저장된 기록", 9001L);
+        Focus otherFocus = focus(7001L, otherLibrary, startedAt, startedAt.plusMinutes(30), 1800);
+        ReflectionTestUtils.setField(otherFocus, "endPage", 72);
+        Record otherRecord = recordWithImages(9001L, otherLibrary, "다른 서재 본문", "FUN",
+                List.of("record/users/" + targetUserId + "/a.png"));
+
+        given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+        given(timelineRepository.findByIdAndLibrary(30L, library)).willReturn(Optional.of(focusTimeline));
+        given(timelineRepository.findByIdAndLibrary(31L, library)).willReturn(Optional.of(recordTimeline));
+        given(focusRepository.findById(7001L)).willReturn(Optional.of(otherFocus));
+        given(recordRepository.findWithImagesById(9001L)).willReturn(Optional.of(otherRecord));
+
+        assertThat(timelineQueryService.getTimelineDetail(user, 12L, 30L).detail())
+                .isEqualTo(new TimelineResponseDto.TimelineFocusDetailDto("저장된 포커스", null));
+        assertThat(timelineQueryService.getTimelineDetail(user, 12L, 31L).detail())
+                .isEqualTo(new TimelineResponseDto.TimelineRecordDetailDto("저장된 기록", null, List.of()));
+        verifyNoInteractions(presignedUrlService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {1L, 2L})
+    @DisplayName("다른 서재의 원본은 전체 및 요약 미리보기에 사용하지 않는다")
+    void getTimelinePreview_다른서재_원본제외(long targetUserId) {
+        User user = user(1L);
+        Library library = library(user, 12L);
+        Library otherLibrary = library(user(targetUserId), 13L);
+        LocalDateTime startedAt = LocalDateTime.of(2026, 1, 10, 16, 0);
+        List<Timeline> timelines = List.of(
+                timeline(30L, library, TimelineType.FOCUS, startedAt, "저장된 포커스", 7001L),
+                timeline(31L, library, TimelineType.RECORD, startedAt, null, 9001L));
+
+        given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+        given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library)).willReturn(timelines);
+        given(timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library)).willReturn(timelines);
+        given(focusRepository.findAllById(List.of(7001L))).willReturn(List.of(
+                focus(7001L, otherLibrary, startedAt, startedAt.plusMinutes(30), 1800)));
+        given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of(
+                record(9001L, otherLibrary, "다른 서재 본문")));
+
+        TimelineResponseDto.TimelinePreviewDto preview = timelineQueryService.getTimelinePreview(user, 12L);
+        List<TimelineResponseDto.TimelineItemDto> items = preview.dateGroups().get(0).items();
+        assertThat(items).hasSize(2);
+        assertThat(items.get(0).title()).isEqualTo("저장된 포커스");
+        assertThat(items.get(0).subtitle()).isNull();
+        assertThat(items.get(1).previewText()).isNull();
+        assertThat(timelineQueryService.getTimelineSummary(user, 12L).timelinePreview()).isEqualTo(preview);
     }
 
     @Nested
