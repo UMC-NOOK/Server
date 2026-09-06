@@ -1,13 +1,18 @@
 package app.nook.book.facade;
 
 import app.nook.aladin.service.AladinService;
+import app.nook.book.domain.Book;
+import app.nook.book.domain.Category;
+import app.nook.book.domain.enums.MallType;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.dto.LibrarySearchHomeResponseDto;
 import app.nook.book.service.BookService;
 import app.nook.book.service.SearchHistoryService;
+import app.nook.library.domain.Library;
 import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.service.LibraryQueryService;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import org.junit.jupiter.api.DisplayName;
@@ -15,8 +20,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,6 +57,9 @@ class BookSearchFacadeTest {
     @Mock
     private BookService bookService;
 
+    @Mock
+    private PresignedUrlService presignedUrlService;
+
     @InjectMocks
     private BookSearchFacade bookSearchFacade;
 
@@ -81,10 +91,10 @@ class BookSearchFacadeTest {
         assertThat(result.nextCursor()).isEqualTo(10);
 
         // 첫 검색이므로 검색 이력 저장됨
-        verify(searchHistoryService, times(1))
-                .saveKeyword(TEST_USER_ID, TEST_KEYWORD, SearchType.GLOBAL);
-        verify(aladinService, times(1))
-                .searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE);
+        InOrder inOrder = inOrder(aladinService, libraryQueryService, searchHistoryService);
+        inOrder.verify(aladinService).searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE);
+        inOrder.verify(libraryQueryService).getOwnedIsbns(eq(TEST_USER_ID), anyList());
+        inOrder.verify(searchHistoryService).saveKeyword(TEST_USER_ID, TEST_KEYWORD, SearchType.GLOBAL);
     }
 
     @Test
@@ -144,14 +154,65 @@ class BookSearchFacadeTest {
         assertThat(result.nextCursor()).isNull();
 
         // 결과가 없어도 첫 검색이므로 검색 이력은 저장됨
-        verify(searchHistoryService, times(1))
-                .saveKeyword(TEST_USER_ID, TEST_KEYWORD, SearchType.GLOBAL);
+        InOrder inOrder = inOrder(aladinService, searchHistoryService);
+        inOrder.verify(aladinService).searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE);
+        inOrder.verify(searchHistoryService).saveKeyword(TEST_USER_ID, TEST_KEYWORD, SearchType.GLOBAL);
     }
 
-//    @Test
-//    @DisplayName("서재 내 검색")
-//    void searchBooks_서재검색() {
-//    }
+    @Test
+    @DisplayName("내 서재 검색 성공 - 결과 생성 후 첫 검색 이력을 저장한다")
+    void searchBooks_내서재첫검색_결과생성후이력저장() {
+        // given
+        Library library = createLibrary();
+        given(libraryQueryService.searchBooksInLibrary(TEST_USER_ID, TEST_KEYWORD, 0, DEFAULT_PAGE_SIZE))
+                .willReturn(new PageImpl<>(List.of(library)));
+        given(presignedUrlService.resolveImageUrl(TEST_USER_ID, "cover.jpg"))
+                .willReturn("https://example.com/cover.jpg");
+
+        // when
+        BookResponseDto.SearchResultDto result = bookSearchFacade.searchBooks(
+                TEST_USER_ID, TEST_KEYWORD, null, SearchType.LIBRARY);
+
+        // then
+        assertThat(result.books()).hasSize(1);
+        InOrder inOrder = inOrder(libraryQueryService, presignedUrlService, searchHistoryService);
+        inOrder.verify(libraryQueryService).searchBooksInLibrary(TEST_USER_ID, TEST_KEYWORD, 0, DEFAULT_PAGE_SIZE);
+        inOrder.verify(presignedUrlService).resolveImageUrl(TEST_USER_ID, "cover.jpg");
+        inOrder.verify(searchHistoryService).saveKeyword(TEST_USER_ID, TEST_KEYWORD, SearchType.LIBRARY);
+    }
+
+    @Test
+    @DisplayName("전체 도서 검색 실패 시 검색 이력을 저장하지 않는다")
+    void searchBooks_전체도서검색실패_이력저장안됨() {
+        // given
+        RuntimeException exception = new RuntimeException("aladin failure");
+        given(aladinService.searchItems(TEST_KEYWORD, null, DEFAULT_PAGE_SIZE)).willThrow(exception);
+
+        // when
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> bookSearchFacade.searchBooks(
+                TEST_USER_ID, TEST_KEYWORD, null, SearchType.GLOBAL));
+
+        // then
+        assertThat(thrown).isSameAs(exception);
+        verify(searchHistoryService, never()).saveKeyword(anyLong(), anyString(), any());
+    }
+
+    @Test
+    @DisplayName("내 서재 검색 실패 시 검색 이력을 저장하지 않는다")
+    void searchBooks_내서재검색실패_이력저장안됨() {
+        // given
+        RuntimeException exception = new RuntimeException("library failure");
+        given(libraryQueryService.searchBooksInLibrary(TEST_USER_ID, TEST_KEYWORD, 0, DEFAULT_PAGE_SIZE))
+                .willThrow(exception);
+
+        // when
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> bookSearchFacade.searchBooks(
+                TEST_USER_ID, TEST_KEYWORD, null, SearchType.LIBRARY));
+
+        // then
+        assertThat(thrown).isSameAs(exception);
+        verify(searchHistoryService, never()).saveKeyword(anyLong(), anyString(), any());
+    }
 
     @Test
     @DisplayName("검색 이력 조회 성공")
@@ -345,5 +406,18 @@ class BookSearchFacadeTest {
                     .build());
         }
         return books;
+    }
+
+    private Library createLibrary() {
+        Category category = Category.of(MallType.BOOK, "소설", 1);
+        Book book = Book.builder()
+                .isbn13(TEST_ISBN_1)
+                .title("테스트 도서")
+                .author("한강")
+                .publisher("창비")
+                .coverImageKey("cover.jpg")
+                .category(category)
+                .build();
+        return Library.builder().book(book).build();
     }
 }

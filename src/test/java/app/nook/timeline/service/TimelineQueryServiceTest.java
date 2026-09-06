@@ -3,21 +3,22 @@ package app.nook.timeline.service;
 import app.nook.book.domain.Book;
 import app.nook.book.domain.enums.SourceType;
 import app.nook.focus.domain.Focus;
-import app.nook.focus.domain.Theme;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import app.nook.library.exception.LibraryErrorCode;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.r2.service.PresignedUrlService;
 import app.nook.record.domain.Record;
 import app.nook.record.domain.RecordImage;
 import app.nook.record.domain.enums.Emotion;
 import app.nook.record.repository.RecordRepository;
-import app.nook.r2.service.PresignedUrlService;
 import app.nook.timeline.domain.Timeline;
 import app.nook.timeline.domain.enums.TimelineType;
+import app.nook.timeline.dto.TimelineCursor;
 import app.nook.timeline.dto.TimelineResponseDto;
 import app.nook.timeline.repository.TimelineRepository;
+import app.nook.timeline.util.TimelineCursorCodec;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import org.junit.jupiter.api.DisplayName;
@@ -26,9 +27,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
@@ -43,6 +46,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("TimelineQueryService 테스트")
@@ -100,11 +104,8 @@ class TimelineQueryServiceTest {
     }
 
     private Focus focus(Long focusId, Library library, LocalDateTime startedAt, LocalDateTime endedAt, int durationSec) {
-        Theme theme = Theme.builder().build();
-
         Focus focus = Focus.builder()
                 .library(library)
-                .theme(theme)
                 .startedAt(startedAt)
                 .endedAt(endedAt)
                 .durationSec(durationSec)
@@ -154,6 +155,64 @@ class TimelineQueryServiceTest {
                 .toList();
         ReflectionTestUtils.setField(record, "images", images);
         return record;
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {1L, 2L})
+    @DisplayName("다른 서재의 원본은 소유자가 같아도 상세에 사용하지 않는다")
+    void getTimelineDetail_다른서재_원본제외(long targetUserId) {
+        User user = user(1L);
+        Library library = library(user, 12L);
+        Library otherLibrary = library(user(targetUserId), 13L);
+        LocalDateTime startedAt = LocalDateTime.of(2026, 1, 10, 16, 0);
+        Timeline focusTimeline = timeline(30L, library, TimelineType.FOCUS, startedAt, "저장된 포커스", 7001L);
+        Timeline recordTimeline = timeline(31L, library, TimelineType.RECORD, startedAt, "저장된 기록", 9001L);
+        Focus otherFocus = focus(7001L, otherLibrary, startedAt, startedAt.plusMinutes(30), 1800);
+        ReflectionTestUtils.setField(otherFocus, "endPage", 72);
+        Record otherRecord = recordWithImages(9001L, otherLibrary, "다른 서재 본문", "FUN",
+                List.of("record/users/" + targetUserId + "/a.png"));
+
+        given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+        given(timelineRepository.findByIdAndLibrary(30L, library)).willReturn(Optional.of(focusTimeline));
+        given(timelineRepository.findByIdAndLibrary(31L, library)).willReturn(Optional.of(recordTimeline));
+        given(focusRepository.findById(7001L)).willReturn(Optional.of(otherFocus));
+        given(recordRepository.findWithImagesById(9001L)).willReturn(Optional.of(otherRecord));
+
+        assertThat(timelineQueryService.getTimelineDetail(user, 12L, 30L).detail())
+                .isEqualTo(new TimelineResponseDto.TimelineFocusDetailDto("저장된 포커스", null));
+        assertThat(timelineQueryService.getTimelineDetail(user, 12L, 31L).detail())
+                .isEqualTo(new TimelineResponseDto.TimelineRecordDetailDto("저장된 기록", null, List.of()));
+        verifyNoInteractions(presignedUrlService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {1L, 2L})
+    @DisplayName("다른 서재의 원본은 전체 및 요약 미리보기에 사용하지 않는다")
+    void getTimelinePreview_다른서재_원본제외(long targetUserId) {
+        User user = user(1L);
+        Library library = library(user, 12L);
+        Library otherLibrary = library(user(targetUserId), 13L);
+        LocalDateTime startedAt = LocalDateTime.of(2026, 1, 10, 16, 0);
+        List<Timeline> timelines = List.of(
+                timeline(30L, library, TimelineType.FOCUS, startedAt, "저장된 포커스", 7001L),
+                timeline(31L, library, TimelineType.RECORD, startedAt, null, 9001L));
+
+        given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+        given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library, PageRequest.of(0, 21))).willReturn(timelines);
+        given(timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library)).willReturn(timelines);
+        given(focusRepository.findAllById(List.of(7001L))).willReturn(List.of(
+                focus(7001L, otherLibrary, startedAt, startedAt.plusMinutes(30), 1800)));
+        given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of(
+                record(9001L, otherLibrary, "다른 서재 본문")));
+
+        TimelineResponseDto.TimelinePageDto preview = timelineQueryService.getTimelinePreview(user, 12L, null, 20);
+        List<TimelineResponseDto.TimelineItemDto> items = preview.dateGroups().get(0).items();
+        assertThat(items).hasSize(2);
+        assertThat(items.get(0).title()).isEqualTo("저장된 포커스");
+        assertThat(items.get(0).subtitle()).isNull();
+        assertThat(items.get(1).previewText()).isNull();
+        assertThat(timelineQueryService.getTimelineSummary(user, 12L).timelinePreview().dateGroups())
+                .isEqualTo(preview.dateGroups());
     }
 
     @Nested
@@ -284,19 +343,100 @@ class TimelineQueryServiceTest {
     class GetTimelinePreview {
 
         @Test
+        @DisplayName("반환한 마지막 항목으로 커서를 만들고 초과 항목은 제외한다")
+        void getTimelinePreview_마지막반환항목_커서생성() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            LocalDateTime time = LocalDateTime.parse("2026-01-12T12:00:00.123456");
+            Timeline first = timeline(105L, library, TimelineType.REGISTER, time, "등록", 12L);
+            Timeline second = timeline(104L, library, TimelineType.STATUS, time, "READING", 12L);
+            Timeline extra = timeline(103L, library, TimelineType.RECORD, time, "기록", 9001L);
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(
+                    library, PageRequest.of(0, 3)))
+                    .willReturn(List.of(first, second, extra));
+
+            TimelineResponseDto.TimelinePageDto page = timelineQueryService.getTimelinePreview(user, 12L, null, 2);
+
+            assertThat(page.dateGroups()).hasSize(1);
+            assertThat(page.dateGroups().get(0).items()).extracting(TimelineResponseDto.TimelineItemDto::timelineId)
+                    .containsExactly(105L, 104L);
+            assertThat(page.dateGroups().get(0).showYear()).isTrue();
+            assertThat(page.hasNext()).isTrue();
+            TimelineCursor cursor = TimelineCursorCodec.decode(page.nextCursor());
+            assertThat(cursor).isEqualTo(new TimelineCursor(time, 104L));
+            verifyNoInteractions(recordRepository, focusRepository);
+
+        }
+
+        @Test
+        @DisplayName("같은 날짜의 다음 페이지는 연도를 다시 표시하지 않는다")
+        void getTimelinePreview_같은날짜_다음페이지() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            LocalDateTime time = LocalDateTime.of(2026, 1, 12, 12, 0);
+            TimelineCursor cursor = new TimelineCursor(time, 104L);
+            Timeline extra = timeline(103L, library, TimelineType.RECORD, time, "기록", 9001L);
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findBeforeCursor(library, time, 104L,
+                    PageRequest.of(0, 3))).willReturn(List.of(extra));
+            given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of());
+            TimelineResponseDto.TimelinePageDto nextPage = timelineQueryService.getTimelinePreview(user, 12L, cursor, 2);
+
+            assertThat(nextPage.dateGroups().get(0).items()).extracting(TimelineResponseDto.TimelineItemDto::timelineId)
+                    .containsExactly(103L);
+            assertThat(nextPage.dateGroups().get(0).showYear()).isFalse();
+            assertThat(nextPage.hasNext()).isFalse();
+            assertThat(nextPage.nextCursor()).isNull();
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {2025, 2026})
+        @DisplayName("다음 페이지의 연도 표시는 커서의 연도와 비교한다")
+        void getTimelinePreview_커서연도_표시여부(int cursorYear) {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            TimelineCursor cursor = new TimelineCursor(LocalDateTime.of(cursorYear, 12, 31, 23, 0), 20L);
+            Timeline item = timeline(19L, library, TimelineType.REGISTER,
+                    LocalDateTime.of(2025, 12, 30, 12, 0), "등록", 12L);
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findBeforeCursor(library, cursor.occurredAt(), cursor.timelineId(),
+                    PageRequest.of(0, 2))).willReturn(List.of(item));
+
+            TimelineResponseDto.TimelinePageDto page = timelineQueryService.getTimelinePreview(user, 12L, cursor, 1);
+
+            assertThat(page.dateGroups().get(0).showYear()).isEqualTo(cursorYear != 2025);
+            assertThat(page.hasNext()).isFalse();
+            assertThat(page.nextCursor()).isNull();
+        }
+
+        @Test
+        @DisplayName("다른 사용자의 서재면 예외를 던진다")
+        void getTimelinePreview_권한없음_예외() {
+            User requester = user(1L);
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library(user(2L), 12L)));
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> timelineQueryService.getTimelinePreview(requester, 12L, null, 20));
+            assertThat(exception.getErrorCode()).isEqualTo(LibraryErrorCode.BOOK_NOT_EXIST);
+            verifyNoInteractions(timelineRepository);
+        }
+
+        @Test
         @DisplayName("기록이 없으면 빈 그룹 응답을 반환한다")
         void getTimelinePreview_빈응답() {
             User user = user(1L);
             Library library = library(user, 12L);
 
             given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
-            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library))
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library, PageRequest.of(0, 21)))
                     .willReturn(List.of());
 
-            TimelineResponseDto.TimelinePreviewDto result =
-                    timelineQueryService.getTimelinePreview(user, 12L);
+            TimelineResponseDto.TimelinePageDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L, null, 20);
 
             assertThat(result.dateGroups()).isEmpty();
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
         }
 
         @Test
@@ -315,13 +455,13 @@ class TimelineQueryServiceTest {
             );
 
             given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
-            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library))
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library, PageRequest.of(0, 21)))
                     .willReturn(timelines);
             given(focusRepository.findAllById(List.of(7001L))).willReturn(Collections.emptyList());
             given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of(record(9001L, library, "기록 preview")));
 
-            TimelineResponseDto.TimelinePreviewDto result =
-                    timelineQueryService.getTimelinePreview(user, 12L);
+            TimelineResponseDto.TimelinePageDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L, null, 20);
 
             assertThat(result.dateGroups()).hasSize(2);
             assertThat(result.dateGroups().get(0).monthDay()).isEqualTo("01.12");
@@ -344,13 +484,13 @@ class TimelineQueryServiceTest {
             );
 
             given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
-            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library))
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library, PageRequest.of(0, 21)))
                     .willReturn(timelines);
             given(focusRepository.findAllById(List.of(7001L))).willReturn(Collections.emptyList());
             given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of(record(9001L, library, "기록 preview")));
 
-            TimelineResponseDto.TimelinePreviewDto result =
-                    timelineQueryService.getTimelinePreview(user, 12L);
+            TimelineResponseDto.TimelinePageDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L, null, 20);
 
             assertThat(result.dateGroups()).hasSize(3);
             assertThat(result.dateGroups().get(0).showYear()).isTrue();
@@ -384,13 +524,13 @@ class TimelineQueryServiceTest {
             );
 
             given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
-            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library))
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library, PageRequest.of(0, 21)))
                     .willReturn(timelines);
             given(focusRepository.findAllById(List.of(7001L))).willReturn(List.of(focus));
             given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of(record(9001L, library, "기록 preview")));
 
-            TimelineResponseDto.TimelinePreviewDto result =
-                    timelineQueryService.getTimelinePreview(user, 12L);
+            TimelineResponseDto.TimelinePageDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L, null, 20);
 
             List<TimelineResponseDto.TimelineItemDto> items = result.dateGroups().stream()
                     .flatMap(group -> group.items().stream())
@@ -406,6 +546,37 @@ class TimelineQueryServiceTest {
         }
 
         @Test
+        @DisplayName("다음 날 자정에 끝난 세그먼트는 24시로 표시한다")
+        void getTimelinePreview_다음날자정_24시표시() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            Focus focus = focus(
+                    7001L,
+                    library,
+                    LocalDateTime.of(2026, 1, 10, 23, 0),
+                    LocalDateTime.of(2026, 1, 11, 0, 0),
+                    3600
+            );
+            Timeline timeline = timeline(
+                    18L,
+                    library,
+                    TimelineType.FOCUS,
+                    LocalDateTime.of(2026, 1, 10, 23, 0),
+                    "1시간의 포커스",
+                    7001L
+            );
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library, PageRequest.of(0, 21))).willReturn(List.of(timeline));
+            given(focusRepository.findAllById(List.of(7001L))).willReturn(List.of(focus));
+
+            TimelineResponseDto.TimelinePageDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L, null, 20);
+
+            assertThat(result.dateGroups().get(0).items().get(0).subtitle()).isEqualTo("23:00 - 24:00");
+        }
+
+        @Test
         @DisplayName("record preview가 비어 있으면 기록 규칙으로 fallback 한다")
         void getTimelinePreview_recordPreviewFallback() {
             User user = user(1L);
@@ -417,14 +588,14 @@ class TimelineQueryServiceTest {
             );
 
             given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
-            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library))
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library, PageRequest.of(0, 21)))
                     .willReturn(timelines);
             given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of(
                     recordWithImages(9001L, library, "   ", null, List.of("a.png", "b.png", "c.png"))
             ));
 
-            TimelineResponseDto.TimelinePreviewDto result =
-                    timelineQueryService.getTimelinePreview(user, 12L);
+            TimelineResponseDto.TimelinePageDto result =
+                    timelineQueryService.getTimelinePreview(user, 12L, null, 20);
 
             TimelineResponseDto.TimelineItemDto item = result.dateGroups().get(0).items().get(0);
             assertThat(item.title()).isEqualTo("독서 기록");
@@ -439,7 +610,7 @@ class TimelineQueryServiceTest {
 
             CustomException ex = assertThrows(
                     CustomException.class,
-                    () -> timelineQueryService.getTimelinePreview(user, 12L)
+                    () -> timelineQueryService.getTimelinePreview(user, 12L, null, 20)
             );
 
             assertThat(ex.getErrorCode()).isEqualTo(LibraryErrorCode.BOOK_NOT_EXIST);

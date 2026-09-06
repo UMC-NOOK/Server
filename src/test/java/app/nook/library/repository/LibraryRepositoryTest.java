@@ -7,8 +7,6 @@ import app.nook.book.domain.enums.SourceType;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.repository.CategoryRepository;
 import app.nook.focus.domain.Focus;
-import app.nook.focus.domain.Theme;
-import app.nook.focus.domain.enums.ThemeName;
 import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.QueryDslConfig;
 import app.nook.library.domain.Library;
@@ -107,6 +105,50 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
         bookRepository.save(book);
 
         Optional<Library> found = libraryRepository.findByUserAndBook(user, book);
+
+        assertThat(found).isEmpty();
+    }
+
+    @Test
+    void findByUserIdAndBookId_소유한도서를조회한다() {
+        User user = saveUser("owned-book@library.com", "provider-owned-book");
+        Book book = Book.builder()
+                .isbn13("1010101010103")
+                .title("소유 도서")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        bookRepository.save(book);
+        Library library = libraryRepository.save(Library.builder().user(user).book(book).build());
+
+        Optional<Library> found = libraryRepository.findByUserIdAndBookId(user.getId(), book.getId());
+
+        assertThat(found).contains(library);
+    }
+
+    @Test
+    void findByUserIdAndBookId_다른사용자가소유한도서는조회하지않는다() {
+        User owner = saveUser("book-owner@library.com", "provider-book-owner");
+        User otherUser = saveUser("book-other@library.com", "provider-book-other");
+        Book book = Book.builder()
+                .isbn13("1010101010104")
+                .title("다른 사용자 소유 도서")
+                .author("작가")
+                .sourceType(SourceType.ALADIN)
+                .build();
+        bookRepository.save(book);
+        libraryRepository.save(Library.builder().user(owner).book(book).build());
+
+        Optional<Library> found = libraryRepository.findByUserIdAndBookId(otherUser.getId(), book.getId());
+
+        assertThat(found).isEmpty();
+    }
+
+    @Test
+    void findByUserIdAndBookId_없는도서는조회하지않는다() {
+        User user = saveUser("missing-book@library.com", "provider-missing-book");
+
+        Optional<Library> found = libraryRepository.findByUserIdAndBookId(user.getId(), Long.MAX_VALUE);
 
         assertThat(found).isEmpty();
     }
@@ -509,8 +551,6 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
     void findAllBooksByCursor_최근포커스순_정렬과커서조건을검증한다() {
         User user = saveUser("recent-focus@library.com", "provider-recent-focus");
         User otherUser = saveUser("recent-focus-other@library.com", "provider-recent-focus-other");
-        Theme theme = saveTheme();
-
         Library oldFocused = saveLibrary(user, "최근 포커스 오래됨");
         Library recentFocused = saveLibrary(user, "최근 포커스 최신");
         Library noFocused = saveLibrary(user, "포커스 없음");
@@ -519,10 +559,10 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
 
         LocalDateTime oldEndedAt = LocalDateTime.of(2026, 5, 1, 21, 0);
         LocalDateTime recentEndedAt = LocalDateTime.of(2026, 5, 3, 21, 0);
-        saveFocus(oldFocused, theme, oldEndedAt);
-        saveFocus(recentFocused, theme, recentEndedAt);
-        saveFocus(sameTimeFocused, theme, recentEndedAt);
-        saveFocus(otherUserLibrary, theme, LocalDateTime.of(2026, 5, 4, 21, 0));
+        saveFocus(oldFocused, oldEndedAt);
+        saveFocus(recentFocused, recentEndedAt);
+        saveFocus(sameTimeFocused, recentEndedAt);
+        saveFocus(otherUserLibrary, LocalDateTime.of(2026, 5, 4, 21, 0));
         em.flush();
         em.clear();
 
@@ -721,19 +761,9 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
         return libraryRepository.save(library);
     }
 
-    private Theme saveTheme() {
-        Theme theme = Theme.builder()
-                .name(ThemeName.THEME1)
-                .imageUrl("https://cdn.nook.com/themes/theme1.png")
-                .build();
-        em.persist(theme);
-        return theme;
-    }
-
-    private void saveFocus(Library library, Theme theme, LocalDateTime endedAt) {
+    private void saveFocus(Library library, LocalDateTime endedAt) {
         Focus focus = Focus.builder()
                 .library(library)
-                .theme(theme)
                 .startedAt(endedAt.minusMinutes(30))
                 .endedAt(endedAt)
                 .durationSec(1800)

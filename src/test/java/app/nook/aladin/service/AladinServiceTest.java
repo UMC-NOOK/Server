@@ -61,7 +61,9 @@ class AladinServiceTest {
 
         // then
         assertThat(result).hasSize(3);
-        assertThat(result.get(0).title()).isEqualTo("채식주의자");
+        assertThat(result.get(0).title()).isEqualTo("<채식주의자> & 문장");
+        assertThat(result.get(0).author()).isEqualTo("A & B");
+        assertThat(result.get(0).publisher()).isEqualTo("<출판사>");
         assertThat(result.get(0).rank()).isEqualTo(1);
         assertThat(result.get(1).title()).isEqualTo("소년이 온다");
         assertThat(result.get(1).rank()).isEqualTo(2);
@@ -126,7 +128,9 @@ class AladinServiceTest {
         assertThat(result.books()).hasSize(2);
         assertThat(result.hasNext()).isTrue();
         assertThat(result.nextCursor()).isEqualTo(2);
-        assertThat(result.books().get(0).getTitle()).isEqualTo("채식주의자");
+        assertThat(result.books().get(0).getTitle()).isEqualTo("<채식주의자> & 문장");
+        assertThat(result.books().get(0).getAuthor()).isEqualTo("A & B");
+        assertThat(result.books().get(0).getPublisher()).isEqualTo("<출판사>");
         assertThat(result.books().get(0).getMallType()).isEqualTo("국내도서");
         server.verify();
     }
@@ -210,7 +214,12 @@ class AladinServiceTest {
 
         // then
         assertThat(result.getIsbn13()).isEqualTo("9788936434267");
-        assertThat(result.getTitle()).isEqualTo("채식주의자");
+        assertThat(result.getTitle()).isEqualTo("<채식주의자> & 문장");
+        assertThat(result.getAuthor()).isEqualTo("A & B");
+        assertThat(result.getPublisher()).isEqualTo("<출판사>");
+        assertThat(result.getDescription()).isEqualTo("설명 & 소개");
+        assertThat(result.getAladinLink()).isEqualTo("https://aladin.test/detail?ItemId=1&partner=2&start=3");
+        assertThat(result.getCoverImageUrl()).isEqualTo("https://img.test/detail&amp;raw.jpg");
         assertThat(result.getMallTypeCode().name()).isEqualTo("BOOK");
         assertThat(result.getMallType()).isEqualTo("국내도서");
         assertThat(result.getCategory()).isEqualTo("소설/시/희곡");
@@ -336,11 +345,11 @@ class AladinServiceTest {
                     "item": [
                       {
                         "isbn13": "9788936434267",
-                        "title": "채식주의자",
-                        "author": "한강",
+                        "title": "&lt;채식주의자&gt; &amp; 문장",
+                        "author": "A &amp; B",
                         "categoryName": "국내도서>소설/시/희곡",
                         "mallType": "BOOK",
-                        "publisher": "창비",
+                        "publisher": "&lt;출판사&gt;",
                         "cover": "https://img.test/1.jpg",
                         "link": "https://aladin.test/1",
                         "adult": false
@@ -390,11 +399,11 @@ class AladinServiceTest {
                     "item": [
                       {
                         "isbn13": "9788936434267",
-                        "title": "채식주의자",
-                        "author": "한강",
+                        "title": "&lt;채식주의자&gt; &amp; 문장",
+                        "author": "A &amp; B",
                         "categoryName": "국내도서>소설/시/희곡",
                         "mallType": "BOOK",
-                        "publisher": "창비",
+                        "publisher": "&lt;출판사&gt;",
                         "pubDate": "2024-01-01",
                         "cover": "https://img.test/1.jpg",
                         "adult": false
@@ -464,11 +473,11 @@ class AladinServiceTest {
                     "item": [
                       {
                         "isbn13": "9788936434267",
-                        "title": "채식주의자",
-                        "author": "한강",
+                        "title": "&lt;채식주의자&gt; &amp; 문장",
+                        "author": "A &amp; B",
                         "categoryName": "국내도서>소설/시/희곡",
                         "mallType": "BOOK",
-                        "publisher": "창비",
+                        "publisher": "&lt;출판사&gt;",
                         "pubDate": "2024-01-01",
                         "cover": "https://img.test/1.jpg",
                         "adult": false
@@ -538,15 +547,15 @@ class AladinServiceTest {
                     "item": [
                       {
                         "isbn13": "9788936434267",
-                        "title": "채식주의자",
-                        "author": "한강",
+                        "title": "&lt;채식주의자&gt; &amp; 문장",
+                        "author": "A &amp; B",
                         "categoryName": "국내도서>라이트 노벨",
                         "mallType": "BOOK",
-                        "publisher": "창비",
+                        "publisher": "&lt;출판사&gt;",
                         "pubDate": "2024-01-01",
-                        "description": "설명",
-                        "cover": "https://img.test/detail.jpg",
-                        "link": "https://aladin.test/detail",
+                        "description": "설명 &amp; 소개",
+                        "cover": "https://img.test/detail&amp;raw.jpg",
+                        "link": "https://aladin.test/detail?ItemId=1&amp;partner=2&amp;start=3",
                         "adult": false,
                         "subInfo": {
                           "itemPage": 184

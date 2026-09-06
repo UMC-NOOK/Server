@@ -2,6 +2,7 @@ package app.nook.timeline.repository;
 
 import app.nook.book.domain.Book;
 import app.nook.book.domain.enums.SourceType;
+import app.nook.book.repository.BookRepository;
 import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.QueryDslConfig;
 import app.nook.library.domain.Library;
@@ -11,11 +12,11 @@ import app.nook.timeline.domain.enums.TimelineType;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.repository.UserRepository;
-import app.nook.book.repository.BookRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -119,7 +120,7 @@ class TimelineRepositoryTest extends AbstractPostgresContainerTests {
                 "기록 preview"
         );
 
-        List<Timeline> result = timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library);
+        List<Timeline> result = timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library, PageRequest.of(0, 20));
 
         assertThat(result).hasSize(3);
         assertThat(result.get(0).getId()).isEqualTo(newest.getId());

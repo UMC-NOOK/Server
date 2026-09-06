@@ -136,6 +136,9 @@ public class RecordQueryRepositoryImpl implements RecordQueryRepository{
         if (emotion == null) {
             return null;
         }
+        if (emotion == Emotion.EMPTY) {
+            return emotionPath.eq(Emotion.EMPTY).or(emotionPath.isNull());
+        }
         return emotionPath.eq(emotion);
     }
 

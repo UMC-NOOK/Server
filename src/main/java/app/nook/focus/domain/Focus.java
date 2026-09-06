@@ -1,7 +1,6 @@
 package app.nook.focus.domain;
 
 import app.nook.global.common.BaseEntity;
-import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,6 +11,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -23,6 +23,7 @@ import java.time.LocalTime;
                         name = "idx_focus_library_focus_date",
                         columnList = "library_id, focus_date"
                 ),
+                @Index(name = "idx_focus_library_session", columnList = "library_id, session_id"),
         }
 )
 public class Focus extends BaseEntity {
@@ -37,9 +38,8 @@ public class Focus extends BaseEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Library library;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "theme_id", nullable = false)
-    private Theme theme;
+    @Column(name = "session_id", nullable = false, updatable = false)
+    private UUID sessionId;
 
     @Column(name = "started_at")
     private LocalDateTime startedAt;
@@ -64,14 +64,14 @@ public class Focus extends BaseEntity {
 
     @Builder
     public Focus(
-            Theme theme,
             LocalDateTime startedAt,
             LocalDateTime endedAt,
             Integer durationSec,
             Integer endPage,
-            Library library
+            Library library,
+            UUID sessionId
     ) {
-        this.theme = theme;
+        this.sessionId = sessionId == null ? UUID.randomUUID() : sessionId;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.durationSec = durationSec;
@@ -91,5 +91,15 @@ public class Focus extends BaseEntity {
         this.endPage = endPage;
         this.endedTime = endedAt.toLocalTime();
         this.durationSec = (int) Duration.between(this.startedAt, endedAt).getSeconds();
+    }
+
+    public void completeSegment(LocalDateTime startedAt, LocalDateTime endedAt, Integer endPage) {
+        this.startedAt = startedAt;
+        this.focusDate = startedAt.toLocalDate();
+        this.startedTime = startedAt.toLocalTime();
+        this.endedAt = endedAt;
+        this.endedTime = endedAt.toLocalTime();
+        this.durationSec = Math.toIntExact(Duration.between(startedAt, endedAt).getSeconds());
+        this.endPage = endPage;
     }
 }

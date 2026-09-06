@@ -136,6 +136,7 @@ class RecordRepositoryTest extends AbstractPostgresContainerTests {
             persistRecord(library, Emotion.FUN, "재미1", LocalDateTime.of(2026, 4, 1, 10, 0));
             persistRecord(library, Emotion.FUN, "재미2", LocalDateTime.of(2026, 4, 2, 10, 0));
             persistRecord(library, Emotion.SAD, "슬픔", LocalDateTime.of(2026, 4, 3, 10, 0));
+            persistRecord(library, Emotion.EMPTY, "감정 미입력", LocalDateTime.of(2026, 4, 4, 10, 0));
             Book otherBook = persistBook("다른 책", "다른 작가");
             Library otherBookLibrary = persistLibrary(user, otherBook);
             persistRecord(otherBookLibrary, Emotion.FUN, "다른 책 기록", LocalDateTime.of(2026, 4, 3, 11, 0));
@@ -147,8 +148,8 @@ class RecordRepositoryTest extends AbstractPostgresContainerTests {
             BookRecordDto.RecordEmotionCountResponse result = recordRepository.countRecordsByEmotion(user.getId(), book.getId());
 
             // then
-            assertThat(result.totalCount()).isEqualTo(3L);
-            assertThat(result.emotionCounts()).hasSize(2);
+            assertThat(result.totalCount()).isEqualTo(4L);
+            assertThat(result.emotionCounts()).hasSize(3);
             assertThat(result.emotionCounts())
                     .anySatisfy(item -> {
                         assertThat(item.emotion()).isEqualTo("FUN");
@@ -156,6 +157,10 @@ class RecordRepositoryTest extends AbstractPostgresContainerTests {
                     })
                     .anySatisfy(item -> {
                         assertThat(item.emotion()).isEqualTo("SAD");
+                        assertThat(item.recordCount()).isEqualTo(1L);
+                    })
+                    .anySatisfy(item -> {
+                        assertThat(item.emotion()).isEqualTo("EMPTY");
                         assertThat(item.recordCount()).isEqualTo(1L);
                     });
         }

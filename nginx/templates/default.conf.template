@@ -1,13 +1,21 @@
-upstream nook_app {
-    server app:8080;
-    keepalive 32;
-}
-
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
     return 444;
+}
+
+server {
+    listen 9091;
+    listen [::]:9091;
+    server_name _;
+
+    location / {
+        proxy_pass http://nook_management;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
 }
 
 server {

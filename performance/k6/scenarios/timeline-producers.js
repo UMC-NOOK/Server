@@ -103,31 +103,11 @@ function createRecordTimeline(params) {
 }
 
 function createFocusTimeline(params) {
-  const themes = get("/api/v1/focuses/themes", {
-    ...params,
-    tags: { name: "timeline-producers:themes" },
-  });
-  const themesOk = checkApiResponse(themes, {
-    label: "timeline producers themes",
-    statuses: [200],
-    requireResult: true,
-  });
-  if (!themesOk) {
-    throw new Error(`timeline producers themes failed. status=${themes.status}`);
-  }
-
-  const theme = (themes.json("result.themes") || [])[0];
-  if (!theme?.themeId) {
-    console.warn("No focus themes found. Skipping FOCUS timeline producer.");
-    return;
-  }
-
   const book = createUserBook(params, { title: `k6 timeline focus ${__ITER}` }, "timeline-producers:create-focus-book");
   const start = post(
     "/api/v1/focuses/start",
     {
-      libraryId: book.libraryId,
-      themeId: theme.themeId,
+      bookId: book.bookId,
     },
     {
       ...params,

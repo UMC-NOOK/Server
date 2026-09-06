@@ -88,24 +88,24 @@ Docker 명령만 확인하려면 `JOURNEYS_PER_SECOND=1 make k6-dry-mixed-read`�
 
 ## mixed-read 해석
 
-`JOURNEYS_PER_SECOND`는 HTTP RPS가 아니라 journey 시작률입니다. 모든 detail 대상이 있으면 한 journey가 최대 18개 요청을 순차 실행합니다.
+`JOURNEYS_PER_SECOND`는 HTTP RPS가 아니라 journey 시작률입니다. 모든 detail 대상이 있으면 한 journey가 최대 17개 요청을 순차 실행합니다.
 
 | 그룹 | 최대 요청 수 |
 |---|---:|
 | book/search | 3 |
 | library | 6 |
 | records | 4 |
-| focus | 2 |
+| focus | 1 |
 | timeline | 3 |
 
-따라서 1 journey/s는 최대 약 18 HTTP RPS, 5 journey/s는 최대 약 90 HTTP RPS입니다. 선택할 record나 timeline detail이 없으면 실제 요청 수는 더 적습니다. 러너가 실행 전에 journey rate와 예상 최대 HTTP RPS를 출력합니다.
+따라서 1 journey/s는 최대 약 17 HTTP RPS, 5 journey/s는 최대 약 85 HTTP RPS입니다. 선택할 record나 timeline detail이 없으면 실제 요청 수는 더 적습니다. 러너가 실행 전에 journey rate와 예상 최대 HTTP RPS를 출력합니다.
 
 ```bash
 JOURNEYS_PER_SECOND=5 make k6-mixed-read
 JOURNEYS_PER_SECOND=10 make k6-mixed-read
 ```
 
-mixed-read는 전체 지표와 함께 18개 요청의 `name` 태그별 p95와 실패율을 각각 판정합니다. 기본 `P95_THRESHOLD_MS=1000`, `FAILED_RATE_THRESHOLD=0.01`은 staging baseline 전의 임시 engineering gate입니다.
+mixed-read는 전체 지표와 함께 17개 요청의 `name` 태그별 p95와 실패율을 각각 판정합니다. 기본 `P95_THRESHOLD_MS=1000`, `FAILED_RATE_THRESHOLD=0.01`은 staging baseline 전의 임시 engineering gate입니다.
 
 필요한 VU를 확보하지 못해 시작되지 않은 journey는 `dropped_iterations`입니다. 기본 `MAX_DROPPED_ITERATIONS=0`은 하나라도 누락되면 실패합니다. 탐색 실행에서만 명시적으로 허용치를 바꿉니다.
 
@@ -266,7 +266,7 @@ macOS에서는 Docker Desktop과 `jq`를 준비하며, 검증 스크립트는 ma
 make k6-test
 ```
 
-이 명령은 셸 구문, 러너의 시나리오 매핑과 원격 안전 정책, 13개 시나리오의 k6 options 파싱, seed profile·manifest 생명주기, 단일 API 11개 route와 arrival/ramping threshold, 통계 캐시 4개 route와 exact eviction 계약, 결과 메타데이터, mixed-read 18개 요청별 threshold, exporter·Prometheus·Actuator·Grafana 계약과 Compose 구성을 검사합니다.
+이 명령은 셸 구문, 러너의 시나리오 매핑과 원격 안전 정책, 13개 시나리오의 k6 options 파싱, seed profile·manifest 생명주기, 단일 API 11개 route와 arrival/ramping threshold, 통계 캐시 4개 route와 exact eviction 계약, 결과 메타데이터, mixed-read 17개 요청별 threshold, exporter·Prometheus·Actuator·Grafana 계약과 Compose 구성을 검사합니다.
 
 시나리오를 추가할 때는 다음만 수정합니다.
 

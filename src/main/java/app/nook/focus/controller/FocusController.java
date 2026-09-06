@@ -5,15 +5,17 @@ import app.nook.focus.dto.FocusRequestDto;
 import app.nook.focus.dto.FocusResponseDto;
 import app.nook.focus.service.FocusQueryService;
 import app.nook.focus.service.FocusService;
-import app.nook.focus.service.ThemeService;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
+import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.user.annotation.CurrentUser;
 import app.nook.user.domain.User;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -25,17 +27,8 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class FocusController {
 
-    private final ThemeService themeService;
     private final FocusService focusService;
     private final FocusQueryService focusQueryService;
-
-    @GetMapping("/themes")
-    public ApiResponse<FocusResponseDto.ThemeListDto> getThemes() {
-        return ApiResponse.onSuccess(
-                themeService.getThemes(),
-                SuccessCode.OK
-        );
-    }
 
     @PostMapping("/start")
     public ApiResponse<FocusResponseDto.FocusStart> startFocus(
@@ -53,6 +46,15 @@ public class FocusController {
         return ApiResponse.onSuccess(focusService.endFocus(user.getId(), request), SuccessCode.OK);
     }
 
+    @DeleteMapping("/{focusId}")
+    public ApiResponse<Void> deleteFocus(
+            @CurrentUser User user,
+            @PathVariable @Positive Long focusId
+    ) {
+        focusService.deleteFocus(user.getId(), focusId);
+        return ApiResponse.onSuccess(null, SuccessCode.OK);
+    }
+
     @GetMapping("/recent")
     public ApiResponse<CursorResponse<FocusResponseDto.RecentFocusItem, Long>> getRecentFocuses(
             @CurrentUser User user,
@@ -60,5 +62,19 @@ public class FocusController {
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     ) {
         return ApiResponse.onSuccess(focusQueryService.getRecentFocuses(user, cursor, size), SuccessCode.OK);
+    }
+
+    @GetMapping("/home")
+    public ApiResponse<FocusResponseDto.HomeResponse> getFocusHome(
+            @CurrentUser User user,
+            @RequestParam @NotNull ReadingStatus status,
+            @RequestParam(required = false) @Min(0) Long cursor,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
+    ) {
+        Long normalizedCursor = (cursor != null && cursor == 0L) ? null : cursor;
+        return ApiResponse.onSuccess(
+                focusQueryService.getFocusHome(user, status, normalizedCursor, size),
+                SuccessCode.OK
+        );
     }
 }

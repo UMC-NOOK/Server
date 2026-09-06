@@ -95,10 +95,12 @@ public class RecordQueryService {
         BookRecordDto.RecordEmotionCountResponse response = recordRepository.countRecordsByEmotion(user.getId(), bookId);
 
         Map<Emotion, Long> emotionCountMap = new EnumMap<>(Emotion.class);
-        response.emotionCounts().forEach(item -> emotionCountMap.put(Emotion.valueOf(item.emotion()), item.recordCount()));
+        response.emotionCounts().forEach(item -> {
+            Emotion emotion = item.emotion() == null ? Emotion.EMPTY : Emotion.valueOf(item.emotion());
+            emotionCountMap.merge(emotion, item.recordCount(), Long::sum);
+        });
 
         List<BookRecordDto.RecordEmotionDto> normalizedEmotionCounts = Arrays.stream(Emotion.values())
-                .filter(emotion -> emotion != Emotion.EMPTY)
                 .map(emotion -> new BookRecordDto.RecordEmotionDto(
                         emotion.name(),
                         emotionCountMap.getOrDefault(emotion, 0L)
@@ -176,11 +178,7 @@ public class RecordQueryService {
         }
 
         try {
-            Emotion parsedEmotion = Emotion.valueOf(emotion.trim().toUpperCase());
-            if (parsedEmotion == Emotion.EMPTY) {
-                throw new CustomException(CommonErrorCode.INVALID_REQUEST);
-            }
-            return parsedEmotion;
+            return Emotion.valueOf(emotion.trim().toUpperCase());
         } catch (IllegalArgumentException exception) {
             throw new CustomException(CommonErrorCode.INVALID_REQUEST);
         }

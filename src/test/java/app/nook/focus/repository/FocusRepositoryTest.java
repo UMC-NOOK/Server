@@ -2,10 +2,9 @@ package app.nook.focus.repository;
 
 import app.nook.book.domain.Book;
 import app.nook.focus.domain.Focus;
-import app.nook.focus.domain.Theme;
-import app.nook.focus.domain.enums.ThemeName;
 import app.nook.global.common.AbstractPostgresContainerTests;
 import app.nook.global.config.QueryDslConfig;
+import app.nook.focus.repository.dto.MonthlyFocusStatsDto;
 import app.nook.library.domain.Library;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
@@ -21,9 +20,12 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,9 +38,6 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
 
     @Autowired
     private FocusRepository focusRepository;
-
-    @Autowired
-    private ThemeRepository themeRepository;
 
     @Autowired
     private TestEntityManager em;
@@ -68,16 +67,8 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
                 .build();
         em.persist(library);
 
-        Theme theme = themeRepository.save(
-                Theme.builder()
-                        .name(ThemeName.THEME1)
-                        .imageUrl("https://cdn.nook.com/themes/theme1.png")
-                        .build()
-        );
-
         Focus focus = Focus.builder()
                 .library(library)
-                .theme(theme)
                 .startedAt(LocalDateTime.of(2026, 3, 22, 14, 0, 0))
                 .endedAt(null)
                 .durationSec(0)
@@ -121,16 +112,8 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
                 .build();
         em.persist(library);
 
-        Theme theme = themeRepository.save(
-                Theme.builder()
-                        .name(ThemeName.THEME2)
-                        .imageUrl("https://cdn.nook.com/themes/theme2.png")
-                        .build()
-        );
-
         Focus endedFocus = Focus.builder()
                 .library(library)
-                .theme(theme)
                 .startedAt(LocalDateTime.of(2026, 3, 22, 14, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 3, 22, 14, 30, 0))
                 .durationSec(1800)
@@ -172,16 +155,8 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
                 .build();
         em.persist(library);
 
-        Theme theme = themeRepository.save(
-                Theme.builder()
-                        .name(ThemeName.THEME3)
-                        .imageUrl("https://cdn.nook.com/themes/theme3.png")
-                        .build()
-        );
-
         Focus focus = Focus.builder()
                 .library(library)
-                .theme(theme)
                 .startedAt(LocalDateTime.of(2026, 3, 22, 15, 0, 0))
                 .endedAt(null)
                 .durationSec(0)
@@ -234,16 +209,8 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
                 .build();
         em.persist(library);
 
-        Theme theme = themeRepository.save(
-                Theme.builder()
-                        .name(ThemeName.THEME1)
-                        .imageUrl("https://cdn.nook.com/themes/theme1.png")
-                        .build()
-        );
-
         Focus focus = Focus.builder()
                 .library(library)
-                .theme(theme)
                 .startedAt(LocalDateTime.of(2026, 3, 22, 16, 0, 0))
                 .endedAt(null)
                 .durationSec(0)
@@ -257,6 +224,79 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         Optional<Focus> result = focusRepository.findByIdAndLibraryUserId(focus.getId(), otherUser.getId());
 
         // then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("종료 잠금 조회는 소유자의 포커스만 반환한다")
+    void findByIdAndLibraryUserIdForUpdate_소유포커스조회성공() {
+        // Given
+        User owner = User.builder()
+                .email("lock-owner@example.com")
+                .nickName("잠금소유자")
+                .provider("google")
+                .providerId("lock-owner-provider")
+                .role(UserRole.USER)
+                .build();
+        em.persist(owner);
+        Book book = Book.builder().title("잠금 테스트 책").author("작가").build();
+        em.persist(book);
+        Library library = Library.builder().user(owner).book(book).build();
+        em.persist(library);
+        Focus focus = Focus.builder()
+                .library(library)
+                .startedAt(LocalDateTime.of(2026, 8, 1, 23, 0))
+                .durationSec(0)
+                .build();
+        em.persist(focus);
+        em.flush();
+        em.clear();
+
+        // When
+        Optional<Focus> result = focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), owner.getId());
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.orElseThrow().getId()).isEqualTo(focus.getId());
+    }
+
+    @Test
+    @DisplayName("종료 잠금 조회는 다른 유저의 포커스를 숨긴다")
+    void findByIdAndLibraryUserIdForUpdate_다른유저는조회실패() {
+        // Given
+        User owner = User.builder()
+                .email("lock-owner-foreign@example.com")
+                .nickName("잠금소유자")
+                .provider("google")
+                .providerId("lock-owner-foreign-provider")
+                .role(UserRole.USER)
+                .build();
+        User foreignUser = User.builder()
+                .email("lock-foreign@example.com")
+                .nickName("잠금외부사용자")
+                .provider("google")
+                .providerId("lock-foreign-provider")
+                .role(UserRole.USER)
+                .build();
+        em.persist(owner);
+        em.persist(foreignUser);
+        Book book = Book.builder().title("잠금 외부 테스트 책").author("작가").build();
+        em.persist(book);
+        Library library = Library.builder().user(owner).book(book).build();
+        em.persist(library);
+        Focus focus = Focus.builder()
+                .library(library)
+                .startedAt(LocalDateTime.of(2026, 8, 1, 23, 0))
+                .durationSec(0)
+                .build();
+        em.persist(focus);
+        em.flush();
+        em.clear();
+
+        // When
+        Optional<Focus> result = focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), foreignUser.getId());
+
+        // Then
         assertThat(result).isEmpty();
     }
 
@@ -278,15 +318,8 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         Library library = Library.builder().user(user).book(book).build();
         em.persist(library);
 
-        Theme theme = themeRepository.save(
-                Theme.builder()
-                        .name(ThemeName.THEME1)
-                        .imageUrl("https://cdn.nook.com/themes/theme1.png")
-                        .build()
-        );
-
         Focus older = Focus.builder()
-                .library(library).theme(theme)
+                .library(library)
                 .startedAt(LocalDateTime.of(2026, 4, 1, 10, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 4, 1, 10, 30, 0))
                 .durationSec(1800)
@@ -294,7 +327,7 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         em.persist(older);
 
         Focus newer = Focus.builder()
-                .library(library).theme(theme)
+                .library(library)
                 .startedAt(LocalDateTime.of(2026, 4, 2, 10, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 4, 2, 10, 30, 0))
                 .durationSec(1800)
@@ -303,7 +336,7 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
 
         // endedAt == null 인 진행 중 포커스 (결과에 포함되면 안 됨)
         Focus inProgress = Focus.builder()
-                .library(library).theme(theme)
+                .library(library)
                 .startedAt(LocalDateTime.of(2026, 4, 3, 10, 0, 0))
                 .endedAt(null)
                 .durationSec(0)
@@ -339,15 +372,8 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         Library library = Library.builder().user(user).book(book).build();
         em.persist(library);
 
-        Theme theme = themeRepository.save(
-                Theme.builder()
-                        .name(ThemeName.THEME2)
-                        .imageUrl("https://cdn.nook.com/themes/theme2.png")
-                        .build()
-        );
-
         Focus focus1 = Focus.builder()
-                .library(library).theme(theme)
+                .library(library)
                 .startedAt(LocalDateTime.of(2026, 5, 1, 10, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 5, 1, 10, 30, 0))
                 .durationSec(1800)
@@ -355,7 +381,7 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         em.persist(focus1);
 
         Focus focus2 = Focus.builder()
-                .library(library).theme(theme)
+                .library(library)
                 .startedAt(LocalDateTime.of(2026, 5, 2, 10, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 5, 2, 10, 30, 0))
                 .durationSec(1800)
@@ -363,7 +389,7 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         em.persist(focus2);
 
         Focus focus3 = Focus.builder()
-                .library(library).theme(theme)
+                .library(library)
                 .startedAt(LocalDateTime.of(2026, 5, 3, 10, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 5, 3, 10, 30, 0))
                 .durationSec(1800)
@@ -400,16 +426,9 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         Library library = Library.builder().user(user).book(book).build();
         em.persist(library);
 
-        Theme theme = themeRepository.save(
-                Theme.builder()
-                        .name(ThemeName.THEME3)
-                        .imageUrl("https://cdn.nook.com/themes/theme3.png")
-                        .build()
-        );
-
         for (int i = 1; i <= 3; i++) {
             em.persist(Focus.builder()
-                    .library(library).theme(theme)
+                    .library(library)
                     .startedAt(LocalDateTime.of(2026, 6, i, 10, 0, 0))
                     .endedAt(LocalDateTime.of(2026, 6, i, 10, 30, 0))
                     .durationSec(1800)
@@ -455,22 +474,15 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         Library otherLibrary = Library.builder().user(other).book(book).build();
         em.persist(otherLibrary);
 
-        Theme theme = themeRepository.save(
-                Theme.builder()
-                        .name(ThemeName.THEME1)
-                        .imageUrl("https://cdn.nook.com/themes/theme1.png")
-                        .build()
-        );
-
         em.persist(Focus.builder()
-                .library(ownerLibrary).theme(theme)
+                .library(ownerLibrary)
                 .startedAt(LocalDateTime.of(2026, 7, 1, 10, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 7, 1, 10, 30, 0))
                 .durationSec(1800)
                 .build());
 
         em.persist(Focus.builder()
-                .library(otherLibrary).theme(theme)
+                .library(otherLibrary)
                 .startedAt(LocalDateTime.of(2026, 7, 1, 11, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 7, 1, 11, 30, 0))
                 .durationSec(1800)
@@ -523,16 +535,8 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
                 .build();
         em.persist(libraryB);
 
-        Theme theme = themeRepository.save(
-                Theme.builder()
-                        .name(ThemeName.THEME1)
-                        .imageUrl("https://cdn.nook.com/themes/theme1.png")
-                        .build()
-        );
-
         Focus firstA = Focus.builder()
                 .library(libraryA)
-                .theme(theme)
                 .startedAt(LocalDateTime.of(2026, 4, 11, 10, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 4, 11, 10, 30, 0))
                 .durationSec(1800)
@@ -541,7 +545,6 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
 
         Focus focusB = Focus.builder()
                 .library(libraryB)
-                .theme(theme)
                 .startedAt(LocalDateTime.of(2026, 4, 11, 11, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 4, 11, 11, 20, 0))
                 .durationSec(1200)
@@ -550,7 +553,6 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
 
         Focus secondA = Focus.builder()
                 .library(libraryA)
-                .theme(theme)
                 .startedAt(LocalDateTime.of(2026, 4, 11, 12, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 4, 11, 12, 40, 0))
                 .durationSec(2400)
@@ -559,7 +561,6 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
 
         Focus olderB = Focus.builder()
                 .library(libraryB)
-                .theme(theme)
                 .startedAt(LocalDateTime.of(2026, 4, 11, 9, 0, 0))
                 .endedAt(LocalDateTime.of(2026, 4, 11, 9, 20, 0))
                 .durationSec(1200)
@@ -576,5 +577,107 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
         assertThat(result.get(1).getLibrary().getBook().getTitle()).isEqualTo("B 책");
         assertThat(result.get(0).getId()).isEqualTo(secondA.getId());
         assertThat(result.get(1).getId()).isEqualTo(focusB.getId());
+    }
+
+    @Test
+    @DisplayName("유저의 날짜별 도서 포커스 시간을 합산하고 조회 범위와 소유자를 분리한다")
+    void findMonthlyFocusStats_날짜별도서합산및범위격리() {
+        // given
+        LocalDate targetDate = LocalDate.of(2026, 8, 10);
+        User owner = User.builder()
+                .email("monthly-stats-owner@example.com")
+                .nickName("통계소유자")
+                .provider("google")
+                .providerId("monthly-stats-owner-provider")
+                .role(UserRole.USER)
+                .build();
+        User other = User.builder()
+                .email("monthly-stats-other@example.com")
+                .nickName("다른통계유저")
+                .provider("google")
+                .providerId("monthly-stats-other-provider")
+                .role(UserRole.USER)
+                .build();
+        em.persist(owner);
+        em.persist(other);
+
+        Book firstBook = Book.builder().title("첫 번째 책").author("작가1").build();
+        Book secondBook = Book.builder().title("두 번째 책").author("작가2").build();
+        em.persist(firstBook);
+        em.persist(secondBook);
+
+        Library ownerFirstLibrary = Library.builder().user(owner).book(firstBook).build();
+        Library ownerSecondLibrary = Library.builder().user(owner).book(secondBook).build();
+        Library otherFirstLibrary = Library.builder().user(other).book(firstBook).build();
+        em.persist(ownerFirstLibrary);
+        em.persist(ownerSecondLibrary);
+        em.persist(otherFirstLibrary);
+
+        em.persist(Focus.builder()
+                .library(ownerFirstLibrary)
+                .startedAt(targetDate.atTime(10, 0))
+                .endedAt(targetDate.atTime(10, 20))
+                .durationSec(1_200)
+                .build());
+        em.persist(Focus.builder()
+                .library(ownerFirstLibrary)
+                .startedAt(targetDate.atTime(11, 0))
+                .endedAt(targetDate.atTime(11, 30))
+                .durationSec(1_800)
+                .build());
+        em.persist(Focus.builder()
+                .library(ownerFirstLibrary)
+                .startedAt(targetDate.atTime(12, 0))
+                .endedAt(null)
+                .durationSec(0)
+                .build());
+        em.persist(Focus.builder()
+                .library(ownerSecondLibrary)
+                .startedAt(targetDate.atTime(13, 0))
+                .endedAt(targetDate.atTime(13, 15))
+                .durationSec(900)
+                .build());
+        em.persist(Focus.builder()
+                .library(ownerFirstLibrary)
+                .startedAt(targetDate.minusDays(1).atTime(23, 0))
+                .endedAt(targetDate.minusDays(1).atTime(23, 10))
+                .durationSec(600)
+                .build());
+        em.persist(Focus.builder()
+                .library(ownerFirstLibrary)
+                .startedAt(targetDate.plusDays(1).atTime(0, 10))
+                .endedAt(targetDate.plusDays(1).atTime(0, 25))
+                .durationSec(900)
+                .build());
+        em.persist(Focus.builder()
+                .library(otherFirstLibrary)
+                .startedAt(targetDate.atTime(14, 0))
+                .endedAt(targetDate.atTime(16, 0))
+                .durationSec(7_200)
+                .build());
+
+        em.flush();
+        em.clear();
+
+        // when
+        List<MonthlyFocusStatsDto> result = focusRepository.findMonthlyFocusStats(
+                owner.getId(),
+                targetDate,
+                targetDate.plusDays(1)
+        );
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result).allSatisfy(row -> assertThat(row.getFocusDate()).isEqualTo(targetDate));
+
+        Map<Long, Long> totalsByBook = result.stream()
+                .collect(Collectors.toMap(
+                        MonthlyFocusStatsDto::getBookId,
+                        MonthlyFocusStatsDto::getTotalSec
+                ));
+        assertThat(totalsByBook).containsExactlyInAnyOrderEntriesOf(Map.of(
+                firstBook.getId(), 3_000L,
+                secondBook.getId(), 900L
+        ));
     }
 }

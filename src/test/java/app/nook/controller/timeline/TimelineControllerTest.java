@@ -6,31 +6,41 @@ import app.nook.global.config.WebSecurityConfig;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.timeline.controller.TimelineController;
 import app.nook.timeline.domain.enums.TimelineType;
+import app.nook.timeline.dto.TimelineCursor;
 import app.nook.timeline.dto.TimelineResponseDto;
 import app.nook.timeline.service.TimelineQueryService;
+import app.nook.timeline.util.TimelineCursorCodec;
 import app.nook.user.filter.JwtExceptionFilter;
 import app.nook.user.filter.JwtFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -168,6 +178,33 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
         class Success {
 
             @Test
+            @DisplayName("공백 커서는 첫 페이지로 조회한다")
+            @WithCustomUser
+            void getTimelinePreview_공백커서() throws Exception {
+                given(timelineQueryService.getTimelinePreview(any(), eq(12L), isNull(), eq(20)))
+                        .willReturn(new TimelineResponseDto.TimelinePageDto(List.of(), null, false));
+                mockMvc.perform(get("/api/v1/library/{libraryId}/timeline", 12L)
+                                .header(AUTH_HEADER, AUTH_TOKEN).param("cursor", "  "))
+                        .andExpect(status().isOk());
+                verify(timelineQueryService).getTimelinePreview(any(), eq(12L), isNull(), eq(20));
+            }
+
+            @Test
+            @WithCustomUser
+            @DisplayName("커서와 조회 크기를 서비스에 전달한다")
+            void getTimelinePreview_커서전달() throws Exception {
+                TimelineCursor cursor = new TimelineCursor(LocalDateTime.parse("2026-09-06T12:34:56.123456"), 103L);
+                given(timelineQueryService.getTimelinePreview(any(), eq(12L), eq(cursor), eq(2)))
+                        .willReturn(new TimelineResponseDto.TimelinePageDto(List.of(), null, false));
+                mockMvc.perform(get("/api/v1/library/{libraryId}/timeline", 12L)
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .param("cursor", TimelineCursorCodec.encode(cursor)).param("size", "2"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.result.hasNext").value(false));
+                verify(timelineQueryService).getTimelinePreview(any(), eq(12L), eq(cursor), eq(2));
+            }
+
+            @Test
             @DisplayName("독서 이력 preview 조회")
             @WithCustomUser
             void getTimelinePreview() throws Exception {
@@ -190,12 +227,10 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                                 List.of(item)
                         );
 
-                TimelineResponseDto.TimelinePreviewDto response =
-                        new TimelineResponseDto.TimelinePreviewDto(
-                                List.of(group)
-                        );
+                TimelineResponseDto.TimelinePageDto response =
+                        new TimelineResponseDto.TimelinePageDto(List.of(group), null, false);
 
-                given(timelineQueryService.getTimelinePreview(any(), anyLong()))
+                given(timelineQueryService.getTimelinePreview(any(), eq(12L), isNull(), eq(20)))
                         .willReturn(response);
 
                 mockMvc.perform(
@@ -208,7 +243,13 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                                 pathParameters(
                                         parameterWithName("libraryId").description("독서 이력을 조회할 서재 ID")
                                 ),
+                                queryParameters(
+                                        parameterWithName("cursor").optional().description("이전 응답의 nextCursor, 생략하면 첫 페이지"),
+                                        parameterWithName("size").optional().description("조회할 항목 수, 기본 20, 범위 1~100")
+                                ),
                                 responseFields(ApiResponseSnippet.withResult(
+                                        fieldWithPath("result.nextCursor").type(JsonFieldType.STRING).optional().description("다음 페이지 커서, 마지막 페이지는 null"),
+                                        fieldWithPath("result.hasNext").type(JsonFieldType.BOOLEAN).description("다음 페이지 존재 여부"),
                                         fieldWithPath("result.dateGroups").type(JsonFieldType.ARRAY).description("날짜별 독서 이력 그룹"),
                                         fieldWithPath("result.dateGroups[].year").type(JsonFieldType.NUMBER).description("연도"),
                                         fieldWithPath("result.dateGroups[].monthDay").type(JsonFieldType.STRING).description("월/일"),
@@ -229,6 +270,41 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
         @DisplayName("실패")
         @Nested
         class Failure {
+
+            @ParameterizedTest
+            @ValueSource(strings = {"2026-09-06T12:00", "bad-date|1", "2026-02-30T12:00|1",
+                    "2026-09-06T12:00|0", "2026-09-06T12:00|-1", "2026-09-06T12:00|abc",
+                    "2026-09-06T12:00|9223372036854775808", "2026-09-06T12:00|1|extra"})
+            @DisplayName("커서 내부의 날짜와 ID 및 필드 구성이 잘못되면 400")
+            @WithCustomUser
+            void getTimelinePreview_커서내부값오류(String payload) throws Exception {
+                String cursor = Base64.getUrlEncoder()
+                        .encodeToString(payload.getBytes(StandardCharsets.UTF_8));
+                mockMvc.perform(get("/api/v1/library/{libraryId}/timeline", 12L)
+                                .header(AUTH_HEADER, AUTH_TOKEN).param("cursor", cursor))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.code").value("COMMON-002"));
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {"0", "101"})
+            @WithCustomUser
+            @DisplayName("조회 크기가 범위를 벗어나면 400")
+            void getTimelinePreview_크기범위오류(String size) throws Exception {
+                mockMvc.perform(get("/api/v1/library/{libraryId}/timeline", 12L)
+                                .header(AUTH_HEADER, AUTH_TOKEN).param("size", size))
+                        .andExpect(status().isBadRequest());
+            }
+
+            @Test
+            @WithCustomUser
+            @DisplayName("커서 형식이 잘못되면 400")
+            void getTimelinePreview_커서형식오류() throws Exception {
+                mockMvc.perform(get("/api/v1/library/{libraryId}/timeline", 12L)
+                                .header(AUTH_HEADER, AUTH_TOKEN).param("cursor", "%%%"))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.code").value("COMMON-002"));
+            }
 
             @Test
             @DisplayName("인증 정보가 없으면 401")
@@ -252,6 +328,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
             TimelineResponseDto.TimelineDetailDto response =
                     new TimelineResponseDto.TimelineDetailDto(
                             31L,
+                            9001L,
                             TimelineType.RECORD,
                             LocalDateTime.of(2025, 12, 20, 21, 10),
                             new TimelineResponseDto.TimelineRecordDetailDto(
@@ -276,6 +353,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                                     parameterWithName("timelineId").description("상세 조회할 타임라인 ID")
                             ),
                             responseFields(ApiResponseSnippet.withResult(
+                                    fieldWithPath("result.targetId").type(JsonFieldType.NUMBER).description("원본 ID: RECORD는 recordId, FOCUS는 focusId, REGISTER/STATUS는 libraryId"),
                                     fieldWithPath("result.timelineId").type(JsonFieldType.NUMBER).description("타임라인 ID"),
                                     fieldWithPath("result.type").type(JsonFieldType.STRING).description("타임라인 타입"),
                                     fieldWithPath("result.occurredAt").type(JsonFieldType.STRING).description("이벤트 발생 시각"),
@@ -298,6 +376,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
             TimelineResponseDto.TimelineDetailDto response =
                     new TimelineResponseDto.TimelineDetailDto(
                             30L,
+                            7001L,
                             TimelineType.FOCUS,
                             LocalDateTime.of(2026, 8, 28, 18, 25, 53),
                             new TimelineResponseDto.TimelineFocusDetailDto(

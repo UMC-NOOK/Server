@@ -83,6 +83,13 @@ public class Library extends BaseEntity {
         this.focusSec += addedSeconds;
     }
 
+    public void removeFocus(long seconds) {
+        if (seconds < 0 || focusSec < seconds) {
+            throw new IllegalStateException("Focus total does not match the deleted session");
+        }
+        this.focusSec -= seconds;
+    }
+
     // 페이지 업데이트
     public void recordPage(int page) {
         this.page = page;
@@ -91,11 +98,15 @@ public class Library extends BaseEntity {
     // 완독 -> 독서 중
     // 독서 중 -> 완독 :  endTime 업데이트
     public void updateStatus(ReadingStatus readingStatus) {
+        updateStatus(readingStatus, LocalDateTime.now().toLocalDate());
+    }
+
+    public void updateStatus(ReadingStatus readingStatus, LocalDate statusDate) {
         this.readingStatus = readingStatus;
         if(readingStatus.equals(ReadingStatus.FINISHED)){
-            this.endedAt = LocalDateTime.now().toLocalDate();
+            this.endedAt = statusDate;
         } else if(readingStatus.equals(ReadingStatus.READING)){
-            this.startedAt = LocalDateTime.now().toLocalDate();
+            this.startedAt = statusDate;
         }
     }
 
