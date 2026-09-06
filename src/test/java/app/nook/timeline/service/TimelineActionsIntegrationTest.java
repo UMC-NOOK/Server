@@ -21,6 +21,7 @@ import app.nook.user.jwt.JwtProvider;
 import app.nook.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -169,6 +170,12 @@ class TimelineActionsIntegrationTest extends AbstractPostgresContainerTests {
                 .book(book)
                 .build());
         token = jwtProvider.createAccessToken(user);
+    }
+
+    @AfterEach
+    void tearDown() {
+        userRepository.deleteById(user.getId());
+        bookRepository.deleteById(library.getBook().getId());
     }
 
     @Test
