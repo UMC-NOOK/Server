@@ -60,6 +60,7 @@ public class TimelineResponseDto {
 
     public record TimelineDetailDto(
             Long timelineId,
+            Long targetId,
             TimelineType type,
             LocalDateTime occurredAt,
             TimelineDetail detail

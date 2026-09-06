@@ -2,6 +2,7 @@ package app.nook.timeline.repository;
 
 import app.nook.library.domain.Library;
 import app.nook.timeline.domain.Timeline;
+import app.nook.timeline.domain.enums.TimelineType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,8 @@ import java.util.Optional;
 
 public interface TimelineRepository extends JpaRepository<Timeline, Long> {
     void deleteByLibrary(Library library);
+
+    void deleteByLibraryAndTypeAndTargetIdIn(Library library, TimelineType type, List<Long> targetIds);
 
     List<Timeline> findTop5ByLibraryOrderByOccurredAtDescIdDesc(Library library);
 

@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface FocusRepository extends JpaRepository<Focus, Long>, FocusRepositoryCustom {
     @Query("""
@@ -38,6 +39,11 @@ public interface FocusRepository extends JpaRepository<Focus, Long>, FocusReposi
             @Param("focusId") Long focusId,
             @Param("userId") Long userId
     );
+
+    @Query("select f.library.id from Focus f where f.id = :focusId")
+    Optional<Long> findLibraryIdById(@Param("focusId") Long focusId);
+
+    List<Focus> findByLibraryAndSessionIdOrderByIdAsc(Library library, UUID sessionId);
 
     int countByLibrary(Library library);
 }

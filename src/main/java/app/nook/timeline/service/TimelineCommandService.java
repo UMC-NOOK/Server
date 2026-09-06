@@ -3,6 +3,7 @@ package app.nook.timeline.service;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.library.domain.Library;
+import app.nook.library.repository.LibraryRepository;
 import app.nook.record.domain.Record;
 import app.nook.timeline.converter.TimelineConverter;
 import app.nook.timeline.domain.Timeline;
@@ -26,6 +27,7 @@ public class TimelineCommandService {
 
     private final TimelineRepository timelineRepository;
     private final FocusRepository focusRepository;
+    private final LibraryRepository libraryRepository;
 
     @Transactional
     public void appendRegister(Library library) {
@@ -53,8 +55,19 @@ public class TimelineCommandService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void appendFocusCompleted(Long focusId) {
-        Focus focus = focusRepository.findById(focusId)
-                .orElseThrow(() -> new IllegalStateException("Completed Focus not found: " + focusId));
+        Long libraryId = focusRepository.findLibraryIdById(focusId).orElse(null);
+        if (libraryId == null) {
+            return;
+        }
+        Library library = libraryRepository.findByIdForUpdate(libraryId).orElse(null);
+        if (library == null) {
+            return;
+        }
+        Focus focus = focusRepository.findByIdAndLibraryUserIdForUpdate(focusId, library.getUser().getId())
+                .orElse(null);
+        if (focus == null) {
+            return;
+        }
         Timeline timeline = TimelineConverter.toTimeline(
                 focus.getLibrary(),
                 TimelineType.FOCUS,

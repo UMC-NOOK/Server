@@ -49,3 +49,17 @@ include::{snippets}/focus-controller-test/포커스_홈_조회_성공/http-reque
 include::{snippets}/focus-controller-test/포커스_홈_조회_성공/query-parameters.adoc[]
 include::{snippets}/focus-controller-test/포커스_홈_조회_성공/http-response.adoc[]
 include::{snippets}/focus-controller-test/포커스_홈_조회_성공/response-fields.adoc[]
+
+=== 포커스 삭제
+
+`DELETE /api/v1/focuses/{focusId}`는 본인의 완료된 포커스 세션 전체를 삭제합니다.
+자정을 넘어 여러 날짜에 나뉜 경우 어느 구간의 `focusId`로 요청해도 같은 세션의 모든 구간과 연결된 FOCUS 타임라인을 삭제합니다.
+삭제한 시간은 서재 누적 시간과 날짜별 통계에 반영됩니다. 현재 독서 페이지와 독서 상태, 시작일·완독일은 유지합니다.
+
+성공하면 HTTP 200과 `SUCCESS-200`을 반환하며 `result` 필드는 생략합니다.
+진행 중인 포커스는 HTTP 409(`FOCUS-005`), 없거나 이미 삭제됐거나 다른 사용자 소유인 포커스는 HTTP 404(`FOCUS-002`)를 반환합니다.
+
+include::{snippets}/focus-controller-test/포커스_삭제_성공/http-request.adoc[]
+include::{snippets}/focus-controller-test/포커스_삭제_성공/request-headers.adoc[]
+include::{snippets}/focus-controller-test/포커스_삭제_성공/path-parameters.adoc[]
+include::{snippets}/focus-controller-test/포커스_삭제_성공/http-response.adoc[]

@@ -16,6 +16,8 @@ import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.timeline.event.FocusTimelineAppendEvent;
+import app.nook.timeline.repository.TimelineRepository;
+import app.nook.timeline.domain.enums.TimelineType;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +37,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -58,6 +61,8 @@ class FocusServiceTest {
 
     @Mock
     private FocusRepository focusRepository;
+    @Mock
+    private TimelineRepository timelineRepository;
     @Mock
     private LibraryRepository libraryRepository;
     @Mock
@@ -203,7 +208,7 @@ class FocusServiceTest {
             assertThat(result.bookId()).isEqualTo(library.getBook().getId());
             assertThat(active.getDurationSec()).isEqualTo(1800);
             assertThat(active.getEndPage()).isEqualTo(30);
-            verifyMonthlyEvent(Set.of(java.time.YearMonth.of(2026, 8)), false);
+            verifyMonthlyEvent(Set.of(YearMonth.of(2026, 8)), false);
         }
 
         @Test
@@ -220,6 +225,7 @@ class FocusServiceTest {
             List<Focus> rows = savedRows();
             assertThat(rows).hasSize(2);
             assertThat(rows.get(0)).isSameAs(active);
+            assertThat(rows).extracting(Focus::getSessionId).containsOnly(active.getSessionId());
             assertThat(rows.get(0).getDurationSec()).isEqualTo(3600);
             assertThat(rows.get(0).getEndPage()).isNull();
             assertThat(rows.get(1).getDurationSec()).isEqualTo(1800);
@@ -249,7 +255,7 @@ class FocusServiceTest {
                     .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 20, false));
 
             assertThat(savedRows()).hasSize(1);
-            verifyMonthlyEvent(Set.of(java.time.YearMonth.of(2026, 8)), false);
+            verifyMonthlyEvent(Set.of(YearMonth.of(2026, 8)), false);
         }
 
         @Test
@@ -261,7 +267,7 @@ class FocusServiceTest {
             serviceAt(LocalDateTime.of(2026, 9, 1, 0, 30))
                     .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 20, false));
 
-            verifyMonthlyEvent(Set.of(java.time.YearMonth.of(2026, 8), java.time.YearMonth.of(2026, 9)), false);
+            verifyMonthlyEvent(Set.of(YearMonth.of(2026, 8), YearMonth.of(2026, 9)), false);
         }
 
         @Test
@@ -275,13 +281,13 @@ class FocusServiceTest {
 
             assertThat(result.readingStatus()).isEqualTo("FINISHED");
             assertThat(library.getEndedAt()).isEqualTo(LocalDate.of(2026, 9, 1));
-            verifyMonthlyEvent(Set.of(java.time.YearMonth.of(2026, 8), java.time.YearMonth.of(2026, 9)), true);
+            verifyMonthlyEvent(Set.of(YearMonth.of(2026, 8), YearMonth.of(2026, 9)), true);
         }
 
         @Test
         @DisplayName("없는 포커스는 잠금 소유권 조회에서 숨긴다")
         void rejectsMissingFocus() {
-            given(focusRepository.findByIdAndLibraryUserIdForUpdate(100L, user.getId())).willReturn(Optional.empty());
+            given(focusRepository.findLibraryIdById(100L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> serviceAt(LocalDateTime.of(2026, 8, 1, 11, 0))
                     .endFocus(user.getId(), new FocusRequestDto.FocusEnd(100L, 10, false)))
@@ -295,8 +301,7 @@ class FocusServiceTest {
         @DisplayName("이미 종료된 포커스는 추가 저장 없이 거절한다")
         void rejectsAlreadyEndedFocus() {
             Focus completed = FocusFixture.completedFocus(library);
-            given(focusRepository.findByIdAndLibraryUserIdForUpdate(completed.getId(), user.getId()))
-                    .willReturn(Optional.of(completed));
+            stubOwnedFocus(completed);
 
             assertThatThrownBy(() -> serviceAt(LocalDateTime.of(2026, 8, 1, 11, 0))
                     .endFocus(user.getId(), new FocusRequestDto.FocusEnd(completed.getId(), 10, false)))
@@ -324,8 +329,64 @@ class FocusServiceTest {
             assertThat(active.getEndPage()).isEqualTo(99);
             assertThat(result.durationSec()).isZero();
             assertThat(result.page()).isEqualTo(99);
-            verifyMonthlyEvent(Set.of(java.time.YearMonth.of(2026, 9)), false);
+            verifyMonthlyEvent(Set.of(YearMonth.of(2026, 9)), false);
             verifyTimelineEvent(List.of(active.getId()));
+        }
+    }
+
+    @Nested
+    @DisplayName("포커스 삭제")
+    class DeleteFocus {
+        @Test
+        @DisplayName("분할 세션 전체를 삭제하고 누적 시간과 영향 월만 갱신한다")
+        void deleteFocus_분할세션전체삭제() {
+            Focus first = activeFocus(LocalDateTime.of(2026, 8, 31, 23, 0));
+            first.endFocus(LocalDateTime.of(2026, 9, 1, 0, 0));
+            Focus second = Focus.builder().library(library).sessionId(first.getSessionId())
+                    .startedAt(LocalDateTime.of(2026, 9, 1, 0, 0))
+                    .endedAt(LocalDateTime.of(2026, 9, 1, 0, 30)).durationSec(1800).build();
+            ReflectionTestUtils.setField(second, "id", 101L);
+            library.recordFocus(6000);
+            library.recordPage(72);
+            library.updateStatus(ReadingStatus.FINISHED);
+            stubOwnedFocus(second);
+            given(focusRepository.findByLibraryAndSessionIdOrderByIdAsc(library, second.getSessionId()))
+                    .willReturn(List.of(first, second));
+
+            serviceAt(LocalDateTime.of(2026, 9, 1, 1, 0)).deleteFocus(user.getId(), second.getId());
+
+            verify(focusRepository).deleteAll(List.of(first, second));
+            verify(timelineRepository).deleteByLibraryAndTypeAndTargetIdIn(library, TimelineType.FOCUS, List.of(100L, 101L));
+            assertThat(library.getFocusSec()).isEqualTo(600L);
+            assertThat(library.getPage()).isEqualTo(72);
+            assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.FINISHED);
+            verifyMonthlyEvent(Set.of(YearMonth.of(2026, 8), YearMonth.of(2026, 9)), false);
+        }
+
+        @Test
+        @DisplayName("진행 중인 포커스는 삭제하지 않는다")
+        void deleteFocus_진행중거부() {
+            Focus active = activeFocus(LocalDateTime.of(2026, 8, 1, 10, 0));
+            stubOwnedFocus(active);
+
+            assertThatThrownBy(() -> serviceAt(active.getStartedAt()).deleteFocus(user.getId(), active.getId()))
+                    .isInstanceOf(CustomException.class).extracting("errorCode")
+                    .isEqualTo(FocusErrorCode.FOCUS_NOT_ENDED);
+            verify(focusRepository, never()).deleteAll(any());
+            verifyNoInteractions(timelineRepository, eventPublisher);
+        }
+
+        @Test
+        @DisplayName("다른 사용자의 서재는 조회되지 않은 것으로 처리한다")
+        void deleteFocus_권한없음() {
+            given(focusRepository.findLibraryIdById(100L)).willReturn(Optional.of(library.getId()));
+            given(libraryRepository.findByIdAndUserIdForUpdate(library.getId(), user.getId()))
+                    .willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> serviceAt(LocalDateTime.of(2026, 8, 1, 10, 0)).deleteFocus(user.getId(), 100L))
+                    .isInstanceOf(CustomException.class).extracting("errorCode")
+                    .isEqualTo(FocusErrorCode.FOCUS_NOT_FOUND);
+            verifyNoInteractions(timelineRepository, eventPublisher);
         }
     }
 
@@ -333,6 +394,7 @@ class FocusServiceTest {
         Instant instant = dateTime.atZone(KST).toInstant();
         return new FocusService(
                 focusRepository,
+                timelineRepository,
                 libraryRepository,
                 userRepository,
                 eventPublisher,
@@ -355,9 +417,18 @@ class FocusServiceTest {
         return active;
     }
 
+    private void stubOwnedFocus(Focus focus) {
+        Library focusLibrary = focus.getLibrary();
+        Long libraryId = focusLibrary.getId();
+        given(focusRepository.findLibraryIdById(focus.getId())).willReturn(Optional.of(libraryId));
+        given(libraryRepository.findByIdAndUserIdForUpdate(libraryId, user.getId()))
+                .willReturn(Optional.of(focusLibrary));
+        given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), user.getId()))
+                .willReturn(Optional.of(focus));
+    }
+
     private void stubOwnedAndGeneratedIds(Focus active) {
-        given(focusRepository.findByIdAndLibraryUserIdForUpdate(active.getId(), user.getId()))
-                .willReturn(Optional.of(active));
+        stubOwnedFocus(active);
         given(focusRepository.saveAllAndFlush(any())).willAnswer(invocation -> {
             List<Focus> rows = invocation.getArgument(0);
             long nextId = 101L;
@@ -377,7 +448,7 @@ class FocusServiceTest {
         return captor.getValue();
     }
 
-    private void verifyMonthlyEvent(Set<java.time.YearMonth> expectedMonths, boolean onboarding) {
+    private void verifyMonthlyEvent(Set<YearMonth> expectedMonths, boolean onboarding) {
         verify(eventPublisher).publishEvent(argThat((Object event) ->
                 event instanceof LibraryCacheInvalidateEvent cacheEvent
                         && cacheEvent.userId().equals(user.getId())

@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -43,6 +44,15 @@ public class FocusController {
             @RequestBody @Valid FocusRequestDto.FocusEnd request
     ) {
         return ApiResponse.onSuccess(focusService.endFocus(user.getId(), request), SuccessCode.OK);
+    }
+
+    @DeleteMapping("/{focusId}")
+    public ApiResponse<Void> deleteFocus(
+            @CurrentUser User user,
+            @PathVariable @Positive Long focusId
+    ) {
+        focusService.deleteFocus(user.getId(), focusId);
+        return ApiResponse.onSuccess(null, SuccessCode.OK);
     }
 
     @GetMapping("/recent")
