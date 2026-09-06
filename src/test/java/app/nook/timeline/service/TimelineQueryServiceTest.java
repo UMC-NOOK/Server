@@ -729,7 +729,7 @@ class TimelineQueryServiceTest {
                     (TimelineResponseDto.TimelineRecordDetailDto) result.detail();
             assertThat(detail.content()).isEqualTo("말하기와 듣기...");
             assertThat(detail.emotion()).isEqualTo("FUN");
-            assertThat(detail.imageUrls()).containsExactly("https://img/a", "https://img/b");
+            assertThat(detail.imgUrls()).containsExactly("https://img/a", "https://img/b");
         }
 
         @Test
@@ -765,7 +765,7 @@ class TimelineQueryServiceTest {
 
             TimelineResponseDto.TimelineRecordDetailDto detail =
                     (TimelineResponseDto.TimelineRecordDetailDto) result.detail();
-            assertThat(detail.imageUrls()).containsExactly("https://img/a");
+            assertThat(detail.imgUrls()).containsExactly("https://img/a");
         }
     }
 }

@@ -364,7 +364,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                                     fieldWithPath("result.detail.page").type(JsonFieldType.NUMBER).optional().description("FOCUS 타입 상세 종료 시점 페이지"),
                                     fieldWithPath("result.detail.content").type(JsonFieldType.STRING).optional().description("RECORD 타입 상세 기록 본문"),
                                     fieldWithPath("result.detail.emotion").type(JsonFieldType.STRING).optional().description("RECORD 타입 상세 기록 감정 코드"),
-                                    fieldWithPath("result.detail.imageUrls").type(JsonFieldType.ARRAY).optional().description("RECORD 타입 상세 기록 이미지 URL 목록")
+                                    fieldWithPath("result.detail.imgUrls").type(JsonFieldType.ARRAY).optional().description("RECORD 타입 상세 기록 이미지 URL 목록")
                             ))
                     ));
         }
