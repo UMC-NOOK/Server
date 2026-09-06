@@ -80,6 +80,7 @@ public class TimelineResponseConverter {
     ) {
         return new TimelineResponseDto.TimelineDetailDto(
                 timeline.getId(),
+                timeline.getTargetId(),
                 timeline.getType(),
                 timeline.getOccurredAt(),
                 detail

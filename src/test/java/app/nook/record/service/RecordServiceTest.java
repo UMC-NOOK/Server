@@ -20,6 +20,8 @@ import app.nook.record.event.RecordDeletedEvent;
 import app.nook.record.exception.RecordErrorCode;
 import app.nook.record.repository.RecordImageRepository;
 import app.nook.record.repository.RecordRepository;
+import app.nook.timeline.domain.enums.TimelineType;
+import app.nook.timeline.repository.TimelineRepository;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import org.junit.jupiter.api.DisplayName;
@@ -69,6 +71,9 @@ class RecordServiceTest {
 
     @Mock
     private TimelineCommandService timelineCommandService;
+
+    @Mock
+    private TimelineRepository timelineRepository;
 
     @Nested
     @DisplayName("기록 등록")
@@ -253,7 +258,7 @@ class RecordServiceTest {
     class DeleteRecord {
 
         @Test
-        @DisplayName("성공 시 이미지 정리 이벤트를 발행한다")
+        @DisplayName("성공 시 타임라인을 삭제하고 이미지 정리 이벤트를 발행한다")
         void 기록_삭제_성공() {
             // given
             User user = UserFixture.user();
@@ -270,6 +275,8 @@ class RecordServiceTest {
 
             // then
             verify(recordRepository).delete(record);
+            verify(timelineRepository).deleteByLibraryAndTypeAndTargetIdIn(
+                    library, TimelineType.RECORD, List.of(1L));
             verify(eventPublisher).publishEvent(captor.capture());
             assertThat(captor.getValue().recordId()).isEqualTo(1L);
             assertThat(captor.getValue().imageKeys()).containsExactly("record/users/1/test.png");
@@ -288,6 +295,7 @@ class RecordServiceTest {
 
             // then
             assertThat(ex.getErrorCode()).isEqualTo(RecordErrorCode.RECORD_NOT_FOUND);
+            verify(timelineRepository, never()).deleteByLibraryAndTypeAndTargetIdIn(any(), any(), anyList());
         }
 
         @Test
@@ -308,6 +316,7 @@ class RecordServiceTest {
 
             // then
             assertThat(ex.getErrorCode()).isEqualTo(RecordErrorCode.RECORD_NOT_AUTHORIZED);
+            verify(timelineRepository, never()).deleteByLibraryAndTypeAndTargetIdIn(any(), any(), anyList());
         }
     }
 
@@ -350,6 +359,7 @@ class RecordServiceTest {
                 verify(recordImageRepository).save(any(RecordImage.class));
                 assertThat(record.getImages()).isEmpty();
                 verify(eventPublisher).publishEvent(any(RecordDeletedEvent.class));
+                verify(timelineRepository, never()).deleteByLibraryAndTypeAndTargetIdIn(any(), any(), anyList());
             }
 
             @Test

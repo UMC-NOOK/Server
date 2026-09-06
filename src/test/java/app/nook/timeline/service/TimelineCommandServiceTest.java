@@ -5,6 +5,7 @@ import app.nook.book.domain.enums.SourceType;
 import app.nook.focus.domain.Focus;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.library.domain.Library;
+import app.nook.library.repository.LibraryRepository;
 import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.record.domain.Record;
 import app.nook.timeline.domain.Timeline;
@@ -42,6 +43,9 @@ class TimelineCommandServiceTest {
     private TimelineRepository timelineRepository;
     @Mock
     private FocusRepository focusRepository;
+
+    @Mock
+    private LibraryRepository libraryRepository;
 
     @InjectMocks
     private TimelineCommandService timelineCommandService;
@@ -112,7 +116,10 @@ class TimelineCommandServiceTest {
         @DisplayName("성공 - 대상 Focus ID와 세그먼트 시작 시각으로 타임라인을 저장한다")
         void appendFocusCompleted_대상ID와_세그먼트시작시각() {
             Focus focus = focus(7001L, library, 3600, LocalDateTime.of(2026, 1, 11, 0, 0));
-            given(focusRepository.findById(focus.getId())).willReturn(Optional.of(focus));
+            given(focusRepository.findLibraryIdById(focus.getId())).willReturn(Optional.of(library.getId()));
+            given(libraryRepository.findByIdForUpdate(library.getId())).willReturn(Optional.of(library));
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), library.getUser().getId()))
+                    .willReturn(Optional.of(focus));
 
             timelineCommandService.appendFocusCompleted(focus.getId());
 
@@ -129,7 +136,10 @@ class TimelineCommandServiceTest {
         @DisplayName("성공 - 시간과 분이 함께 있는 포커스 preview를 저장한다")
         void appendFocusCompleted_시간분() {
             Focus focus = focus(7002L, library, 4380, LocalDateTime.of(2026, 1, 10, 23, 15));
-            given(focusRepository.findById(focus.getId())).willReturn(Optional.of(focus));
+            given(focusRepository.findLibraryIdById(focus.getId())).willReturn(Optional.of(library.getId()));
+            given(libraryRepository.findByIdForUpdate(library.getId())).willReturn(Optional.of(library));
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), library.getUser().getId()))
+                    .willReturn(Optional.of(focus));
 
             timelineCommandService.appendFocusCompleted(focus.getId());
 
@@ -149,7 +159,10 @@ class TimelineCommandServiceTest {
         @DisplayName("성공 - 포커스 시간 경계값에 맞는 preview를 저장한다")
         void appendFocusCompleted_시간경계값(int durationSec, String expectedPreviewText) {
             Focus focus = focus(7003L, library, durationSec, LocalDateTime.of(2026, 1, 10, 10, 0));
-            given(focusRepository.findById(focus.getId())).willReturn(Optional.of(focus));
+            given(focusRepository.findLibraryIdById(focus.getId())).willReturn(Optional.of(library.getId()));
+            given(libraryRepository.findByIdForUpdate(library.getId())).willReturn(Optional.of(library));
+            given(focusRepository.findByIdAndLibraryUserIdForUpdate(focus.getId(), library.getUser().getId()))
+                    .willReturn(Optional.of(focus));
 
             timelineCommandService.appendFocusCompleted(focus.getId());
 

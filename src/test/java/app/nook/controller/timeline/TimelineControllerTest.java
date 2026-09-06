@@ -328,6 +328,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
             TimelineResponseDto.TimelineDetailDto response =
                     new TimelineResponseDto.TimelineDetailDto(
                             31L,
+                            9001L,
                             TimelineType.RECORD,
                             LocalDateTime.of(2025, 12, 20, 21, 10),
                             new TimelineResponseDto.TimelineRecordDetailDto(
@@ -352,6 +353,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
                                     parameterWithName("timelineId").description("상세 조회할 타임라인 ID")
                             ),
                             responseFields(ApiResponseSnippet.withResult(
+                                    fieldWithPath("result.targetId").type(JsonFieldType.NUMBER).description("원본 ID: RECORD는 recordId, FOCUS는 focusId, REGISTER/STATUS는 libraryId"),
                                     fieldWithPath("result.timelineId").type(JsonFieldType.NUMBER).description("타임라인 ID"),
                                     fieldWithPath("result.type").type(JsonFieldType.STRING).description("타임라인 타입"),
                                     fieldWithPath("result.occurredAt").type(JsonFieldType.STRING).description("이벤트 발생 시각"),
@@ -374,6 +376,7 @@ class TimelineControllerTest extends AbstractWebMvcRestDocsTests {
             TimelineResponseDto.TimelineDetailDto response =
                     new TimelineResponseDto.TimelineDetailDto(
                             30L,
+                            7001L,
                             TimelineType.FOCUS,
                             LocalDateTime.of(2026, 8, 28, 18, 25, 53),
                             new TimelineResponseDto.TimelineFocusDetailDto(

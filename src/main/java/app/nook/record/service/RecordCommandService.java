@@ -18,6 +18,8 @@ import app.nook.record.event.RecordDeletedEvent;
 import app.nook.record.exception.RecordErrorCode;
 import app.nook.record.repository.RecordImageRepository;
 import app.nook.record.repository.RecordRepository;
+import app.nook.timeline.domain.enums.TimelineType;
+import app.nook.timeline.repository.TimelineRepository;
 import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,7 @@ public class RecordCommandService {
     private final RecordImageRepository recordImageRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final TimelineCommandService timelineCommandService;
+    private final TimelineRepository timelineRepository;
 
     // 기록 생성
     @Transactional
@@ -132,6 +135,8 @@ public class RecordCommandService {
                 .toList();
 
         record.getImages().clear();
+        timelineRepository.deleteByLibraryAndTypeAndTargetIdIn(
+                record.getLibrary(), TimelineType.RECORD, List.of(recordId));
         recordRepository.delete(record);
         eventPublisher.publishEvent(new RecordDeletedEvent(recordId, keysToDelete));
         return recordId;

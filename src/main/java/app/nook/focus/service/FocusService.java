@@ -13,6 +13,8 @@ import app.nook.library.domain.enums.ReadingStatus;
 import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.timeline.event.FocusTimelineAppendEvent;
+import app.nook.timeline.domain.enums.TimelineType;
+import app.nook.timeline.repository.TimelineRepository;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,7 @@ import java.util.Set;
 public class FocusService {
 
     private final FocusRepository focusRepository;
+    private final TimelineRepository timelineRepository;
     private final LibraryRepository libraryRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
@@ -73,10 +76,38 @@ public class FocusService {
         return FocusConverter.toFocusStartResponse(savedFocus);
     }
 
+    public void deleteFocus(Long userId, Long focusId) {
+        Focus focus = getOwnedFocusForUpdate(userId, focusId);
+        if (focus.getEndedAt() == null) {
+            throw new CustomException(FocusErrorCode.FOCUS_NOT_ENDED);
+        }
+
+        Library library = focus.getLibrary();
+        List<Focus> session = focusRepository.findByLibraryAndSessionIdOrderByIdAsc(library, focus.getSessionId());
+        long totalSeconds = session.stream().mapToLong(Focus::getDurationSec).sum();
+        Set<YearMonth> affectedMonths = new LinkedHashSet<>();
+        session.forEach(segment -> affectedMonths.add(YearMonth.from(segment.getFocusDate())));
+
+        library.removeFocus(totalSeconds);
+        timelineRepository.deleteByLibraryAndTypeAndTargetIdIn(
+                library, TimelineType.FOCUS, session.stream().map(Focus::getId).toList());
+        focusRepository.deleteAll(session);
+        eventPublisher.publishEvent(LibraryCacheInvalidateEvent.monthly(userId, affectedMonths));
+    }
+
+    private Focus getOwnedFocusForUpdate(Long userId, Long focusId) {
+        Long libraryId = focusRepository.findLibraryIdById(focusId)
+                .orElseThrow(() -> new CustomException(FocusErrorCode.FOCUS_NOT_FOUND));
+        // 종료·삭제·타임라인 생성은 서재를 먼저 잠가 같은 세션을 직렬 처리한다.
+        libraryRepository.findByIdAndUserIdForUpdate(libraryId, userId)
+                .orElseThrow(() -> new CustomException(FocusErrorCode.FOCUS_NOT_FOUND));
+        return focusRepository.findByIdAndLibraryUserIdForUpdate(focusId, userId)
+                .orElseThrow(() -> new CustomException(FocusErrorCode.FOCUS_NOT_FOUND));
+    }
+
     public FocusResponseDto.FocusEnd endFocus(Long userId, FocusRequestDto.FocusEnd request) {
 
-        Focus focus = focusRepository.findByIdAndLibraryUserIdForUpdate(request.focusId(), userId)
-                .orElseThrow(() -> new CustomException(FocusErrorCode.FOCUS_NOT_FOUND));
+        Focus focus = getOwnedFocusForUpdate(userId, request.focusId());
 
         if (focus.getEndedAt() != null) {
             throw new CustomException(FocusErrorCode.FOCUS_ALREADY_ENDED);
@@ -115,6 +146,7 @@ public class FocusService {
             } else {
                 completedFocuses.add(Focus.builder()
                         .library(library)
+                        .sessionId(focus.getSessionId())
                         .startedAt(segment.startedAt())
                         .endedAt(segment.endedAt())
                         .durationSec(Math.toIntExact(segment.durationSec()))

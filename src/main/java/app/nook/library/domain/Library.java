@@ -83,6 +83,13 @@ public class Library extends BaseEntity {
         this.focusSec += addedSeconds;
     }
 
+    public void removeFocus(long seconds) {
+        if (seconds < 0 || focusSec < seconds) {
+            throw new IllegalStateException("Focus total does not match the deleted session");
+        }
+        this.focusSec -= seconds;
+    }
+
     // 페이지 업데이트
     public void recordPage(int page) {
         this.page = page;

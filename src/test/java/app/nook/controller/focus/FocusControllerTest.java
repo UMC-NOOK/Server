@@ -41,6 +41,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
+import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
 import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
@@ -77,6 +79,59 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Nested
+    @DisplayName("포커스 삭제")
+    class DeleteFocus {
+        @Test
+        @DisplayName("완료된 세션을 삭제한다")
+        @WithCustomUser
+        void 포커스_삭제_성공() throws Exception {
+            mockMvc.perform(delete("/api/v1/focuses/{focusId}", 100L).header(AUTH_HEADER, AUTH_TOKEN))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value("SUCCESS-200"))
+                    .andDo(documentWithAuth("focus-controller-test/{method-name}",
+                            pathParameters(parameterWithName("focusId").description("삭제할 세션에 속한 포커스 ID"))));
+            verify(focusService).deleteFocus(anyLong(), eq(100L));
+        }
+
+        @Test
+        @DisplayName("진행 중인 세션 삭제는 409를 반환한다")
+        @WithCustomUser
+        void 포커스_삭제_실패_진행중() throws Exception {
+            willThrow(new CustomException(FocusErrorCode.FOCUS_NOT_ENDED)).given(focusService)
+                    .deleteFocus(anyLong(), eq(100L));
+            mockMvc.perform(delete("/api/v1/focuses/{focusId}", 100L).header(AUTH_HEADER, AUTH_TOKEN))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("FOCUS-005"));
+        }
+
+        @Test
+        @DisplayName("없는 포커스는 404를 반환한다")
+        @WithCustomUser
+        void 포커스_삭제_실패_없음() throws Exception {
+            willThrow(new CustomException(FocusErrorCode.FOCUS_NOT_FOUND)).given(focusService)
+                    .deleteFocus(anyLong(), eq(100L));
+            mockMvc.perform(delete("/api/v1/focuses/{focusId}", 100L).header(AUTH_HEADER, AUTH_TOKEN))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("양수가 아닌 ID는 400을 반환한다")
+        @WithCustomUser
+        void 포커스_삭제_실패_ID오류() throws Exception {
+            mockMvc.perform(delete("/api/v1/focuses/{focusId}", 0L).header(AUTH_HEADER, AUTH_TOKEN))
+                    .andExpect(status().isBadRequest());
+            verifyNoInteractions(focusService);
+        }
+
+        @Test
+        @DisplayName("미인증 요청은 401을 반환한다")
+        void 포커스_삭제_실패_미인증() throws Exception {
+            mockMvc.perform(delete("/api/v1/focuses/{focusId}", 100L))
+                    .andExpect(status().isUnauthorized());
+        }
+    }
 
     @Nested
     @DisplayName("포커스 시작")

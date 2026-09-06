@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -22,6 +23,7 @@ import java.time.LocalTime;
                         name = "idx_focus_library_focus_date",
                         columnList = "library_id, focus_date"
                 ),
+                @Index(name = "idx_focus_library_session", columnList = "library_id, session_id"),
         }
 )
 public class Focus extends BaseEntity {
@@ -35,6 +37,9 @@ public class Focus extends BaseEntity {
     @JoinColumn(name = "library_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Library library;
+
+    @Column(name = "session_id", nullable = false, updatable = false)
+    private UUID sessionId;
 
     @Column(name = "started_at")
     private LocalDateTime startedAt;
@@ -63,8 +68,10 @@ public class Focus extends BaseEntity {
             LocalDateTime endedAt,
             Integer durationSec,
             Integer endPage,
-            Library library
+            Library library,
+            UUID sessionId
     ) {
+        this.sessionId = sessionId == null ? UUID.randomUUID() : sessionId;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.durationSec = durationSec;

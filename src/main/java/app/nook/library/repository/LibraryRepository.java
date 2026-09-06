@@ -21,6 +21,10 @@ import java.util.Set;
 
 public interface LibraryRepository extends JpaRepository<Library, Long>, LibraryQueryRepository {
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select l from Library l where l.id = :libraryId")
+    Optional<Library> findByIdForUpdate(@Param("libraryId") Long libraryId);
+
     Optional<Library> findByUserAndBook(User user, Book book);
 
     Optional<Library> findByUserIdAndBook(Long userId, Book book);

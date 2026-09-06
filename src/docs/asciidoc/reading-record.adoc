@@ -30,6 +30,8 @@ include::{snippets}/record-controller-test/기록_수정_실패_권한없음/htt
 include::{snippets}/common-error-response/forbidden/response-fields.adoc[]
 
 === 기록 삭제
+기록을 삭제하면 연결된 타임라인도 함께 삭제됩니다.
+
 삭제된 기록 ID를 함께 반환합니다.
 include::{snippets}/record-controller-test/기록_삭제_성공/http-request.adoc[]
 include::{snippets}/record-controller-test/기록_삭제_성공/request-headers.adoc[]
