@@ -14,6 +14,8 @@ import app.nook.timeline.domain.Timeline;
 import app.nook.timeline.domain.enums.TimelineType;
 import app.nook.timeline.converter.TimelineResponseConverter;
 import app.nook.timeline.dto.TimelineResponseDto;
+import app.nook.timeline.dto.TimelineCursor;
+import app.nook.timeline.util.TimelineCursorCodec;
 import app.nook.timeline.repository.TimelineRepository;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -64,7 +66,7 @@ public class TimelineQueryService {
         List<Timeline> previewTimelines = timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library);
 
         TimelineResponseDto.TimelinePreviewDto timelinePreview = TimelineResponseConverter.toTimelinePreview(
-                toTimelineDateGroups(previewTimelines)
+                toTimelineDateGroups(previewTimelines, null)
         );
 
         return TimelineResponseConverter.toTimelineSummary(
@@ -75,11 +77,26 @@ public class TimelineQueryService {
         );
     }
 
-    public TimelineResponseDto.TimelinePreviewDto getTimelinePreview(User user, Long libraryId) {
+    public TimelineResponseDto.TimelinePageDto getTimelinePreview(
+            User user, Long libraryId, TimelineCursor cursor, int size
+    ) {
         Library library = getOwnedLibrary(user, libraryId);
-        // TODO: 전체보기 무한 스크롤이 필요하면 cursor 기반 조회를 도입한다.
-        List<Timeline> timelines = timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library);
-        return TimelineResponseConverter.toTimelinePreview(toTimelineDateGroups(timelines));
+        PageRequest pageable = PageRequest.of(0, size + 1);
+        List<Timeline> timelines = cursor == null
+                ? timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library, pageable)
+                : timelineRepository.findBeforeCursor(library, cursor.occurredAt(), cursor.timelineId(), pageable);
+        boolean hasNext = timelines.size() > size;
+        List<Timeline> page = timelines.subList(0, Math.min(size, timelines.size()));
+        String nextCursor = null;
+        if (hasNext) {
+            Timeline last = page.get(page.size() - 1);
+            nextCursor = TimelineCursorCodec.encode(new TimelineCursor(last.getOccurredAt(), last.getId()));
+        }
+        return new TimelineResponseDto.TimelinePageDto(
+                toTimelineDateGroups(page, cursor == null ? null : cursor.occurredAt().getYear()),
+                nextCursor,
+                hasNext
+        );
     }
 
     public TimelineResponseDto.TimelineDetailDto getTimelineDetail(User user, Long libraryId, Long timelineId) {
@@ -115,7 +132,9 @@ public class TimelineQueryService {
         return library;
     }
 
-    private List<TimelineResponseDto.TimelineDateGroupDto> toTimelineDateGroups(List<Timeline> timelines) {
+    private List<TimelineResponseDto.TimelineDateGroupDto> toTimelineDateGroups(
+            List<Timeline> timelines, Integer previousYear
+    ) {
         // FOCUS/RECORD 원본은 타입별로 미리 묶어서 조회해 item 조립 시 N+1을 피한다.
         Map<Long, Focus> focusMap = getFocusMap(timelines);
         Map<Long, Record> recordMap = getRecordMap(timelines);
@@ -127,7 +146,6 @@ public class TimelineQueryService {
                     .add(toTimelineItem(timeline, focusMap, recordMap));
         }
 
-        Integer previousYear = null;
         List<TimelineResponseDto.TimelineDateGroupDto> dateGroups = new ArrayList<>();
 
         for (Map.Entry<LocalDate, List<TimelineResponseDto.TimelineItemDto>> entry : grouped.entrySet()) {

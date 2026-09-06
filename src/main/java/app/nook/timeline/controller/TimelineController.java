@@ -5,9 +5,12 @@ import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.timeline.dto.TimelineResponseDto;
 import app.nook.timeline.service.TimelineQueryService;
+import app.nook.timeline.util.TimelineCursorCodec;
 import app.nook.user.annotation.CurrentUser;
 import app.nook.user.domain.User;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -32,12 +35,14 @@ public class TimelineController {
     }
 
     @GetMapping
-    public ApiResponse<TimelineResponseDto.TimelinePreviewDto> getTimelinePreview(
+    public ApiResponse<TimelineResponseDto.TimelinePageDto> getTimelinePreview(
             @CurrentUser User user,
-            @PathVariable @Positive Long libraryId
+            @PathVariable @Positive Long libraryId,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
-        TimelineResponseDto.TimelinePreviewDto response =
-                timelineQueryService.getTimelinePreview(user, libraryId);
+        TimelineResponseDto.TimelinePageDto response =
+                timelineQueryService.getTimelinePreview(user, libraryId, TimelineCursorCodec.decode(cursor), size);
         return ApiResponse.onSuccess(response, SuccessCode.OK);
     }
 

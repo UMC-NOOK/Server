@@ -35,6 +35,12 @@ public class TimelineResponseDto {
             List<TimelineDateGroupDto> dateGroups
     ) {}
 
+    public record TimelinePageDto(
+            List<TimelineDateGroupDto> dateGroups,
+            String nextCursor,
+            boolean hasNext
+    ) {}
+
     public record TimelineItemDto(
             Long timelineId,
             TimelineType type,
