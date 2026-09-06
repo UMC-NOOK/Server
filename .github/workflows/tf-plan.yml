@@ -1,0 +1,85 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: tf-plan-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, prod, monitoring]
+
+    name: plan / ${{ matrix.env }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.10"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      # Each environment's tfvars is stored as a GitHub secret (base64-encoded).
+      # Secret name format: DEV_TFVARS / PROD_TFVARS / MONITORING_TFVARS
+      - name: Write tfvars
+        env:
+          TFVARS_B64: ${{ secrets[format('{0}_TFVARS', upper(matrix.env))] }}
+        run: echo "$TFVARS_B64" | base64 -d > infra/vars/${{ matrix.env }}.tfvars
+
+      - name: Terraform Init
+        working-directory: infra/envs/${{ matrix.env }}
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: infra/envs/${{ matrix.env }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: infra/envs/${{ matrix.env }}
+        run: |
+          terraform plan \
+            -var-file=../../vars/${{ matrix.env }}.tfvars \
+            -no-color \
+            -out=${{ matrix.env }}.tfplan \
+            2>&1 | tee plan.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      - name: Post plan comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const raw = fs.readFileSync('infra/envs/${{ matrix.env }}/plan.txt', 'utf8');
+            const plan = raw.length > 55000
+              ? raw.slice(0, 55000) + '\n\n...(truncated — see full log in Actions)'
+              : raw;
+            const icon = '${{ steps.plan.outcome }}' === 'success' ? '✅' : '❌';
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: `#### Terraform Plan \`${{ matrix.env }}\` ${icon}\n\`\`\`hcl\n${plan}\n\`\`\``,
+            });
+
+      - name: Fail if plan failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
