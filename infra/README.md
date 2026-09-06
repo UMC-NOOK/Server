@@ -1,163 +1,131 @@
 # NOOK Terraform
 
-dev, prod, monitoring은 코드와 state를 완전히 분리한다. 현재 적용 대상은 기존 EC2를
-전환하는 **dev만**이다. prod와 monitoring은 코드와 `plan`까지만 준비하고 승인 전에는
-`apply`하지 않는다.
+dev, prod, monitoring은 state를 완전히 분리한다.
 
 ```text
 infra/
+├── bootstrap/
+│   └── state/          # S3 버킷 + DynamoDB 락 테이블 (최초 1회 실행)
 ├── modules/
-│   └── ec2/
-├── envs/
-│   ├── dev/               # 기존 t3.micro EC2를 그대로 import
-│   ├── prod/              # 신규 EC2, Supabase 사용, 적용 보류
-│   └── monitoring/        # 신규 EC2, 적용 보류
-└── vars/                  # 환경별 변수
+│   ├── ec2/            # EC2 + SG + IAM + EIP
+│   ├── network/        # VPC + 서브넷 + IGW + 라우팅
+│   └── dns/            # Route53 hosted zone + A records
+└── envs/
+    ├── dev/            # 기존 t3.micro EC2 import (vpc_id 변수 사용)
+    ├── prod/           # network 모듈로 VPC 직접 생성 → EC2 → DNS 체이닝
+    └── monitoring/     # prod VPC 공유 (vpc_id 변수로 참조)
 ```
 
 ## 환경별 구성
 
-| 환경 | Terraform 리소스 | DB | 현재 실행 범위 |
+| 환경 | VPC 관리 방식 | DB | 현재 실행 범위 |
 |---|---|---|---|
-| dev | 기존 `t3.micro` EC2를 import, 관리 SG/IAM/EIP | 기존 Supabase 유지 | `plan` 검토 후 `apply` |
-| prod | 신규 `t3.small` EC2 | Supabase | `plan`만 |
-| monitoring | 신규 `t3.small` | 없음 | 코드만 보관 |
+| dev | 기존 VPC import — vpc_id 변수 직접 지정 | Supabase | plan 검토 후 apply |
+| prod | network 모듈로 신규 VPC 생성 | Supabase | plan만 |
+| monitoring | prod VPC 공유 — vpc_id 변수에 prod output 사용 | 없음 | plan만 |
 
-Supabase 접속 정보는 Terraform에서 관리하지 않는다. 각 서버의 `/secrets/.env.dev`,
-`/secrets/.env.prod`에 별도로 주입하여 Terraform state에 DB 비밀번호가 들어가지 않게 한다.
+Supabase 접속 정보는 Terraform에서 관리하지 않는다. 각 서버의 `/secrets/.env.prod` 등에 별도 주입해 state에 DB 비밀번호가 들어가지 않게 한다.
+
+## 모듈 의존 관계 (prod 기준)
+
+```
+modules/network  →  vpc_id, public_subnet_a_id
+     ↓
+modules/ec2      →  instance_id, public_ip, private_ip
+     ↓
+modules/dns      →  Route53 A record (enable_route53 = true 일 때만)
+```
+
+dev는 기존 VPC를 import한 상태라 network 모듈을 사용하지 않고 vpc_id를 변수로 직접 받는다.
+
+## 0. (최초 1회) Remote State 부트스트랩
+
+팀 협업 또는 CI 연동 전에 S3 backend를 먼저 만들어야 한다.
+
+```bash
+cd infra/bootstrap/state
+terraform init
+terraform apply -var="aws_account_id=123456789012"
+```
+
+완료 후 각 `envs/*/versions.tf` 의 backend 블록 주석을 해제하고 `terraform init -migrate-state` 실행.
 
 ## 1. vars 준비
 
-예제 파일을 복사하고 실제 AWS 값으로 바꾼다. 실제 `.tfvars`와 로컬 state 파일은 Git에서
-제외된다.
+예제 파일을 복사하고 실제 값으로 채운다.
 
 ```bash
-cp infra/vars/dev.tfvars.example infra/vars/dev.tfvars
+cp infra/vars/prod.tfvars.example infra/vars/prod.tfvars
 ```
 
-dev에서 특히 확인할 값은 다음과 같다.
+**prod** 에서 확인할 값:
+- `vpc_cidr`, `public_subnet_a_cidr`: 신규 VPC이므로 원하는 CIDR 지정
+- `ami_id`: Ubuntu 22.04 LTS (ap-northeast-2)
+- `monitoring_cidrs`: monitoring apply 후 private IP `/32` 추가
+- `enable_route53 = false` → apply 후 IP 확인 → `true` 로 변경해 DNS 생성
 
-- `ami_id`, `vpc_id`, `public_subnet_id`: 현재 EC2의 값과 동일하게 지정
-- `instance_type`: 기존 서버와 동일하게 `t3.micro` 유지
-- `root_volume_size`: 현재 볼륨보다 작게 지정하지 않음
-- `existing_security_group_ids`: 전환 중 유지할 현재 SG ID
-- `create_eip`: 현재 EIP가 있거나 새 고정 IP를 사용할 때 `true`
-- `monitoring_cidrs`: monitoring 보류 중에는 `[]`
+**monitoring** 에서 확인할 값:
+- `vpc_id`: prod apply 후 출력되는 `vpc_id` output 값 사용
+- `application_cidrs`: prod + dev private IP `/32`
 
-각 환경은 별도 디렉터리의 로컬 state를 사용한다.
-
-```text
-infra/envs/dev/terraform.tfstate
-infra/envs/prod/terraform.tfstate
-infra/envs/monitoring/terraform.tfstate
-```
-
-state에는 리소스 정보와 민감한 값이 포함될 수 있으므로 Git에 커밋하지 않고 안전하게
-백업해야 한다. 팀에서 동시에 Terraform을 실행하지 않는다.
+**dev** 에서 확인할 값:
+- `vpc_id`, `public_subnet_id`: 현재 EC2와 동일한 값 유지
+- `existing_security_group_ids`: 전환 중 유지할 기존 SG
 
 ## 2. 기존 EC2를 dev state로 가져오기
-
-아래 명령의 ID를 현재 서버 값으로 교체한다. 먼저 instance만 import한다. 모듈이 새 관리용
-SG와 IAM role을 만들며, `existing_security_group_ids`에 넣은 기존 SG는 전환 중 함께 유지한다.
 
 ```bash
 cd infra/envs/dev
 terraform init
 terraform import -var-file=../../vars/dev.tfvars module.server.aws_instance.this i-xxxxxxxx
-```
-
-현재 서버가 EIP를 사용하고 `create_eip = true`라면 기존 EIP도 반드시 import한다. 여기에는
-공인 IP가 아니라 allocation ID(`eipalloc-...`)를 사용한다.
-
-```bash
+# EIP가 있다면
 terraform import -var-file=../../vars/dev.tfvars 'module.server.aws_eip.this[0]' eipalloc-xxxxxxxx
 ```
 
-EIP가 없는데 `create_eip = true`이면 새 EIP가 생성된다. 인스턴스의 기존 일반 공인 IP는
-바뀌므로 DNS 전환 계획을 먼저 확인한다.
-
-## 3. dev 변경 검토 및 적용
+## 3. 변경 검토 및 적용
 
 ```bash
 terraform fmt -recursive ../..
 terraform validate
-terraform plan -var-file=../../vars/dev.tfvars -out=dev.tfplan
-terraform show dev.tfplan
-terraform apply dev.tfplan
+terraform plan -var-file=../../vars/<env>.tfvars -out=<env>.tfplan
+terraform show <env>.tfplan
+terraform apply <env>.tfplan
 ```
 
-다음 조건이면 적용을 중단하고 vars/import 상태를 다시 확인한다.
-
+다음 조건이면 적용 중단 후 vars/import 상태 재확인:
 - 기존 EC2가 `destroy` 또는 `replace`로 표시됨
-- 예상하지 않은 EBS 축소가 표시됨
-- 현재 EIP 연결 해제가 표시됨
-- SSH/HTTP/HTTPS 접근 경로가 사라짐
+- 예상하지 않은 EBS 축소
+- 현재 EIP 연결 해제
+- SSH/HTTP/HTTPS 접근 경로 소멸
 
-현재 dev는 `t3.micro`를 유지하므로 정상적인 plan에는 인스턴스 타입 변경이 없어야 한다.
-기존 EC2에 대한 `user_data`는 import만으로 다시 실행되지 않을 수 있으므로 Docker 설치
-상태는 별도로 확인한다.
+## 4. prod DNS 활성화 순서
 
-전환이 끝나고 새 관리 SG의 22/80/443 접근을 검증한 뒤에만
-`existing_security_group_ids = []`로 바꾸고 다시 적용한다.
+Route53을 바로 활성화하면 기존 DNS 레코드가 남아 있는 동안 충돌할 수 있다.
 
-## 4. prod와 monitoring은 plan까지만
+1. `enable_route53 = false` 로 apply → prod EC2 + EIP 생성
+2. `terraform output dns_name_servers` 확인 (enable 후)
+3. `enable_route53 = true`, `create_route53_zone = true` 로 재apply → 호스팅 영역 생성
+4. 도메인 등록 대행사(가비아 등)의 NS 레코드를 Route53 name server로 교체
+5. TTL 만료 후 기존 DNS 레코드 제거
 
-prod는 Supabase를 사용하는 신규 `t3.small` EC2를 만든다.
+## 5. CI — Terraform Plan 자동화
 
-```bash
-cp infra/vars/prod.tfvars.example infra/vars/prod.tfvars
-cd infra/envs/prod
-terraform init
-terraform plan -var-file=../../vars/prod.tfvars
-```
+`infra/**` 경로 변경이 포함된 PR이 열리면 `.github/workflows/tf-plan.yml` 이 dev/prod/monitoring 세 환경에 대해 `terraform plan` 을 실행하고 결과를 PR 코멘트로 붙인다.
 
-monitoring도 동일하게 준비할 수 있지만 현재는 `apply`하지 않는다.
+**GitHub Secret 설정 (각 환경 tfvars를 base64로 인코딩):**
 
 ```bash
-cp infra/vars/monitoring.tfvars.example infra/vars/monitoring.tfvars
-cd infra/envs/monitoring
-terraform init
-terraform plan -var-file=../../vars/monitoring.tfvars
+base64 -i infra/vars/dev.tfvars | pbcopy   # → GitHub Secret: DEV_TFVARS
+base64 -i infra/vars/prod.tfvars | pbcopy  # → GitHub Secret: PROD_TFVARS
+base64 -i infra/vars/monitoring.tfvars | pbcopy  # → GitHub Secret: MONITORING_TFVARS
 ```
-
-monitoring을 실제 생성한 뒤 dev/prod의 `monitoring_cidrs`에 monitoring private IP `/32`를
-넣으면 9091이 열린다. 그 전에는 9091 규칙 자체가 생성되지 않는다. 반대로 monitoring의
-`application_cidrs`에는 dev/prod private IP `/32`를 넣어 Loki 3100 접근만 허용한다.
 
 ## 보안 기본값
 
-- 인터넷 공개: app 서버의 80, 443만
+- 인터넷 공개: app 서버 80, 443만
 - 관리자 CIDR만 허용: 22, Grafana 3000
-- monitoring private IP만 허용: Actuator 9091
+- monitoring private IP만 허용: Actuator 9091, Redis Exporter 9121
 - dev/prod private IP만 허용: Loki 3100
 - EC2 metadata: IMDSv2 필수
-- EBS: 암호화 활성화
-
-## 도메인과 Nginx
-
-도메인은 다음처럼 고정한다.
-
-| 환경 | 도메인 | 대상 |
-|---|---|---|
-| prod | `api.booknook.work` | prod EIP |
-| dev | `dev.booknook.work` | dev EIP |
-
-도메인을 구매한 DNS 제공자에서 A 레코드를 수동으로 생성한다. `api`는 prod EIP,
-`dev`는 dev EIP를 가리켜야 한다.
-
-Terraform은 EC2와 DNS만 관리하며, 서버의 `/secrets`에 있는 런타임 비밀 파일은 관리하지
-않는다. 운영 서버의 `/secrets/.env.prod`에는 아래 값을 넣어 Docker Nginx 템플릿의
-`SERVER_NAME`을 반영한다.
-
-```dotenv
-SERVER_NAME=api.booknook.work
-CERTBOT_EMAIL=<certificate notification email>
-```
-
-그 뒤 운영 서버에서 한 번 `./scripts/init-certificate.sh prod`를 실행해 인증서를 발급하고,
-배포 시 `./scripts/deploy.sh prod <image>`가 Nginx 설정을 적용한다. dev는 EC2 호스트에
-이미 설치된 Nginx와 Certbot을 사용하므로, 해당 호스트의 server block에는
-`server_name dev.booknook.work;`를 설정한다.
-
-실제 `apply` 전에는 AWS 자격 증명과 대상 account ID가 일치하는지 확인해야 한다. provider의
-`allowed_account_ids`가 다른 계정에 실수로 적용하는 것을 한 번 더 막는다.
+- EBS: 암호화 + gp3
+- T2/T3 CPU 크레딧: `unlimited` (크레딧 고갈로 인한 성능 저하 방지)
