@@ -12,22 +12,25 @@ variable "project_name" {
   default = "nook"
 }
 
-variable "domain_name" {
-  description = "Public hostname for the production server."
+# ── Network ──────────────────────────────────────────────────────────────────
+
+variable "vpc_cidr" {
+  description = "CIDR block for the prod VPC."
   type        = string
-  default     = "api.booknook.work"
+  default     = "10.1.0.0/16"
 }
 
-variable "vpc_id" {
-  type = string
+variable "public_subnet_a_cidr" {
+  description = "CIDR for the public subnet in AZ 'a'."
+  type        = string
+  default     = "10.1.1.0/24"
 }
 
-variable "public_subnet_id" {
-  type = string
-}
+# ── Compute ──────────────────────────────────────────────────────────────────
 
 variable "ami_id" {
-  type = string
+  description = "Ubuntu 22.04 LTS AMI ID for the production EC2."
+  type        = string
 }
 
 variable "instance_type" {
@@ -56,7 +59,40 @@ variable "admin_cidrs" {
 }
 
 variable "monitoring_cidrs" {
-  description = "Private CIDR of the monitoring server allowed to scrape port 9091."
+  description = "Private CIDR of the monitoring server allowed to scrape ports 9091/9121."
   type        = list(string)
   default     = []
+}
+
+# ── DNS (Route53) ─────────────────────────────────────────────────────────────
+
+variable "enable_route53" {
+  description = "Create Route53 records. Enable after pointing the registrar at Route53 name servers."
+  type        = bool
+  default     = false
+}
+
+variable "create_route53_zone" {
+  description = "Create a new hosted zone. Set false to reuse an existing zone in this account."
+  type        = bool
+  default     = true
+}
+
+variable "route53_zone" {
+  description = "Apex domain managed in Route53 (e.g. 'booknook.work')."
+  type        = string
+  default     = "booknook.work"
+}
+
+variable "domain_subdomain" {
+  description = "Subdomain for the prod server A record (e.g. 'api' → api.booknook.work)."
+  type        = string
+  default     = "api"
+}
+
+# Kept for documentation/output only; not used in resource definitions.
+variable "domain_name" {
+  description = "Full public hostname of the production server."
+  type        = string
+  default     = "api.booknook.work"
 }
