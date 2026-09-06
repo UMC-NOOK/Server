@@ -57,6 +57,12 @@ resource "aws_iam_instance_profile" "this" {
   role = aws_iam_role.this.name
 }
 
+locals {
+  # T2/T3 instances use burstable CPU credits; set to unlimited to prevent
+  # throttling when credits are exhausted on a sustained-load server.
+  is_burstable = can(regex("^t[23]", var.instance_type))
+}
+
 resource "aws_instance" "this" {
   ami                         = var.ami_id
   instance_type               = var.instance_type
@@ -66,6 +72,13 @@ resource "aws_instance" "this" {
   associate_public_ip_address = var.associate_public_ip_address
   iam_instance_profile        = aws_iam_instance_profile.this.name
   user_data                   = var.user_data
+
+  dynamic "credit_specification" {
+    for_each = local.is_burstable ? [1] : []
+    content {
+      cpu_credits = "unlimited"
+    }
+  }
 
   metadata_options {
     http_endpoint = "enabled"
