@@ -450,7 +450,8 @@ class BookServiceTest {
     @DisplayName("사용자 도서 생성 성공")
     void createUserBook_success() {
         BookRequestDto.CreateUserBookRequest request = new BookRequestDto.CreateUserBookRequest(
-                "혼모노", "성해은", TEST_CATEGORY_NAME, "소개", 348, TEST_PUBLISHER,
+                "<꽉TV> &lt;의도한 입력&gt;", "성해은 &amp; 작가", TEST_CATEGORY_NAME,
+                "소개 &amp; 원문", 348, TEST_PUBLISHER,
                 "2023-06-05", "9788936439743", null
         );
 
@@ -469,6 +470,9 @@ class BookServiceTest {
         assertThat(saved.getCreatedByUserId()).isEqualTo(TEST_USER_ID);
         assertThat(saved.getCategory()).isEqualTo(category);
         assertThat(saved.getIsbn13()).isEqualTo("9788936439743");
+        assertThat(saved.getTitle()).isEqualTo("<꽉TV> &lt;의도한 입력&gt;");
+        assertThat(saved.getAuthor()).isEqualTo("성해은 &amp; 작가");
+        assertThat(saved.getDescription()).isEqualTo("소개 &amp; 원문");
     }
 
     @Test
