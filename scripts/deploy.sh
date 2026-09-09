@@ -47,6 +47,18 @@ if [[ "$deploy_env" == "prod" ]]; then
   fi
 
   mkdir -p data/certbot/www
+
+  # active.conf tracks which of app-blue/app-green is currently live. It must
+  # live outside this checkout: every deploy re-syncs the repo from git, and
+  # if active.conf sat inside the repo tree that sync would clobber the
+  # server's real state back to whatever is committed, breaking blue/green.
+  state_dir="${DEPLOY_STATE_DIR:-$HOME/.deploy-state/nook-prod}"
+  mkdir -p "$state_dir"
+  active_conf="$state_dir/active.conf"
+  if [[ ! -f "$active_conf" ]]; then
+    cp nginx/conf.d/active.conf.default "$active_conf"
+  fi
+  export ACTIVE_CONF_PATH="$active_conf"
 fi
 
 export IMAGE="$image"
@@ -59,7 +71,6 @@ if [[ "$deploy_env" != "prod" ]]; then
   docker compose --env-file "$env_file" -f "$compose_file" up -d --remove-orphans
   app_service="app"
 else
-  active_conf="nginx/conf.d/active.conf"
   if grep -q 'server app-green:8080;' "$active_conf"; then
     current="green"
     target="blue"
@@ -106,7 +117,6 @@ if [[ "${health:-}" != "healthy" ]]; then
 fi
 
 if [[ "$deploy_env" == "prod" ]]; then
-  active_conf="nginx/conf.d/active.conf"
   temporary_conf="$(mktemp)"
   trap 'rm -f "$temporary_conf"' EXIT
   sed -E "s/server app-(blue|green):(8080|9091);/server app-$target:\2;/" "$active_conf" > "$temporary_conf"
