@@ -67,26 +67,36 @@ jobs:
 
             digest="$(aws ecr describe-images \
               --repository-name "$ECR_REPOSITORY" \
-              --image-ids imageTag="$source_tag" \
+              --image-ids imageTag="$prod_tag" \
               --query 'imageDetails[0].imageDigest' \
-              --output text)"
+              --output text 2>/dev/null || true)"
 
-            if [[ -z "$digest" || "$digest" == "None" ]]; then
-              echo "Dev image not found: $source_tag. Wait for DEV CD to finish before merging the release PR." >&2
-              exit 1
+            if [[ -n "$digest" && "$digest" != "None" ]]; then
+              echo "Prod tag already exists, reusing it: $prod_tag"
+            else
+              digest="$(aws ecr describe-images \
+                --repository-name "$ECR_REPOSITORY" \
+                --image-ids imageTag="$source_tag" \
+                --query 'imageDetails[0].imageDigest' \
+                --output text)"
+
+              if [[ -z "$digest" || "$digest" == "None" ]]; then
+                echo "Dev image not found: $source_tag. Wait for DEV CD to finish before merging the release PR." >&2
+                exit 1
+              fi
+
+              manifest="$(aws ecr batch-get-image \
+                --repository-name "$ECR_REPOSITORY" \
+                --image-ids imageDigest="$digest" \
+                --accepted-media-types application/vnd.docker.distribution.manifest.v2+json \
+                --query 'images[0].imageManifest' \
+                --output text)"
+
+              aws ecr put-image \
+                --repository-name "$ECR_REPOSITORY" \
+                --image-tag "$prod_tag" \
+                --image-manifest "$manifest" >/dev/null
             fi
-
-            manifest="$(aws ecr batch-get-image \
-              --repository-name "$ECR_REPOSITORY" \
-              --image-ids imageDigest="$digest" \
-              --accepted-media-types application/vnd.docker.distribution.manifest.v2+json \
-              --query 'images[0].imageManifest' \
-              --output text)"
-
-            aws ecr put-image \
-              --repository-name "$ECR_REPOSITORY" \
-              --image-tag "$prod_tag" \
-              --image-manifest "$manifest" >/dev/null
           else
             source_tag="$INPUT_IMAGE_TAG"
             if [[ ! "$source_tag" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$ ]]; then

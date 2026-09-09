@@ -90,6 +90,6 @@ public class TimelineResponseDto {
     public record TimelineRecordDetailDto(
             String content,
             String emotion,
-            List<String> imageUrls
+            List<String> imgUrls
     ) implements TimelineDetail {}
 }
