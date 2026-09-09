@@ -76,17 +76,23 @@ jobs:
               exit 1
             fi
 
-            manifest="$(aws ecr batch-get-image \
-              --repository-name "$ECR_REPOSITORY" \
-              --image-ids imageDigest="$digest" \
-              --accepted-media-types application/vnd.docker.distribution.manifest.v2+json \
-              --query 'images[0].imageManifest' \
-              --output text)"
+            if aws ecr describe-images \
+                --repository-name "$ECR_REPOSITORY" \
+                --image-ids imageTag="$prod_tag" >/dev/null 2>&1; then
+              echo "Prod tag already exists, skipping promotion: $prod_tag"
+            else
+              manifest="$(aws ecr batch-get-image \
+                --repository-name "$ECR_REPOSITORY" \
+                --image-ids imageDigest="$digest" \
+                --accepted-media-types application/vnd.docker.distribution.manifest.v2+json \
+                --query 'images[0].imageManifest' \
+                --output text)"
 
-            aws ecr put-image \
-              --repository-name "$ECR_REPOSITORY" \
-              --image-tag "$prod_tag" \
-              --image-manifest "$manifest" >/dev/null
+              aws ecr put-image \
+                --repository-name "$ECR_REPOSITORY" \
+                --image-tag "$prod_tag" \
+                --image-manifest "$manifest" >/dev/null
+            fi
           else
             source_tag="$INPUT_IMAGE_TAG"
             if [[ ! "$source_tag" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$ ]]; then

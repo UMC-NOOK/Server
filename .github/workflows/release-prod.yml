@@ -28,19 +28,13 @@ jobs:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
 
-      - name: Read and validate release version
+      - name: Generate release tag
         id: version
         shell: bash
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
-          if [[ "$PR_TITLE" =~ [Rr]elease[[:space:]]+(v[0-9]+\.[0-9]+\.[0-9]+) ]]; then
-            echo "tag=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
-          else
-            echo "Release PR title must include a version, for example: release v0.2.0" >&2
-            exit 1
-          fi
+          tag="$(TZ=Asia/Seoul date +'%Y%m%d%H%M')"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
 
       - name: Create Git tag and GitHub Release
         env:
