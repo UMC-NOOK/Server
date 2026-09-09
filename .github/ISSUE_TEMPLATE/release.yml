@@ -2,14 +2,11 @@ name: "🚀 Release"
 description: "운영 릴리즈를 위한 변경사항과 배포 점검"
 labels: ["release"]
 body:
-  - type: input
-    id: version
+  - type: markdown
     attributes:
-      label: "🚀 릴리즈 번호"
-      description: "직전 릴리즈에서 +1 합니다. 태그가 없다면 v0.1.0부터 시작합니다."
-      placeholder: "v0.1.0"
-    validations:
-      required: true
+      value: |
+        릴리즈 태그는 `production` PR 병합 시각 기준으로 자동 생성됩니다 (예: `202609200509`).
+        별도로 버전 번호를 입력할 필요는 없습니다.
 
   - type: textarea
     id: summary
