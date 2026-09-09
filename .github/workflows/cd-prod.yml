@@ -67,20 +67,24 @@ jobs:
 
             digest="$(aws ecr describe-images \
               --repository-name "$ECR_REPOSITORY" \
-              --image-ids imageTag="$source_tag" \
+              --image-ids imageTag="$prod_tag" \
               --query 'imageDetails[0].imageDigest' \
-              --output text)"
+              --output text 2>/dev/null || true)"
 
-            if [[ -z "$digest" || "$digest" == "None" ]]; then
-              echo "Dev image not found: $source_tag. Wait for DEV CD to finish before merging the release PR." >&2
-              exit 1
-            fi
-
-            if aws ecr describe-images \
-                --repository-name "$ECR_REPOSITORY" \
-                --image-ids imageTag="$prod_tag" >/dev/null 2>&1; then
-              echo "Prod tag already exists, skipping promotion: $prod_tag"
+            if [[ -n "$digest" && "$digest" != "None" ]]; then
+              echo "Prod tag already exists, reusing it: $prod_tag"
             else
+              digest="$(aws ecr describe-images \
+                --repository-name "$ECR_REPOSITORY" \
+                --image-ids imageTag="$source_tag" \
+                --query 'imageDetails[0].imageDigest' \
+                --output text)"
+
+              if [[ -z "$digest" || "$digest" == "None" ]]; then
+                echo "Dev image not found: $source_tag. Wait for DEV CD to finish before merging the release PR." >&2
+                exit 1
+              fi
+
               manifest="$(aws ecr batch-get-image \
                 --repository-name "$ECR_REPOSITORY" \
                 --image-ids imageDigest="$digest" \
