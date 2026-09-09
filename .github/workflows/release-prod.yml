@@ -28,19 +28,15 @@ jobs:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
 
-      - name: Read and validate release version
+      - name: Generate release tag
         id: version
         shell: bash
         env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
+          MERGED_AT: ${{ github.event.pull_request.merged_at }}
         run: |
           set -euo pipefail
-          if [[ "$PR_TITLE" =~ [Rr]elease[[:space:]]+(v[0-9]+\.[0-9]+\.[0-9]+) ]]; then
-            echo "tag=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
-          else
-            echo "Release PR title must include a version, for example: release v0.2.0" >&2
-            exit 1
-          fi
+          tag="$(TZ=Asia/Seoul date -d "$MERGED_AT" +'%Y%m%d%H%M')"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
 
       - name: Create Git tag and GitHub Release
         env:
@@ -49,13 +45,18 @@ jobs:
           TARGET: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           set -euo pipefail
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag already exists: $TAG" >&2
-            exit 1
-          fi
+          git fetch --tags --force
+
+          # Same-minute merges would collide on tag name; append -2, -3, ...
+          tag="$TAG"
+          suffix=2
+          while git rev-parse "$tag" >/dev/null 2>&1; do
+            tag="${TAG}-${suffix}"
+            suffix=$((suffix + 1))
+          done
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" "$TARGET" -m "Release $TAG"
-          git push origin "$TAG"
-          gh release create "$TAG" --title "Release $TAG" --generate-notes
+          git tag -a "$tag" "$TARGET" -m "Release $tag"
+          git push origin "$tag"
+          gh release create "$tag" --title "Release $tag" --generate-notes
