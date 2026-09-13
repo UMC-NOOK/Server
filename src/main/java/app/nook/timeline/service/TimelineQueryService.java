@@ -66,7 +66,7 @@ public class TimelineQueryService {
         List<Timeline> previewTimelines = timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library);
 
         TimelineResponseDto.TimelinePreviewDto timelinePreview = TimelineResponseConverter.toTimelinePreview(
-                toTimelineDateGroups(previewTimelines, null)
+                toTimelineDateGroups(library, previewTimelines)
         );
 
         return TimelineResponseConverter.toTimelineSummary(
@@ -93,7 +93,7 @@ public class TimelineQueryService {
             nextCursor = TimelineCursorCodec.encode(new TimelineCursor(last.getOccurredAt(), last.getId()));
         }
         return new TimelineResponseDto.TimelinePageDto(
-                toTimelineDateGroups(page, cursor == null ? null : cursor.occurredAt().getYear()),
+                toTimelineDateGroups(library, page),
                 nextCursor,
                 hasNext
         );
@@ -133,8 +133,12 @@ public class TimelineQueryService {
     }
 
     private List<TimelineResponseDto.TimelineDateGroupDto> toTimelineDateGroups(
-            List<Timeline> timelines, Integer previousYear
+            Library library, List<Timeline> timelines
     ) {
+        if (timelines.isEmpty()) {
+            return List.of();
+        }
+
         // FOCUS/RECORD 원본은 타입별로 미리 묶어서 조회해 item 조립 시 N+1을 피한다.
         Map<Long, Focus> focusMap = getFocusMap(timelines);
         Map<Long, Record> recordMap = getRecordMap(timelines);
@@ -146,14 +150,18 @@ public class TimelineQueryService {
                     .add(toTimelineItem(timeline, focusMap, recordMap));
         }
 
+        Set<Integer> years = grouped.keySet().stream()
+                .map(LocalDate::getYear)
+                .collect(Collectors.toSet());
+        Set<LocalDate> firstDates = timelineRepository.findFirstOccurredAtByLibraryAndYears(library, years).stream()
+                .map(occurredAt -> occurredAt.toLocalDate())
+                .collect(Collectors.toSet());
         List<TimelineResponseDto.TimelineDateGroupDto> dateGroups = new ArrayList<>();
 
         for (Map.Entry<LocalDate, List<TimelineResponseDto.TimelineItemDto>> entry : grouped.entrySet()) {
             LocalDate date = entry.getKey();
-            // 같은 연도 그룹이 연속되면 첫 그룹만 연도를 노출한다.
-            boolean showYear = previousYear == null || previousYear != date.getYear();
+            boolean showYear = firstDates.contains(date);
             dateGroups.add(TimelineResponseConverter.toTimelineDateGroup(date, showYear, entry.getValue()));
-            previousYear = date.getYear();
         }
 
         return dateGroups;

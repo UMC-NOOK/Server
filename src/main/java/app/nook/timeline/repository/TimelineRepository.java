@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface TimelineRepository extends JpaRepository<Timeline, Long> {
     void deleteByLibrary(Library library);
@@ -21,6 +22,16 @@ public interface TimelineRepository extends JpaRepository<Timeline, Long> {
     List<Timeline> findTop5ByLibraryOrderByOccurredAtDescIdDesc(Library library);
 
     List<Timeline> findByLibraryOrderByOccurredAtDescIdDesc(Library library, Pageable pageable);
+
+    @Query("""
+            SELECT MIN(t.occurredAt) FROM Timeline t
+            WHERE t.library = :library AND YEAR(t.occurredAt) IN :years
+            GROUP BY YEAR(t.occurredAt)
+            """)
+    List<LocalDateTime> findFirstOccurredAtByLibraryAndYears(
+            @Param("library") Library library,
+            @Param("years") Set<Integer> years
+    );
 
     @Query("""
             SELECT t FROM Timeline t
