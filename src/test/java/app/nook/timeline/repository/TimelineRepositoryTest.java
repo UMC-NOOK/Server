@@ -23,6 +23,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -129,6 +130,27 @@ class TimelineRepositoryTest extends AbstractPostgresContainerTests {
         assertThat(result)
                 .extracting(Timeline::getType)
                 .contains(TimelineType.STATUS);
+    }
+
+    @Test
+    void findFirstOccurredAtByLibraryAndYears_해당서재와_연도의_첫기록을_조회한다() {
+        User user = saveUser("timeline-first@test.com", "provider-first");
+        Library library = saveLibrary(user, saveBook("3333333333334", "도서1"));
+        Library otherLibrary = saveLibrary(user, saveBook("3333333333335", "도서2"));
+        LocalDateTime first2025 = LocalDateTime.of(2025, 12, 31, 10, 0);
+        LocalDateTime first2026 = LocalDateTime.of(2026, 1, 1, 10, 0);
+
+        saveTimeline(library, TimelineType.RECORD, 9001L, first2026.plusDays(1), "최근 기록");
+        saveTimeline(library, TimelineType.FOCUS, 7001L, first2026.plusHours(1), "포커스");
+        saveTimeline(library, TimelineType.STATUS, library.getId(), first2026, "독서 상태 변경");
+        saveTimeline(library, TimelineType.REGISTER, library.getId(), first2025, "등록");
+        saveTimeline(library, TimelineType.RECORD, 9002L, first2025.minusYears(1), "조회 대상 연도 제외");
+        saveTimeline(otherLibrary, TimelineType.REGISTER, otherLibrary.getId(), first2025.minusDays(1), "다른 서재");
+
+        List<LocalDateTime> result = timelineRepository.findFirstOccurredAtByLibraryAndYears(
+                library, Set.of(2025, 2026));
+
+        assertThat(result).containsExactlyInAnyOrder(first2025, first2026);
     }
 
     @Test

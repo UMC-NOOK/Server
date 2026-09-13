@@ -39,6 +39,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -239,6 +240,9 @@ class TimelineQueryServiceTest {
             given(timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library))
                     .willReturn(timelines);
 
+            given(timelineRepository.findFirstOccurredAtByLibraryAndYears(library, Set.of(2026)))
+                    .willReturn(List.of(timelines.get(1).getOccurredAt()));
+
             TimelineResponseDto.TimelineSummaryDto result =
                     timelineQueryService.getTimelineSummary(user, 12L);
 
@@ -247,7 +251,9 @@ class TimelineQueryServiceTest {
             assertThat(result.focusSummary().focusCount()).isEqualTo(39);
             assertThat(result.recordSummary().recordCount()).isEqualTo(1);
             assertThat(result.recordSummary().latestRecordPreview()).isEqualTo("기록 preview");
-            assertThat(result.timelinePreview().dateGroups()).hasSize(2);
+            assertThat(result.timelinePreview().dateGroups())
+                    .extracting(TimelineResponseDto.TimelineDateGroupDto::showYear)
+                    .containsExactly(false, true);
         }
 
         @Test
@@ -297,6 +303,9 @@ class TimelineQueryServiceTest {
             given(timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library))
                     .willReturn(timelines);
 
+            given(timelineRepository.findFirstOccurredAtByLibraryAndYears(library, Set.of(2026)))
+                    .willReturn(List.of(LocalDateTime.of(2026, 1, 1, 12, 0)));
+
             TimelineResponseDto.TimelineSummaryDto result =
                     timelineQueryService.getTimelineSummary(user, 12L);
 
@@ -305,6 +314,9 @@ class TimelineQueryServiceTest {
                     .sum();
 
             assertThat(itemCount).isEqualTo(5);
+            assertThat(result.timelinePreview().dateGroups())
+                    .extracting(TimelineResponseDto.TimelineDateGroupDto::showYear)
+                    .containsOnly(false);
         }
 
         @Test
@@ -356,6 +368,9 @@ class TimelineQueryServiceTest {
                     library, PageRequest.of(0, 3)))
                     .willReturn(List.of(first, second, extra));
 
+            given(timelineRepository.findFirstOccurredAtByLibraryAndYears(library, Set.of(2026)))
+                    .willReturn(List.of(time));
+
             TimelineResponseDto.TimelinePageDto page = timelineQueryService.getTimelinePreview(user, 12L, null, 2);
 
             assertThat(page.dateGroups()).hasSize(1);
@@ -370,7 +385,7 @@ class TimelineQueryServiceTest {
         }
 
         @Test
-        @DisplayName("같은 날짜의 다음 페이지는 연도를 다시 표시하지 않는다")
+        @DisplayName("연도 첫 기록 날짜가 다음 페이지에 이어져도 연도 표시를 유지한다")
         void getTimelinePreview_같은날짜_다음페이지() {
             User user = user(1L);
             Library library = library(user, 12L);
@@ -381,33 +396,40 @@ class TimelineQueryServiceTest {
             given(timelineRepository.findBeforeCursor(library, time, 104L,
                     PageRequest.of(0, 3))).willReturn(List.of(extra));
             given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of());
+            given(timelineRepository.findFirstOccurredAtByLibraryAndYears(library, Set.of(2026)))
+                    .willReturn(List.of(time));
+
             TimelineResponseDto.TimelinePageDto nextPage = timelineQueryService.getTimelinePreview(user, 12L, cursor, 2);
 
             assertThat(nextPage.dateGroups().get(0).items()).extracting(TimelineResponseDto.TimelineItemDto::timelineId)
                     .containsExactly(103L);
-            assertThat(nextPage.dateGroups().get(0).showYear()).isFalse();
+            assertThat(nextPage.dateGroups().get(0).showYear()).isTrue();
             assertThat(nextPage.hasNext()).isFalse();
             assertThat(nextPage.nextCursor()).isNull();
         }
 
         @ParameterizedTest
-        @ValueSource(ints = {2025, 2026})
-        @DisplayName("다음 페이지의 연도 표시는 커서의 연도와 비교한다")
-        void getTimelinePreview_커서연도_표시여부(int cursorYear) {
+        @CsvSource({"2025, 29", "2025, 30", "2026, 29", "2026, 30"})
+        @DisplayName("커서 연도와 관계없이 해당 연도의 첫 기록 날짜에만 연도를 표시한다")
+        void getTimelinePreview_커서연도_표시여부(int cursorYear, int firstDay) {
             User user = user(1L);
             Library library = library(user, 12L);
             TimelineCursor cursor = new TimelineCursor(LocalDateTime.of(cursorYear, 12, 31, 23, 0), 20L);
             Timeline item = timeline(19L, library, TimelineType.REGISTER,
                     LocalDateTime.of(2025, 12, 30, 12, 0), "등록", 12L);
+            Timeline first = timeline(18L, library, TimelineType.REGISTER,
+                    LocalDateTime.of(2025, 12, firstDay, 10, 0), "등록", 12L);
             given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
             given(timelineRepository.findBeforeCursor(library, cursor.occurredAt(), cursor.timelineId(),
-                    PageRequest.of(0, 2))).willReturn(List.of(item));
+                    PageRequest.of(0, 2))).willReturn(List.of(item, first));
+            given(timelineRepository.findFirstOccurredAtByLibraryAndYears(library, Set.of(2025)))
+                    .willReturn(List.of(first.getOccurredAt()));
 
             TimelineResponseDto.TimelinePageDto page = timelineQueryService.getTimelinePreview(user, 12L, cursor, 1);
 
-            assertThat(page.dateGroups().get(0).showYear()).isEqualTo(cursorYear != 2025);
-            assertThat(page.hasNext()).isFalse();
-            assertThat(page.nextCursor()).isNull();
+            assertThat(page.dateGroups().get(0).showYear()).isEqualTo(firstDay == 30);
+            assertThat(page.hasNext()).isTrue();
+            assertThat(page.nextCursor()).isNotNull();
         }
 
         @Test
@@ -469,7 +491,7 @@ class TimelineQueryServiceTest {
         }
 
         @Test
-        @DisplayName("연도가 바뀌는 그룹만 showYear가 true다")
+        @DisplayName("각 연도의 첫 기록 날짜 그룹만 showYear가 true다")
         void getTimelinePreview_showYear_그룹기준() {
             User user = user(1L);
             Library library = library(user, 12L);
@@ -489,12 +511,15 @@ class TimelineQueryServiceTest {
             given(focusRepository.findAllById(List.of(7001L))).willReturn(Collections.emptyList());
             given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of(record(9001L, library, "기록 preview")));
 
+            given(timelineRepository.findFirstOccurredAtByLibraryAndYears(library, Set.of(2025, 2026)))
+                    .willReturn(List.of(timelines.get(1).getOccurredAt(), timelines.get(2).getOccurredAt()));
+
             TimelineResponseDto.TimelinePageDto result =
                     timelineQueryService.getTimelinePreview(user, 12L, null, 20);
 
             assertThat(result.dateGroups()).hasSize(3);
-            assertThat(result.dateGroups().get(0).showYear()).isTrue();
-            assertThat(result.dateGroups().get(1).showYear()).isFalse();
+            assertThat(result.dateGroups().get(0).showYear()).isFalse();
+            assertThat(result.dateGroups().get(1).showYear()).isTrue();
             assertThat(result.dateGroups().get(2).showYear()).isTrue();
         }
 
