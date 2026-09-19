@@ -54,7 +54,7 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     // DB unique 제약조건 위반 → 409
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Object> handleDataIntegrityViolation(DataIntegrityViolationException e, WebRequest request) {
-        log.warn("DataIntegrityViolationException: {}", e.getMostSpecificCause().getMessage());
+        log.warn("DataIntegrityViolationException: {}", e.getMostSpecificCause().getMessage(), e);
         ApiResponse<Object> body = ApiResponse.onFailure(CommonErrorCode.DUPLICATE_RESOURCE, null);
         return handleExceptionInternal(e, body, new HttpHeaders(),
                 CommonErrorCode.DUPLICATE_RESOURCE.getHttpStatus(), request);
