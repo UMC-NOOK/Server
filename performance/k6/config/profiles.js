@@ -126,6 +126,30 @@ export const internalApiOptions = {
   }),
 };
 
+const RECORD_IMAGE_UPLOAD_REQUEST_NAMES = [
+  "record-upload:create-book",
+  "record-upload:issue-urls",
+  "record-upload:put-image",
+  "record-upload:create-record",
+];
+
+export const recordImageUploadOptions = {
+  tags: commonTags(),
+  scenarios: {
+    record_image_upload: {
+      executor: "shared-iterations",
+      vus: intEnv("VUS", 1),
+      iterations: intEnv("ITERATIONS", intEnv("VUS", 1)),
+      maxDuration: stringEnv("MAX_DURATION", "5m"),
+    },
+  },
+  thresholds: commonThresholds({
+    failedRate: floatEnv("FAILED_RATE_THRESHOLD", 0.05),
+    p95Ms: intEnv("P95_THRESHOLD_MS", 5000),
+    requestNames: RECORD_IMAGE_UPLOAD_REQUEST_NAMES,
+  }),
+};
+
 export const seedOptions = {
   tags: commonTags(),
   scenarios: {
