@@ -27,9 +27,11 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -176,28 +178,30 @@ public class RecordCommandService {
 
     // 수정 요청에 따라 동기화
     private void syncRecordImages(Record record, List<String> requestedImageKeys) {
-        List<RecordImage> existingImages = new ArrayList<>(record.getImages());
+        Map<String, RecordImage> existingImagesByKey = record.getImages().stream()
+                .filter(recordImage -> recordImage.getKey() != null)
+                .collect(Collectors.toMap(RecordImage::getKey, Function.identity(), (first, second) -> first));
 
-        // 삭제될 이미지들을 추출
-        List<String> keysToDelete = existingImages.stream()
-                .map(RecordImage::getKey)
-                .filter(Objects::nonNull)
+        // 요청에서 빠진 기존 이미지는 삭제
+        List<String> keysToDelete = existingImagesByKey.keySet().stream()
                 .filter(key -> !requestedImageKeys.contains(key))
                 .toList();
+        keysToDelete.forEach(key -> {
+            RecordImage recordImage = existingImagesByKey.get(key);
+            record.getImages().remove(recordImage);
+            recordImageRepository.delete(recordImage);
+        });
 
-        // 기존 이미지 중 요청된 이미지 키에 없는 것들은 삭제
-        existingImages.stream()
-                .filter(recordImage -> !requestedImageKeys.contains(recordImage.getKey()))
-                .forEach(recordImage -> {
-                    record.getImages().remove(recordImage);
-                    recordImageRepository.delete(recordImage);
-                });
-
-        // 이미지 연관관계 정리
-        record.getImages().clear();
-
-        // 이미지 저장
-        saveRecordImages(record, requestedImageKeys);
+        // 요청 키 중 기존에 없던 것만 새로 추가하고, 이미 있던 것은 순서만 업데이트
+        for (int index = 0; index < requestedImageKeys.size(); index++) {
+            String key = requestedImageKeys.get(index);
+            RecordImage existingImage = existingImagesByKey.get(key);
+            if (existingImage == null) {
+                record.getImages().add(recordImageRepository.save(new RecordImage(record, key, index)));
+            } else if (!Objects.equals(existingImage.getOrderIndex(), index)) {
+                existingImage.updateOrderIndex(index);
+            }
+        }
 
         // 삭제할 이미지가 있다면 삭제 이벤트 발행
         if (!keysToDelete.isEmpty()) {
