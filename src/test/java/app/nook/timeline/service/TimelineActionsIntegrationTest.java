@@ -205,6 +205,12 @@ class TimelineActionsIntegrationTest extends AbstractPostgresContainerTests {
         assertThat(first.getSessionId()).isNotEqualTo(other.getSessionId());
         assertThat(monthly("2026-08")).isEqualTo(60);
         assertThat(monthly("2026-09")).isEqualTo(31);
+        List<Timeline> addedStatuses = timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(
+                        library, PageRequest.of(0, 20)).stream()
+                .filter(item -> item.getType() == TimelineType.STATUS && !item.getId().equals(status.getId()))
+                .toList();
+        assertThat(addedStatuses).extracting(Timeline::getPreviewText)
+                .containsExactly("독서 상태 변경: FINISHED", "독서 상태 변경: READING");
 
         response("DELETE", "/api/v1/focuses/" + session.get(1).getId(), null);
 
@@ -217,7 +223,8 @@ class TimelineActionsIntegrationTest extends AbstractPostgresContainerTests {
         assertThat(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library,
                 PageRequest.of(0, 20)))
                 .extracting(Timeline::getId)
-                .containsExactlyInAnyOrder(otherTimeline.getId(), registered.getId(), status.getId(), recordTimeline.getId());
+                .containsExactlyInAnyOrder(otherTimeline.getId(), registered.getId(), status.getId(), recordTimeline.getId(),
+                        addedStatuses.get(0).getId(), addedStatuses.get(1).getId());
         assertThat(monthly("2026-08")).isZero();
         assertThat(monthly("2026-09")).isEqualTo(1);
         assertThat(send("DELETE", "/api/v1/focuses/" + focusId, null).statusCode()).isEqualTo(404);
