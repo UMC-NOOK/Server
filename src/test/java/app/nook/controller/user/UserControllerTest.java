@@ -120,7 +120,7 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         requestFields(
-                                fieldWithPath("nickName").description("수정할 닉네임 (2~20자, 영문·숫자·한글·공백)")
+                                fieldWithPath("nickName").description("수정할 닉네임 (2~10자, 영문·숫자·한글·공백)")
                         ),
                         responseFields(
                                 ApiResponseSnippet.withResult(
@@ -154,6 +154,44 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
         mockMvc.perform(patch("/api/v1/users/me/nickname")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("nickName", "")))
+                        .header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("닉네임 수정 성공 - 10자 경계값")
+    void 닉네임_수정_성공_10자() throws Exception {
+        given(userProfileService.updateNickName(anyLong(), anyString()))
+                .willReturn(new UserProfileDto.NickNameUpdateResponse("열글자닉네임입니다잉"));
+
+        mockMvc.perform(patch("/api/v1/users/me/nickname")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("nickName", "열글자닉네임입니다잉")))
+                        .header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("닉네임 수정 실패 - 11자 초과")
+    void 닉네임_수정_실패_11자초과() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/me/nickname")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("nickName", "열한글자닉네임입니다잉")))
+                        .header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("프로필 정보 수정 실패 - 닉네임 11자 초과")
+    void 프로필정보_수정_실패_닉네임11자초과() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/me/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "nickName", "열한글자닉네임입니다잉",
+                                "profileImageKey", "profile/users/1/a.png")))
                         .header(AUTH_HEADER, AUTH_TOKEN))
                 .andExpect(status().isBadRequest());
     }
@@ -289,7 +327,7 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         requestFields(
-                                fieldWithPath("nickName").description("수정할 닉네임 (2~20자, 영문·숫자·한글)"),
+                                fieldWithPath("nickName").description("수정할 닉네임 (2~10자, 영문·숫자·한글·공백)"),
                                 fieldWithPath("profileImageKey").description("업로드된 프로필 이미지 key")
                         ),
                         responseFields(ApiResponseSnippet.withResult(
