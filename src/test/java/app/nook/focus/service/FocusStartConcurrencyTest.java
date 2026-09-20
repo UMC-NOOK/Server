@@ -12,6 +12,7 @@ import app.nook.global.config.QueryDslConfig;
 import app.nook.global.exception.CustomException;
 import app.nook.library.domain.Library;
 import app.nook.library.repository.LibraryRepository;
+import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.repository.UserRepository;
@@ -43,7 +44,7 @@ import static org.mockito.Mockito.doAnswer;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import({QueryDslConfig.class, ClockConfig.class, FocusService.class, FocusCompletionSegmenter.class})
+@Import({QueryDslConfig.class, ClockConfig.class, FocusService.class, FocusCompletionSegmenter.class, TimelineCommandService.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class FocusStartConcurrencyTest extends AbstractPostgresContainerTests {
 
