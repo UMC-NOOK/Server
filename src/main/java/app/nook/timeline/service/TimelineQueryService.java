@@ -17,6 +17,7 @@ import app.nook.timeline.dto.TimelineResponseDto;
 import app.nook.timeline.dto.TimelineCursor;
 import app.nook.timeline.util.TimelineCursorCodec;
 import app.nook.timeline.repository.TimelineRepository;
+import app.nook.timeline.util.TimelinePreviewText;
 import app.nook.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -294,7 +295,7 @@ public class TimelineQueryService {
         if (content != null) {
             String trimmed = content.trim();
             if (!trimmed.isBlank()) {
-                return trimmed;
+                return TimelinePreviewText.truncate(trimmed);
             }
         }
 

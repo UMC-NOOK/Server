@@ -627,6 +627,32 @@ class TimelineQueryServiceTest {
             assertThat(item.previewText()).isEqualTo("3개의 이미지");
         }
 
+        @Test
+        @DisplayName("목록과 요약의 기록 미리보기는 100자로 자른다")
+        void getTimelinePreview_recordPreview100자() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            List<Timeline> timelines = List.of(
+                    timeline(17L, library, TimelineType.RECORD,
+                            LocalDateTime.of(2026, 1, 9, 21, 10), "저장된 문구", 9001L)
+            );
+            Record record = recordWithImages(9001L, library, "가".repeat(700), null, List.of());
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library, PageRequest.of(0, 21)))
+                    .willReturn(timelines);
+            given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of(record));
+
+            assertThat(timelineQueryService.getTimelinePreview(user, 12L, null, 20)
+                    .dateGroups().get(0).items().get(0).previewText()).isEqualTo("가".repeat(100));
+
+            given(timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library))
+                    .willReturn(timelines);
+            assertThat(timelineQueryService.getTimelineSummary(user, 12L)
+                    .timelinePreview().dateGroups().get(0).items().get(0).previewText())
+                    .isEqualTo("가".repeat(100));
+        }
+
         @ParameterizedTest
         @CsvSource({"수정된 본문, 수정된 본문", "'   ', 3개의 이미지"})
         @DisplayName("목록과 요약의 기록 미리보기는 저장된 문구보다 최신 기록을 우선한다")
@@ -783,6 +809,32 @@ class TimelineQueryServiceTest {
             assertThat(detail.content()).isEqualTo("말하기와 듣기...");
             assertThat(detail.emotion()).isEqualTo("FUN");
             assertThat(detail.imgUrls()).containsExactly("https://img/a", "https://img/b");
+        }
+
+        @Test
+        @DisplayName("RECORD 상세 조회의 본문은 100자로 자르지 않고 전체를 반환한다")
+        void getTimelineDetail_record_본문은_전체() {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            Timeline timeline = timeline(
+                    31L,
+                    library,
+                    TimelineType.RECORD,
+                    LocalDateTime.of(2026, 1, 12, 21, 10),
+                    "가".repeat(100),
+                    9001L
+            );
+            Record record = recordWithImages(9001L, library, "가".repeat(700), "FUN", List.of());
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByIdAndLibrary(31L, library)).willReturn(Optional.of(timeline));
+            given(recordRepository.findWithImagesById(9001L)).willReturn(Optional.of(record));
+
+            TimelineResponseDto.TimelineRecordDetailDto detail =
+                    (TimelineResponseDto.TimelineRecordDetailDto) timelineQueryService
+                            .getTimelineDetail(user, 12L, 31L).detail();
+
+            assertThat(detail.content()).isEqualTo("가".repeat(700));
         }
 
         @Test
