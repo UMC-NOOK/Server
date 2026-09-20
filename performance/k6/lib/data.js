@@ -91,6 +91,14 @@ export function searchableUserBookPayload(index, keyword, overrides = {}) {
   });
 }
 
+export function recordContent(targetLength) {
+  const marker = `k6-${RUN_ID}-${Date.now()}-`;
+  if (targetLength <= marker.length) {
+    return marker.slice(0, Math.max(targetLength, 0));
+  }
+  return marker + "가".repeat(targetLength - marker.length);
+}
+
 export function updatedUserBookPayload(bookId, overrides = {}) {
   return userBookPayload({
     title: `k6 updated book ${bookId}`,

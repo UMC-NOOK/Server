@@ -126,6 +126,7 @@ if [[ "$focus" != "safety" ]]; then
     "onboarding||performance/k6/scenarios/onboarding.js|onboarding"
     "timeline-core||performance/k6/scenarios/timeline-core.js|timeline-core"
     "timeline-producers||performance/k6/scenarios/timeline-producers.js|timeline-producers"
+    "record-image-upload||performance/k6/scenarios/record-image-upload.js|record-image-upload"
   )
   for route_spec in "${route_specs[@]}"; do
     verify_route "$route_spec"
@@ -155,6 +156,15 @@ if [[ "$focus" != "safety" ]]; then
   capture "${base_runner_env[@]}" bash "$runner" books-search-global
   expect_contains "K6_ENABLE_EXTERNAL_API=yes" "global external flag"
   expect_contains "TARGET_RPS=1" "global target rate"
+
+  capture "${base_runner_env[@]}" bash "$runner" record-image-upload
+  expect_contains "VUS=1" "record upload default VUs"
+  expect_contains "ITERATIONS=1" "record upload default iterations"
+  expect_contains "MAX_DURATION=5m" "record upload max duration"
+
+  capture "${base_runner_env[@]}" VUS=50 bash "$runner" record-image-upload
+  expect_contains "VUS=50" "record upload burst VUs"
+  expect_contains "ITERATIONS=50" "record upload burst iterations matches VUs"
 
   capture "${base_runner_env[@]}" bash "$runner" mixed-read jps0
   expect_status 2 "invalid mixed-read profile"

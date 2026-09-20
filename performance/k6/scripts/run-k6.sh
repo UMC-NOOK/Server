@@ -7,7 +7,8 @@ Usage: performance/k6/scripts/run-k6.sh <scenario> [profile]
 
 Scenarios:
   smoke, seed, cleanup-seed, mixed-read, books-user, books-search-library,
-  books-search-global, onboarding, timeline-core, timeline-producers, api-*,
+  books-search-global, onboarding, timeline-core, timeline-producers,
+  record-image-upload, api-*,
   cache-monthly-cold, cache-monthly-warm, cache-focus-monthly-cold,
   cache-focus-monthly-warm
 
@@ -245,6 +246,14 @@ case "$scenario" in
   onboarding) configure_internal "onboarding" ;;
   timeline-core) configure_internal "timeline-core" ;;
   timeline-producers) configure_internal "timeline-producers" ;;
+  record-image-upload)
+    VUS="${VUS:-1}"
+    ITERATIONS="${ITERATIONS:-$VUS}"
+    MAX_DURATION="${MAX_DURATION:-5m}"
+    P95_THRESHOLD_MS="${P95_THRESHOLD_MS:-5000}"
+    FAILED_RATE_THRESHOLD="${FAILED_RATE_THRESHOLD:-0.05}"
+    configure_internal "record-image-upload"
+    ;;
   cache-*) configure_cache_scenario "$scenario" ;;
   api-*)
     profile="${profile:-${K6_SINGLE_API_PROFILE:-arrival}}"
@@ -279,6 +288,7 @@ forwarded_names=(
   SEED_BOOKS SEED_RECORDS_PER_BOOK SEED_FOCUS_SESSIONS
   K6_USER_EMAIL K6_USER_NICKNAME K6_ACCESS_TOKEN K6_REFRESH_TOKEN TOKEN
   K6_BOOK_ID K6_LIBRARY_ID K6_RECORD_ID K6_TIMELINE_ID K6_SEARCH_KEYWORD
+  IMAGE_COUNT IMAGE_SIZE_BYTES CONTENT_LENGTH PUT_MODE
 )
 compose_cmd=(docker compose -f docker-compose.monitoring.yml --profile loadtest run --rm)
 redacted_cmd=("${compose_cmd[@]}")
