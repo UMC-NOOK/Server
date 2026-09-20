@@ -627,6 +627,34 @@ class TimelineQueryServiceTest {
             assertThat(item.previewText()).isEqualTo("3개의 이미지");
         }
 
+        @ParameterizedTest
+        @CsvSource({"수정된 본문, 수정된 본문", "'   ', 3개의 이미지"})
+        @DisplayName("목록과 요약의 기록 미리보기는 저장된 문구보다 최신 기록을 우선한다")
+        void getTimelinePreview_latestRecord(String content, String expectedPreview) {
+            User user = user(1L);
+            Library library = library(user, 12L);
+            List<Timeline> timelines = List.of(
+                    timeline(17L, library, TimelineType.RECORD,
+                            LocalDateTime.of(2026, 1, 9, 21, 10), "수정 전 본문", 9001L)
+            );
+            Record record = recordWithImages(9001L, library, content, null,
+                    List.of("a.png", "b.png", "c.png"));
+
+            given(libraryRepository.findById(12L)).willReturn(Optional.of(library));
+            given(timelineRepository.findByLibraryOrderByOccurredAtDescIdDesc(library, PageRequest.of(0, 21)))
+                    .willReturn(timelines);
+            given(recordRepository.findAllById(List.of(9001L))).willReturn(List.of(record));
+
+            assertThat(timelineQueryService.getTimelinePreview(user, 12L, null, 20)
+                    .dateGroups().get(0).items().get(0).previewText()).isEqualTo(expectedPreview);
+
+            given(timelineRepository.findTop5ByLibraryOrderByOccurredAtDescIdDesc(library))
+                    .willReturn(timelines);
+            assertThat(timelineQueryService.getTimelineSummary(user, 12L)
+                    .timelinePreview().dateGroups().get(0).items().get(0).previewText())
+                    .isEqualTo(expectedPreview);
+        }
+
         @Test
         @DisplayName("preview 조회 시 서재를 확인한다")
         void getTimelinePreview_서재확인() {
