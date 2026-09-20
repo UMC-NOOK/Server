@@ -586,6 +586,25 @@ class RecordServiceTest {
         @DisplayName("실패")
         class Failure {
             @Test
+            @DisplayName("실패 - 내용과 이미지가 모두 없으면 예외를 던지고 기존 기록은 변경하지 않는다")
+            void 기록_수정_실패_내용과_이미지_모두없음() {
+                // given
+                User user = UserFixture.user();
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        " ", Emotion.USEFUL, Arrays.asList(null, ""));
+
+                // when
+                CustomException ex = assertThrows(CustomException.class,
+                        () -> recordService.updateRecord(user, 1L, request));
+
+                // then
+                assertThat(ex.getErrorCode()).isEqualTo(RecordErrorCode.RECORD_CONTENT_OR_IMAGE_REQUIRED);
+                verify(recordRepository, never()).findById(any());
+                verify(recordImageRepository, never()).save(any(RecordImage.class));
+                verify(recordImageRepository, never()).delete(any(RecordImage.class));
+            }
+
+            @Test
             @DisplayName("실패 - 존재하지 않는 기록이면 예외를 던진다")
             void 기록_수정_실패_기록없음() {
                 // given
