@@ -265,7 +265,7 @@ public class TimelineQueryService {
     private TimelineResponseDto.TimelineItemDto toRecordTimelineItem(Timeline timeline, Map<Long, Record> recordMap) {
         Record record = recordMap.get(timeline.getTargetId());
         String previewText = timeline.getPreviewText();
-        if ((previewText == null || previewText.isBlank()) && record != null
+        if (record != null
                 && record.getLibrary().getId().equals(timeline.getLibrary().getId())) {
             previewText = toRecordPreviewText(record);
         }
