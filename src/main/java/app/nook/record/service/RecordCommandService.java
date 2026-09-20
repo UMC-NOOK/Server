@@ -58,6 +58,7 @@ public class RecordCommandService {
     ) {
         // 이미지 키 리스트
         List<String> imageKeys = filterImageKeys(requestDto.imageKeys());
+        validateContentOrImage(requestDto.content(), imageKeys);
 
         // 책 존재 여부 확인
         Book book = bookRepository.findById(bookId)
@@ -80,7 +81,7 @@ public class RecordCommandService {
         Record newRecord = Record.create(
                 library,
                 normalizeEmotion(requestDto.emotion()),
-                requestDto.content()
+                normalizeContent(requestDto.content())
         );
 
         // 레코드 생성
@@ -103,6 +104,7 @@ public class RecordCommandService {
             RecordUpdateRequestDto requestDto
     ) {
         List<String> requestedImageKeys = filterImageKeys(requestDto.imageKeys());
+        validateContentOrImage(requestDto.content(), requestedImageKeys);
 
         Record record = recordRepository.findById(recordId)
                 .orElseThrow(() -> new CustomException(RecordErrorCode.RECORD_NOT_FOUND));
@@ -111,7 +113,7 @@ public class RecordCommandService {
             throw new CustomException(RecordErrorCode.RECORD_NOT_AUTHORIZED);
         }
 
-        record.update(requestDto.content(), normalizeEmotion(requestDto.emotion()));
+        record.update(normalizeContent(requestDto.content()), normalizeEmotion(requestDto.emotion()));
 
         // 이미지 업데이트 시에 동기화 처리
         syncRecordImages(record, requestedImageKeys);
@@ -161,6 +163,17 @@ public class RecordCommandService {
                 .toList();
     }
 
+    // 텍스트 없이 이미지만으로도 기록할 수 있지만, 둘 다 비어 있는 기록은 허용하지 않는다.
+    private void validateContentOrImage(String content, List<String> imageKeys) {
+        if ((content == null || content.isBlank()) && imageKeys.isEmpty()) {
+            throw new CustomException(RecordErrorCode.RECORD_CONTENT_OR_IMAGE_REQUIRED);
+        }
+    }
+
+    private String normalizeContent(String content) {
+        return content == null || content.isBlank() ? null : content;
+    }
+
     private Emotion normalizeEmotion(Emotion emotion) {
         return emotion == null ? Emotion.EMPTY : emotion;
     }
@@ -197,7 +210,9 @@ public class RecordCommandService {
             String key = requestedImageKeys.get(index);
             RecordImage existingImage = existingImagesByKey.get(key);
             if (existingImage == null) {
-                record.getImages().add(recordImageRepository.save(new RecordImage(record, key, index)));
+                RecordImage newImage = new RecordImage(record, key, index);
+                recordImageRepository.save(newImage);
+                record.getImages().add(newImage);
             } else if (!Objects.equals(existingImage.getOrderIndex(), index)) {
                 existingImage.updateOrderIndex(index);
             }
