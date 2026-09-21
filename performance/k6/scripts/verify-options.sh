@@ -13,6 +13,7 @@ expected_scenarios=(
   mixed-read-journey.js
   onboarding.js
   prepare-seed.js
+  record-image-upload.js
   single-api-read.js
   smoke.js
   timeline-core.js

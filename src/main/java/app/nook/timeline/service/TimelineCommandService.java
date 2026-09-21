@@ -9,6 +9,7 @@ import app.nook.timeline.converter.TimelineConverter;
 import app.nook.timeline.domain.Timeline;
 import app.nook.timeline.domain.enums.TimelineType;
 import app.nook.timeline.repository.TimelineRepository;
+import app.nook.timeline.util.TimelinePreviewText;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -117,7 +118,7 @@ public class TimelineCommandService {
         if (content != null) {
             String trimmed = content.trim();
             if (!trimmed.isBlank()) {
-                return trimmed;
+                return TimelinePreviewText.truncate(trimmed);
             }
         }
 

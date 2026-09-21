@@ -194,6 +194,18 @@ class TimelineCommandServiceTest {
         }
 
         @Test
+        @DisplayName("성공 - 본문이 100자를 넘으면 앞 100자만 preview로 저장한다")
+        void appendRecordCreated_100자로_자름() {
+            Record record = record(9004L, library, "가".repeat(700), LocalDateTime.of(2026, 1, 12, 21, 13));
+
+            timelineCommandService.appendRecordCreated(record, 5);
+
+            verify(timelineRepository).save(timelineCaptor.capture());
+
+            assertThat(timelineCaptor.getValue().getPreviewText()).isEqualTo("가".repeat(100));
+        }
+
+        @Test
         @DisplayName("성공 - 본문이 없고 이미지가 있으면 이미지 개수를 preview로 저장한다")
         void appendRecordCreated_이미지Fallback() {
             Record record = record(9002L, library, "   ", LocalDateTime.of(2026, 1, 12, 21, 11));

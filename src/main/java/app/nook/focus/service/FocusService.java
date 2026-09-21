@@ -15,6 +15,7 @@ import app.nook.library.repository.LibraryRepository;
 import app.nook.timeline.event.FocusTimelineAppendEvent;
 import app.nook.timeline.domain.enums.TimelineType;
 import app.nook.timeline.repository.TimelineRepository;
+import app.nook.timeline.service.TimelineCommandService;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class FocusService {
 
     private final FocusRepository focusRepository;
     private final TimelineRepository timelineRepository;
+    private final TimelineCommandService timelineCommandService;
     private final LibraryRepository libraryRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
@@ -71,6 +73,7 @@ public class FocusService {
 
         if (library.getReadingStatus() == ReadingStatus.BEFORE) {
             library.updateStatus(ReadingStatus.READING, startedAt.toLocalDate());
+            timelineCommandService.appendStatusChanged(library, startedAt);
         }
 
         return FocusConverter.toFocusStartResponse(savedFocus);
@@ -160,10 +163,15 @@ public class FocusService {
             library.recordPage(request.page());
         }
 
+        ReadingStatus beforeStatus = library.getReadingStatus();
         if (Boolean.TRUE.equals(request.isFinished())) {
             library.updateStatus(ReadingStatus.FINISHED, normalizedEndedAt.toLocalDate());
         } else if (library.getReadingStatus() == ReadingStatus.BEFORE) {
             library.updateStatus(ReadingStatus.READING, normalizedEndedAt.toLocalDate());
+        }
+
+        if (library.getReadingStatus() != beforeStatus) {
+            timelineCommandService.appendStatusChanged(library, normalizedEndedAt);
         }
 
         List<Focus> savedFocuses = focusRepository.saveAllAndFlush(completedFocuses);

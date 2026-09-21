@@ -446,20 +446,23 @@ class RecordControllerTest extends AbstractWebMvcRestDocsTests {
 
             @Test
             @WithCustomUser
-            void 기록_생성_실패_내용_누락() throws Exception {
+            void 기록_생성_실패_내용과_이미지_모두_없음() throws Exception {
                 // given
                 RecordRequestDto request = new RecordRequestDto(
                         "",
                         Emotion.FUN,
                         List.of()
                 );
+                given(recordCommandService.createRecord(any(), anyLong(), any()))
+                        .willThrow(new CustomException(RecordErrorCode.RECORD_CONTENT_OR_IMAGE_REQUIRED));
 
                 // when & then
                 mockMvc.perform(post("/api/v1/records/books/{bookId}", 1L)
                                 .header(AUTH_HEADER, AUTH_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                        .andExpect(status().isBadRequest());
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.code").value("RECORD-400"));
             }
         }
     }

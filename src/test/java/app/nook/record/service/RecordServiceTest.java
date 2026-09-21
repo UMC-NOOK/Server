@@ -127,6 +127,70 @@ class RecordServiceTest {
         }
 
         @Test
+        @DisplayName("성공 - 텍스트 없이 이미지만으로 기록을 생성한다")
+        void 기록_생성_성공_내용없이_이미지만() {
+            // given
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            Library library = LibraryFixture.library(user, book);
+            RecordRequestDto request = new RecordRequestDto(null, Emotion.FUN, List.of("record/users/1/a.png"));
+
+            given(bookRepository.findById(10L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserAndBook(user, book)).willReturn(Optional.of(library));
+            given(libraryRepository.findByIdAndUserIdForUpdate(20L, 1L)).willReturn(Optional.of(library));
+            given(recordRepository.countByLibraryIdAndUserId(20L, 1L)).willReturn(0L);
+
+            // when
+            recordService.createRecord(user, 10L, request);
+
+            // then
+            ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
+            verify(recordRepository).save(captor.capture());
+            assertThat(captor.getValue().getContent()).isNull();
+            verify(recordImageRepository).save(any(RecordImage.class));
+            verify(timelineCommandService).appendRecordCreated(any(Record.class), eq(1));
+        }
+
+        @Test
+        @DisplayName("성공 - 공백 내용은 null로 저장한다")
+        void 기록_생성_성공_공백내용은_null() {
+            // given
+            User user = UserFixture.user();
+            Book book = BookFixture.book();
+            Library library = LibraryFixture.library(user, book);
+            RecordRequestDto request = new RecordRequestDto("   ", Emotion.FUN, List.of("record/users/1/a.png"));
+
+            given(bookRepository.findById(10L)).willReturn(Optional.of(book));
+            given(libraryRepository.findByUserAndBook(user, book)).willReturn(Optional.of(library));
+            given(libraryRepository.findByIdAndUserIdForUpdate(20L, 1L)).willReturn(Optional.of(library));
+            given(recordRepository.countByLibraryIdAndUserId(20L, 1L)).willReturn(0L);
+
+            // when
+            recordService.createRecord(user, 10L, request);
+
+            // then
+            ArgumentCaptor<Record> captor = ArgumentCaptor.forClass(Record.class);
+            verify(recordRepository).save(captor.capture());
+            assertThat(captor.getValue().getContent()).isNull();
+        }
+
+        @Test
+        @DisplayName("실패 - 내용과 이미지가 모두 없으면 예외를 던진다")
+        void 기록_생성_실패_내용과_이미지_모두없음() {
+            // given
+            User user = UserFixture.user();
+            RecordRequestDto request = new RecordRequestDto("  ", Emotion.FUN, Arrays.asList(null, " "));
+
+            // when
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> recordService.createRecord(user, 10L, request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(RecordErrorCode.RECORD_CONTENT_OR_IMAGE_REQUIRED);
+            verify(recordRepository, never()).save(any(Record.class));
+        }
+
+        @Test
         @DisplayName("성공 - imageKeys에 null/blank가 포함돼도 필터링 후 저장한다")
         void 기록_생성_성공_이미지키_필터링() {
             // given
@@ -357,9 +421,91 @@ class RecordServiceTest {
                 verify(recordImageRepository).delete(existingImage);
                 // 새 이미지가 저장되었는지 검증
                 verify(recordImageRepository).save(any(RecordImage.class));
-                assertThat(record.getImages()).isEmpty();
+                assertThat(record.getImages())
+                        .extracting(RecordImage::getKey)
+                        .containsExactly("record/users/1/updated.png");
                 verify(eventPublisher).publishEvent(any(RecordDeletedEvent.class));
                 verify(timelineRepository, never()).deleteByLibraryAndTypeAndTargetIdIn(any(), any(), anyList());
+            }
+
+            @Test
+            @DisplayName("성공 - 기존 이미지 키를 그대로 보내면 이미지가 중복 생성되지 않는다")
+            void 기록_수정_성공_기존이미지_유지시_중복생성없음() {
+                // given
+                User user = UserFixture.user();
+                Book book = BookFixture.book();
+                Library library = LibraryFixture.library(user, book);
+                Record record = record(library, Emotion.FUN, "재미있는 책이었다.");
+                RecordImage first = recordImage(record, "record/users/1/a.png", 0);
+                RecordImage second = recordImage(record, "record/users/1/b.png", 1);
+                record.getImages().add(first);
+                record.getImages().add(second);
+
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        "재미있는 책이었다.", Emotion.FUN,
+                        List.of("record/users/1/a.png", "record/users/1/b.png"));
+
+                given(recordRepository.findById(1L)).willReturn(Optional.of(record));
+
+                // when
+                recordService.updateRecord(user, 1L, request);
+
+                // then
+                verify(recordImageRepository, never()).save(any(RecordImage.class));
+                verify(recordImageRepository, never()).delete(any(RecordImage.class));
+                verify(eventPublisher, never()).publishEvent(any(RecordDeletedEvent.class));
+                assertThat(record.getImages()).containsExactly(first, second);
+            }
+
+            @Test
+            @DisplayName("성공 - 유지되는 이미지는 새로 만들지 않고 순서만 갱신한다")
+            void 기록_수정_성공_이미지순서만변경() {
+                // given
+                User user = UserFixture.user();
+                Book book = BookFixture.book();
+                Library library = LibraryFixture.library(user, book);
+                Record record = record(library, Emotion.FUN, "재미있는 책이었다.");
+                RecordImage first = recordImage(record, "record/users/1/a.png", 0);
+                RecordImage second = recordImage(record, "record/users/1/b.png", 1);
+                record.getImages().add(first);
+                record.getImages().add(second);
+
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        "재미있는 책이었다.", Emotion.FUN,
+                        List.of("record/users/1/b.png", "record/users/1/a.png"));
+
+                given(recordRepository.findById(1L)).willReturn(Optional.of(record));
+
+                // when
+                recordService.updateRecord(user, 1L, request);
+
+                // then
+                verify(recordImageRepository, never()).save(any(RecordImage.class));
+                verify(recordImageRepository, never()).delete(any(RecordImage.class));
+                assertThat(second.getOrderIndex()).isZero();
+                assertThat(first.getOrderIndex()).isEqualTo(1);
+            }
+
+            @Test
+            @DisplayName("성공 - 텍스트 없이 이미지만으로도 기록을 수정할 수 있다")
+            void 기록_수정_성공_내용없이_이미지만() {
+                // given
+                User user = UserFixture.user();
+                Book book = BookFixture.book();
+                Library library = LibraryFixture.library(user, book);
+                Record record = record(library, Emotion.FUN, "재미있는 책이었다.");
+
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        "   ", Emotion.FUN, List.of("record/users/1/a.png"));
+
+                given(recordRepository.findById(1L)).willReturn(Optional.of(record));
+
+                // when
+                recordService.updateRecord(user, 1L, request);
+
+                // then
+                assertThat(record.getContent()).isNull();
+                verify(recordImageRepository).save(any(RecordImage.class));
             }
 
             @Test
@@ -439,6 +585,25 @@ class RecordServiceTest {
         @Nested
         @DisplayName("실패")
         class Failure {
+            @Test
+            @DisplayName("실패 - 내용과 이미지가 모두 없으면 예외를 던지고 기존 기록은 변경하지 않는다")
+            void 기록_수정_실패_내용과_이미지_모두없음() {
+                // given
+                User user = UserFixture.user();
+                RecordUpdateRequestDto request = new RecordUpdateRequestDto(
+                        " ", Emotion.USEFUL, Arrays.asList(null, ""));
+
+                // when
+                CustomException ex = assertThrows(CustomException.class,
+                        () -> recordService.updateRecord(user, 1L, request));
+
+                // then
+                assertThat(ex.getErrorCode()).isEqualTo(RecordErrorCode.RECORD_CONTENT_OR_IMAGE_REQUIRED);
+                verify(recordRepository, never()).findById(any());
+                verify(recordImageRepository, never()).save(any(RecordImage.class));
+                verify(recordImageRepository, never()).delete(any(RecordImage.class));
+            }
+
             @Test
             @DisplayName("실패 - 존재하지 않는 기록이면 예외를 던진다")
             void 기록_수정_실패_기록없음() {

@@ -17,6 +17,7 @@ import app.nook.library.event.LibraryCacheInvalidateEvent;
 import app.nook.library.repository.LibraryRepository;
 import app.nook.timeline.event.FocusTimelineAppendEvent;
 import app.nook.timeline.repository.TimelineRepository;
+import app.nook.timeline.service.TimelineCommandService;
 import app.nook.timeline.domain.enums.TimelineType;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
@@ -25,6 +26,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -63,6 +67,8 @@ class FocusServiceTest {
     private FocusRepository focusRepository;
     @Mock
     private TimelineRepository timelineRepository;
+    @Mock
+    private TimelineCommandService timelineCommandService;
     @Mock
     private LibraryRepository libraryRepository;
     @Mock
@@ -118,6 +124,27 @@ class FocusServiceTest {
             assertThat(result.startedAt()).isEqualTo(LocalDateTime.of(2026, 8, 1, 23, 59, 59));
             assertThat(library.getReadingStatus()).isEqualTo(ReadingStatus.READING);
             assertThat(library.getStartedAt()).isEqualTo(LocalDate.of(2026, 8, 1));
+            verify(timelineCommandService).appendStatusChanged(library, result.startedAt());
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = ReadingStatus.class, names = {"READING", "FINISHED"})
+        @DisplayName("시작 시 상태가 그대로면 상태 변경 이력을 추가하지 않는다")
+        void doesNotAppendStatusWhenStartingUnchanged(ReadingStatus status) {
+            ReflectionTestUtils.setField(library, "readingStatus", status);
+            given(libraryRepository.findByUserIdAndBookId(user.getId(), library.getBook().getId()))
+                    .willReturn(Optional.of(library));
+            given(focusRepository.save(any(Focus.class))).willAnswer(invocation -> {
+                Focus saved = invocation.getArgument(0);
+                ReflectionTestUtils.setField(saved, "id", 101L);
+                return saved;
+            });
+
+            serviceAt(LocalDateTime.of(2026, 8, 1, 10, 0))
+                    .startFocus(user, new FocusRequestDto.FocusStart(library.getBook().getId()));
+
+            assertThat(library.getReadingStatus()).isEqualTo(status);
+            verifyNoInteractions(timelineCommandService);
         }
 
         @Test
@@ -165,6 +192,29 @@ class FocusServiceTest {
     @Nested
     @DisplayName("포커스 종료")
     class EndFocus {
+
+        @ParameterizedTest
+        @CsvSource({
+                "BEFORE, false, READING", "BEFORE, true, FINISHED",
+                "READING, false, READING", "READING, true, FINISHED",
+                "FINISHED, false, FINISHED", "FINISHED, true, FINISHED"
+        })
+        @DisplayName("종료 시 실제 상태가 변경될 때만 종료 시각으로 이력을 추가한다")
+        void appendsStatusOnlyWhenChanged(ReadingStatus before, boolean finished, ReadingStatus after) {
+            ReflectionTestUtils.setField(library, "readingStatus", before);
+            Focus active = activeFocus(LocalDateTime.of(2026, 8, 1, 23, 0));
+            stubOwnedAndGeneratedIds(active);
+
+            FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 2, 0, 30, 0, 987_000_000))
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), null, finished));
+
+            assertThat(library.getReadingStatus()).isEqualTo(after);
+            if (before != after) {
+                verify(timelineCommandService).appendStatusChanged(library, result.endedAt());
+            } else {
+                verifyNoInteractions(timelineCommandService);
+            }
+        }
 
         @Test
         @DisplayName("페이지를 생략하면 기존 페이지를 보존하고 최종 분할 행의 종료 페이지도 비워 둔다")
@@ -395,6 +445,7 @@ class FocusServiceTest {
         return new FocusService(
                 focusRepository,
                 timelineRepository,
+                timelineCommandService,
                 libraryRepository,
                 userRepository,
                 eventPublisher,
