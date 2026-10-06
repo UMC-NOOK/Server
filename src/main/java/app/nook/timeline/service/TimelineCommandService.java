@@ -91,6 +91,13 @@ public class TimelineCommandService {
         timelineRepository.save(timeline);
     }
 
+    // 기록 수정 시 저장된 타임라인 preview를 최신 본문/이미지 기준으로 갱신한다.
+    @Transactional
+    public void updateRecordPreview(Record record, int imageCount) {
+        timelineRepository.findByLibraryAndTypeAndTargetId(record.getLibrary(), TimelineType.RECORD, record.getId())
+                .ifPresent(timeline -> timeline.updatePreviewText(toRecordPreviewText(record, imageCount)));
+    }
+
     private String toFocusPreviewText(Integer durationSec) {
         // durationSec을 '54분의 포커스', '1시간 13분의 포커스' 형식으로 변환한다.
         if (durationSec == null || durationSec <= 0) {
