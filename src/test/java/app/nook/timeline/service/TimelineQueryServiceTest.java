@@ -812,8 +812,8 @@ class TimelineQueryServiceTest {
         }
 
         @Test
-        @DisplayName("RECORD 상세 조회의 본문은 100자로 자르지 않고 전체를 반환한다")
-        void getTimelineDetail_record_본문은_전체() {
+        @DisplayName("RECORD 상세 조회의 본문은 100자로 잘라서 반환한다")
+        void getTimelineDetail_record_본문은_100자로_절단() {
             User user = user(1L);
             Library library = library(user, 12L);
             Timeline timeline = timeline(
@@ -834,7 +834,7 @@ class TimelineQueryServiceTest {
                     (TimelineResponseDto.TimelineRecordDetailDto) timelineQueryService
                             .getTimelineDetail(user, 12L, 31L).detail();
 
-            assertThat(detail.content()).isEqualTo("가".repeat(700));
+            assertThat(detail.content()).isEqualTo("가".repeat(100));
         }
 
         @Test
