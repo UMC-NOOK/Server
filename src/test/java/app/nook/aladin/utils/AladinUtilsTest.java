@@ -137,6 +137,15 @@ class AladinUtilsTest {
     }
 
     @Test
+    @DisplayName("유효성 검증 실패 - ISBN13이 없거나 13자리 숫자가 아닌 상품 (세트 상품 등)")
+    void isValid_ISBN13없음_실패() {
+        // 알라딘 세트 상품은 isbn13이 빈 문자열로 온다
+        assertThat(AladinUtils.isValid(createItemWithIsbn13(""))).isFalse();
+        assertThat(AladinUtils.isValid(createItemWithIsbn13(null))).isFalse();
+        assertThat(AladinUtils.isValid(createItemWithIsbn13("K232934464"))).isFalse();
+    }
+
+    @Test
     @DisplayName("유효성 검증 실패 - mallType null")
     void isValid_몰타입null_실패() {
         // given
@@ -191,8 +200,19 @@ class AladinUtilsTest {
      * MallType을 지정한 알라딘 아이템 생성
      */
     private AladinResponseDto.AladinItem createItemWithMallType(String mallType, String categoryName, boolean isAdult) {
+        return createItem(TEST_ISBN, mallType, categoryName, isAdult);
+    }
+
+    /**
+     * ISBN13만 바꾼 정상 알라딘 아이템 생성
+     */
+    private AladinResponseDto.AladinItem createItemWithIsbn13(String isbn13) {
+        return createItem(isbn13, "BOOK", "국내도서>소설/시/희곡", false);
+    }
+
+    private AladinResponseDto.AladinItem createItem(String isbn13, String mallType, String categoryName, boolean isAdult) {
         return AladinResponseDto.AladinItem.builder()
-                .isbn13(TEST_ISBN)
+                .isbn13(isbn13)
                 .title(TEST_TITLE)
                 .author(TEST_AUTHOR)
                 .publisher(TEST_PUBLISHER)
