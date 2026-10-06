@@ -65,4 +65,8 @@ public class Timeline extends BaseEntity {
         this.occurredAt = occurredAt;
         this.previewText = previewText;
     }
+
+    public void updatePreviewText(String previewText) {
+        this.previewText = previewText;
+    }
 }

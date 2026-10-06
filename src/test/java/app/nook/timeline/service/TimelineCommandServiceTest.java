@@ -31,6 +31,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -229,6 +231,61 @@ class TimelineCommandServiceTest {
 
             Timeline saved = timelineCaptor.getValue();
             assertThat(saved.getPreviewText()).isEqualTo("독서 기록");
+        }
+    }
+
+    @Nested
+    @DisplayName("기록 수정 타임라인 preview 갱신")
+    class UpdateRecordPreview {
+
+        @Test
+        @DisplayName("성공 - 수정된 본문을 100자로 잘라 기존 타임라인 preview를 갱신한다")
+        void updateRecordPreview_본문갱신() {
+            Record record = record(9001L, library, "나".repeat(300), LocalDateTime.of(2026, 1, 12, 21, 10));
+            Timeline timeline = Timeline.builder()
+                    .library(library)
+                    .type(TimelineType.RECORD)
+                    .targetId(9001L)
+                    .occurredAt(LocalDateTime.of(2026, 1, 12, 21, 10))
+                    .previewText("가".repeat(100))
+                    .build();
+            given(timelineRepository.findByLibraryAndTypeAndTargetId(library, TimelineType.RECORD, 9001L))
+                    .willReturn(Optional.of(timeline));
+
+            timelineCommandService.updateRecordPreview(record, 0);
+
+            assertThat(timeline.getPreviewText()).isEqualTo("나".repeat(100));
+        }
+
+        @Test
+        @DisplayName("성공 - 본문이 없어지면 이미지 개수 문구로 갱신한다")
+        void updateRecordPreview_이미지Fallback() {
+            Record record = record(9002L, library, " ", LocalDateTime.of(2026, 1, 12, 21, 11));
+            Timeline timeline = Timeline.builder()
+                    .library(library)
+                    .type(TimelineType.RECORD)
+                    .targetId(9002L)
+                    .occurredAt(LocalDateTime.of(2026, 1, 12, 21, 11))
+                    .previewText("이전 본문")
+                    .build();
+            given(timelineRepository.findByLibraryAndTypeAndTargetId(library, TimelineType.RECORD, 9002L))
+                    .willReturn(Optional.of(timeline));
+
+            timelineCommandService.updateRecordPreview(record, 2);
+
+            assertThat(timeline.getPreviewText()).isEqualTo("2개의 이미지");
+        }
+
+        @Test
+        @DisplayName("타임라인이 없으면 아무 것도 하지 않는다")
+        void updateRecordPreview_타임라인없음() {
+            Record record = record(9003L, library, "본문", LocalDateTime.of(2026, 1, 12, 21, 12));
+            given(timelineRepository.findByLibraryAndTypeAndTargetId(library, TimelineType.RECORD, 9003L))
+                    .willReturn(Optional.empty());
+
+            timelineCommandService.updateRecordPreview(record, 0);
+
+            verify(timelineRepository, never()).save(any());
         }
     }
 

@@ -48,4 +48,6 @@ public interface TimelineRepository extends JpaRepository<Timeline, Long> {
     );
 
     Optional<Timeline> findByIdAndLibrary(Long id, Library library);
+
+    Optional<Timeline> findByLibraryAndTypeAndTargetId(Library library, TimelineType type, Long targetId);
 }
