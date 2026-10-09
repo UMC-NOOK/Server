@@ -597,8 +597,8 @@ class LibraryControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.bookId").type(NUMBER).description("도서 ID"),
                                         fieldWithPath("result.coverUrl").type(STRING).description("도서 커버 이미지 URL"),
                                         fieldWithPath("result.title").type(STRING).description("도서 제목"),
-                                        fieldWithPath("result.page").type(NUMBER).optional().description("최근 포커스 시 기록된 페이지 (없으면 null)"),
-                                        fieldWithPath("result.focusTime").type(STRING).description("누적 포커스 시간 (HH:mm:ss 형식)")
+                                        fieldWithPath("result.page").type(NUMBER).optional().description("가장 최근 종료된 포커스에서 입력한 종료 페이지 (입력하지 않았으면 null)"),
+                                        fieldWithPath("result.focusTime").type(STRING).description("해당 도서의 오늘 포커스 시간 (HH:mm:ss 형식, 자정 기준 초기화, 오늘 기록이 없으면 00:00:00)")
                                 ))
                         ));
             }

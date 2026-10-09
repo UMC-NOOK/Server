@@ -26,6 +26,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -47,6 +48,7 @@ public class LibraryQueryService {
     private final FocusRepository focusRepository;
     private final PresignedUrlService presignedUrlService;
     private final UserRepository userRepository;
+    private final Clock clock;
 
     public LibraryViewDto.BookCountResponseDto getBookCount(Long userId) {
         return new LibraryViewDto.BookCountResponseDto(libraryRepository.countByUserId(userId));
@@ -165,20 +167,26 @@ public class LibraryQueryService {
 
     public LibraryViewDto.RecentFocusResponseDto getRecentFocus(Long userId) {
         User user = getUser(userId);
+        // 종료된 최근 포커스의 책이 완독 상태면 배너를 표시하지 않도록 null을 반환한다
         return focusRepository.findRecentByUser(user, PageRequest.of(0, 1)).stream().findFirst()
-                .map(focus -> {
-                    // 0페이지는 미기록 상태로 간주해 null로 응답
-                    int currentPage = focus.getLibrary().getPage();
-                    Integer page = currentPage == 0 ? null : currentPage;
-                    return new LibraryViewDto.RecentFocusResponseDto(
-                            focus.getLibrary().getBook().getId(),
-                            presignedUrlService.resolveImageUrl(userId, focus.getLibrary().getBook().getCoverImageKey()),
-                            focus.getLibrary().getBook().getTitle(),
-                            page,
-                            FocusTimeUtil.formatFocusTime(focus.getDurationSec() == null ? 0 : focus.getDurationSec())
-                    );
-                })
+                .filter(focus -> focus.getLibrary().getReadingStatus() != ReadingStatus.FINISHED)
+                .map(focus -> new LibraryViewDto.RecentFocusResponseDto(
+                        focus.getLibrary().getBook().getId(),
+                        presignedUrlService.resolveImageUrl(userId, focus.getLibrary().getBook().getCoverImageKey()),
+                        focus.getLibrary().getBook().getTitle(),
+                        focus.getEndPage(),
+                        FocusTimeUtil.formatFocusTime(getTodayFocusSec(userId, focus.getLibrary().getBook().getId()))
+                ))
                 .orElse(null);
+    }
+
+    // 포커스 홈 todayFocusTime과 같은 기준: 자정 분할된 행 중 오늘 날짜 행만 합산
+    private long getTodayFocusSec(Long userId, Long bookId) {
+        LocalDate today = LocalDate.now(clock);
+        return focusRepository.findMonthlyFocusStats(userId, today, today.plusDays(1)).stream()
+                .filter(stat -> bookId.equals(stat.getBookId()))
+                .mapToLong(stat -> stat.getTotalSec() == null ? 0 : stat.getTotalSec())
+                .sum();
     }
 
     public List<LibraryViewDto.RecentFocusBookItem> getRecentFocusBooks(Long userId, int size) {

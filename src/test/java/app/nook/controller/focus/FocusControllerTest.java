@@ -244,7 +244,7 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
         @WithCustomUser
         @DisplayName("성공")
         void 성공() throws Exception {
-            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(100L, 72, true);
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(100L, 72, true, 5400);
 
             FocusResponseDto.FocusEnd response = new FocusResponseDto.FocusEnd(
                     100L,
@@ -278,7 +278,8 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
                             requestFields(
                                     fieldWithPath("focusId").description("종료할 포커스 ID"),
                                     fieldWithPath("page").type(NUMBER).optional().description("현재까지 읽은 페이지 (미전달 가능, 없으면 null)"),
-                                    fieldWithPath("isFinished").description("완독 여부")
+                                    fieldWithPath("isFinished").description("완독 여부"),
+                                    fieldWithPath("durationSec").type(NUMBER).optional().description("클라이언트 타이머 기준 집중 시간(초, 0 이상). 미전달 시 서버 시각 기준으로 계산하며, 서버 경과 시간을 넘으면 경과 시간으로 보정")
                             ),
                             responseFields(
                                     ApiResponseSnippet.withResult(
@@ -300,7 +301,7 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
         @WithCustomUser
         @DisplayName("page를 생략해도 종료 요청을 전달한다")
         void acceptsOmittedPage() throws Exception {
-            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(100L, null, false);
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(100L, null, false, null);
             FocusResponseDto.FocusEnd response = new FocusResponseDto.FocusEnd(
                     100L,
                     20L,
@@ -328,7 +329,7 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
         @WithCustomUser
         @DisplayName("이미 종료되었으면 FOCUS-003 충돌 응답을 반환한다")
         void rejectsAlreadyEnded() throws Exception {
-            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(100L, 72, true);
+            FocusRequestDto.FocusEnd request = new FocusRequestDto.FocusEnd(100L, 72, true, 5400);
 
             willThrow(new CustomException(FocusErrorCode.FOCUS_ALREADY_ENDED))
                     .given(focusService)
@@ -350,7 +351,8 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
                             requestFields(
                                     fieldWithPath("focusId").description("종료할 포커스 ID"),
                                     fieldWithPath("page").type(NUMBER).optional().description("현재까지 읽은 페이지 (미전달 가능, 없으면 null)"),
-                                    fieldWithPath("isFinished").description("완독 여부")
+                                    fieldWithPath("isFinished").description("완독 여부"),
+                                    fieldWithPath("durationSec").type(NUMBER).optional().description("클라이언트 타이머 기준 집중 시간(초, 0 이상). 미전달 시 서버 시각 기준으로 계산하며, 서버 경과 시간을 넘으면 경과 시간으로 보정")
                             ),
                             responseFields(ApiResponseSnippet.failureResponseFields())
                     ));
@@ -358,13 +360,14 @@ class FocusControllerTest extends AbstractWebMvcRestDocsTests {
 
         @Test
         @WithCustomUser
-        @DisplayName("focusId, page, isFinished의 잘못된 경계값은 COMMON-002로 거절한다")
+        @DisplayName("focusId, page, isFinished, durationSec의 잘못된 경계값은 COMMON-002로 거절한다")
         void rejectsInvalidEndRequestBoundaries() throws Exception {
             List<String> invalidRequests = List.of(
                     "{\"page\": 1, \"isFinished\": false}",
                     "{\"focusId\": 0, \"page\": 1, \"isFinished\": false}",
                     "{\"focusId\": 100, \"page\": 0, \"isFinished\": false}",
-                    "{\"focusId\": 100, \"page\": 1}"
+                    "{\"focusId\": 100, \"page\": 1}",
+                    "{\"focusId\": 100, \"isFinished\": false, \"durationSec\": -1}"
             );
 
             for (String invalidRequest : invalidRequests) {

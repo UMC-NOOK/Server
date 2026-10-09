@@ -20,6 +20,8 @@ include::{snippets}/focus-controller-test/포커스_시작_실패_이미_진행�
 
 `page`는 선택 입력이며, 응답에서 현재 페이지가 없으면 `null`입니다. POST /api/v1/focuses/end는 자정을 넘겨 일별 Focus 행으로 분할 저장되더라도, 종료를 요청한 원본 Focus ID를 기준으로 전체 종료 작업을 하나의 객체로 반환합니다. 응답의 시작 시각, 종료 시각, 집중 시간은 전체 작업의 값이며, 페이지·독서 상태는 작업 완료 후 최종 서재의 값입니다. `totalFocusSec`은 이 사용자가 선택한 책에 대해 누적한 전체 포커스 시간(초)입니다.
 
+`durationSec`은 선택 입력으로, 종료 시트가 열려 멈춘 클라이언트 타이머 기준 집중 시간(초)입니다. 전달하면 서버는 `0 ≤ durationSec ≤ 서버 계산 경과 시간`으로 보정한 뒤 `startedAt + durationSec`을 종료 시각으로 저장하고, 자정 분할도 이 종료 시각 기준으로 합니다. 전달하지 않으면 요청 시점의 서버 시각을 종료 시각으로 사용합니다. 전달한 경우 응답의 `endedAt`·`durationSec`도 보정된 값입니다.
+
 include::{snippets}/focus-controller-test/포커스_종료_성공/http-request.adoc[]
 include::{snippets}/focus-controller-test/포커스_종료_성공/request-fields.adoc[]
 include::{snippets}/focus-controller-test/포커스_종료_성공/http-response.adoc[]
