@@ -139,6 +139,8 @@ include::{snippets}/success/최근_포커스_도서_조회_성공/response-field
 
 ==== 데이터 없음 (빈 응답)
 
+종료된 포커스가 없거나, 가장 최근 종료된 포커스의 도서가 완독 상태이면 `result`는 `null`입니다.
+
 include::{snippets}/success/최근_포커스_도서_조회_데이터없음_빈응답_200/http-request.adoc[opts=optional]
 include::{snippets}/success/최근_포커스_도서_조회_데이터없음_빈응답_200/request-headers.adoc[opts=optional]
 include::{snippets}/success/최근_포커스_도서_조회_데이터없음_빈응답_200/http-response.adoc[opts=optional]

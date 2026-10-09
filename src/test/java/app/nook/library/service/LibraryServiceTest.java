@@ -5,6 +5,7 @@ import app.nook.book.exception.BookErrorCode;
 import app.nook.book.repository.BookRepository;
 import app.nook.book.service.BookAccessService;
 import app.nook.focus.domain.Focus;
+import app.nook.focus.repository.dto.MonthlyFocusStatsDto;
 import app.nook.focus.repository.FocusRepository;
 import app.nook.global.dto.CursorResponse;
 import app.nook.global.exception.CustomException;
@@ -44,8 +45,10 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -768,23 +771,68 @@ class LibraryServiceTest {
     @DisplayName("최근 포커스 조회")
     class ViewRecentFocus {
 
+        private static final LocalDate TODAY = LocalDate.of(2026, 10, 9);
+
+        @BeforeEach
+        void fixClock() {
+            ZoneId kst = ZoneId.of("Asia/Seoul");
+            ReflectionTestUtils.setField(libraryQueryService, "clock",
+                    Clock.fixed(TODAY.atTime(15, 0).atZone(kst).toInstant(), kst));
+        }
+
         @Test
-        @DisplayName("최근 포커스가 있으면 bookId/title/page를 반환하고 page 0은 null 처리한다")
-        void viewRecentFocus_성공_page_null_처리() {
+        @DisplayName("최근 종료 포커스의 endPage와 해당 책의 오늘 포커스 시간을 반환한다")
+        void viewRecentFocus_성공_endPage와_오늘시간() {
             User user = UserFixture.user();
+            Focus focus = recentFocus(user, ReadingStatus.READING, 37);
+            ReflectionTestUtils.setField(focus, "durationSec", 600);
+            ReflectionTestUtils.setField(focus.getLibrary(), "page", 120);
+            ReflectionTestUtils.setField(focus.getLibrary(), "focusSec", 99_999L);
 
-            Book book = BookFixture.book();
-            ReflectionTestUtils.setField(book, "id", 11L);
-            ReflectionTestUtils.setField(book, "title", "최근 도서");
-            ReflectionTestUtils.setField(book, "author", "작가");
-            ReflectionTestUtils.setField(book, "coverImageKey", "cover");
+            given(focusRepository.findRecentByUser(eq(user), any(PageRequest.class)))
+                    .willReturn(List.of(focus));
+            given(focusRepository.findMonthlyFocusStats(1L, TODAY, TODAY.plusDays(1)))
+                    .willReturn(List.of(
+                            new MonthlyFocusStatsDto(TODAY, 11L, "cover", 5_430L),
+                            new MonthlyFocusStatsDto(TODAY, 12L, "other", 1_000L)
+                    ));
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
 
-            Library library = LibraryFixture.library(user, book);
-            ReflectionTestUtils.setField(library, "page", 0);
+            LibraryViewDto.RecentFocusResponseDto result = libraryQueryService.getRecentFocus(1L);
 
-            Focus focus = new Focus();
-            ReflectionTestUtils.setField(focus, "id", 99L);
-            ReflectionTestUtils.setField(focus, "library", library);
+            assertThat(result).isNotNull();
+            assertThat(result.bookId()).isEqualTo(11L);
+            assertThat(result.title()).isEqualTo("최근 도서");
+            assertThat(result.page()).isEqualTo(37);
+            assertThat(result.focusTime()).isEqualTo("01:30:30");
+        }
+
+        @Test
+        @DisplayName("최근 종료 포커스가 오늘 이전이면 배너는 유지하고 focusTime은 00:00:00이다")
+        void viewRecentFocus_오늘기록없음_0초() {
+            User user = UserFixture.user();
+            Focus focus = recentFocus(user, ReadingStatus.READING, 37);
+            ReflectionTestUtils.setField(focus.getLibrary(), "focusSec", 5_430L);
+
+            given(focusRepository.findRecentByUser(eq(user), any(PageRequest.class)))
+                    .willReturn(List.of(focus));
+            given(focusRepository.findMonthlyFocusStats(1L, TODAY, TODAY.plusDays(1)))
+                    .willReturn(List.of());
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+
+            LibraryViewDto.RecentFocusResponseDto result = libraryQueryService.getRecentFocus(1L);
+
+            assertThat(result).isNotNull();
+            assertThat(result.bookId()).isEqualTo(11L);
+            assertThat(result.focusTime()).isEqualTo("00:00:00");
+        }
+
+        @Test
+        @DisplayName("최근 종료 포커스에 endPage가 없으면 서재 페이지가 있어도 page는 null이다")
+        void viewRecentFocus_endPage없음_null() {
+            User user = UserFixture.user();
+            Focus focus = recentFocus(user, ReadingStatus.READING, null);
+            ReflectionTestUtils.setField(focus.getLibrary(), "page", 120);
 
             given(focusRepository.findRecentByUser(eq(user), any(PageRequest.class)))
                     .willReturn(List.of(focus));
@@ -793,9 +841,36 @@ class LibraryServiceTest {
             LibraryViewDto.RecentFocusResponseDto result = libraryQueryService.getRecentFocus(1L);
 
             assertThat(result).isNotNull();
-            assertThat(result.bookId()).isEqualTo(11L);
-            assertThat(result.title()).isEqualTo("최근 도서");
             assertThat(result.page()).isNull();
+        }
+
+        @Test
+        @DisplayName("최근 종료 포커스의 책이 완독이면 null을 반환한다")
+        void viewRecentFocus_완독_null() {
+            User user = UserFixture.user();
+            Focus focus = recentFocus(user, ReadingStatus.FINISHED, 300);
+
+            given(focusRepository.findRecentByUser(eq(user), any(PageRequest.class)))
+                    .willReturn(List.of(focus));
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+
+            assertThat(libraryQueryService.getRecentFocus(1L)).isNull();
+        }
+
+        private Focus recentFocus(User user, ReadingStatus status, Integer endPage) {
+            Book book = BookFixture.book();
+            ReflectionTestUtils.setField(book, "id", 11L);
+            ReflectionTestUtils.setField(book, "title", "최근 도서");
+            ReflectionTestUtils.setField(book, "coverImageKey", "cover");
+
+            Library library = LibraryFixture.library(user, book);
+            ReflectionTestUtils.setField(library, "readingStatus", status);
+
+            Focus focus = new Focus();
+            ReflectionTestUtils.setField(focus, "id", 99L);
+            ReflectionTestUtils.setField(focus, "library", library);
+            ReflectionTestUtils.setField(focus, "endPage", endPage);
+            return focus;
         }
 
         @Test
