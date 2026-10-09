@@ -2,6 +2,7 @@ package app.nook.focus.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 public class FocusRequestDto {
 
@@ -12,6 +13,7 @@ public class FocusRequestDto {
     public record FocusEnd(
             @NotNull @Positive Long focusId,
             @Positive Integer page,
-            @NotNull Boolean isFinished
+            @NotNull Boolean isFinished,
+            @PositiveOrZero Integer durationSec
     ) {}
 }
