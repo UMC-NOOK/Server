@@ -355,6 +355,58 @@ public class FocusRepositoryTest extends AbstractPostgresContainerTests {
     }
 
     @Test
+    @DisplayName("이어서 포커스 배너용 최근 포커스는 진행 중인 포커스를 제외하고 가장 큰 id를 조회한다")
+    void findRecentByUser_진행중_제외() {
+        User user = User.builder()
+                .email("recent-banner@example.com")
+                .nickName("배너유저")
+                .provider("google")
+                .providerId("banner-provider")
+                .role(UserRole.USER)
+                .build();
+        em.persist(user);
+
+        Book book = Book.builder().title("테스트 책").author("작가").build();
+        em.persist(book);
+
+        Library library = Library.builder().user(user).book(book).build();
+        em.persist(library);
+
+        em.persist(Focus.builder()
+                .library(library)
+                .startedAt(LocalDateTime.of(2026, 4, 1, 23, 0, 0))
+                .endedAt(LocalDateTime.of(2026, 4, 2, 0, 0, 0))
+                .durationSec(3600)
+                .build());
+
+        // 자정 분할의 마지막 조각
+        Focus lastSegment = Focus.builder()
+                .library(library)
+                .startedAt(LocalDateTime.of(2026, 4, 2, 0, 0, 0))
+                .endedAt(LocalDateTime.of(2026, 4, 2, 0, 30, 0))
+                .durationSec(1800)
+                .endPage(42)
+                .build();
+        em.persist(lastSegment);
+
+        em.persist(Focus.builder()
+                .library(library)
+                .startedAt(LocalDateTime.of(2026, 4, 3, 10, 0, 0))
+                .endedAt(null)
+                .durationSec(0)
+                .build());
+
+        em.flush();
+        em.clear();
+
+        List<Focus> result = focusRepository.findRecentByUser(user, PageRequest.of(0, 1));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(lastSegment.getId());
+        assertThat(result.get(0).getEndPage()).isEqualTo(42);
+    }
+
+    @Test
     @DisplayName("커서 이전 id의 포커스만 조회된다")
     void findRecentByUserWithCursor_커서페이지() {
         User user = User.builder()

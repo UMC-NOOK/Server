@@ -206,7 +206,7 @@ class FocusServiceTest {
             stubOwnedAndGeneratedIds(active);
 
             FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 2, 0, 30, 0, 987_000_000))
-                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), null, finished));
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), null, finished, null));
 
             assertThat(library.getReadingStatus()).isEqualTo(after);
             if (before != after) {
@@ -224,7 +224,7 @@ class FocusServiceTest {
             stubOwnedAndGeneratedIds(active);
 
             FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 2, 0, 30))
-                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), null, false));
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), null, false, null));
 
             List<Focus> rows = savedRows();
             assertThat(rows).hasSize(2);
@@ -240,7 +240,7 @@ class FocusServiceTest {
             stubOwnedAndGeneratedIds(active);
 
             FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 1, 10, 30))
-                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), null, false));
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), null, false, null));
 
             assertThat(result.page()).isNull();
         }
@@ -252,13 +252,73 @@ class FocusServiceTest {
             stubOwnedAndGeneratedIds(active);
 
             FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 1, 10, 30))
-                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 30, false));
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 30, false, null));
 
             assertThat(result.durationSec()).isEqualTo(1800);
             assertThat(result.bookId()).isEqualTo(library.getBook().getId());
             assertThat(active.getDurationSec()).isEqualTo(1800);
             assertThat(active.getEndPage()).isEqualTo(30);
             verifyMonthlyEvent(Set.of(YearMonth.of(2026, 8)), false);
+        }
+
+        @Test
+        @DisplayName("durationSec이 오면 시작 시각 + durationSec을 종료 시각으로 저장한다")
+        void usesClientDurationAsEndTime() {
+            Focus active = activeFocus(LocalDateTime.of(2026, 8, 1, 10, 0));
+            stubOwnedAndGeneratedIds(active);
+
+            FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 1, 10, 30))
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 30, false, 1200));
+
+            assertThat(result.endedAt()).isEqualTo(LocalDateTime.of(2026, 8, 1, 10, 20));
+            assertThat(result.durationSec()).isEqualTo(1200);
+            assertThat(result.totalFocusSec()).isEqualTo(1200L);
+            assertThat(active.getDurationSec()).isEqualTo(1200);
+        }
+
+        @ParameterizedTest
+        @CsvSource({"1800, 1800", "999999, 1800", "0, 0"})
+        @DisplayName("durationSec은 0 이상 서버 경과 시간 이하로 보정한다")
+        void clampsClientDurationToElapsed(int requested, int expected) {
+            Focus active = activeFocus(LocalDateTime.of(2026, 8, 1, 10, 0));
+            stubOwnedAndGeneratedIds(active);
+
+            FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 1, 10, 30, 0, 500_000_000))
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), null, false, requested));
+
+            assertThat(result.durationSec()).isEqualTo(expected);
+            assertThat(result.endedAt()).isEqualTo(LocalDateTime.of(2026, 8, 1, 10, 0).plusSeconds(expected));
+        }
+
+        @Test
+        @DisplayName("durationSec으로 계산한 종료 시각이 자정 이전이면 분할하지 않는다")
+        void appliesClientDurationBeforeMidnightSplit() {
+            Focus active = activeFocus(LocalDateTime.of(2026, 8, 1, 23, 0));
+            stubOwnedAndGeneratedIds(active);
+
+            FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 2, 0, 30))
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 72, false, 3000));
+
+            List<Focus> rows = savedRows();
+            assertThat(rows).hasSize(1);
+            assertThat(rows.get(0).getEndPage()).isEqualTo(72);
+            assertThat(result.endedAt()).isEqualTo(LocalDateTime.of(2026, 8, 1, 23, 50));
+            verifyMonthlyEvent(Set.of(YearMonth.of(2026, 8)), false);
+        }
+
+        @Test
+        @DisplayName("durationSec으로 계산한 종료 시각이 자정을 넘기면 그 시각 기준으로 분할한다")
+        void splitsAtMidnightWithClientDuration() {
+            Focus active = activeFocus(LocalDateTime.of(2026, 8, 1, 23, 0));
+            stubOwnedAndGeneratedIds(active);
+
+            FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 2, 1, 0))
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), null, false, 4200));
+
+            List<Focus> rows = savedRows();
+            assertThat(rows).extracting(Focus::getDurationSec).containsExactly(3600, 600);
+            assertThat(result.endedAt()).isEqualTo(LocalDateTime.of(2026, 8, 2, 0, 10));
+            assertThat(result.durationSec()).isEqualTo(4200);
         }
 
         @Test
@@ -270,7 +330,7 @@ class FocusServiceTest {
             stubOwnedAndGeneratedIds(active);
 
             FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 8, 2, 0, 30))
-                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 72, false));
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 72, false, null));
 
             List<Focus> rows = savedRows();
             assertThat(rows).hasSize(2);
@@ -302,7 +362,7 @@ class FocusServiceTest {
             stubOwnedAndGeneratedIds(active);
 
             serviceAt(LocalDateTime.of(2026, 9, 1, 0, 0))
-                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 20, false));
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 20, false, null));
 
             assertThat(savedRows()).hasSize(1);
             verifyMonthlyEvent(Set.of(YearMonth.of(2026, 8)), false);
@@ -315,7 +375,7 @@ class FocusServiceTest {
             stubOwnedAndGeneratedIds(active);
 
             serviceAt(LocalDateTime.of(2026, 9, 1, 0, 30))
-                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 20, false));
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 20, false, null));
 
             verifyMonthlyEvent(Set.of(YearMonth.of(2026, 8), YearMonth.of(2026, 9)), false);
         }
@@ -327,7 +387,7 @@ class FocusServiceTest {
             stubOwnedAndGeneratedIds(active);
 
             FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 9, 1, 0, 30))
-                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 120, true));
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 120, true, null));
 
             assertThat(result.readingStatus()).isEqualTo("FINISHED");
             assertThat(library.getEndedAt()).isEqualTo(LocalDate.of(2026, 9, 1));
@@ -340,7 +400,7 @@ class FocusServiceTest {
             given(focusRepository.findLibraryIdById(100L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> serviceAt(LocalDateTime.of(2026, 8, 1, 11, 0))
-                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(100L, 10, false)))
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(100L, 10, false, null)))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(FocusErrorCode.FOCUS_NOT_FOUND);
@@ -354,7 +414,7 @@ class FocusServiceTest {
             stubOwnedFocus(completed);
 
             assertThatThrownBy(() -> serviceAt(LocalDateTime.of(2026, 8, 1, 11, 0))
-                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(completed.getId(), 10, false)))
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(completed.getId(), 10, false, null)))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(FocusErrorCode.FOCUS_ALREADY_ENDED);
@@ -370,7 +430,7 @@ class FocusServiceTest {
             stubOwnedAndGeneratedIds(active);
 
             FocusResponseDto.FocusEnd result = serviceAt(LocalDateTime.of(2026, 9, 1, 0, 0, 0, 900_000_000))
-                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 99, false));
+                    .endFocus(user.getId(), new FocusRequestDto.FocusEnd(active.getId(), 99, false, null));
 
             assertThat(savedRows()).containsExactly(active);
             assertThat(active.getStartedAt()).isEqualTo(LocalDateTime.of(2026, 9, 1, 0, 0));

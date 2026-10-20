@@ -21,6 +21,7 @@ public interface FocusRepository extends JpaRepository<Focus, Long>, FocusReposi
         join fetch f.library l
         join fetch l.book
         where l.user = :user
+          and f.endedAt is not null
         order by f.id desc
     """)
     List<Focus> findRecentByUser(@Param("user") User user, Pageable pageable);

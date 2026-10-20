@@ -426,6 +426,8 @@ class RecordServiceTest {
                         .containsExactly("record/users/1/updated.png");
                 verify(eventPublisher).publishEvent(any(RecordDeletedEvent.class));
                 verify(timelineRepository, never()).deleteByLibraryAndTypeAndTargetIdIn(any(), any(), anyList());
+                // 수정 후 최신 본문/이미지 개수로 타임라인 preview를 갱신
+                verify(timelineCommandService).updateRecordPreview(record, 1);
             }
 
             @Test

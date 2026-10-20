@@ -336,7 +336,7 @@ public class TimelineQueryService {
                 .map(record -> TimelineResponseConverter.toTimelineDetail(
                         timeline,
                         TimelineResponseConverter.toRecordDetail(
-                                record.getContent(),
+                                TimelinePreviewText.truncate(record.getContent()),
                                 record.getEmotion() != null ? record.getEmotion().name() : null,
                                 toRecordImageUrls(record, userId)
                         )

@@ -116,7 +116,7 @@ public class FocusService {
             throw new CustomException(FocusErrorCode.FOCUS_ALREADY_ENDED);
         }
 
-        LocalDateTime endedAt = LocalDateTime.now(clock);
+        LocalDateTime endedAt = resolveEndedAt(focus.getStartedAt(), request.durationSec());
         List<FocusCompletionSegmenter.CompletedFocusSegment> segments =
                 focusCompletionSegmenter.split(focus.getStartedAt(), endedAt);
         if (segments.isEmpty()) {
@@ -194,5 +194,16 @@ public class FocusService {
                 normalizedEndedAt,
                 totalDurationSec
         );
+    }
+
+    // 종료 시트가 열린 동안 멈춘 클라이언트 타이머 값을 [0, 서버 경과 시간]으로 보정해 종료 시각을 정한다
+    private LocalDateTime resolveEndedAt(LocalDateTime startedAt, Integer durationSec) {
+        LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
+        if (durationSec == null) {
+            return now;
+        }
+        LocalDateTime normalizedStartedAt = startedAt.truncatedTo(ChronoUnit.SECONDS);
+        LocalDateTime requestedEndedAt = normalizedStartedAt.plusSeconds(durationSec);
+        return requestedEndedAt.isBefore(now) ? requestedEndedAt : now;
     }
 }

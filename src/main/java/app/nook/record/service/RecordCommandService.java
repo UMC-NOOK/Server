@@ -117,6 +117,7 @@ public class RecordCommandService {
 
         // 이미지 업데이트 시에 동기화 처리
         syncRecordImages(record, requestedImageKeys);
+        timelineCommandService.updateRecordPreview(record, record.getImages().size());
         return record.getId();
     }
 
