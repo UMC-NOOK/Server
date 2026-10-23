@@ -1,6 +1,5 @@
 package app.nook.book.service;
 
-import app.nook.aladin.service.AladinService;
 import app.nook.book.domain.Book;
 import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
@@ -19,6 +18,7 @@ import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.repository.UserRepository;
+import app.nook.yes24.service.Yes24Service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -64,7 +64,7 @@ class BookServiceTest {
     private CategoryRepository categoryRepository;
 
     @Mock
-    private AladinService aladinService;
+    private Yes24Service yes24Service;
 
     @Mock
     private LibraryRepository libraryRepository;
@@ -143,9 +143,51 @@ class BookServiceTest {
         assertThat(result.getLibraryId()).isNull();
         assertThat(result.getReadingStatus()).isEqualTo(ReadingStatusResponse.UNREGISTERED);
 
-        // DB에 있었으므로 알라딘 API는 호출되지 않아야 함
+        // DB에 있었으므로 외부 도서 API는 호출되지 않아야 함
         verify(bookRepository, times(1)).findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.EXTERNAL);
-        verify(aladinService, never()).lookupItem(any());
+        verify(yes24Service, never()).lookupItem(any());
+        verify(bookViewHistoryService).saveBookView(testUser, book);
+    }
+
+    @Test
+    @DisplayName("30일 지난 외부 도서 조회 - 외부 도서 API 정보로 갱신")
+    void getBookDetailByIsbn_오래된도서_갱신() {
+        Book book = createBook(TEST_ISBN_1, "옛 제목", 100);
+        ReflectionTestUtils.setField(book, "id", 1L);
+        ReflectionTestUtils.setField(book, "modifiedDate", LocalDateTime.now().minusDays(31));
+        BookResponseDto.BookDetailDto latest = createBookDetailDto(TEST_ISBN_1, "새 제목", 184);
+        latest.setPurchaseLink("https://www.yes24.com/product/goods/1");
+
+        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.EXTERNAL))
+                .willReturn(Optional.of(book));
+        given(yes24Service.lookupItem(TEST_ISBN_1)).willReturn(latest);
+        given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, TEST_CATEGORY_NAME))
+                .willReturn(Optional.of(category));
+
+        BookResponseDto.BookDetailDto result = bookService.getBookDetailByIsbn(testUser, TEST_ISBN_1);
+
+        assertThat(result.getTitle()).isEqualTo("새 제목");
+        assertThat(result.getPages()).isEqualTo(184);
+        assertThat(result.getPurchaseLink()).isEqualTo("https://www.yes24.com/product/goods/1");
+    }
+
+    @Test
+    @DisplayName("30일 지난 외부 도서 조회 - 갱신에 실패해도 기존 정보로 응답")
+    void getBookDetailByIsbn_갱신실패_기존정보유지() {
+        Book book = createBook(TEST_ISBN_1, "기존 제목", 100);
+        ReflectionTestUtils.setField(book, "id", 1L);
+        ReflectionTestUtils.setField(book, "modifiedDate", LocalDateTime.now().minusDays(31));
+
+        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.EXTERNAL))
+                .willReturn(Optional.of(book));
+        // 전자책·미노출 분류 등으로 필터에 걸린 경우
+        given(yes24Service.lookupItem(TEST_ISBN_1))
+                .willThrow(new CustomException(BookErrorCode.BOOK_NOT_ALLOWED));
+
+        BookResponseDto.BookDetailDto result = bookService.getBookDetailByIsbn(testUser, TEST_ISBN_1);
+
+        assertThat(result.getTitle()).isEqualTo("기존 제목");
+        assertThat(result.getPages()).isEqualTo(100);
         verify(bookViewHistoryService).saveBookView(testUser, book);
     }
 
@@ -191,7 +233,7 @@ class BookServiceTest {
 
         // Mocking 시나리오
         given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.EXTERNAL)).willReturn(Optional.empty()); // DB 없음
-        given(aladinService.lookupItem(TEST_ISBN_1)).willReturn(apiResponse); // API 호출
+        given(yes24Service.lookupItem(TEST_ISBN_1)).willReturn(apiResponse); // API 호출
         given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, TEST_CATEGORY_NAME))
                 .willReturn(Optional.of(category)); // 카테고리 조회
         given(bookRepository.save(any(Book.class))).willReturn(savedBookWithId); // 저장
@@ -237,7 +279,7 @@ class BookServiceTest {
                 .build();
 
         given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.EXTERNAL)).willReturn(Optional.empty());
-        given(aladinService.lookupItem(TEST_ISBN_1)).willReturn(apiResponse);
+        given(yes24Service.lookupItem(TEST_ISBN_1)).willReturn(apiResponse);
         // 카테고리 조회 실패 시뮬레이션
         given(categoryRepository.findByMallTypeAndCategoryName(any(), any()))
                 .willReturn(Optional.empty());
@@ -365,7 +407,7 @@ class BookServiceTest {
                 createBookPreviewDto(TEST_ISBN_2, "소년이 온다", 2)
         );
 
-        given(aladinService.fetchItemList("Bestseller", "BOOK", 10, null))
+        given(yes24Service.fetchBestsellers("001001", 10))
                 .willReturn(mockBestsellers);
 
         // when
@@ -377,7 +419,7 @@ class BookServiceTest {
         assertThat(result.get(0).rank()).isEqualTo(1);
         assertThat(result.get(1).title()).isEqualTo("소년이 온다");
 
-        verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 10, null);
+        verify(yes24Service, times(1)).fetchBestsellers("001001", 10);
     }
 
     @Test

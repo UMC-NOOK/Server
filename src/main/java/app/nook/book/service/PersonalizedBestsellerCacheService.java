@@ -1,8 +1,8 @@
 package app.nook.book.service;
 
-import app.nook.aladin.service.AladinService;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.global.config.CacheConfig;
+import app.nook.yes24.service.Yes24Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PersonalizedBestsellerCacheService {
 
-    private final AladinService aladinService;
+    private static final int RECOMMENDATION_COUNT = 5;
+
+    private final Yes24Service yes24Service;
 
     // categoryId를 직접 key로 사용해 캐시 조회 전에 DB를 다시 조회하지 않도록 분리
     @Cacheable(
@@ -22,11 +24,6 @@ public class PersonalizedBestsellerCacheService {
             sync = true
     )
     public List<BookResponseDto.BookPreviewDto> getByCategoryId(String categoryId) {
-        return aladinService.fetchItemList(
-                "Bestseller",
-                "BOOK",
-                5,
-                categoryId
-        );
+        return yes24Service.fetchBestsellers(categoryId, RECOMMENDATION_COUNT);
     }
 }
