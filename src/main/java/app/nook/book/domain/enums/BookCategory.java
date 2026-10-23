@@ -15,10 +15,9 @@ public enum BookCategory {
 
     // 1. 단순 1:1 매핑
     // TODO: 필터링 기능 리팩토링 예정
-    HOME_COOKING("가정/요리/뷰티", 1230, 38409, List.of("가정/요리/뷰티")),
+    HOME_COOKING("가정/요리/뷰티", 1230, 38409, List.of("가정/요리/뷰티", "좋은부모")),
     HEALTH("건강/취미/레저", 55890, 56388, List.of("건강/취미/레저")),
     ECONOMY("경제경영", 170, 38398, List.of("경제경영")),
-    CLASSIC("고전", 2105, 38414, List.of("고전", "고등학교참고서")),
     SCIENCE("과학", 987, 38405, List.of("과학")),
     COMICS("만화", 2551, 38416, List.of("만화")),
     SOCIAL("사회과학", 798, 38404, List.of("사회과학")),
@@ -31,9 +30,8 @@ public enum BookCategory {
     HUMANITIES("인문학", 656, 38403, List.of("인문학")),
     SELF_HELP("자기계발", 336, 38400, List.of("자기계발")),
     RELIGION("종교/역학", 1237, 38410, List.of("종교/역학")),
-    PARENTING("좋은부모", 2030, 38413, List.of("좋은부모")),
     TEENAGER("청소년", 1137, 38407, List.of("청소년")),
-    COMPUTER("컴퓨터/모바일", 351, 38401, List.of("컴퓨터/모바일")),
+    COMPUTER("IT", 351, 38401, List.of("컴퓨터/모바일")),
 
     // 2. 이름 변경 (Rename)
     PROFESSIONAL("전문서적", 8257, 38422, List.of("전문서적", "대학교재/전문서적")),
@@ -43,6 +41,7 @@ public enum BookCategory {
     // 알라딘에서 '라이트 노벨' 등 세부 장르로 와도, DB엔 '소설/시/희곡'으로 저장하고 ID는 대표 ID(1, 38396) 로 통일
     NOVEL("소설/시/희곡", 1, 38396, List.of(
             "소설/시/희곡",
+            "고전",
             "라이트 노벨",
             "로맨스",
             "판타지/무협",

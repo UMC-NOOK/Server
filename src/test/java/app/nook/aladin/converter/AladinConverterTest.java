@@ -41,7 +41,7 @@ class AladinConverterTest {
         assertThat(detail.getAuthor()).isEqualTo(preview.author());
         assertThat(detail.getPublisher()).isEqualTo(preview.publisher());
         assertThat(detail.getDescription()).isEqualTo("설명 & 소개");
-        assertThat(detail.getAladinLink()).isEqualTo("https://aladin.test/item?ItemId=1&partner=2&start=3");
+        assertThat(detail.getPurchaseLink()).isEqualTo("https://aladin.test/item?ItemId=1&partner=2&start=3");
         assertThat(detail.getCoverImageUrl()).isEqualTo("https://img.test/a&amp;b.jpg");
         assertThat(detail.getCategory()).isEqualTo("소설/시/희곡");
     }
@@ -67,6 +67,6 @@ class AladinConverterTest {
         assertThat(detail.getAuthor()).isNull();
         assertThat(detail.getPublisher()).isEqualTo("출판사");
         assertThat(detail.getDescription()).isNull();
-        assertThat(detail.getAladinLink()).isNull();
+        assertThat(detail.getPurchaseLink()).isNull();
     }
 }

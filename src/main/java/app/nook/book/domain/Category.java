@@ -33,22 +33,24 @@ public class Category {
     @Column(name="mall_type")
     private MallType mallType;
 
-    private int aladinCategoryId;
+    // 맞춤 추천 베스트셀러 조회용 YES24 카테고리 코드 (예: 001001046)
+    @Column(name = "yes24_category_id", length = 12, nullable = false)
+    private String yes24CategoryId;
 
     @OneToMany(mappedBy = "category")
     private List<Book> books = new ArrayList<>();
 
     @Builder
-    public Category(String categoryName, MallType mallType, int aladinCategoryId) {
+    public Category(String categoryName, MallType mallType, String yes24CategoryId) {
         this.categoryName = categoryName;
         this.mallType = mallType;
-        this.aladinCategoryId = aladinCategoryId;
+        this.yes24CategoryId = yes24CategoryId;
     }
 
-    public static Category of(MallType mallType, String categoryName, int aladinCategoryId) {
+    public static Category of(MallType mallType, String categoryName, String yes24CategoryId) {
         return Category.builder()
                 .mallType(mallType)
-                .aladinCategoryId(aladinCategoryId)
+                .yes24CategoryId(yes24CategoryId)
                 .categoryName(categoryName)
                 .build();
     }

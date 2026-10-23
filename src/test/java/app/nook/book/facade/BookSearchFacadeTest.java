@@ -409,7 +409,7 @@ class BookSearchFacadeTest {
     }
 
     private Library createLibrary() {
-        Category category = Category.of(MallType.BOOK, "소설", 1);
+        Category category = Category.of(MallType.BOOK, "소설", "001001046");
         Book book = Book.builder()
                 .isbn13(TEST_ISBN_1)
                 .title("테스트 도서")

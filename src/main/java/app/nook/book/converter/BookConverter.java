@@ -24,7 +24,7 @@ public class BookConverter {
                 .pages(book.getPages())
                 .description(book.getDescription())
                 .coverImageUrl(book.getCoverImageKey())
-                .aladinLink(book.getAladinLink())
+                .purchaseLink(book.getPurchaseLink())
                 .sourceType(book.getSourceType())
                 .bookShelfId(library == null ? null : library.getId())
                 .libraryId(library == null ? null : library.getId())
@@ -44,7 +44,7 @@ public class BookConverter {
                 .pages(bookDetailDto.getPages())
                 .description(bookDetailDto.getDescription())
                 .coverImageKey(bookDetailDto.getCoverImageUrl())
-                .aladinLink(bookDetailDto.getAladinLink())
+                .purchaseLink(bookDetailDto.getPurchaseLink())
                 .sourceType(sourceType)
                 .category(category)
                 .build();

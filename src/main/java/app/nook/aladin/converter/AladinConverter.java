@@ -32,7 +32,7 @@ public class AladinConverter {
                 .pages(aladinItem.getItemPage())
                 .description(decode(aladinItem.getDescription()))
                 .coverImageUrl(aladinItem.getCover())
-                .aladinLink(decode(aladinItem.getLink()))
+                .purchaseLink(decode(aladinItem.getLink()))
                 .build();
     }
 

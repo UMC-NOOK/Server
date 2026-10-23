@@ -35,14 +35,14 @@ class PersonalizedBestsellerCacheServiceTest {
                 createBookPreviewDto("9788936434267", "채식주의자", 1)
         );
 
-        given(aladinService.fetchItemList("Bestseller", "BOOK", 5, "42"))
+        given(aladinService.fetchItemList("Bestseller", "BOOK", 5, "001001046"))
                 .willReturn(expected);
 
         List<BookResponseDto.BookPreviewDto> result =
-                personalizedBestsellerCacheService.getByCategoryId(42);
+                personalizedBestsellerCacheService.getByCategoryId("001001046");
 
         assertThat(result).isEqualTo(expected);
-        verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 5, "42");
+        verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 5, "001001046");
     }
 
     private BookResponseDto.BookPreviewDto createBookPreviewDto(String isbn13, String title, Integer rank) {

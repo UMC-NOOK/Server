@@ -21,12 +21,12 @@ public class PersonalizedBestsellerCacheService {
             key = "'category:' + #categoryId",
             sync = true
     )
-    public List<BookResponseDto.BookPreviewDto> getByCategoryId(int categoryId) {
+    public List<BookResponseDto.BookPreviewDto> getByCategoryId(String categoryId) {
         return aladinService.fetchItemList(
                 "Bestseller",
                 "BOOK",
                 5,
-                String.valueOf(categoryId)
+                categoryId
         );
     }
 }

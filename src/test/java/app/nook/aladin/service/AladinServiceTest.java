@@ -218,7 +218,7 @@ class AladinServiceTest {
         assertThat(result.getAuthor()).isEqualTo("A & B");
         assertThat(result.getPublisher()).isEqualTo("<출판사>");
         assertThat(result.getDescription()).isEqualTo("설명 & 소개");
-        assertThat(result.getAladinLink()).isEqualTo("https://aladin.test/detail?ItemId=1&partner=2&start=3");
+        assertThat(result.getPurchaseLink()).isEqualTo("https://aladin.test/detail?ItemId=1&partner=2&start=3");
         assertThat(result.getCoverImageUrl()).isEqualTo("https://img.test/detail&amp;raw.jpg");
         assertThat(result.getMallTypeCode().name()).isEqualTo("BOOK");
         assertThat(result.getMallType()).isEqualTo("국내도서");

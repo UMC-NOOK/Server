@@ -94,7 +94,7 @@ public class BookRepositoryTest extends AbstractPostgresContainerTests {
                 .author(author)
                 .publisher("창비")
                 .category(category)
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
     }
 }

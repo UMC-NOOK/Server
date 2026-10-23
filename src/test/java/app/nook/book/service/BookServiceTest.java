@@ -99,7 +99,7 @@ class BookServiceTest {
 
     @BeforeEach
     void setUp() {
-        category = Category.of(MallType.BOOK, TEST_CATEGORY_NAME, 1);
+        category = Category.of(MallType.BOOK, TEST_CATEGORY_NAME, "001001046");
         ReflectionTestUtils.setField(category, "id", 1L);
 
         testUser = User.builder()
@@ -123,7 +123,7 @@ class BookServiceTest {
         ReflectionTestUtils.setField(book, "id", 1L);
         ReflectionTestUtils.setField(book, "modifiedDate", LocalDateTime.now());
 
-        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN))
+        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.EXTERNAL))
                 .willReturn(Optional.of(book));
         given(bookRepository.findById(1L))
                 .willReturn(Optional.of(book));
@@ -144,7 +144,7 @@ class BookServiceTest {
         assertThat(result.getReadingStatus()).isEqualTo(ReadingStatusResponse.UNREGISTERED);
 
         // DB에 있었으므로 알라딘 API는 호출되지 않아야 함
-        verify(bookRepository, times(1)).findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN);
+        verify(bookRepository, times(1)).findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.EXTERNAL);
         verify(aladinService, never()).lookupItem(any());
         verify(bookViewHistoryService).saveBookView(testUser, book);
     }
@@ -164,7 +164,7 @@ class BookServiceTest {
         ReflectionTestUtils.setField(library, "id", 10L);
         library.updateStatus(ReadingStatus.READING);
 
-        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN))
+        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.EXTERNAL))
                 .willReturn(Optional.of(book));
         given(libraryRepository.findByUserAndBook(testUser, book))
                 .willReturn(Optional.of(library));
@@ -190,7 +190,7 @@ class BookServiceTest {
         ReflectionTestUtils.setField(savedBookWithId, "id", 100L);
 
         // Mocking 시나리오
-        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN)).willReturn(Optional.empty()); // DB 없음
+        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.EXTERNAL)).willReturn(Optional.empty()); // DB 없음
         given(aladinService.lookupItem(TEST_ISBN_1)).willReturn(apiResponse); // API 호출
         given(categoryRepository.findByMallTypeAndCategoryName(MallType.BOOK, TEST_CATEGORY_NAME))
                 .willReturn(Optional.of(category)); // 카테고리 조회
@@ -218,10 +218,10 @@ class BookServiceTest {
         assertThat(capturedBook.getPages()).isEqualTo(apiResponse.getPages());
         assertThat(capturedBook.getDescription()).isEqualTo(apiResponse.getDescription());
         assertThat(capturedBook.getCoverImageKey()).isEqualTo(apiResponse.getCoverImageUrl());
-        assertThat(capturedBook.getAladinLink()).isEqualTo(apiResponse.getAladinLink());
+        assertThat(capturedBook.getPurchaseLink()).isEqualTo(apiResponse.getPurchaseLink());
 
-        // SourceType이 ALADIN으로 잘 들어갔는지, 카테고리 연관관계가 잘 맺어졌는지 확인
-        assertThat(capturedBook.getSourceType()).isEqualTo(SourceType.ALADIN);
+        // SourceType이 EXTERNAL로 잘 들어갔는지, 카테고리 연관관계가 잘 맺어졌는지 확인
+        assertThat(capturedBook.getSourceType()).isEqualTo(SourceType.EXTERNAL);
         assertThat(capturedBook.getCategory()).isEqualTo(category);
         verify(bookViewHistoryService).saveBookView(testUser, savedBookWithId);
     }
@@ -236,7 +236,7 @@ class BookServiceTest {
                 .category("존재하지않는카테고리")
                 .build();
 
-        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.ALADIN)).willReturn(Optional.empty());
+        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.EXTERNAL)).willReturn(Optional.empty());
         given(aladinService.lookupItem(TEST_ISBN_1)).willReturn(apiResponse);
         // 카테고리 조회 실패 시뮬레이션
         given(categoryRepository.findByMallTypeAndCategoryName(any(), any()))
@@ -389,9 +389,9 @@ class BookServiceTest {
         );
 
         given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(testUser));
-        given(libraryRepository.findTopAladinCategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
-                .willReturn(List.of(42));
-        given(personalizedBestsellerCacheService.getByCategoryId(42))
+        given(libraryRepository.findTopYes24CategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
+                .willReturn(List.of("001001046"));
+        given(personalizedBestsellerCacheService.getByCategoryId("001001046"))
                 .willReturn(mockBestsellers);
 
         // when
@@ -401,13 +401,13 @@ class BookServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).title()).isEqualTo("채식주의자");
 
-        verify(personalizedBestsellerCacheService, times(1)).getByCategoryId(42);
+        verify(personalizedBestsellerCacheService, times(1)).getByCategoryId("001001046");
     }
 
     @Test
     @DisplayName("추천 카테고리: 서재가 없으면 온보딩 preferred_category 사용")
     void getPersonalizedBestsellers_온보딩fallback() {
-        Category preferred = Category.of(MallType.BOOK, "에세이", 77);
+        Category preferred = Category.of(MallType.BOOK, "에세이", "001001047");
         ReflectionTestUtils.setField(preferred, "id", 99L);
         ReflectionTestUtils.setField(testUser, "preferredCategory", preferred);
 
@@ -416,34 +416,34 @@ class BookServiceTest {
         );
 
         given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(testUser));
-        given(libraryRepository.findTopAladinCategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
+        given(libraryRepository.findTopYes24CategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
                 .willReturn(List.of());
-        given(personalizedBestsellerCacheService.getByCategoryId(77))
+        given(personalizedBestsellerCacheService.getByCategoryId("001001047"))
                 .willReturn(mockBestsellers);
 
         List<BookResponseDto.BookPreviewDto> result = bookService.getPersonalizedBestsellers(testUser);
 
         assertThat(result).hasSize(1);
-        verify(personalizedBestsellerCacheService, times(1)).getByCategoryId(77);
+        verify(personalizedBestsellerCacheService, times(1)).getByCategoryId("001001047");
     }
 
     @Test
-    @DisplayName("추천 카테고리: 서재/온보딩 모두 없으면 default 1")
+    @DisplayName("추천 카테고리: 서재/온보딩 모두 없으면 기본값(소설/시/희곡)")
     void getPersonalizedBestsellers_defaultFallback() {
         List<BookResponseDto.BookPreviewDto> mockBestsellers = List.of(
                 createBookPreviewDto(TEST_ISBN_1, "채식주의자", 1)
         );
 
         given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(testUser));
-        given(libraryRepository.findTopAladinCategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
+        given(libraryRepository.findTopYes24CategoryIdsByUserId(TEST_USER_ID, MallType.BOOK, PageRequest.of(0, 1)))
                 .willReturn(List.of());
-        given(personalizedBestsellerCacheService.getByCategoryId(1))
+        given(personalizedBestsellerCacheService.getByCategoryId("001001046"))
                 .willReturn(mockBestsellers);
 
         List<BookResponseDto.BookPreviewDto> result = bookService.getPersonalizedBestsellers(testUser);
 
         assertThat(result).hasSize(1);
-        verify(personalizedBestsellerCacheService, times(1)).getByCategoryId(1);
+        verify(personalizedBestsellerCacheService, times(1)).getByCategoryId("001001046");
     }
 
     @Test
@@ -535,8 +535,8 @@ class BookServiceTest {
                 .pages(pages)
                 .description(TEST_AUTHOR + "의 소설")
                 .coverImageKey("http://example.com/cover.jpg")
-                .aladinLink("http://aladin.com/book")
-                .sourceType(SourceType.ALADIN)
+                .purchaseLink("http://aladin.com/book")
+                .sourceType(SourceType.EXTERNAL)
                 .category(category)
                 .build();
     }
@@ -554,8 +554,8 @@ class BookServiceTest {
                 .pages(pages)
                 .description(TEST_AUTHOR + "의 소설")
                 .coverImageUrl("http://example.com/cover.jpg")
-                .aladinLink("http://aladin.com/book")
-                .sourceType(SourceType.ALADIN)
+                .purchaseLink("http://aladin.com/book")
+                .sourceType(SourceType.EXTERNAL)
                 .build();
     }
 

@@ -44,12 +44,12 @@ public class Book extends BaseEntity {
     private String coverImageKey;
 
     @Column(columnDefinition = "TEXT")
-    private String aladinLink;
+    private String purchaseLink;
 
     @Enumerated(EnumType.STRING)
     private SourceType sourceType;
 
-    // USER 도서 소유자 추적(ALADIN은 null)
+    // USER 도서 소유자 추적(EXTERNAL은 null)
     @Column(name = "created_by_user_id")
     private Long createdByUserId;
 
@@ -67,7 +67,7 @@ public class Book extends BaseEntity {
             Integer pages,
             String description,
             String coverImageKey,
-            String aladinLink,
+            String purchaseLink,
             SourceType sourceType,
             Long createdByUserId,
             Category category
@@ -80,7 +80,7 @@ public class Book extends BaseEntity {
         this.pages = pages;
         this.description = description;
         this.coverImageKey = coverImageKey;
-        this.aladinLink = aladinLink;
+        this.purchaseLink = purchaseLink;
         this.sourceType = sourceType;
         this.createdByUserId = createdByUserId;
         this.category = category;
@@ -95,7 +95,7 @@ public class Book extends BaseEntity {
         this.category = category;
         this.description = info.getDescription();
         this.coverImageKey = info.getCoverImageUrl();
-        this.aladinLink = info.getAladinLink();
+        this.purchaseLink = info.getPurchaseLink();
     }
 
     public void updateUserBookInfo(

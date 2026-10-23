@@ -97,7 +97,7 @@ public class LibraryQueryService {
         if (isbns.isEmpty()) {
             return Set.of();
         }
-        return libraryRepository.findAladinIsbnsByUserIdAndIsbnIn(userId, isbns);
+        return libraryRepository.findExternalIsbnsByUserIdAndIsbnIn(userId, isbns);
     }
 
     public Page<Library> searchBooksInLibrary(Long userId, String keyword, int page, int size) {
