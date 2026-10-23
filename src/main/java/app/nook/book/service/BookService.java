@@ -40,7 +40,7 @@ import java.util.Optional;
 public class BookService {
     // 서재·온보딩 정보가 없을 때 추천 기준: 소설/시/희곡
     private static final String DEFAULT_RECOMMENDATION_CATEGORY_ID = "001001046";
-    // 주간 베스트셀러 기준: 국내도서 전체
+    // 주간 베스트셀러: 국내도서 종합 베스트셀러 (YES24 기준 최근 7일 판매량·주문 수, 매일 집계)
     private static final String WEEKLY_BESTSELLER_CATEGORY_ID = "001001";
     private static final int WEEKLY_BESTSELLER_COUNT = 10;
 

@@ -577,7 +577,7 @@ class BookServiceTest {
                 .pages(pages)
                 .description(TEST_AUTHOR + "의 소설")
                 .coverImageKey("http://example.com/cover.jpg")
-                .purchaseLink("http://aladin.com/book")
+                .purchaseLink("https://www.yes24.com/product/goods/12345678")
                 .sourceType(SourceType.EXTERNAL)
                 .category(category)
                 .build();
@@ -596,7 +596,7 @@ class BookServiceTest {
                 .pages(pages)
                 .description(TEST_AUTHOR + "의 소설")
                 .coverImageUrl("http://example.com/cover.jpg")
-                .purchaseLink("http://aladin.com/book")
+                .purchaseLink("https://www.yes24.com/product/goods/12345678")
                 .sourceType(SourceType.EXTERNAL)
                 .build();
     }

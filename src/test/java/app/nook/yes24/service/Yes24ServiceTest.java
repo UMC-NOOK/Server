@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -52,13 +53,13 @@ class Yes24ServiceTest {
     }
 
     @Test
-    @DisplayName("검색 원본 페이지 조회 - 국내 종이책·정확도순·100개 단위로 요청하고 원본 항목을 그대로 반환")
+    @DisplayName("검색 원본 페이지 조회 - 국내 종이책·기본 정렬·100개 단위로 요청하고 원본 항목을 그대로 반환")
     void fetchSearchPage_success() throws IOException {
         server.expect(requestTo(startsWith(BASE_URL + "/v1/goods/itemList")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(header("X-Api-Key", API_KEY))
                 .andExpect(queryParam("category", "BOOK"))
-                .andExpect(queryParam("sort", "RELATION"))
+                .andExpect(queryParam("sort", "DEFAULT"))
                 .andExpect(queryParam("page", "2"))
                 .andExpect(queryParam("pageSize", "100"))
                 .andRespond(withSuccess(fixture("search-page.json"), MediaType.APPLICATION_JSON));
@@ -72,6 +73,24 @@ class Yes24ServiceTest {
     }
 
     @Test
+    @DisplayName("검색 원본 페이지는 Redis 캐시 직렬화 후에도 같은 타입으로 복원된다")
+    void searchPage_redisSerializationRoundTrip() throws IOException {
+        server.expect(requestTo(startsWith(BASE_URL + "/v1/goods/itemList")))
+                .andRespond(withSuccess(fixture("search-page.json"), MediaType.APPLICATION_JSON));
+        Yes24ResponseDto.SearchPage page = yes24Service.fetchSearchPage("한강", 1);
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer();
+
+        Object restored = serializer.deserialize(serializer.serialize(page));
+
+        assertThat(restored).isInstanceOf(Yes24ResponseDto.SearchPage.class);
+        Yes24ResponseDto.SearchPage restoredPage = (Yes24ResponseDto.SearchPage) restored;
+        assertThat(restoredPage.totalCount()).isEqualTo(1207L);
+        assertThat(restoredPage.items()).hasSize(5);
+        assertThat(restoredPage.items().get(0)).isInstanceOf(Yes24ResponseDto.Yes24Item.class);
+        assertThat(restoredPage.items().get(0).getGoodsSortNm()).isEqualTo("국내도서-소설/시/희곡");
+    }
+
+    @Test
     @DisplayName("검색어의 + 같은 예약 문자는 인코딩해서 보낸다")
     void fetchSearchPage_encodesReservedCharacters() throws IOException {
         server.expect(requestTo(startsWith(BASE_URL + "/v1/goods/itemList")))
@@ -81,6 +100,53 @@ class Yes24ServiceTest {
         yes24Service.fetchSearchPage("C++", 1);
 
         server.verify();
+    }
+
+    @Test
+    @DisplayName("YES24가 거부하는 <, >, -- 는 공백으로 바꿔 검색한다")
+    void fetchSearchPage_replacesRejectedCharacters() throws IOException {
+        server.expect(requestTo(startsWith(BASE_URL + "/v1/goods/itemList")))
+                .andExpect(queryParam("query", "%EC%96%B4%EB%A6%B0%EC%99%95%EC%9E%90%20OR%201%3D1"))
+                .andRespond(withSuccess(fixture("search-page.json"), MediaType.APPLICATION_JSON));
+
+        yes24Service.fetchSearchPage("<어린왕자> OR 1=1 --", 1);
+
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("치환 후 검색어가 비면 YES24를 호출하지 않고 빈 페이지")
+    void fetchSearchPage_blankAfterReplaceIsEmpty() {
+        Yes24ResponseDto.SearchPage page = yes24Service.fetchSearchPage("<> --", 1);
+
+        assertThat(page.items()).isEmpty();
+        server.verify(); // 요청이 없어야 함
+    }
+
+    @Test
+    @DisplayName("YES24가 검색어를 거부(400 PARAM_007)하면 빈 페이지")
+    void fetchSearchPage_rejectedQueryIsEmpty() {
+        server.expect(requestTo(startsWith(BASE_URL + "/v1/goods/itemList")))
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"success\":false,\"errorCode\":\"PARAM_007\",\"data\":null}"));
+
+        Yes24ResponseDto.SearchPage page = yes24Service.fetchSearchPage("' OR 1=1", 1);
+
+        assertThat(page.items()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("그 밖의 400은 BOOK_API_ERROR")
+    void execute_otherBadRequest() {
+        server.expect(requestTo(startsWith(BASE_URL)))
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"success\":false,\"errorCode\":\"PARAM_006\",\"data\":null}"));
+
+        assertThatThrownBy(() -> yes24Service.fetchSearchPage("한강", 1))
+                .isInstanceOf(CustomException.class)
+                .extracting("errorCode").isEqualTo(Yes24ErrorCode.BOOK_API_ERROR);
     }
 
     @Test

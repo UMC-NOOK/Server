@@ -1,6 +1,5 @@
 package app.nook.book.facade;
 
-import app.nook.aladin.service.AladinService;
 import app.nook.book.domain.Book;
 import app.nook.book.domain.Category;
 import app.nook.book.domain.enums.MallType;
@@ -14,6 +13,7 @@ import app.nook.library.dto.LibraryViewDto;
 import app.nook.library.service.LibraryQueryService;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
+import app.nook.yes24.service.Yes24SearchService;
 import app.nook.user.domain.enums.UserRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -46,7 +46,7 @@ class BookSearchFacadeTest {
     private static final int DEFAULT_PAGE_SIZE = 10; // 한 번에 가져올 책 개수
 
     @Mock
-    private AladinService aladinService;
+    private Yes24SearchService yes24SearchService;
 
     @Mock
     private SearchHistoryService searchHistoryService;
@@ -75,7 +75,7 @@ class BookSearchFacadeTest {
                 10     // nextCursor = 10 (다음엔 10번째 책부터)
         );
 
-        given(aladinService.searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE))
+        given(yes24SearchService.searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE))
                 .willReturn(mockResult);
         given(libraryQueryService.getOwnedIsbns(eq(TEST_USER_ID), anyList()))
                 .willReturn(Collections.emptySet()); // 서재에 없는 경우
@@ -91,8 +91,8 @@ class BookSearchFacadeTest {
         assertThat(result.nextCursor()).isEqualTo(10);
 
         // 첫 검색이므로 검색 이력 저장됨
-        InOrder inOrder = inOrder(aladinService, libraryQueryService, searchHistoryService);
-        inOrder.verify(aladinService).searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE);
+        InOrder inOrder = inOrder(yes24SearchService, libraryQueryService, searchHistoryService);
+        inOrder.verify(yes24SearchService).searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE);
         inOrder.verify(libraryQueryService).getOwnedIsbns(eq(TEST_USER_ID), anyList());
         inOrder.verify(searchHistoryService).saveKeyword(TEST_USER_ID, TEST_KEYWORD, SearchType.GLOBAL);
     }
@@ -109,7 +109,7 @@ class BookSearchFacadeTest {
                 20     // nextCursor = 20 (다음엔 20번째 책부터)
         );
 
-        given(aladinService.searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE))
+        given(yes24SearchService.searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE))
                 .willReturn(mockResult);
         given(libraryQueryService.getOwnedIsbns(eq(TEST_USER_ID), anyList()))
                 .willReturn(Collections.emptySet()); // 서재에 없는 경우
@@ -124,7 +124,7 @@ class BookSearchFacadeTest {
 
         // 페이지네이션이므로 검색 이력 저장 안 됨
         verify(searchHistoryService, never()).saveKeyword(eq(TEST_USER_ID), eq(TEST_KEYWORD), any());
-        verify(aladinService, times(1))
+        verify(yes24SearchService, times(1))
                 .searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE);
     }
 
@@ -140,7 +140,7 @@ class BookSearchFacadeTest {
                 null   // nextCursor = null
         );
 
-        given(aladinService.searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE))
+        given(yes24SearchService.searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE))
                 .willReturn(emptyResult);
 
         // when
@@ -154,8 +154,8 @@ class BookSearchFacadeTest {
         assertThat(result.nextCursor()).isNull();
 
         // 결과가 없어도 첫 검색이므로 검색 이력은 저장됨
-        InOrder inOrder = inOrder(aladinService, searchHistoryService);
-        inOrder.verify(aladinService).searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE);
+        InOrder inOrder = inOrder(yes24SearchService, searchHistoryService);
+        inOrder.verify(yes24SearchService).searchItems(TEST_KEYWORD, cursor, DEFAULT_PAGE_SIZE);
         inOrder.verify(searchHistoryService).saveKeyword(TEST_USER_ID, TEST_KEYWORD, SearchType.GLOBAL);
     }
 
@@ -185,8 +185,8 @@ class BookSearchFacadeTest {
     @DisplayName("전체 도서 검색 실패 시 검색 이력을 저장하지 않는다")
     void searchBooks_전체도서검색실패_이력저장안됨() {
         // given
-        RuntimeException exception = new RuntimeException("aladin failure");
-        given(aladinService.searchItems(TEST_KEYWORD, null, DEFAULT_PAGE_SIZE)).willThrow(exception);
+        RuntimeException exception = new RuntimeException("external book api failure");
+        given(yes24SearchService.searchItems(TEST_KEYWORD, null, DEFAULT_PAGE_SIZE)).willThrow(exception);
 
         // when
         RuntimeException thrown = assertThrows(RuntimeException.class, () -> bookSearchFacade.searchBooks(

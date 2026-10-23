@@ -2,13 +2,15 @@ package app.nook.yes24.service;
 
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.exception.BookErrorCode;
+import app.nook.global.config.CacheConfig;
 import app.nook.global.exception.CustomException;
 import app.nook.yes24.converter.Yes24Converter;
 import app.nook.yes24.dto.Yes24ResponseDto;
 import app.nook.yes24.exception.Yes24ErrorCode;
 import app.nook.yes24.utils.Yes24Utils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -26,6 +28,7 @@ import java.util.function.Function;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class Yes24Service {
 
     public static final int SEARCH_PAGE_SIZE = 100; // YES24 itemList 최대값 (초과 시 400)
@@ -34,22 +37,28 @@ public class Yes24Service {
     private static final String SEARCH_PATH = "/v1/goods/itemList";
     private static final String DETAIL_PATH = "/v1/goods/itemDetail";
     private static final String BESTSELLER_PATH = "/v1/category/bestseller";
+    private static final String INVALID_QUERY_ERROR_CODE = "PARAM_007";
 
     private final RestClient restClient;
 
-    public Yes24Service(@Qualifier("yes24RestClient") RestClient restClient) {
-        this.restClient = restClient;
-    }
-
-    // 검색 원본 페이지 조회 (국내 종이책, 정확도순). 결과 없음(404)은 빈 페이지
+    // 검색 원본 페이지 조회 (국내 종이책, 대표작·인기 도서 우선인 DEFAULT 정렬). 원본 페이지 단위로 캐시
+    @Cacheable(
+            cacheNames = CacheConfig.BOOK_SEARCH_PAGE_CACHE,
+            key = "#keyword + ':' + #page",
+            sync = true
+    )
     public Yes24ResponseDto.SearchPage fetchSearchPage(String keyword, int page) {
+        String query = toSearchQuery(keyword);
+        if (query.isEmpty()) {
+            return Yes24ResponseDto.SearchPage.empty();
+        }
         Optional<Yes24ResponseDto.Data> data = execute(builder -> builder.path(SEARCH_PATH)
                 .queryParam("query", "{query}")
                 .queryParam("category", "BOOK")
-                .queryParam("sort", "RELATION")
+                .queryParam("sort", "DEFAULT")
                 .queryParam("page", page)
                 .queryParam("pageSize", SEARCH_PAGE_SIZE)
-                .build(Map.of("query", keyword)));
+                .build(Map.of("query", query)));
 
         return data
                 .map(d -> new Yes24ResponseDto.SearchPage(
@@ -57,7 +66,7 @@ public class Yes24Service {
                 .orElseGet(Yes24ResponseDto.SearchPage::empty);
     }
 
-    // ISBN13 상세 조회 (쪽수·소개글 포함)
+    // 도서 상세 정보 조회
     public BookResponseDto.BookDetailDto lookupItem(String isbn13) {
         List<Yes24ResponseDto.Yes24Item> items = execute(builder -> builder.path(DETAIL_PATH)
                 .queryParam("searchType", "ISBN13")
@@ -133,6 +142,12 @@ public class Yes24Service {
                 log.debug("[YES24_NOT_FOUND] body={}", e.getResponseBodyAsString());
                 return Optional.empty();
             }
+            // 허용되지 않는 검색어 패턴(예: ' OR 1=1)은 결과 없음으로 처리
+            if (e.getStatusCode().isSameCodeAs(HttpStatus.BAD_REQUEST)
+                    && e.getResponseBodyAsString().contains(INVALID_QUERY_ERROR_CODE)) {
+                log.warn("[YES24_INVALID_QUERY] body={}", e.getResponseBodyAsString());
+                return Optional.empty();
+            }
             log.error("[YES24_API_ERROR] status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
             if (e.getStatusCode().isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS)) {
                 throw new CustomException(Yes24ErrorCode.BOOK_API_RATE_LIMITED);
@@ -147,6 +162,14 @@ public class Yes24Service {
             log.error("[YES24_API_ERROR] message='{}'", e.getMessage());
             throw new CustomException(Yes24ErrorCode.BOOK_API_ERROR);
         }
+    }
+
+    // YES24는 검색어에 <, >, -- 가 있으면 400(PARAM_007)을 주므로 공백으로 바꾼다
+    static String toSearchQuery(String keyword) {
+        return keyword.replaceAll("[<>]", " ")
+                .replaceAll("-{2,}", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     private List<Yes24ResponseDto.Yes24Item> itemsOf(Yes24ResponseDto.Data data) {

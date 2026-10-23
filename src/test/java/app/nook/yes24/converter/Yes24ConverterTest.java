@@ -23,6 +23,7 @@ class Yes24ConverterTest {
                 .isEqualTo("첫 문단\n둘째 & 문단");
         assertThat(Yes24Converter.toPlainText("가<br>나<BR/>다")).isEqualTo("가\n나\n다");
         assertThat(Yes24Converter.toPlainText("<iframe src=\"https://www.youtube.com/embed/x\"></iframe>")).isNull();
+        assertThat(Yes24Converter.toPlainText("첫 줄 \r\n둘째 줄\r\n\r\n셋째 문단")).isEqualTo("첫 줄\n둘째 줄\n\n셋째 문단");
         assertThat(Yes24Converter.toPlainText(null)).isNull();
     }
 }

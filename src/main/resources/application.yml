@@ -51,10 +51,6 @@ cloudflare:
 jwt:
   secret: ${JWT_SECRET}
 
-aladin:
-  base-url: ${ALADIN_BASE_URL}
-  ttbkey: ${ALADIN_TTB_KEY}
-
 yes24:
   base-url: ${YES24_BASE_URL:https://apis.yes24.com}
   api-key: ${YES24_API_KEY}

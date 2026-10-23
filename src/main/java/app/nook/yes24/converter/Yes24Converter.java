@@ -70,7 +70,8 @@ public class Yes24Converter {
         if (html == null || html.isBlank()) {
             return null;
         }
-        String withBreaks = LINE_BREAK_TAG.matcher(html).replaceAll("\n");
+        // 줄바꿈은 \r\n(CRLF)으로 와서 \n으로 통일
+        String withBreaks = LINE_BREAK_TAG.matcher(html.replaceAll("\\r\\n?", "\n")).replaceAll("\n");
         String text = HtmlUtils.htmlUnescape(HTML_TAG.matcher(withBreaks).replaceAll(""));
         String normalized = text.replaceAll("[ \\t]+\\n", "\n").replaceAll("\\n{3,}", "\n\n").trim();
         return normalized.isEmpty() ? null : normalized;
