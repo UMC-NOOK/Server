@@ -1,0 +1,82 @@
+{
+  "success": true,
+  "message": "성공",
+  "errorCode": null,
+  "data": {
+    "items": [
+      {
+        "sortOrder": 1,
+        "itemId": 197669517,
+        "title": "한강의 여적(餘滴)",
+        "author": "(사)한국시인연대 저",
+        "goodsType": "도서",
+        "goodsSortNm": "국내도서-소설/시/희곡",
+        "adultYn": "N",
+        "publisher": "한강출판사",
+        "isbn13": "9788957946220",
+        "publishDate": "20260910",
+        "cover": "https://image.yes24.com/goods/197669517/L",
+        "link": "https://www.yes24.com/product/goods/197669517"
+      },
+      {
+        "sortOrder": 2,
+        "itemId": 197668512,
+        "title": "꽃비 아래 웃는다",
+        "author": "최현아 저",
+        "goodsType": "도서",
+        "goodsSortNm": "국내도서-소설/시/희곡",
+        "adultYn": "N",
+        "publisher": "한강출판사",
+        "isbn13": "9788957946237",
+        "publishDate": "20260930",
+        "cover": "https://image.yes24.com/goods/197668512/L",
+        "link": "https://www.yes24.com/product/goods/197668512"
+      },
+      {
+        "sortOrder": 6,
+        "itemId": 43978199,
+        "title": "하루 10분 따라쓰기 묶음세트(전6권):한자/논어/천자문/사자소학/명심보감/알파벳",
+        "author": "키즈키즈 교육연구소 글",
+        "goodsType": "전집",
+        "goodsSortNm": "국내도서-전집",
+        "adultYn": "N",
+        "publisher": "미래주니어(전집)",
+        "isbn13": "",
+        "publishDate": "20170719",
+        "cover": "https://image.yes24.com/goods/43978199/L",
+        "link": "https://www.yes24.com/product/goods/43978199"
+      },
+      {
+        "sortOrder": 8,
+        "itemId": 109620468,
+        "title": "초등 저학년 우수 환경도서 12권 세트/상자세상.최고의새들.채식은사랑.행복한초록섬.위대한여행.한강을따라가요 외",
+        "author": "박승규 글 / 김찬우 그림 외",
+        "goodsType": "전집",
+        "goodsSortNm": "국내도서-전집",
+        "adultYn": "N",
+        "publisher": "앤북스(전집)",
+        "isbn13": "9788900000001",
+        "publishDate": "20060105",
+        "cover": "https://image.yes24.com/goods/109620468/L",
+        "link": "https://www.yes24.com/product/goods/109620468"
+      },
+      {
+        "sortOrder": 17,
+        "itemId": 145668428,
+        "title": "성인 표시 테스트 도서",
+        "author": "한강 저",
+        "goodsType": "도서",
+        "goodsSortNm": "국내도서-에세이",
+        "adultYn": "Y",
+        "publisher": "문학동네+문학과지성사+창비",
+        "isbn13": "9788936434120",
+        "publishDate": "20250418",
+        "cover": "https://image.yes24.com/goods/145668428/L",
+        "link": "https://www.yes24.com/product/goods/145668428"
+      }
+    ],
+    "currentPage": 1,
+    "pageSize": 100,
+    "totalCount": 1207
+  }
+}

@@ -89,15 +89,15 @@ public interface LibraryRepository extends JpaRepository<Library, Long>, Library
     long countByUserAndReadingStatus(User user, ReadingStatus status);
 
 
-    // [전체 검색 - 서재 보유 여부 매핑용] ALADIN 소스 도서 중 ISBN 목록에 포함된 값만 반환
+    // [전체 검색 - 서재 보유 여부 매핑용] EXTERNAL 도서 중 ISBN 목록에 포함된 값만 반환
     @Query("""
         select l.book.isbn13
         from Library l
         where l.user.id = :userId
-          and l.book.sourceType = app.nook.book.domain.enums.SourceType.ALADIN
+          and l.book.sourceType = app.nook.book.domain.enums.SourceType.EXTERNAL
           and l.book.isbn13 in :isbns
     """)
-    Set<String> findAladinIsbnsByUserIdAndIsbnIn(@Param("userId") Long userId, @Param("isbns") List<String> isbns);
+    Set<String> findExternalIsbnsByUserIdAndIsbnIn(@Param("userId") Long userId, @Param("isbns") List<String> isbns);
 
     // [서재 내 검색] 사용자의 서재에서 제목/저자/ISBN 키워드 검색
     @Query(value = "SELECT l FROM Library l JOIN FETCH l.book b JOIN FETCH b.category " +
@@ -132,16 +132,16 @@ public interface LibraryRepository extends JpaRepository<Library, Long>, Library
             @Param("status") ReadingStatus readingStatus,
             Pageable pageable);
     @Query("""
-      select c.aladinCategoryId
+      select c.yes24CategoryId
       from Library l
       join l.book b
       join b.category c
       where l.user.id = :userId
         and c.mallType = :mallType
-      group by c.id, c.aladinCategoryId
+      group by c.id, c.yes24CategoryId
       order by count(l.id) desc, c.id asc
   """)
-    List<Integer> findTopAladinCategoryIdsByUserId(
+    List<String> findTopYes24CategoryIdsByUserId(
             @Param("userId") Long userId,
             @Param("mallType") MallType mallType,
             Pageable pageable

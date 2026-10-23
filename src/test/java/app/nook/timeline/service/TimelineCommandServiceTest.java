@@ -300,7 +300,7 @@ class TimelineCommandServiceTest {
                 .title(title)
                 .author("작가")
                 .isbn13("1234567890123")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
 
         Library library = new Library(user, book);

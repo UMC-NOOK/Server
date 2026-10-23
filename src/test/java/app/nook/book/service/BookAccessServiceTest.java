@@ -18,10 +18,10 @@ class BookAccessServiceTest {
     private final BookAccessService bookAccessService = new BookAccessService();
 
     @Test
-    @DisplayName("ALADIN 도서는 조회 권한을 허용한다")
-    void assertCanView_aladinBook_success() {
+    @DisplayName("외부(EXTERNAL) 도서는 조회 권한을 허용한다")
+    void assertCanView_externalBook_success() {
         User user = createUser(1L);
-        Book book = createBook(SourceType.ALADIN, null);
+        Book book = createBook(SourceType.EXTERNAL, null);
 
         assertThatCode(() -> bookAccessService.assertCanView(user, book))
                 .doesNotThrowAnyException();
@@ -61,10 +61,10 @@ class BookAccessServiceTest {
     }
 
     @Test
-    @DisplayName("ALADIN 도서는 서재 등록 권한을 허용한다")
-    void assertCanAddToLibrary_aladinBook_success() {
+    @DisplayName("외부(EXTERNAL) 도서는 서재 등록 권한을 허용한다")
+    void assertCanAddToLibrary_externalBook_success() {
         User user = createUser(1L);
-        Book book = createBook(SourceType.ALADIN, null);
+        Book book = createBook(SourceType.EXTERNAL, null);
 
         assertThatCode(() -> bookAccessService.assertCanAddToLibrary(user, book))
                 .doesNotThrowAnyException();
@@ -114,10 +114,10 @@ class BookAccessServiceTest {
     }
 
     @Test
-    @DisplayName("ALADIN 도서는 수정 권한을 차단한다")
-    void assertCanUpdate_aladinBook_fail() {
+    @DisplayName("외부(EXTERNAL) 도서는 수정 권한을 차단한다")
+    void assertCanUpdate_externalBook_fail() {
         User user = createUser(1L);
-        Book book = createBook(SourceType.ALADIN, null);
+        Book book = createBook(SourceType.EXTERNAL, null);
 
         assertThatThrownBy(() -> bookAccessService.assertCanUpdate(user, book))
                 .isInstanceOf(CustomException.class)

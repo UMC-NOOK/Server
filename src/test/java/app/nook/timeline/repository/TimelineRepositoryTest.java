@@ -62,7 +62,7 @@ class TimelineRepositoryTest extends AbstractPostgresContainerTests {
                         .isbn13(isbn13)
                         .title(title)
                         .author("작가")
-                        .sourceType(SourceType.ALADIN)
+                        .sourceType(SourceType.EXTERNAL)
                         .build()
         );
     }

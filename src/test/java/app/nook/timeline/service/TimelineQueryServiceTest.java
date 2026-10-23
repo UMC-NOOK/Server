@@ -88,7 +88,7 @@ class TimelineQueryServiceTest {
                 .isbn13("1234567890123")
                 .title("테스트 도서")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         ReflectionTestUtils.setField(book, "id", 101L);
 

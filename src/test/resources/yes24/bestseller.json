@@ -1,0 +1,96 @@
+{
+  "success": true,
+  "message": "성공",
+  "errorCode": null,
+  "data": {
+    "items": [
+      {
+        "sortOrder": 1,
+        "itemId": 145242086,
+        "title": "오디세이아",
+        "author": "호메로스 저/페테르 파울 루벤스 그림/박문재 역",
+        "goodsType": "도서",
+        "goodsSortNm": "국내도서-인문",
+        "adultYn": "N",
+        "publisher": "현대지성",
+        "isbn13": "9791139721973",
+        "publishDate": "20250418",
+        "cover": "https://image.yes24.com/goods/145242086/L",
+        "link": "https://www.yes24.com/product/goods/145242086"
+      },
+      {
+        "sortOrder": 2,
+        "itemId": 402246,
+        "title": "오만과 편견",
+        "author": "제인 오스틴 저/윤지관,전승희 공역",
+        "goodsType": "도서",
+        "goodsSortNm": "국내도서-소설/시/희곡",
+        "adultYn": "N",
+        "publisher": "민음사",
+        "isbn13": "9788937460883",
+        "publishDate": "20030920",
+        "cover": "https://image.yes24.com/goods/402246/L",
+        "link": "https://www.yes24.com/product/goods/402246"
+      },
+      {
+        "sortOrder": 3,
+        "itemId": 140042426,
+        "title": "초판본 하늘과 바람과 별과 시",
+        "author": "윤동주 저",
+        "goodsType": "도서",
+        "goodsSortNm": "국내도서-소설/시/희곡",
+        "adultYn": "N",
+        "publisher": "더스토리",
+        "isbn13": "9791194280958",
+        "publishDate": "20241215",
+        "cover": "https://image.yes24.com/goods/140042426/L",
+        "link": "https://www.yes24.com/product/goods/140042426"
+      },
+      {
+        "sortOrder": 4,
+        "itemId": 204300,
+        "title": "호밀밭의 파수꾼",
+        "author": "제롬 데이비드 샐린저 저/공경희 역",
+        "goodsType": "도서",
+        "goodsSortNm": "국내도서-소설/시/희곡",
+        "adultYn": "N",
+        "publisher": "민음사",
+        "isbn13": "9788937460470",
+        "publishDate": "20230117",
+        "cover": "https://image.yes24.com/goods/204300/L",
+        "link": "https://www.yes24.com/product/goods/204300"
+      },
+      {
+        "sortOrder": 5,
+        "itemId": 167157342,
+        "title": "두 도시 이야기",
+        "author": "찰스 디킨스 저/정회성 역",
+        "goodsType": "도서",
+        "goodsSortNm": "국내도서-소설/시/희곡",
+        "adultYn": "N",
+        "publisher": "현대지성",
+        "isbn13": "9791139728583",
+        "publishDate": "20251128",
+        "cover": "https://image.yes24.com/goods/167157342/L",
+        "link": "https://www.yes24.com/product/goods/167157342"
+      },
+      {
+        "sortOrder": 6,
+        "itemId": 1938956,
+        "title": "톨스토이 단편선",
+        "author": "톨스토이 저/권희정,김은경 공역",
+        "goodsType": "도서",
+        "goodsSortNm": "국내도서-소설/시/희곡",
+        "adultYn": "N",
+        "publisher": "인디북",
+        "isbn13": "9788958560760",
+        "publishDate": "20051223",
+        "cover": "https://image.yes24.com/goods/1938956/L",
+        "link": "https://www.yes24.com/product/goods/1938956"
+      }
+    ],
+    "currentPage": 1,
+    "pageSize": 20,
+    "totalCount": 728
+  }
+}

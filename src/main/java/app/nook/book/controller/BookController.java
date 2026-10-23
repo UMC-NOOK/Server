@@ -37,7 +37,7 @@ public class BookController {
                 bookViewHistoryService.getRecentlyViewedBooks(user), SuccessCode.OK);
     }
 
-    // ISBN 기반 상세조회: ALADIN 도서 조회 진입점
+    // ISBN 기반 상세조회: 외부 도서 조회 진입점
     @GetMapping("/{isbn13}")
     public ApiResponse<BookResponseDto.BookDetailDto> getBookDetail(
             @CurrentUser User user,

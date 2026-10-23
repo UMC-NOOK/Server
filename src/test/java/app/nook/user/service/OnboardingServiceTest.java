@@ -73,8 +73,8 @@ class OnboardingServiceTest {
                 .build();
         ReflectionTestUtils.setField(user, "id", 1L);
 
-        fiction = Category.of(MallType.BOOK, "소설/시/희곡", 1);
-        essay = Category.of(MallType.BOOK, "에세이", 2);
+        fiction = Category.of(MallType.BOOK, "소설/시/희곡", "001001046");
+        essay = Category.of(MallType.BOOK, "에세이", "001001047");
         ReflectionTestUtils.setField(fiction, "id", 101L);
         ReflectionTestUtils.setField(essay, "id", 102L);
     }

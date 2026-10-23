@@ -1,7 +1,7 @@
 package app.nook.book.service;
 
-import app.nook.aladin.service.AladinService;
 import app.nook.book.dto.BookResponseDto;
+import app.nook.yes24.service.Yes24Service;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +23,7 @@ class PersonalizedBestsellerCacheServiceTest {
     private static final String TEST_PUBLISHER = "창비";
 
     @Mock
-    private AladinService aladinService;
+    private Yes24Service yes24Service;
 
     @InjectMocks
     private PersonalizedBestsellerCacheService personalizedBestsellerCacheService;
@@ -35,14 +35,14 @@ class PersonalizedBestsellerCacheServiceTest {
                 createBookPreviewDto("9788936434267", "채식주의자", 1)
         );
 
-        given(aladinService.fetchItemList("Bestseller", "BOOK", 5, "42"))
+        given(yes24Service.fetchBestsellers("001001046", 5))
                 .willReturn(expected);
 
         List<BookResponseDto.BookPreviewDto> result =
-                personalizedBestsellerCacheService.getByCategoryId(42);
+                personalizedBestsellerCacheService.getByCategoryId("001001046");
 
         assertThat(result).isEqualTo(expected);
-        verify(aladinService, times(1)).fetchItemList("Bestseller", "BOOK", 5, "42");
+        verify(yes24Service, times(1)).fetchBestsellers("001001046", 5);
     }
 
     private BookResponseDto.BookPreviewDto createBookPreviewDto(String isbn13, String title, Integer rank) {
