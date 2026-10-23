@@ -42,6 +42,9 @@ jwt:
 aladin:
   base-url: https://www.aladin.co.kr/ttb/api
   ttbkey: test-aladin-ttb-key
+yes24:
+  base-url: https://apis.yes24.com
+  api-key: test-yes24-api-key
 
 auth:
   kakao:
