@@ -1,7 +1,5 @@
 package app.nook.book.facade;
 
-import app.nook.aladin.exception.AladinErrorCode;
-import app.nook.aladin.service.AladinService;
 import app.nook.book.converter.BookConverter;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.dto.BookResponseDto;
@@ -14,6 +12,7 @@ import app.nook.library.domain.Library;
 import app.nook.library.service.LibraryQueryService;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
+import app.nook.yes24.service.Yes24SearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,7 +29,7 @@ import java.util.Set;
 @Slf4j
 public class BookSearchFacade {
 
-    private final AladinService aladinService;
+    private final Yes24SearchService yes24SearchService;
     private final SearchHistoryService searchHistoryService;
     private final LibraryQueryService libraryQueryService;
     private final BookService bookService;
@@ -39,7 +38,7 @@ public class BookSearchFacade {
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int LIBRARY_SEARCH_HOME_SECTION_SIZE = 5;
     /**
-     * [Global] 전체 도서 검색 (알라딘 API + 서재 보유 여부 매핑)
+     * [Global] 전체 도서 검색 (외부 도서 API + 서재 보유 여부 매핑)
      */
     @Transactional
     public BookResponseDto.SearchResultDto searchBooks(
@@ -68,9 +67,9 @@ public class BookSearchFacade {
         return searchResult;
     }
 
-    // 알라딘 API를 통한 전체 도서 검색
+    // 외부 도서 API(YES24)를 통한 전체 도서 검색
     private BookResponseDto.SearchResultDto searchGlobalBooks(Long userId, String keyword, Integer cursor) {
-        BookResponseDto.SearchResultDto searchResult = aladinService.searchItems(keyword, cursor, DEFAULT_PAGE_SIZE);
+        BookResponseDto.SearchResultDto searchResult = yes24SearchService.searchItems(keyword, cursor, DEFAULT_PAGE_SIZE);
         List<BookResponseDto.BookSearchDto> books = searchResult.books();
 
         int resultCount = searchResult.books().size();

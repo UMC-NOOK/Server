@@ -69,7 +69,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("1234567890123")
                 .title("테스트 도서")
                 .author("테스트 작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(book);
 
@@ -116,7 +116,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("1010101010103")
                 .title("소유 도서")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(book);
         Library library = libraryRepository.save(Library.builder().user(user).book(book).build());
@@ -134,7 +134,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("1010101010104")
                 .title("다른 사용자 소유 도서")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(book);
         libraryRepository.save(Library.builder().user(owner).book(book).build());
@@ -167,7 +167,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("1111111111111")
                 .title("도서1")
                 .author("작가1")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(book1);
 
@@ -175,7 +175,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("2222222222222")
                 .title("도서2")
                 .author("작가2")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(book2);
 
@@ -183,7 +183,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("3333333333333")
                 .title("도서3")
                 .author("작가3")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(book3);
 
@@ -239,7 +239,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("4444444444444")
                 .title("락 테스트 도서")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(book);
 
@@ -265,7 +265,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("5555555555555")
                 .title("일반 조회 도서")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(book);
 
@@ -291,19 +291,19 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("6666666666661")
                 .title("before")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         Book readingBook = Book.builder()
                 .isbn13("6666666666662")
                 .title("reading")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         Book finishedBook = Book.builder()
                 .isbn13("6666666666663")
                 .title("finished")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(beforeBook);
         bookRepository.save(readingBook);
@@ -331,7 +331,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
     }
 
     @Test
-    void findAladinIsbnsByUserIdAndIsbnIn_서재보유ISBN만반환한다() {
+    void findExternalIsbnsByUserIdAndIsbnIn_서재보유ISBN만반환한다() {
         User user = User.builder()
                 .email("isbn@library.com")
                 .nickName("isbn")
@@ -344,7 +344,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("7777777777777")
                 .title("보유 도서")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(ownedBook);
         libraryRepository.save(Library.builder().user(user).book(ownedBook).build());
@@ -358,7 +358,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
         bookRepository.save(userBook);
         libraryRepository.save(Library.builder().user(user).book(userBook).build());
 
-        var result = libraryRepository.findAladinIsbnsByUserIdAndIsbnIn(
+        var result = libraryRepository.findExternalIsbnsByUserIdAndIsbnIn(
                 user.getId(),
                 java.util.List.of("7777777777777", "8888888888888")
         );
@@ -377,28 +377,28 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
         userRepository.save(user);
 
         Category category = categoryRepository.save(
-                Category.of(MallType.BOOK, "소설", 100)
+                Category.of(MallType.BOOK, "소설", "001001046")
         );
 
         Book titleBook = Book.builder()
                 .isbn13("9999999999991")
                 .title("자바의 정석")
                 .author("남궁성")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .category(category)
                 .build();
         Book authorBook = Book.builder()
                 .isbn13("9999999999992")
                 .title("스프링 입문")
                 .author("김영한")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .category(category)
                 .build();
         Book isbnBook = Book.builder()
                 .isbn13("1231231231231")
                 .title("테스트")
                 .author("익명")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .category(category)
                 .build();
         bookRepository.save(titleBook);
@@ -434,13 +434,13 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("1010101010101")
                 .title("첫 번째")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         Book secondBook = Book.builder()
                 .isbn13("1010101010102")
                 .title("두 번째")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(firstBook);
         bookRepository.save(secondBook);
@@ -466,13 +466,13 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .isbn13("2020202020201")
                 .title("오래된 도서")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         Book newBook = Book.builder()
                 .isbn13("2020202020202")
                 .title("최신 도서")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(oldBook);
         bookRepository.save(newBook);
@@ -497,7 +497,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
     }
 
     @Test
-    void findTopAladinCategoryIdsByUserId_카테고리별집계내림차순반환() {
+    void findTopYes24CategoryIdsByUserId_카테고리별집계내림차순반환() {
         User user = User.builder()
                 .email("topcat@library.com")
                 .nickName("topcat")
@@ -506,28 +506,28 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .build();
         userRepository.save(user);
 
-        Category novel = categoryRepository.save(Category.of(MallType.BOOK, "테스트 소설", 1001));
-        Category essay = categoryRepository.save(Category.of(MallType.BOOK, "테스트 에세이", 1002));
+        Category novel = categoryRepository.save(Category.of(MallType.BOOK, "테스트 소설", "001001046"));
+        Category essay = categoryRepository.save(Category.of(MallType.BOOK, "테스트 에세이", "001001047"));
 
         Book novelBook1 = Book.builder()
                 .isbn13("3030303030301")
                 .title("소설1")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .category(novel)
                 .build();
         Book novelBook2 = Book.builder()
                 .isbn13("3030303030302")
                 .title("소설2")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .category(novel)
                 .build();
         Book essayBook = Book.builder()
                 .isbn13("3030303030303")
                 .title("에세이")
                 .author("작가")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .category(essay)
                 .build();
         bookRepository.save(novelBook1);
@@ -538,13 +538,13 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
         libraryRepository.save(Library.builder().user(user).book(novelBook2).build());
         libraryRepository.save(Library.builder().user(user).book(essayBook).build());
 
-        var result = libraryRepository.findTopAladinCategoryIdsByUserId(
+        var result = libraryRepository.findTopYes24CategoryIdsByUserId(
                 user.getId(),
                 MallType.BOOK,
                 PageRequest.of(0, 3)
         );
 
-        assertThat(result).containsExactly(1001, 1002);
+        assertThat(result).containsExactly("001001046", "001001047");
     }
 
     @Test
@@ -750,7 +750,7 @@ class LibraryRepositoryTest extends AbstractPostgresContainerTests {
                 .title(title)
                 .author("작가")
                 .coverImageKey("library/cover.png")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         bookRepository.save(book);
 

@@ -145,8 +145,8 @@
                   .pages(184)
                   .description("한강의 소설")
                   .coverImageUrl("http://example.com/cover.jpg")
-                  .aladinLink("http://aladin.com/book")
-                  .sourceType(SourceType.ALADIN)
+                  .purchaseLink("https://www.yes24.com/product/goods/12345678")
+                  .sourceType(SourceType.EXTERNAL)
                   .bookShelfId(null)
                   .libraryId(null)
                   .readingStatus(ReadingStatusResponse.UNREGISTERED)
@@ -177,8 +177,8 @@
                                   fieldWithPath("result.pages").description("페이지 수"),
                                   fieldWithPath("result.description").description("도서 설명"),
                                   fieldWithPath("result.coverImageUrl").description("표지 이미지 URL"),
-                                  fieldWithPath("result.aladinLink").description("알라딘 링크"),
-                                  fieldWithPath("result.sourceType").description("데이터 출처"),
+                                  fieldWithPath("result.purchaseLink").description("외부 서점 구매 링크 (EXTERNAL 도서)"),
+                                  fieldWithPath("result.sourceType").description("데이터 출처 (EXTERNAL: 외부 도서 API, USER: 사용자 등록)"),
                                   fieldWithPath("result.bookShelfId").description("서재 ID (없으면 null)").optional(),
                                   fieldWithPath("result.libraryId").description("서재 ID (없으면 null)").optional(),
                                   fieldWithPath("result.readingStatus").description("독서 상태 (BEFORE, READING, FINISHED, UNREGISTERED)")
@@ -255,8 +255,8 @@
                                   fieldWithPath("result.pages").description("페이지 수").optional(),
                                   fieldWithPath("result.description").description("도서 설명").optional(),
                                   fieldWithPath("result.coverImageUrl").description("표지 이미지 URL").optional(),
-                                  fieldWithPath("result.aladinLink").description("알라딘 링크").optional(),
-                                  fieldWithPath("result.sourceType").description("데이터 출처"),
+                                  fieldWithPath("result.purchaseLink").description("외부 서점 구매 링크 (EXTERNAL 도서)").optional(),
+                                  fieldWithPath("result.sourceType").description("데이터 출처 (EXTERNAL: 외부 도서 API, USER: 사용자 등록)"),
                                   fieldWithPath("result.bookShelfId").description("서재 ID").optional(),
                                   fieldWithPath("result.libraryId").description("서재 ID").optional(),
                                   fieldWithPath("result.readingStatus").description("독서 상태 (BEFORE, READING, FINISHED, UNREGISTERED)")
@@ -384,8 +384,8 @@
                                   fieldWithPath("result.pages").description("페이지 수").optional(),
                                   fieldWithPath("result.description").description("도서 설명").optional(),
                                   fieldWithPath("result.coverImageUrl").description("표지 이미지 URL").optional(),
-                                  fieldWithPath("result.aladinLink").description("알라딘 링크").optional(),
-                                  fieldWithPath("result.sourceType").description("데이터 출처"),
+                                  fieldWithPath("result.purchaseLink").description("외부 서점 구매 링크 (EXTERNAL 도서)").optional(),
+                                  fieldWithPath("result.sourceType").description("데이터 출처 (EXTERNAL: 외부 도서 API, USER: 사용자 등록)"),
                                   fieldWithPath("result.bookShelfId").description("서재 ID").optional(),
                                   fieldWithPath("result.libraryId").description("서재 ID").optional(),
                                   fieldWithPath("result.readingStatus").description("독서 상태").optional()
@@ -468,8 +468,8 @@
                                   fieldWithPath("result.pages").description("페이지 수").optional(),
                                   fieldWithPath("result.description").description("도서 설명").optional(),
                                   fieldWithPath("result.coverImageUrl").description("표지 이미지 URL").optional(),
-                                  fieldWithPath("result.aladinLink").description("알라딘 링크").optional(),
-                                  fieldWithPath("result.sourceType").description("데이터 출처"),
+                                  fieldWithPath("result.purchaseLink").description("외부 서점 구매 링크 (EXTERNAL 도서)").optional(),
+                                  fieldWithPath("result.sourceType").description("데이터 출처 (EXTERNAL: 외부 도서 API, USER: 사용자 등록)"),
                                   fieldWithPath("result.bookShelfId").description("서재 ID").optional(),
                                   fieldWithPath("result.libraryId").description("서재 ID").optional(),
                                   fieldWithPath("result.readingStatus").description("독서 상태").optional()

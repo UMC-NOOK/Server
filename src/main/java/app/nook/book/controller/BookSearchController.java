@@ -28,7 +28,7 @@ public class BookSearchController {
     private final BookSearchFacade bookSearchFacade;
 
     /**
-     * 전체 도서 검색 (알라딘 API)
+     * 전체 도서 검색 (외부 도서 API)
      * - 커서 기반 페이지네이션
      */
     @GetMapping("/{type}")

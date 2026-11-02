@@ -28,7 +28,7 @@ public class BookResponseDto {
         private Integer pages;
         private String description;
         private String coverImageUrl;
-        private String aladinLink;
+        private String purchaseLink;
         private SourceType sourceType;
         private Long bookShelfId;
         private Long libraryId;

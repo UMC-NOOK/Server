@@ -1,0 +1,30 @@
+{
+  "success": true,
+  "message": "성공",
+  "errorCode": null,
+  "data": {
+    "items": [
+      {
+        "sortOrder": 1,
+        "itemId": 115457342,
+        "title": "내 어머니의 자서전",
+        "author": "저메이카 킨케이드 저/김희진 역",
+        "goodsType": "도서",
+        "goodsSortNm": "국내도서-소설/시/희곡",
+        "adultYn": "N",
+        "publisher": "민음사",
+        "isbn13": "9788937427282",
+        "publishDate": "20221118",
+        "cover": "https://image.yes24.com/goods/115457342/L",
+        "link": "https://www.yes24.com/product/goods/115457342",
+        "pages": 248,
+        "contentDetail": {
+          "bookIntroduction": "<b>꾸준히</b> 노벨 문학상 후보로 거론되는 작가의 대표작.<br/>민음사에서 출간되었다.<p>&lt;내 어머니의 자서전&gt;</p><iframe src=\"https://www.youtube.com/embed/x\"></iframe>"
+        }
+      }
+    ],
+    "currentPage": 1,
+    "pageSize": 20,
+    "totalCount": 1
+  }
+}

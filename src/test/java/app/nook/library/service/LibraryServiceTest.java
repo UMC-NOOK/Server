@@ -642,7 +642,7 @@ class LibraryServiceTest {
             List<String> isbns = List.of("978123", "978456");
             Set<String> owned = Set.of("978123");
 
-            given(libraryRepository.findAladinIsbnsByUserIdAndIsbnIn(userId, isbns)).willReturn(owned);
+            given(libraryRepository.findExternalIsbnsByUserIdAndIsbnIn(userId, isbns)).willReturn(owned);
 
             Set<String> result = libraryQueryService.getOwnedIsbns(userId, isbns);
 
@@ -655,7 +655,7 @@ class LibraryServiceTest {
             Set<String> result = libraryQueryService.getOwnedIsbns(1L, List.of());
 
             assertThat(result).isEmpty();
-            verify(libraryRepository, never()).findAladinIsbnsByUserIdAndIsbnIn(anyLong(), any());
+            verify(libraryRepository, never()).findExternalIsbnsByUserIdAndIsbnIn(anyLong(), any());
         }
     }
 

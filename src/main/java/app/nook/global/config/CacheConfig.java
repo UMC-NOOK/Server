@@ -17,7 +17,7 @@ import java.util.Map;
 @Configuration
 @EnableCaching
 public class CacheConfig {
-    public static final String ALADIN_SEARCH_CACHE = "aladinSearchResults";
+    public static final String BOOK_SEARCH_PAGE_CACHE = "bookSearchPages";
     public static final String WEEKLY_BESTSELLERS_CACHE = "weeklyBestsellers";
     public static final String PERSONALIZED_BESTSELLERS_CACHE = "personalizedBestsellers";
     public static final String ONBOARDING_GOAL_CACHE = "onboardingGoal";
@@ -33,7 +33,7 @@ public class CacheConfig {
 
         Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
 
-        cacheConfigs.put(ALADIN_SEARCH_CACHE,
+        cacheConfigs.put(BOOK_SEARCH_PAGE_CACHE,
                 defaultConfig.entryTtl(Duration.ofMinutes(10)));
         cacheConfigs.put(WEEKLY_BESTSELLERS_CACHE,
                 defaultConfig.entryTtl(Duration.ofMinutes(30)));

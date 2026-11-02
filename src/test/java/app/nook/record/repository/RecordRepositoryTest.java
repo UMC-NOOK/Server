@@ -246,7 +246,7 @@ class RecordRepositoryTest extends AbstractPostgresContainerTests {
                 .title(title)
                 .author(author)
                 .coverImageKey("book/cover.png")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build();
         em.persist(book);
         return book;

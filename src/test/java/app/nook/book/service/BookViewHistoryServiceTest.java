@@ -223,7 +223,7 @@ class BookViewHistoryServiceTest {
     @DisplayName("최근 조회 도서 조회 - 외부 URL과 null 및 빈 표지를 resolver 결과 그대로 반환한다")
     void getRecentlyViewedBooks_외부NullBlank표지_resolver결과를보존한다() {
         // given
-        String externalUrl = "https://image.aladin.co.kr/product/cover.jpg";
+        String externalUrl = "https://image.yes24.com/goods/115457342/L";
         List<BookViewHistory> histories = List.of(
                 createBookViewHistory(createBook(201L, "외부 표지", "저자", externalUrl)),
                 createBookViewHistory(createBook(202L, "null 표지", "저자", null)),

@@ -163,7 +163,7 @@ class TimelineActionsIntegrationTest extends AbstractPostgresContainerTests {
         Book book = bookRepository.save(Book.builder()
                 .title("HTTP fixture")
                 .author("fixture")
-                .sourceType(SourceType.ALADIN)
+                .sourceType(SourceType.EXTERNAL)
                 .build());
         library = libraryRepository.save(Library.builder()
                 .user(user)

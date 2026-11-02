@@ -1,6 +1,5 @@
 package app.nook.book.service;
 
-import app.nook.aladin.service.AladinService;
 import app.nook.book.converter.BookConverter;
 import app.nook.book.domain.Book;
 import app.nook.book.domain.Category;
@@ -21,6 +20,7 @@ import app.nook.library.repository.LibraryRepository;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
+import app.nook.yes24.service.Yes24Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -38,26 +38,32 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class BookService {
+    // 서재·온보딩 정보가 없을 때 추천 기준: 소설/시/희곡
+    private static final String DEFAULT_RECOMMENDATION_CATEGORY_ID = "001001046";
+    // 주간 베스트셀러: 국내도서 종합 베스트셀러 (YES24 기준 최근 7일 판매량·주문 수, 매일 집계)
+    private static final String WEEKLY_BESTSELLER_CATEGORY_ID = "001001";
+    private static final int WEEKLY_BESTSELLER_COUNT = 10;
+
     private final BookRepository bookRepository;
     private final CategoryRepository categoryRepository;
     private final LibraryRepository libraryRepository;
     private final UserRepository userRepository;
-    private final AladinService aladinService;
+    private final Yes24Service yes24Service;
     private final PersonalizedBestsellerCacheService personalizedBestsellerCacheService;
     private final PresignedUrlService presignedUrlService;
     private final ApplicationEventPublisher eventPublisher;
     private final BookAccessService bookAccessService;
     private final BookViewHistoryService bookViewHistoryService;
 
-    // ISBN 기반 상세조회: ALADIN 소스만 조회/저장 대상으로 사용
+    // ISBN 기반 상세조회: EXTERNAL 도서만 조회/저장 대상으로 사용
     @Transactional
     public BookResponseDto.BookDetailDto getBookDetailByIsbn(User user, String isbn13) {
 
-        Optional<Book> existingBook = bookRepository.findByIsbn13AndSourceType(isbn13, SourceType.ALADIN);
+        Optional<Book> existingBook = bookRepository.findByIsbn13AndSourceType(isbn13, SourceType.EXTERNAL);
         if (existingBook.isPresent()) {
             Book book = existingBook.get();
 
-            if (book.getSourceType() == SourceType.ALADIN
+            if (book.getSourceType() == SourceType.EXTERNAL
                     && book.getIsbn13() != null
                     && isOutdated(book.getModifiedDate())) {
                 log.info("[BOOK_UPDATE] isbn={}, title={}", isbn13, book.getTitle());
@@ -68,16 +74,16 @@ public class BookService {
             return toBookDetailDto(user, book);
         }
 
-        log.info("[API_FETCH] isbn={}, status='Not found in DB(ALADIN)'", isbn13);
-        BookResponseDto.BookDetailDto bookDetailDto = aladinService.lookupItem(isbn13);
+        log.info("[API_FETCH] isbn={}, status='Not found in DB(EXTERNAL)'", isbn13);
+        BookResponseDto.BookDetailDto bookDetailDto = yes24Service.lookupItem(isbn13);
         Category category = findCategory(bookDetailDto);
-        Book newBook = bookRepository.save(BookConverter.toBook(bookDetailDto, category, SourceType.ALADIN));
+        Book newBook = bookRepository.save(BookConverter.toBook(bookDetailDto, category, SourceType.EXTERNAL));
         log.info("[BOOK_SAVE] isbn={}, title='{}'", isbn13, bookDetailDto.getTitle());
         bookViewHistoryService.saveBookView(user, newBook);
         return withResolvedCoverImage(resolveUserId(user), BookConverter.toBookDetailDto(newBook, null));
     }
 
-    // bookId 기반 상세조회: USER/ALADIN 공통 상세 진입점
+    // bookId 기반 상세조회: USER/EXTERNAL 공통 상세 진입점
     @Transactional
     public BookResponseDto.BookDetailDto getBookDetailById(User user, Long bookId) {
         Book book = findViewableBook(user, bookId);
@@ -96,7 +102,7 @@ public class BookService {
                 .orElseThrow(() -> new CustomException(BookErrorCode.BOOK_NOT_FOUND));
         bookAccessService.assertCanView(user, book);
 
-        if (book.getSourceType() == SourceType.ALADIN
+        if (book.getSourceType() == SourceType.EXTERNAL
                 && book.getIsbn13() != null
                 && isOutdated(book.getModifiedDate())) {
             updateBookInfo(book, book.getIsbn13());
@@ -122,7 +128,7 @@ public class BookService {
                 .pages(request.pages())
                 .description(request.description())
                 .coverImageKey(coverImageKey)
-                .aladinLink(null)
+                .purchaseLink(null)
                 .sourceType(SourceType.USER)
                 .createdByUserId(user.getId())
                 .category(category)
@@ -158,8 +164,8 @@ public class BookService {
     )
     public List<BookResponseDto.BookPreviewDto> getWeeklyBestsellers() {
         log.info("[FETCH_WEEKLY_BEST]");
-        List<BookResponseDto.BookPreviewDto> bookPreviewDtos = aladinService.fetchItemList(
-                "Bestseller", "BOOK", 10, null);
+        List<BookResponseDto.BookPreviewDto> bookPreviewDtos =
+                yes24Service.fetchBestsellers(WEEKLY_BESTSELLER_CATEGORY_ID, WEEKLY_BESTSELLER_COUNT);
 
         log.info("[FETCH_WEEKLY_BEST_SUCCESS] count={}", bookPreviewDtos.size());
         return bookPreviewDtos;
@@ -167,7 +173,7 @@ public class BookService {
 
     // 사용자 맞춤 추천 베스트셀러 조회
     public List<BookResponseDto.BookPreviewDto> getPersonalizedBestsellers(User user) {
-        int categoryId = resolveRecommendationCategoryId(user.getId());
+        String categoryId = resolveRecommendationCategoryId(user.getId());
 
         log.info("[FETCH_PERSONAL_BEST] categoryId={}", categoryId);
         List<BookResponseDto.BookPreviewDto> bookPreviewDtos =
@@ -197,28 +203,29 @@ public class BookService {
         return user == null ? null : user.getId();
     }
 
-    private int resolveRecommendationCategoryId(Long userId) {
+    private String resolveRecommendationCategoryId(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
-        List<Integer> topFromLibrary = libraryRepository.findTopAladinCategoryIdsByUserId(
+        List<String> topFromLibrary = libraryRepository.findTopYes24CategoryIdsByUserId(
                 userId, MallType.BOOK, PageRequest.of(0, 1)
         );
 
         if (!topFromLibrary.isEmpty()) {
-            int categoryId = topFromLibrary.get(0);
+            String categoryId = topFromLibrary.get(0);
             log.info("[RECOMMEND_CATEGORY_SOURCE] userId={}, source=LIBRARY, categoryId={}", userId, categoryId);
             return categoryId;
         }
 
         if (user.getPreferredCategory() != null) {
-            int categoryId = user.getPreferredCategory().getAladinCategoryId();
+            String categoryId = user.getPreferredCategory().getYes24CategoryId();
             log.info("[RECOMMEND_CATEGORY_SOURCE] userId={}, source=ONBOARDING, categoryId={}", userId, categoryId);
             return categoryId;
         }
 
-        log.info("[RECOMMEND_CATEGORY_SOURCE] userId={}, source=DEFAULT, categoryId=1", userId);
-        return 1;
+        log.info("[RECOMMEND_CATEGORY_SOURCE] userId={}, source=DEFAULT, categoryId={}",
+                userId, DEFAULT_RECOMMENDATION_CATEGORY_ID);
+        return DEFAULT_RECOMMENDATION_CATEGORY_ID;
     }
 
     // USER 도서는 BOOK mallType 기준 카테고리만 허용
@@ -245,11 +252,17 @@ public class BookService {
         return modifiedDate.isBefore(LocalDateTime.now().minusDays(30));
     }
 
+    // 갱신 실패(외부 API 오류, 전자책·미노출 분류 등)는 기존 저장 정보를 그대로 보여준다
+    // TODO: 실패한 도서는 modifiedDate가 그대로라 조회할 때마다 재시도한다. 호출량이 문제되면 실패 시각 기록 추가
     private void updateBookInfo(Book book, String isbn13) {
-        BookResponseDto.BookDetailDto latestInfo = aladinService.lookupItem(isbn13);
-        Category latestCategory = findCategory(latestInfo);
-        book.updateInfo(latestInfo, latestCategory);
-        log.info("[BookService] Book info updated - ISBN: {}, title: {}", isbn13, book.getTitle());
+        try {
+            BookResponseDto.BookDetailDto latestInfo = yes24Service.lookupItem(isbn13);
+            Category latestCategory = findCategory(latestInfo);
+            book.updateInfo(latestInfo, latestCategory);
+            log.info("[BookService] Book info updated - ISBN: {}, title: {}", isbn13, book.getTitle());
+        } catch (CustomException e) {
+            log.warn("[BOOK_UPDATE_SKIPPED] isbn={}, reason={}", isbn13, e.getErrorCode().getCode());
+        }
     }
 
     private Library findLibrary(User user, Book book) {

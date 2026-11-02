@@ -35,7 +35,7 @@ public class BookAccessService {
     }
 
     private boolean isPublicBook(Book book) {
-        return book != null && book.getSourceType() == SourceType.ALADIN;
+        return book != null && book.getSourceType() == SourceType.EXTERNAL;
     }
 
     private boolean isCreatedBy(User user, Book book) {
