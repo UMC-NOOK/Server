@@ -38,6 +38,13 @@ include::{snippets}/image-upload-controller-test/다건_업로드_URL_발급_성
 include::{snippets}/image-upload-controller-test/다건_업로드_URL_발급_성공/http-response.adoc[]
 include::{snippets}/image-upload-controller-test/다건_업로드_URL_발급_성공/response-fields.adoc[]
 
+==== 실패 케이스: 이미지 하루 한도 초과 (429)
+
+분당 20장, 하루 100장(KST 자정 초기화)까지 발급합니다. 남은 한도보다 많은 장수를 요청하면 요청 전체를 거부합니다.
+자세한 형식은 공통 오류 응답의 "요청 한도 초과 (429)"를 참고하세요.
+
+include::{snippets}/image-upload-controller-test/다건_업로드_URL_발급_실패_일일_한도초과/http-response.adoc[]
+
 다건 업로드는 각 응답 항목마다 같은 작업을 반복합니다.
 
 - 각 `imageUrl` 로 파일 `PUT` 업로드

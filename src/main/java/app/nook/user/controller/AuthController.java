@@ -1,6 +1,9 @@
 package app.nook.user.controller;
 
 import app.nook.global.api.Api1Version;
+import app.nook.global.ratelimit.ClientIpResolver;
+import app.nook.global.ratelimit.RateLimitPolicy;
+import app.nook.global.ratelimit.RateLimiter;
 import app.nook.global.response.ApiResponse;
 import app.nook.global.response.SuccessCode;
 import app.nook.user.annotation.CurrentUser;
@@ -27,6 +30,7 @@ public class AuthController {
     private final OAuthService oAuthService;
     private final UserService userService;
     private final WithdrawService withdrawService;
+    private final RateLimiter rateLimiter;
 
     /**
      * OAuth 로그인 (Google / Kakao)
@@ -36,8 +40,10 @@ public class AuthController {
      */
     @PostMapping("/oauth")
     public ApiResponse<UserDTO.LoginResponse> oauthLogin(
-            @Valid @RequestBody OAuthDTO.OAuthLoginRequest request
+            @Valid @RequestBody OAuthDTO.OAuthLoginRequest request,
+            HttpServletRequest servletRequest
     ) {
+        rateLimiter.consume(RateLimitPolicy.LOGIN, ClientIpResolver.resolve(servletRequest));
         return ApiResponse.onSuccess(oAuthService.login(
                 request.getProvider(),
                 request.getCode()
@@ -52,8 +58,10 @@ public class AuthController {
      */
     @PostMapping("/recover")
     public ApiResponse<UserDTO.LoginResponse> recover(
-            @Valid @RequestBody UserDTO.RecoveryRequest request
+            @Valid @RequestBody UserDTO.RecoveryRequest request,
+            HttpServletRequest servletRequest
     ) {
+        rateLimiter.consume(RateLimitPolicy.RECOVER, ClientIpResolver.resolve(servletRequest));
         return ApiResponse.onSuccess(
                 userService.recover(request.recoveryToken()),
                 SuccessCode.OK
@@ -70,8 +78,10 @@ public class AuthController {
      */
     @PostMapping("/dev/login")
     public ApiResponse<UserDTO.LoginResponse> devLogin(
-            @RequestBody UserDTO.DevLoginRequest request
+            @RequestBody UserDTO.DevLoginRequest request,
+            HttpServletRequest servletRequest
     ) {
+        rateLimiter.consume(RateLimitPolicy.LOGIN, ClientIpResolver.resolve(servletRequest));
         return ApiResponse.onSuccess(
                 userService.devLogin(request.getEmail()),
                 SuccessCode.OK
@@ -95,8 +105,10 @@ public class AuthController {
 
     @PostMapping("/reissue")
     public ApiResponse<UserDTO.TokenReissueResponse> reissueAccessToken(
-            @Valid @RequestBody UserDTO.TokenReissueRequest request
+            @Valid @RequestBody UserDTO.TokenReissueRequest request,
+            HttpServletRequest servletRequest
     ) {
+        rateLimiter.consume(RateLimitPolicy.REISSUE, ClientIpResolver.resolve(servletRequest));
         return ApiResponse.onSuccess(
                 userService.reissueAccessToken(request.getRefreshToken()),
                 SuccessCode.OK

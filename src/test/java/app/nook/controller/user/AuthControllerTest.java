@@ -3,6 +3,10 @@ package app.nook.controller.user;
 import app.nook.global.common.AbstractWebMvcRestDocsTests;
 import app.nook.global.docs.ApiResponseSnippet;
 import app.nook.global.exception.CustomException;
+import app.nook.global.exception.RateLimitExceededException;
+import app.nook.global.ratelimit.RateLimitPolicy;
+import app.nook.global.ratelimit.RateLimiter;
+import app.nook.global.response.CommonErrorCode;
 import app.nook.global.response.AuthErrorCode;
 import app.nook.global.config.WebSecurityConfig;
 import app.nook.user.controller.AuthController;
@@ -27,6 +31,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
@@ -34,6 +42,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWit
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -58,6 +67,9 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
 
     @MockitoBean
     private WithdrawService withdrawService;
+
+    @MockitoBean
+    private RateLimiter rateLimiter;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -411,6 +423,56 @@ class AuthControllerTest extends AbstractWebMvcRestDocsTests {
                                 )
                         )
                 ));
+    }
+
+    @Test
+    void 공개_인증_경로는_클라이언트_IP_기준으로_요청을_제한한다() throws Exception {
+        String ip = "203.0.113.7";
+
+        mockMvc.perform(post("/api/v1/auth/oauth").header("X-Real-IP", ip)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new OAuthDTO.OAuthLoginRequest("GOOGLE", "auth-code"))))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/auth/dev/login").header("X-Real-IP", ip)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new UserDTO.DevLoginRequest("dev@test.com", "DEV_USER"))))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/auth/recover").header("X-Real-IP", ip)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new UserDTO.RecoveryRequest("recovery-token"))))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/auth/reissue").header("X-Real-IP", ip)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new UserDTO.TokenReissueRequest("refresh-token"))))
+                .andExpect(status().isOk());
+
+        verify(rateLimiter, times(2)).consume(RateLimitPolicy.LOGIN, ip);
+        verify(rateLimiter).consume(RateLimitPolicy.RECOVER, ip);
+        verify(rateLimiter).consume(RateLimitPolicy.REISSUE, ip);
+    }
+
+    @Test
+    void 소셜로그인_실패_요청한도초과() throws Exception {
+        willThrow(RateLimitExceededException.retryAfter(
+                CommonErrorCode.TOO_MANY_REQUESTS, "요청 한도에 도달했습니다.", 30))
+                .given(rateLimiter).consume(RateLimitPolicy.LOGIN, "127.0.0.1");
+
+        mockMvc.perform(
+                        post("/api/v1/auth/oauth")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                        new OAuthDTO.OAuthLoginRequest("GOOGLE", "auth-code")))
+                )
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "30"))
+                .andExpect(jsonPath("$.code").value("COMMON-006"))
+                .andExpect(jsonPath("$.result.description").value("30초 후 다시 시도해 주세요."))
+                .andDo(restDocs.document(
+                        ApiResponseSnippet.retryAfterHeader(),
+                        responseFields(ApiResponseSnippet.tooManyRequestsResponseFields())
+                ));
+
+        verify(oAuthService, never()).login(any(), any());
     }
 
 }
