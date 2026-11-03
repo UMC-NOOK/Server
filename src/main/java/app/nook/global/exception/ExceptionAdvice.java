@@ -135,6 +135,21 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(e, body, new HttpHeaders(), e.getErrorCode().getHttpStatus(), webRequest);
     }
 
+    // 요청 한도 초과 → 429 + Retry-After + result{title, description}
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<Object> handleRateLimitExceeded(RateLimitExceededException e, HttpServletRequest request) {
+        ApiResponse<Object> body = ApiResponse.builder()
+                .isSuccess(false)
+                .code(e.getErrorCode().getCode())
+                .message(e.getMessage())
+                .result(e.result())
+                .build();
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.RETRY_AFTER, String.valueOf(e.getRetryAfterSeconds()));
+        WebRequest webRequest = new ServletWebRequest(request);
+        return handleExceptionInternal(e, body, headers, e.getErrorCode().getHttpStatus(), webRequest);
+    }
+
     // Redis 예외
     @ExceptionHandler(RedisOperationException.class)
     public ResponseEntity<Object> handleRedisOperationException(RedisOperationException e, HttpServletRequest request) {

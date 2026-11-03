@@ -2,7 +2,9 @@ package app.nook.global.docs;
 
 import app.nook.global.exception.CustomException;
 import app.nook.global.exception.ExceptionAdvice;
+import app.nook.global.exception.RateLimitExceededException;
 import app.nook.global.response.AuthErrorCode;
+import app.nook.global.response.CommonErrorCode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +28,7 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -85,6 +88,25 @@ class ExceptionResponseDocumentationTest {
     }
 
     @Test
+    void tooManyRequests() throws Exception {
+        mockMvc.perform(get("/docs/error/{errorType}", "too-many-requests"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "30"))
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON-006"))
+                .andExpect(jsonPath("$.message").value("요청 한도에 도달했습니다. 30초 후 다시 시도해 주세요."))
+                .andExpect(jsonPath("$.result.title").value("요청 한도에 도달했습니다."))
+                .andExpect(jsonPath("$.result.description").value("30초 후 다시 시도해 주세요."))
+                .andDo(document(
+                        "common-error-response/too-many-requests",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint()),
+                        ApiResponseSnippet.retryAfterHeader(),
+                        responseFields(ApiResponseSnippet.tooManyRequestsResponseFields())
+                ));
+    }
+
+    @Test
     void internalServerError() throws Exception {
         mockMvc.perform(get("/docs/error/internal-server-error"))
                 .andExpect(status().isInternalServerError())
@@ -123,6 +145,8 @@ class ExceptionResponseDocumentationTest {
                 case "forbidden" -> new CustomException(AuthErrorCode.PERMISSION_DENIED);
                 case "not-found" -> new CustomException(AuthErrorCode.USER_NOT_FOUND);
                 case "conflict" -> new CustomException(AuthErrorCode.EMAIL_DUPLICATE);
+                case "too-many-requests" -> RateLimitExceededException.retryAfter(
+                        CommonErrorCode.TOO_MANY_REQUESTS, "요청 한도에 도달했습니다.", 30);
                 case "internal-server-error" -> new IllegalStateException("문서화용 서버 오류");
                 default -> new IllegalArgumentException("지원하지 않는 오류 유형입니다.");
             };
