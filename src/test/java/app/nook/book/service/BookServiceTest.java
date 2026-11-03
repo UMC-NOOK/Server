@@ -18,6 +18,7 @@ import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.domain.enums.UserRole;
 import app.nook.user.repository.UserRepository;
+import app.nook.yes24.service.Yes24QuotaService;
 import app.nook.yes24.service.Yes24Service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -65,6 +66,9 @@ class BookServiceTest {
 
     @Mock
     private Yes24Service yes24Service;
+
+    @Mock
+    private Yes24QuotaService yes24QuotaService;
 
     @Mock
     private LibraryRepository libraryRepository;
@@ -189,6 +193,23 @@ class BookServiceTest {
         assertThat(result.getTitle()).isEqualTo("기존 제목");
         assertThat(result.getPages()).isEqualTo(100);
         verify(bookViewHistoryService).saveBookView(testUser, book);
+    }
+
+    @Test
+    @DisplayName("30일 지난 외부 도서 조회 - YES24 한도 부족 단계면 갱신을 건너뛰고 기존 정보로 응답")
+    void getBookDetailByIsbn_한도부족_갱신건너뜀() {
+        Book book = createBook(TEST_ISBN_1, "기존 제목", 100);
+        ReflectionTestUtils.setField(book, "id", 1L);
+        ReflectionTestUtils.setField(book, "modifiedDate", LocalDateTime.now().minusDays(31));
+
+        given(bookRepository.findByIsbn13AndSourceType(TEST_ISBN_1, SourceType.EXTERNAL))
+                .willReturn(Optional.of(book));
+        given(yes24QuotaService.isLow()).willReturn(true);
+
+        BookResponseDto.BookDetailDto result = bookService.getBookDetailByIsbn(testUser, TEST_ISBN_1);
+
+        assertThat(result.getTitle()).isEqualTo("기존 제목");
+        verify(yes24Service, never()).lookupItem(any());
     }
 
     @Test
