@@ -53,14 +53,14 @@ include::{snippets}/common-error-response/conflict/response-fields.adoc[]
 [cols="2,3,1,1", options="header"]
 |===
 | API | 기준 | 한도 | 비고
-| `POST /auth/oauth`, `POST /auth/dev/login` | IP | 30회/1분 | 성공·실패 모두 집계
+| `POST /auth/oauth`, `POST /auth/dev/login` | IP | 30회/1분 | 로그인 실패도 집계 (요청 형식 오류(400)는 제외)
 | `POST /auth/recover` | IP | 10회/10분 |
 | `POST /auth/reissue` | IP | 60회/1분 |
 | `GET /books/search/GLOBAL` (cursor 없음 또는 0) | 사용자 | 30회/1분 | `LIBRARY` 검색은 제한 없음
 | `GET /books/search/GLOBAL` (cursor > 0) | 사용자 | 60회/1분 |
 | `GET /books/{isbn13}` | 사용자 | 60회/1분 |
-| `POST /images/upload-url`, `POST /images/upload-urls` | 사용자 | 20장/1분, 100장/일 | 발급 장수 기준, 하루 한도는 KST 자정 초기화. 남은 한도보다 많이 요청하면 전체 거부
-| `/api/**` 전체 | IP | 초당 10회 + 순간 100회 | 서버 앞단(nginx)
+| `POST /images/upload-url`, `POST /images/upload-urls` | 사용자 | 20장/1분, 100장/일 | 발급 장수 기준, 하루 한도는 KST 자정 초기화. 남은 한도보다 많이 요청하면 전체 거부. 한 번에 최대 5장
+| `/api/**` 전체 | IP | 초당 10회 + 순간 100회 | 서버 앞단(nginx). 현재는 기록만 하고 차단하지 않음
 |===
 
 [cols="1,1,1", options="header"]

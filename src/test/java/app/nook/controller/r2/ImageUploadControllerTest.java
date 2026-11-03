@@ -28,6 +28,7 @@ import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -35,6 +36,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
@@ -170,6 +172,25 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
         @DisplayName("실패")
         @Nested
         class Failure {
+
+            @Test
+            @WithCustomUser
+            void 다건_업로드_URL_발급_실패_최대개수초과시_한도_차감없음() throws Exception {
+                // given
+                List<ImageUploadRequestDto> files = IntStream.range(0, 6)
+                        .mapToObj(i -> new ImageUploadRequestDto("record", "image/png"))
+                        .toList();
+
+                // when & then
+                mockMvc.perform(post("/api/v1/images/upload-urls")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(new MultipleImageUploadRequestDto(files))))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.result.files").value("files는 최대 5개까지 요청할 수 있습니다."));
+
+                verifyNoInteractions(rateLimiter, presignedUrlService);
+            }
 
             @Test
             @WithCustomUser

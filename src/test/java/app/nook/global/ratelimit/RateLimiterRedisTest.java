@@ -14,6 +14,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -93,12 +94,24 @@ class RateLimiterRedisTest {
     void 이미지_분당_한도_초과시_두_키_모두_증가하지_않는다() {
         rateLimiter.consume(List.of(IMAGE_MINUTE, IMAGE_DAY), "1", 18);
 
+        // Redis TTL은 고정 Clock과 무관하게 실제 시간으로 줄어드므로 초 단위 문구도 허용
         assertThatThrownBy(() -> rateLimiter.consume(List.of(IMAGE_MINUTE, IMAGE_DAY), "1", 3))
                 .isInstanceOf(RateLimitExceededException.class)
-                .hasMessage("요청 한도에 도달했습니다. 1분 후 다시 시도해 주세요.");
+                .hasMessageMatching("요청 한도에 도달했습니다\\. (\\d+초|1분) 후 다시 시도해 주세요\\.");
 
         assertThat(redisTemplate.opsForValue().get(MINUTE_KEY)).isEqualTo("18");
         assertThat(redisTemplate.opsForValue().get(DAY_KEY)).isEqualTo("18");
+    }
+
+    @Test
+    void 분당_일일_한도를_함께_넘으면_남은_시간이_긴_일일_한도로_안내한다() {
+        redisTemplate.opsForValue().set(MINUTE_KEY, "19", Duration.ofMinutes(1));
+        redisTemplate.opsForValue().set(DAY_KEY, "99", Duration.ofHours(1));
+
+        assertThatThrownBy(() -> rateLimiter.consume(List.of(IMAGE_MINUTE, IMAGE_DAY), "1", 2))
+                .isInstanceOf(RateLimitExceededException.class)
+                .hasMessage("이미지 업로드 한도에 도달했습니다. 내일 다시 시도해 주세요.")
+                .satisfies(e -> assertThat(((RateLimitExceededException) e).getRetryAfterSeconds()).isGreaterThan(60L));
     }
 
     @Test

@@ -33,17 +33,21 @@ public class RateLimiter {
     private static final String IMAGE_DAY_DESCRIPTION = "내일 다시 시도해 주세요.";
 
     // KEYS: 카운터 키, ARGV[1]: cost, ARGV[1+i]: 한도, ARGV[1+n+i]: TTL(ms)
-    // 반환: {0, 0} 허용 / {초과한 키 번호, 남은 ms} 거부
+    // 반환: {0, 0} 허용 / {초과한 키 번호, 남은 ms} 거부 (여러 키 초과 시 남은 시간이 가장 긴 키)
     private static final DefaultRedisScript<List> SCRIPT = new DefaultRedisScript<>("""
             local cost = tonumber(ARGV[1])
             local n = #KEYS
+            local rejected, longest = 0, 0
             for i = 1, n do
               local current = tonumber(redis.call('GET', KEYS[i]) or '0')
               if current + cost > tonumber(ARGV[1 + i]) then
                 local ttl = redis.call('PTTL', KEYS[i])
                 if ttl < 0 then ttl = tonumber(ARGV[1 + n + i]) end
-                return {i, ttl}
+                if ttl > longest then rejected, longest = i, ttl end
               end
+            end
+            if rejected > 0 then
+              return {rejected, longest}
             end
             for i = 1, n do
               redis.call('INCRBY', KEYS[i], cost)

@@ -3,6 +3,7 @@ package app.nook.global.ratelimit;
 import lombok.Getter;
 
 import java.time.Duration;
+import java.util.Locale;
 
 /**
  * 앱 요청 제한 정책 (고정 윈도우). 출시 후 한도 조정은 이곳에서만 한다.
@@ -30,6 +31,6 @@ public enum RateLimitPolicy {
 
     /** Redis 키 구분자 (예: IMAGE_MINUTE → image-minute) */
     public String keyName() {
-        return name().toLowerCase().replace('_', '-');
+        return name().toLowerCase(Locale.ROOT).replace('_', '-');
     }
 }
