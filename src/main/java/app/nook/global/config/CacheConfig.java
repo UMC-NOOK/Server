@@ -21,6 +21,8 @@ public class CacheConfig {
     public static final String WEEKLY_BESTSELLERS_CACHE = "weeklyBestsellers";
     public static final String PERSONALIZED_BESTSELLERS_CACHE = "personalizedBestsellers";
     public static final String ONBOARDING_GOAL_CACHE = "onboardingGoal";
+    // YES24 한도 부족·호출 실패 시 대신 보여줄 베스트셀러 마지막 성공 목록 (만료 없음, 성공할 때마다 덮어씀)
+    public static final String LAST_GOOD_BESTSELLERS_CACHE = "lastGoodBestsellers";
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -41,6 +43,8 @@ public class CacheConfig {
                 defaultConfig.entryTtl(Duration.ofMinutes(30)));
         cacheConfigs.put(ONBOARDING_GOAL_CACHE,
                 defaultConfig.entryTtl(Duration.ofMinutes(2)));
+        cacheConfigs.put(LAST_GOOD_BESTSELLERS_CACHE,
+                defaultConfig.entryTtl(Duration.ZERO));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)

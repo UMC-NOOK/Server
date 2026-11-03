@@ -12,7 +12,7 @@ public enum Yes24ErrorCode implements BaseCode {
 
     BOOK_API_ERROR(HttpStatus.BAD_GATEWAY, "BOOK_API-001", "외부 도서 API 호출 중 오류가 발생했습니다."),
     BOOK_API_UNAUTHORIZED(HttpStatus.INTERNAL_SERVER_ERROR, "BOOK_API-002", "외부 도서 API 인증에 실패했습니다."),
-    BOOK_API_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "BOOK_API-003", "도서 검색 요청이 많습니다. 잠시 후 다시 시도해 주세요.");
+    BOOK_API_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "BOOK_API-003", "도서 정보 요청이 너무 많습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
