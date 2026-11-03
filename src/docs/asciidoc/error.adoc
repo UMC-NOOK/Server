@@ -69,7 +69,11 @@ include::{snippets}/common-error-response/conflict/response-fields.adoc[]
 | 요청 한도 | 요청 한도에 도달했습니다. | `N초 후 다시 시도해 주세요.` (60초 미만) / `N분 후 다시 시도해 주세요.` (60초 이상, 올림)
 | 이미지 하루 한도 | 이미지 업로드 한도에 도달했습니다. | 내일 다시 시도해 주세요.
 | 서버 앞단(nginx) 제한 | 요청 횟수를 초과했습니다. | 잠시 후 다시 시도해 주세요.
+| 외부 도서 정보 초당 한도 (`BOOK_API-003`) | 도서 정보 요청이 너무 많습니다. | `N초 후 다시 시도해 주세요.`
+| 외부 도서 정보 하루 한도 (`BOOK_API-003`) | 도서 정보 한도에 도달했습니다. | 내일 다시 시도해 주세요.
 |===
+
+외부 도서 정보 한도(`BOOK_API-003`)는 모든 사용자가 함께 쓰는 한도입니다. 외부 호출이 필요한 검색·처음 조회하는 도서 상세에서만 반환하며, 저장된 도서 상세·베스트셀러·추천은 한도가 소진되어도 직전 정보로 제공합니다. 응답 형식은 위와 같습니다(`Retry-After`, `result{title, description}`).
 
 include::{snippets}/common-error-response/too-many-requests/http-request.adoc[]
 include::{snippets}/common-error-response/too-many-requests/http-response.adoc[]
