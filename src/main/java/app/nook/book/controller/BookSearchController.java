@@ -1,6 +1,8 @@
 package app.nook.book.controller;
 
 import app.nook.global.api.Api1Version;
+import app.nook.global.ratelimit.RateLimitPolicy;
+import app.nook.global.ratelimit.RateLimiter;
 import app.nook.book.domain.enums.SearchType;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.dto.LibrarySearchHomeResponseDto;
@@ -26,6 +28,7 @@ import java.util.List;
 public class BookSearchController {
 
     private final BookSearchFacade bookSearchFacade;
+    private final RateLimiter rateLimiter;
 
     /**
      * 전체 도서 검색 (외부 도서 API)
@@ -41,6 +44,13 @@ public class BookSearchController {
             @RequestParam(name = "cursor", required = false)
                 @Min(value = 0, message = "커서는 0 이상이어야 합니다.") Integer cursor
     ) {
+        // 외부 도서 API를 호출하는 GLOBAL만 제한. 첫 페이지와 다음 페이지는 별도 집계
+        if (type == SearchType.GLOBAL) {
+            RateLimitPolicy policy = (cursor == null || cursor == 0)
+                    ? RateLimitPolicy.SEARCH_NEW
+                    : RateLimitPolicy.SEARCH_SCROLL;
+            rateLimiter.consume(policy, String.valueOf(user.getId()));
+        }
         BookResponseDto.SearchResultDto response = bookSearchFacade.searchBooks(
                 user.getId(), keyword, cursor, type);
         return ApiResponse.onSuccess(response, SuccessCode.OK);

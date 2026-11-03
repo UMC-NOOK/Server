@@ -1,3 +1,42 @@
+# ---- 요청 제한 (#386) ----
+# conf.d/*.conf는 nginx.conf의 http 블록 안에서 include되므로 아래 설정은 http 레벨로 동작한다.
+# nginx.conf와 나누지 않고 이 파일에만 둔다(파일 단위 bind mount라 한쪽만 반영되면 zone 미정의로 nginx -t 실패).
+
+# Cloudflare 경유 요청만 CF-Connecting-IP로 실제 IP 복원 (그 외 출처의 헤더 위조는 무시)
+# 출처: https://www.cloudflare.com/ips-v4, https://www.cloudflare.com/ips-v6 (2026-11-02 기준)
+# Cloudflare가 대역을 바꿨을 때만 갱신한다. 로그에 Cloudflare 대역 IP가 다시 보이면 갱신할 것.
+set_real_ip_from 173.245.48.0/20;
+set_real_ip_from 103.21.244.0/22;
+set_real_ip_from 103.22.200.0/22;
+set_real_ip_from 103.31.4.0/22;
+set_real_ip_from 141.101.64.0/18;
+set_real_ip_from 108.162.192.0/18;
+set_real_ip_from 190.93.240.0/20;
+set_real_ip_from 188.114.96.0/20;
+set_real_ip_from 197.234.240.0/22;
+set_real_ip_from 198.41.128.0/17;
+set_real_ip_from 162.158.0.0/15;
+set_real_ip_from 104.16.0.0/13;
+set_real_ip_from 104.24.0.0/14;
+set_real_ip_from 172.64.0.0/13;
+set_real_ip_from 131.0.72.0/22;
+set_real_ip_from 2400:cb00::/32;
+set_real_ip_from 2606:4700::/32;
+set_real_ip_from 2803:f800::/32;
+set_real_ip_from 2405:b500::/32;
+set_real_ip_from 2405:8100::/32;
+set_real_ip_from 2a06:98c0::/29;
+set_real_ip_from 2c0f:f248::/32;
+real_ip_header CF-Connecting-IP;
+
+# 전체 API IP 제한: 10r/s + burst 100 (≈600회/분)
+limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+
+# 기본 main 형식 + 제한 결과(PASSED, REJECTED_DRY_RUN 등)
+log_format main_rl '$remote_addr - $remote_user [$time_local] "$request" '
+                   '$status $body_bytes_sent "$http_referer" '
+                   '"$http_user_agent" "$http_x_forwarded_for" limit_req=$limit_req_status';
+
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -64,6 +103,36 @@ server {
     add_header Referrer-Policy "no-referrer" always;
 
     client_max_body_size 10m;
+
+    access_log /var/log/nginx/access.log main_rl;
+
+    # API만 IP 기준 전체 제한. proxy 설정은 location /와 동일하게 유지할 것(proxy_pass는 상속되지 않음)
+    # 처음엔 dry-run(차단 없이 $limit_req_status만 기록). 실제 차단 전환은 로그 확인 후 별도 PR
+    location /api/ {
+        limit_req zone=api burst=100 nodelay;
+        limit_req_dry_run on;
+        limit_req_status 429;
+        error_page 429 = @rate_limited;
+
+        proxy_pass http://nook_app;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+
+    # nginx 제한 429: 앱과 같은 envelope + result (남은 시간을 모르므로 일반 안내)
+    location @rate_limited {
+        default_type "application/json; charset=utf-8";
+        return 429 '{"isSuccess":false,"code":"COMMON-006","message":"요청 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.","result":{"title":"요청 횟수를 초과했습니다.","description":"잠시 후 다시 시도해 주세요."}}';
+    }
 
     location / {
         proxy_pass http://nook_app;

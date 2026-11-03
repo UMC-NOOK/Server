@@ -9,6 +9,10 @@ import app.nook.global.common.AbstractWebMvcRestDocsTests;
 import app.nook.global.common.security.WithCustomUser;
 import app.nook.global.config.WebSecurityConfig;
 import app.nook.global.docs.ApiResponseSnippet;
+import app.nook.global.exception.RateLimitExceededException;
+import app.nook.global.ratelimit.RateLimitPolicy;
+import app.nook.global.ratelimit.RateLimiter;
+import app.nook.global.response.CommonErrorCode;
 import app.nook.user.filter.JwtExceptionFilter;
 import app.nook.user.filter.JwtFilter;
 import org.junit.jupiter.api.DisplayName;
@@ -25,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.*;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
@@ -34,6 +39,7 @@ import static org.springframework.restdocs.request.RequestDocumentation.*;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -57,6 +63,9 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
 
     @MockitoBean
     private BookSearchFacade bookSearchFacade;
+
+    @MockitoBean
+    private RateLimiter rateLimiter;
 
     @Test
     @WithCustomUser
@@ -434,5 +443,57 @@ class BookSearchControllerTest extends AbstractWebMvcRestDocsTests {
                         fieldWithPath("result.sections[].items[].coverUrl").type(STRING).description("도서 커버 URL")
                 )
         );
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("전체 도서 검색은 첫 페이지와 다음 페이지를 별도 정책으로 제한한다")
+    void 전체검색_커서별_요청제한_정책_적용() throws Exception {
+        mockMvc.perform(get("/api/v1/books/search/{type}", "GLOBAL")
+                        .param("keyword", TEST_KEYWORD).header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/books/search/{type}", "GLOBAL")
+                        .param("keyword", TEST_KEYWORD).param("cursor", "0").header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/books/search/{type}", "GLOBAL")
+                        .param("keyword", TEST_KEYWORD).param("cursor", "2").header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isOk());
+
+        verify(rateLimiter, times(2)).consume(RateLimitPolicy.SEARCH_NEW, "1");
+        verify(rateLimiter).consume(RateLimitPolicy.SEARCH_SCROLL, "1");
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("내 서재 검색은 요청 제한을 적용하지 않는다")
+    void 내서재검색_요청제한_미적용() throws Exception {
+        mockMvc.perform(get("/api/v1/books/search/{type}", "LIBRARY")
+                        .param("keyword", TEST_KEYWORD).param("cursor", "2").header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isOk());
+
+        verifyNoInteractions(rateLimiter);
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("전체 도서 검색 요청 한도 초과 시 429")
+    void 전체검색_실패_요청한도초과() throws Exception {
+        willThrow(RateLimitExceededException.retryAfter(
+                CommonErrorCode.TOO_MANY_REQUESTS, "요청 한도에 도달했습니다.", 15))
+                .given(rateLimiter).consume(RateLimitPolicy.SEARCH_NEW, "1");
+
+        mockMvc.perform(get("/api/v1/books/search/{type}", "GLOBAL")
+                        .param("keyword", TEST_KEYWORD).header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "15"))
+                .andExpect(jsonPath("$.code").value("COMMON-006"))
+                .andExpect(jsonPath("$.message").value("요청 한도에 도달했습니다. 15초 후 다시 시도해 주세요."))
+                .andDo(documentWithAuth(
+                        "{class-name}/{method-name}",
+                        ApiResponseSnippet.retryAfterHeader(),
+                        responseFields(ApiResponseSnippet.tooManyRequestsResponseFields())
+                ));
+
+        verify(bookSearchFacade, never()).searchBooks(any(), any(), any(), any());
     }
 }

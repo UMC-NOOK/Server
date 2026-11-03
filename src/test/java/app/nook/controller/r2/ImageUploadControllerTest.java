@@ -4,6 +4,10 @@ import app.nook.global.common.AbstractWebMvcRestDocsTests;
 import app.nook.global.common.security.WithCustomUser;
 import app.nook.global.config.WebSecurityConfig;
 import app.nook.global.docs.ApiResponseSnippet;
+import app.nook.global.exception.RateLimitExceededException;
+import app.nook.global.ratelimit.RateLimitPolicy;
+import app.nook.global.ratelimit.RateLimiter;
+import app.nook.global.response.CommonErrorCode;
 import app.nook.r2.controller.ImageUploadController;
 import app.nook.r2.dto.ImageUploadRequestDto;
 import app.nook.r2.dto.ImageUrlResponseDto;
@@ -24,14 +28,20 @@ import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -48,8 +58,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 )
 class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
 
+    private static final List<RateLimitPolicy> IMAGE_POLICIES =
+            List.of(RateLimitPolicy.IMAGE_MINUTE, RateLimitPolicy.IMAGE_DAY);
+
     @MockitoBean
     private PresignedUrlService presignedUrlService;
+
+    @MockitoBean
+    private RateLimiter rateLimiter;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -97,6 +113,8 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result.key").type(JsonFieldType.STRING).description("저장된 이미지 key")
                                 ))
                         ));
+
+                verify(rateLimiter).consume(IMAGE_POLICIES, "1", 1);
             }
 
             @Test
@@ -146,12 +164,65 @@ class ImageUploadControllerTest extends AbstractWebMvcRestDocsTests {
                                         fieldWithPath("result[].key").type(JsonFieldType.STRING).description("저장된 이미지 key")
                                 ))
                         ));
+
+                verify(rateLimiter).consume(IMAGE_POLICIES, "1", 2);
             }
         }
 
         @DisplayName("실패")
         @Nested
         class Failure {
+
+            @Test
+            @WithCustomUser
+            void 다건_업로드_URL_발급_실패_최대개수초과시_한도_차감없음() throws Exception {
+                // given
+                List<ImageUploadRequestDto> files = IntStream.range(0, 6)
+                        .mapToObj(i -> new ImageUploadRequestDto("record", "image/png"))
+                        .toList();
+
+                // when & then
+                mockMvc.perform(post("/api/v1/images/upload-urls")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(new MultipleImageUploadRequestDto(files))))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.result.files").value("files는 최대 5개까지 요청할 수 있습니다."));
+
+                verifyNoInteractions(rateLimiter, presignedUrlService);
+            }
+
+            @Test
+            @WithCustomUser
+            void 다건_업로드_URL_발급_실패_일일_한도초과() throws Exception {
+                // given
+                willThrow(new RateLimitExceededException(CommonErrorCode.TOO_MANY_REQUESTS,
+                        "이미지 업로드 한도에 도달했습니다.", "내일 다시 시도해 주세요.", 3600))
+                        .given(rateLimiter).consume(IMAGE_POLICIES, "1", 2);
+
+                // when & then
+                mockMvc.perform(post("/api/v1/images/upload-urls")
+                                .header(AUTH_HEADER, AUTH_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                        new MultipleImageUploadRequestDto(List.of(
+                                                new ImageUploadRequestDto("record", "image/png"),
+                                                new ImageUploadRequestDto("record", "image/webp")
+                                        ))
+                                )))
+                        .andExpect(status().isTooManyRequests())
+                        .andExpect(header().string("Retry-After", "3600"))
+                        .andExpect(jsonPath("$.code").value("COMMON-006"))
+                        .andExpect(jsonPath("$.message").value("이미지 업로드 한도에 도달했습니다. 내일 다시 시도해 주세요."))
+                        .andExpect(jsonPath("$.result.title").value("이미지 업로드 한도에 도달했습니다."))
+                        .andDo(documentWithAuth(
+                                "image-upload-controller-test/다건_업로드_URL_발급_실패_일일_한도초과",
+                                ApiResponseSnippet.retryAfterHeader(),
+                                responseFields(ApiResponseSnippet.tooManyRequestsResponseFields())
+                        ));
+
+                verify(presignedUrlService, never()).generateMultipleUploadUrls(anyLong(), any());
+            }
 
             @Test
             @WithCustomUser
