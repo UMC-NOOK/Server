@@ -20,6 +20,7 @@ import app.nook.library.repository.LibraryRepository;
 import app.nook.r2.service.PresignedUrlService;
 import app.nook.user.domain.User;
 import app.nook.user.repository.UserRepository;
+import app.nook.yes24.service.Yes24QuotaService;
 import app.nook.yes24.service.Yes24Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +50,7 @@ public class BookService {
     private final LibraryRepository libraryRepository;
     private final UserRepository userRepository;
     private final Yes24Service yes24Service;
+    private final Yes24QuotaService yes24QuotaService;
     private final PersonalizedBestsellerCacheService personalizedBestsellerCacheService;
     private final PresignedUrlService presignedUrlService;
     private final ApplicationEventPublisher eventPublisher;
@@ -254,7 +256,12 @@ public class BookService {
 
     // 갱신 실패(외부 API 오류, 전자책·미노출 분류 등)는 기존 저장 정보를 그대로 보여준다
     // TODO: 실패한 도서는 modifiedDate가 그대로라 조회할 때마다 재시도한다. 호출량이 문제되면 실패 시각 기록 추가
+    // YES24 한도 부족 단계에서는 갱신을 건너뛰고 검색·상세용 호출을 남겨둔다
     private void updateBookInfo(Book book, String isbn13) {
+        if (yes24QuotaService.isLow()) {
+            log.info("[BOOK_UPDATE_SKIPPED] isbn={}, reason=YES24_QUOTA_LOW", isbn13);
+            return;
+        }
         try {
             BookResponseDto.BookDetailDto latestInfo = yes24Service.lookupItem(isbn13);
             Category latestCategory = findCategory(latestInfo);
