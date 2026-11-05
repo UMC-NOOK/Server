@@ -68,7 +68,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "goal", 120,
-                                "nickname", "nick_01",
+                                "nickname", "nick01",
                                 "categories", List.of("에세이"),
                                 "profileImageKey", "profile/users/1/profile.png"
                         )))
@@ -80,7 +80,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
                         "{class-name}/{method-name}",
                         requestFields(
                                 fieldWithPath("goal").description("독서 목표 권수 (1~300)"),
-                                fieldWithPath("nickname").description("닉네임 (최대 10자)"),
+                                fieldWithPath("nickname").description("닉네임 (공백 포함 1~10자, 영문·숫자·한글·공백만 허용, 앞뒤 공백 불가)"),
                                 fieldWithPath("categories").description("선호 카테고리 (1~2개)"),
                                 fieldWithPath("profileImageKey").description("프로필 이미지 key").optional()
                         ),
@@ -102,7 +102,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "goal", 301,
-                                "nickname", "nick_01",
+                                "nickname", "nick01",
                                 "categories", List.of("에세이")
                         )))
                         .header(AUTH_HEADER, AUTH_TOKEN))
@@ -116,7 +116,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
         mockMvc.perform(post("/api/v1/users/me/onboarding/complete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"goal":100,"nickname":"nick_01"}
+                                {"goal":100,"nickname":"nick01"}
                                 """)
                         .header(AUTH_HEADER, AUTH_TOKEN))
                 .andExpect(status().isBadRequest());
@@ -213,7 +213,7 @@ public class OnboardingControllerTest extends AbstractWebMvcRestDocsTests {
         mockMvc.perform(post("/api/v1/users/me/onboarding/complete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"goal":100,"nickname":"nick_01","categories":["에세이"]}
+                                {"goal":100,"nickname":"nick01","categories":["에세이"]}
                                 """))
                 .andExpect(status().isUnauthorized());
     }
