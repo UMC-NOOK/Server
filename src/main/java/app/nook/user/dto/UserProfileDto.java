@@ -1,7 +1,7 @@
 package app.nook.user.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import app.nook.user.validation.NickName;
 import jakarta.validation.constraints.Size;
 
 
@@ -16,11 +16,7 @@ public class UserProfileDto {
 
 
     public record NickNameUpdateRequest(
-            @NotBlank
-            @Pattern(
-                regexp = "^[a-zA-Z0-9가-힣](?:[a-zA-Z0-9가-힣 ]{0,8}[a-zA-Z0-9가-힣])$",
-                message = "닉네임은 2~10자의 영문, 숫자, 한글, 공백만 사용할 수 있습니다."
-            )
+            @NickName
             String nickName
     ) {}
 
@@ -39,11 +35,7 @@ public class UserProfileDto {
     ) {}
 
     public record ProfileUpdateRequest(
-            @NotBlank
-            @Pattern(
-                regexp = "^[a-zA-Z0-9가-힣](?:[a-zA-Z0-9가-힣 ]{0,8}[a-zA-Z0-9가-힣])$",
-                message = "닉네임은 2~10자의 영문, 숫자, 한글, 공백만 사용할 수 있습니다."
-            )
+            @NickName
             String nickName,
             @NotBlank
             @Size(max = 512)
