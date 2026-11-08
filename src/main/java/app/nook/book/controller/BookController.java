@@ -1,6 +1,8 @@
 package app.nook.book.controller;
 
 import app.nook.global.api.Api1Version;
+import app.nook.global.ratelimit.RateLimitPolicy;
+import app.nook.global.ratelimit.RateLimiter;
 import app.nook.book.dto.BookRequestDto;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.facade.UserBookFacade;
@@ -28,6 +30,7 @@ public class BookController {
     private final BookService bookService;
     private final UserBookFacade userBookFacade;
     private final BookViewHistoryService bookViewHistoryService;
+    private final RateLimiter rateLimiter;
 
     @GetMapping("/recently-viewed")
     public ApiResponse<List<BookResponseDto.RecentlyViewedBookDto>> getRecentlyViewedBooks(
@@ -42,6 +45,7 @@ public class BookController {
     public ApiResponse<BookResponseDto.BookDetailDto> getBookDetail(
             @CurrentUser User user,
             @PathVariable @Pattern(regexp = "\\d{13}", message = "ISBN13은 13자리 숫자여야 합니다.") String isbn13) {
+        rateLimiter.consume(RateLimitPolicy.BOOK_DETAIL, String.valueOf(user.getId()));
         return ApiResponse.onSuccess(
                 formatPublicationDate(bookService.getBookDetailByIsbn(user, isbn13)), SuccessCode.OK);
     }

@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
@@ -40,6 +41,7 @@ public class Yes24Service {
     private static final String INVALID_QUERY_ERROR_CODE = "PARAM_007";
 
     private final RestClient restClient;
+    private final Yes24QuotaService quotaService;
 
     // 검색 원본 페이지 조회 (국내 종이책, 대표작·인기 도서 우선인 DEFAULT 정렬). 원본 페이지 단위로 캐시
     @Cacheable(
@@ -92,7 +94,35 @@ public class Yes24Service {
     }
 
     // 카테고리 베스트셀러에서 유효한 도서만 targetCount개
+    // 한도 부족 단계이거나 호출이 실패하면 마지막으로 성공한 목록(last-good)을 반환한다
     public List<BookResponseDto.BookPreviewDto> fetchBestsellers(String categoryId, int targetCount) {
+        if (quotaService.isLow()) {
+            Optional<List<BookResponseDto.BookPreviewDto>> lastGood = quotaService.findLastGood(categoryId);
+            if (lastGood.isPresent()) {
+                log.info("[YES24_QUOTA_LOW] reason='Serving last-good', categoryId={}", categoryId);
+                return lastGood.get();
+            }
+        }
+
+        List<BookResponseDto.BookPreviewDto> result;
+        try {
+            result = requestBestsellers(categoryId, targetCount);
+        } catch (CustomException e) {
+            Optional<List<BookResponseDto.BookPreviewDto>> lastGood = quotaService.findLastGood(categoryId);
+            if (lastGood.isEmpty()) {
+                throw e;
+            }
+            log.warn("[YES24_BESTSELLER_FALLBACK] categoryId={}, reason={}", categoryId, e.getErrorCode().getCode());
+            return lastGood.get();
+        }
+
+        if (!result.isEmpty()) {
+            quotaService.saveLastGood(categoryId, result);
+        }
+        return result;
+    }
+
+    private List<BookResponseDto.BookPreviewDto> requestBestsellers(String categoryId, int targetCount) {
         // 필터로 빠지는 상품을 감안해 4배수로 요청
         int pageSize = Math.min(targetCount * 4, BESTSELLER_MAX_PAGE_SIZE);
         List<Yes24ResponseDto.Yes24Item> rawItems = execute(builder -> builder.path(BESTSELLER_PATH)
@@ -124,10 +154,12 @@ public class Yes24Service {
     // 404는 "결과 없음"으로 보고 empty, 그 외 오류는 공급자 중립 에러 코드로 변환
     private Optional<Yes24ResponseDto.Data> execute(Function<UriBuilder, URI> uriFunction) {
         try {
-            Yes24ResponseDto.Yes24ApiResult response = restClient.get()
+            ResponseEntity<Yes24ResponseDto.Yes24ApiResult> entity = restClient.get()
                     .uri(uriFunction)
                     .retrieve()
-                    .body(Yes24ResponseDto.Yes24ApiResult.class);
+                    .toEntity(Yes24ResponseDto.Yes24ApiResult.class);
+            quotaService.record(entity.getHeaders());
+            Yes24ResponseDto.Yes24ApiResult response = entity.getBody();
 
             if (response == null || !response.isSuccess()) {
                 log.error("[YES24_API_FAIL] errorCode={}, message='{}'",
@@ -150,7 +182,7 @@ public class Yes24Service {
             }
             log.error("[YES24_API_ERROR] status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
             if (e.getStatusCode().isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS)) {
-                throw new CustomException(Yes24ErrorCode.BOOK_API_RATE_LIMITED);
+                throw quotaService.rateLimited(e.getResponseHeaders());
             }
             if (e.getStatusCode().isSameCodeAs(HttpStatus.UNAUTHORIZED)
                     || e.getStatusCode().isSameCodeAs(HttpStatus.FORBIDDEN)) {

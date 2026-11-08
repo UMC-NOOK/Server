@@ -1,5 +1,6 @@
 package app.nook.user.dto;
 
+import app.nook.user.validation.NickName;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,7 +15,7 @@ public class OnboardingDto {
         @Min(1) @Max(300)
         private short goal;
 
-        @NotBlank @Size(max = 10)
+        @NickName
         private String nickname;
 
         @NotEmpty @Size(min = 1, max = 2)

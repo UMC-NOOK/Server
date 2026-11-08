@@ -54,6 +54,9 @@ jwt:
 yes24:
   base-url: ${YES24_BASE_URL:https://apis.yes24.com}
   api-key: ${YES24_API_KEY}
+  quota:
+    # 남은 일일 호출 수가 이 값 이하이면 베스트셀러·추천 갱신과 도서 정보 갱신을 멈춘다 (일 한도 20,000의 20%)
+    low-threshold: ${YES24_QUOTA_LOW_THRESHOLD:4000}
 
 logging:
   pattern:

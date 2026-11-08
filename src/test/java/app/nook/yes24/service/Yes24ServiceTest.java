@@ -4,6 +4,7 @@ import app.nook.book.domain.enums.MallType;
 import app.nook.book.dto.BookResponseDto;
 import app.nook.book.exception.BookErrorCode;
 import app.nook.global.exception.CustomException;
+import app.nook.global.exception.RateLimitExceededException;
 import app.nook.yes24.dto.Yes24ResponseDto;
 import app.nook.yes24.exception.Yes24ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -20,10 +22,16 @@ import org.springframework.web.client.RestClient;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
@@ -40,16 +48,18 @@ class Yes24ServiceTest {
             """;
 
     private MockRestServiceServer server;
+    private Yes24QuotaService quotaService;
     private Yes24Service yes24Service;
 
     @BeforeEach
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
+        quotaService = mock(Yes24QuotaService.class);
         yes24Service = new Yes24Service(builder
                 .baseUrl(BASE_URL)
                 .defaultHeader("X-Api-Key", API_KEY)
-                .build());
+                .build(), quotaService);
     }
 
     @Test
@@ -225,14 +235,80 @@ class Yes24ServiceTest {
     }
 
     @Test
-    @DisplayName("호출 한도 초과(429)는 BOOK_API_RATE_LIMITED")
+    @DisplayName("호출 한도 초과(429)는 응답 헤더로 만든 BOOK_API_RATE_LIMITED 429 예외")
     void execute_rateLimited() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("x-ratelimit-reset-second", "1793684959");
         server.expect(requestTo(startsWith(BASE_URL)))
-                .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+                .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).headers(headers));
+        RateLimitExceededException expected = RateLimitExceededException.retryAfter(
+                Yes24ErrorCode.BOOK_API_RATE_LIMITED, "도서 정보 요청이 너무 많습니다.", 1);
+        given(quotaService.rateLimited(any())).willReturn(expected);
 
-        assertThatThrownBy(() -> yes24Service.fetchSearchPage("한강", 1))
-                .isInstanceOf(CustomException.class)
-                .extracting("errorCode").isEqualTo(Yes24ErrorCode.BOOK_API_RATE_LIMITED);
+        assertThatThrownBy(() -> yes24Service.fetchSearchPage("한강", 1)).isSameAs(expected);
+        verify(quotaService).rateLimited(argThat(h -> "1793684959".equals(h.getFirst("x-ratelimit-reset-second"))));
+    }
+
+    @Test
+    @DisplayName("성공 응답의 한도 헤더를 기록한다")
+    void execute_recordsQuotaHeaders() throws IOException {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("x-ratelimit-remaining-day", "19995");
+        headers.add("x-ratelimit-reset-day", "1793718000");
+        server.expect(requestTo(startsWith(BASE_URL + "/v1/category/bestseller")))
+                .andRespond(withSuccess(fixture("bestseller.json"), MediaType.APPLICATION_JSON).headers(headers));
+
+        yes24Service.fetchBestsellers("001001046013", 5);
+
+        verify(quotaService).record(argThat(h -> "19995".equals(h.getFirst("x-ratelimit-remaining-day"))
+                && "1793718000".equals(h.getFirst("x-ratelimit-reset-day"))));
+    }
+
+    @Test
+    @DisplayName("베스트셀러 - 성공한 목록은 last-good으로 저장")
+    void fetchBestsellers_savesLastGood() throws IOException {
+        server.expect(requestTo(startsWith(BASE_URL + "/v1/category/bestseller")))
+                .andRespond(withSuccess(fixture("bestseller.json"), MediaType.APPLICATION_JSON));
+
+        List<BookResponseDto.BookPreviewDto> result = yes24Service.fetchBestsellers("001001046013", 5);
+
+        verify(quotaService).saveLastGood("001001046013", result);
+    }
+
+    @Test
+    @DisplayName("베스트셀러 - 한도 부족 단계이고 last-good이 있으면 호출 없이 반환")
+    void fetchBestsellers_quotaLow_lastGood() {
+        List<BookResponseDto.BookPreviewDto> lastGood = List.of(preview("지난 목록"));
+        given(quotaService.isLow()).willReturn(true);
+        given(quotaService.findLastGood("001001")).willReturn(Optional.of(lastGood));
+
+        assertThat(yes24Service.fetchBestsellers("001001", 10)).isEqualTo(lastGood);
+        server.verify(); // 기대한 요청 없음 = 호출하지 않음
+    }
+
+    @Test
+    @DisplayName("베스트셀러 - 한도 부족 단계라도 last-good이 없으면 호출해 저장")
+    void fetchBestsellers_quotaLow_noLastGood() throws IOException {
+        given(quotaService.isLow()).willReturn(true);
+        server.expect(requestTo(startsWith(BASE_URL + "/v1/category/bestseller")))
+                .andRespond(withSuccess(fixture("bestseller.json"), MediaType.APPLICATION_JSON));
+
+        List<BookResponseDto.BookPreviewDto> result = yes24Service.fetchBestsellers("001001046013", 5);
+
+        assertThat(result).hasSize(5);
+        server.verify();
+        verify(quotaService).saveLastGood("001001046013", result);
+    }
+
+    @Test
+    @DisplayName("베스트셀러 - 호출이 실패해도 last-good이 있으면 반환")
+    void fetchBestsellers_failure_lastGood() {
+        List<BookResponseDto.BookPreviewDto> lastGood = List.of(preview("지난 목록"));
+        given(quotaService.findLastGood("001001")).willReturn(Optional.of(lastGood));
+        server.expect(requestTo(startsWith(BASE_URL)))
+                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+        assertThat(yes24Service.fetchBestsellers("001001", 10)).isEqualTo(lastGood);
     }
 
     @Test
@@ -255,6 +331,10 @@ class Yes24ServiceTest {
         assertThatThrownBy(() -> yes24Service.lookupItem("9788937427282"))
                 .isInstanceOf(CustomException.class)
                 .extracting("errorCode").isEqualTo(Yes24ErrorCode.BOOK_API_ERROR);
+    }
+
+    private static BookResponseDto.BookPreviewDto preview(String title) {
+        return new BookResponseDto.BookPreviewDto("9788936434267", title, "저자", "https://example.com/cover.jpg", "출판사", 1);
     }
 
     private String fixture(String name) throws IOException {

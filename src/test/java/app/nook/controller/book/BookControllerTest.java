@@ -14,6 +14,10 @@
   import app.nook.global.config.WebSecurityConfig;
   import app.nook.global.docs.ApiResponseSnippet;
   import app.nook.global.exception.CustomException;
+  import app.nook.global.exception.RateLimitExceededException;
+  import app.nook.global.ratelimit.RateLimitPolicy;
+  import app.nook.global.ratelimit.RateLimiter;
+  import app.nook.global.response.CommonErrorCode;
   import app.nook.library.dto.ReadingStatusResponse;
   import app.nook.user.filter.JwtExceptionFilter;
   import app.nook.user.filter.JwtFilter;
@@ -33,6 +37,9 @@
   import static org.hamcrest.Matchers.aMapWithSize;
   import static org.mockito.ArgumentMatchers.*;
   import static org.mockito.BDDMockito.given;
+  import static org.mockito.BDDMockito.willThrow;
+  import static org.mockito.Mockito.never;
+  import static org.mockito.Mockito.verify;
   import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
   import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
   import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
@@ -41,6 +48,7 @@
   import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
   import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
   import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+  import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
   import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
   import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -65,6 +73,9 @@
 
       @MockitoBean
       private BookViewHistoryService bookViewHistoryService;
+
+      @MockitoBean
+      private RateLimiter rateLimiter;
 
       @Test
       @WithCustomUser
@@ -184,6 +195,41 @@
                                   fieldWithPath("result.readingStatus").description("독서 상태 (BEFORE, READING, FINISHED, UNREGISTERED)")
                           ))
                   ));
+      }
+
+      @Test
+      @WithCustomUser
+      @DisplayName("ISBN 상세 조회는 사용자 기준으로 요청을 제한한다")
+      void 도서_상세조회_요청제한_적용() throws Exception {
+          given(bookService.getBookDetailByIsbn(any(), any()))
+                  .willReturn(BookResponseDto.BookDetailDto.builder().build());
+
+          mockMvc.perform(get("/api/v1/books/{isbn13}", "9788936434267").header(AUTH_HEADER, AUTH_TOKEN))
+                  .andExpect(status().isOk());
+
+          verify(rateLimiter).consume(RateLimitPolicy.BOOK_DETAIL, "1");
+      }
+
+      @Test
+      @WithCustomUser
+      @DisplayName("ISBN 상세 조회 요청 한도 초과 시 429")
+      void 도서_상세조회_실패_요청한도초과() throws Exception {
+          willThrow(RateLimitExceededException.retryAfter(
+                  CommonErrorCode.TOO_MANY_REQUESTS, "요청 한도에 도달했습니다.", 42))
+                  .given(rateLimiter).consume(RateLimitPolicy.BOOK_DETAIL, "1");
+
+          mockMvc.perform(get("/api/v1/books/{isbn13}", "9788936434267").header(AUTH_HEADER, AUTH_TOKEN))
+                  .andExpect(status().isTooManyRequests())
+                  .andExpect(header().string("Retry-After", "42"))
+                  .andExpect(jsonPath("$.code").value("COMMON-006"))
+                  .andExpect(jsonPath("$.result.description").value("42초 후 다시 시도해 주세요."))
+                  .andDo(documentWithAuth(
+                          "{class-name}/{method-name}",
+                          ApiResponseSnippet.retryAfterHeader(),
+                          responseFields(ApiResponseSnippet.tooManyRequestsResponseFields())
+                  ));
+
+          verify(bookService, never()).getBookDetailByIsbn(any(), any());
       }
 
       @Test
