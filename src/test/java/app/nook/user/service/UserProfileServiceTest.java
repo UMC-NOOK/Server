@@ -112,22 +112,6 @@ class UserProfileServiceTest {
         }
 
         @Test
-        @DisplayName("닉네임이 없으면 이미지만 변경하고 기존 닉네임을 유지한다")
-        void 프로필정보_수정_닉네임없음() {
-            User user = UserFixture.user();
-            String oldNick = user.getNickName();
-            stubTransaction();
-            given(userRepository.findById(1L)).willReturn(Optional.of(user));
-            given(presignedUrlService.resolveImageUrl(1L, "profile/users/1/new.png"))
-                    .willReturn("https://cdn.example.com/new.png");
-
-            userProfileService.updateProfile(1L, null, "profile/users/1/new.png");
-
-            assertThat(user.getNickName()).isEqualTo(oldNick);
-            assertThat(user.getProfileImageKey()).isEqualTo("profile/users/1/new.png");
-        }
-
-        @Test
         @DisplayName("사용자가 없으면 USER_NOT_FOUND 예외를 던진다")
         void 프로필정보_수정_유저없음() {
             stubTransaction();

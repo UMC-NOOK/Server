@@ -328,7 +328,7 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         requestFields(
-                                fieldWithPath("nickName").description("수정할 닉네임 (공백 포함 1~10자, 영문·숫자·한글·공백, 앞뒤 공백 불가). 생략 시 기존 닉네임 유지").optional(),
+                                fieldWithPath("nickName").description("수정할 닉네임 (공백 포함 1~10자, 영문·숫자·한글·공백, 앞뒤 공백 불가)"),
                                 fieldWithPath("profileImageKey").description("업로드된 프로필 이미지 key. 생략 시 기존 이미지 유지").optional()
                         ),
                         responseFields(ApiResponseSnippet.withResult(
@@ -340,18 +340,15 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
 
     @Test
     @WithCustomUser
-    @DisplayName("프로필 정보 수정 성공 - 닉네임 생략 (이미지만 변경)")
-    void 프로필정보_수정_성공_닉네임생략() throws Exception {
-        given(userProfileService.updateProfile(anyLong(), isNull(), anyString()))
-                .willReturn(new UserProfileDto.ProfileUpdateResponse("기존닉네임", "https://cdn.example.com/new.png"));
-
+    @DisplayName("프로필 정보 수정 실패 - 닉네임 누락")
+    void 프로필정보_수정_실패_닉네임누락() throws Exception {
         mockMvc.perform(patch("/api/v1/users/me/profile")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "profileImageKey", "profile/users/1/uuid.png"
                         )))
                         .header(AUTH_HEADER, AUTH_TOKEN))
-                .andExpect(status().isOk());
+                .andExpect(status().isBadRequest());
     }
 
     @Test

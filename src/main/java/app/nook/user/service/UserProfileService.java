@@ -78,9 +78,7 @@ public class UserProfileService {
             User user = getUser(userId);
             String oldKey = user.getProfileImageKey();
 
-            if (nickName != null && !nickName.isBlank()) {
-                user.updateNickName(nickName);
-            }
+            user.updateNickName(nickName);
             if (hasNewImageKey) {
                 user.updateProfileImage(profileImageKey);
 

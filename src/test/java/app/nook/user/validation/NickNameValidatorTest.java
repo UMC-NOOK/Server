@@ -28,7 +28,7 @@ class NickNameValidatorTest {
     @org.junit.jupiter.api.Test
     @DisplayName("null은 검증기를 통과 (필수 여부는 @NotNull 담당)")
     void nullIsValid() {
-        assertThat(validator.validate(new UserProfileDto.ProfileUpdateRequest(null, null))).isEmpty();
+        assertThat(validator.validate(new UserProfileDto.ProfileUpdateRequest("닉", null))).isEmpty();
         assertThat(violation(null)).isNotNull(); // 닉네임 단독 수정은 @NotNull로 필수
     }
 
