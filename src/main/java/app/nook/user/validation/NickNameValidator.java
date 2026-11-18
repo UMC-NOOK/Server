@@ -8,9 +8,10 @@ import java.util.regex.Pattern;
 public class NickNameValidator implements ConstraintValidator<NickName, String> {
 
     static final int MAX_LENGTH = 10;
-    // 영문/숫자/한글로 시작·종료, 중간에만 공백 허용
+    // 영문/숫자/한글(완성형 + 자음·모음 단독)로 시작·종료, 중간에만 공백 허용
+    private static final String CHAR = "a-zA-Z0-9가-힣ㄱ-ㅣ";
     private static final Pattern ALLOWED =
-            Pattern.compile("^[a-zA-Z0-9가-힣](?:[a-zA-Z0-9가-힣 ]*[a-zA-Z0-9가-힣])?$");
+            Pattern.compile("^[" + CHAR + "](?:[" + CHAR + " ]*[" + CHAR + "])?$");
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
