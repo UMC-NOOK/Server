@@ -15,7 +15,10 @@ public class NickNameValidator implements ConstraintValidator<NickName, String> 
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
-        if (value == null || value.isBlank()) {
+        if (value == null) {
+            return true; // 필수 여부는 @NotNull로 판단 (프로필 수정처럼 선택 필드에서 허용)
+        }
+        if (value.isBlank()) {
             return fail(context, NickName.EMPTY_MESSAGE);
         }
         if (value.length() > MAX_LENGTH) {

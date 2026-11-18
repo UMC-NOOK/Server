@@ -15,7 +15,7 @@ public class OnboardingDto {
         @Min(1) @Max(300)
         private short goal;
 
-        @NickName
+        @NotNull(message = NickName.EMPTY_MESSAGE) @NickName
         private String nickname;
 
         @NotEmpty @Size(min = 1, max = 2)

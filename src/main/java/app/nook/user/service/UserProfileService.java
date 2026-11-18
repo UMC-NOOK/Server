@@ -67,25 +67,36 @@ public class UserProfileService {
         });
     }
 
-    // 프로필 이미지 소유권을 검증한 뒤 닉네임과 이미지를 하나의 DB 트랜잭션에서 변경한다
+    // 프로필 이미지 소유권을 검증한 뒤 닉네임과 이미지를 하나의 DB 트랜잭션에서 변경
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public UserProfileDto.ProfileUpdateResponse updateProfile(Long userId, String nickName, String profileImageKey) {
-        presignedUrlService.validateOwnedImageKey(userId, profileImageKey, "profile");
-
+        boolean hasNewImageKey = profileImageKey != null && !profileImageKey.isBlank();
+        if (hasNewImageKey) {
+            presignedUrlService.validateOwnedImageKey(userId, profileImageKey, "profile");
+        }
         return new TransactionTemplate(transactionManager).execute(status -> {
             User user = getUser(userId);
             String oldKey = user.getProfileImageKey();
 
             user.updateNickName(nickName);
-            user.updateProfileImage(profileImageKey);
+            if (hasNewImageKey) {
+                user.updateProfileImage(profileImageKey);
 
-            if (oldKey != null && !oldKey.isBlank() && !oldKey.equals(profileImageKey)) {
-                eventPublisher.publishEvent(new ProfileImageCleanupEvent(oldKey));
+                // 기존 이미지 정리 이벤트 발행
+                if (oldKey != null && !oldKey.isBlank() && !oldKey.equals(profileImageKey)) {
+                    eventPublisher.publishEvent(new ProfileImageCleanupEvent(oldKey));
+                }
             }
+
+            // 4. 최종 저장된(혹은 기존 유지된) 이미지 키를 기준으로 URL resolve
+            String currentImageKey = user.getProfileImageKey();
+            String profileImageUrl = currentImageKey != null && !currentImageKey.isBlank()
+                    ? presignedUrlService.resolveImageUrl(userId, currentImageKey)
+                    : null;
 
             return new UserProfileDto.ProfileUpdateResponse(
                     user.getNickName(),
-                    presignedUrlService.resolveImageUrl(userId, profileImageKey)
+                    profileImageUrl
             );
         });
     }

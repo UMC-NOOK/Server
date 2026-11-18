@@ -5,7 +5,6 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,8 +25,14 @@ class NickNameValidatorTest {
         assertThat(violation(nickName)).isNull();
     }
 
+    @org.junit.jupiter.api.Test
+    @DisplayName("null은 검증기를 통과 (필수 여부는 @NotNull 담당)")
+    void nullIsValid() {
+        assertThat(validator.validate(new UserProfileDto.ProfileUpdateRequest("닉", null))).isEmpty();
+        assertThat(violation(null)).isNotNull(); // 닉네임 단독 수정은 @NotNull로 필수
+    }
+
     @ParameterizedTest
-    @NullSource
     @ValueSource(strings = {"", " ", "     "})
     @DisplayName("비어있거나 공백만 있으면 모달1 메시지")
     void empty(String nickName) {

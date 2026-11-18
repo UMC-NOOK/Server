@@ -26,6 +26,7 @@ import java.util.Map;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
@@ -327,8 +328,8 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
                 .andDo(documentWithAuth(
                         "{class-name}/{method-name}",
                         requestFields(
-                                fieldWithPath("nickName").description("수정할 닉네임 (2~10자, 영문·숫자·한글·공백)"),
-                                fieldWithPath("profileImageKey").description("업로드된 프로필 이미지 key")
+                                fieldWithPath("nickName").description("수정할 닉네임 (공백 포함 1~10자, 영문·숫자·한글·공백, 앞뒤 공백 불가)"),
+                                fieldWithPath("profileImageKey").description("업로드된 프로필 이미지 key. 생략 시 기존 이미지 유지").optional()
                         ),
                         responseFields(ApiResponseSnippet.withResult(
                                 fieldWithPath("result.nickName").description("수정된 닉네임"),
@@ -344,6 +345,34 @@ class UserControllerTest extends AbstractWebMvcRestDocsTests {
         mockMvc.perform(patch("/api/v1/users/me/profile")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
+                                "profileImageKey", "profile/users/1/uuid.png"
+                        )))
+                        .header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("프로필 정보 수정 성공 - 이미지 생략 (닉네임만 변경)")
+    void 프로필정보_수정_성공_이미지생략() throws Exception {
+        given(userProfileService.updateProfile(anyLong(), anyString(), isNull()))
+                .willReturn(new UserProfileDto.ProfileUpdateResponse("새닉네임", null));
+
+        mockMvc.perform(patch("/api/v1/users/me/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("nickName", "새닉네임")))
+                        .header(AUTH_HEADER, AUTH_TOKEN))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithCustomUser
+    @DisplayName("프로필 정보 수정 실패 - 닉네임이 공백만")
+    void 프로필정보_수정_실패_닉네임공백() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/me/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "nickName", "   ",
                                 "profileImageKey", "profile/users/1/uuid.png"
                         )))
                         .header(AUTH_HEADER, AUTH_TOKEN))

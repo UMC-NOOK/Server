@@ -1,6 +1,7 @@
 package app.nook.user.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import app.nook.user.validation.NickName;
 import jakarta.validation.constraints.Size;
 
@@ -16,6 +17,7 @@ public class UserProfileDto {
 
 
     public record NickNameUpdateRequest(
+            @NotNull(message = NickName.EMPTY_MESSAGE)
             @NickName
             String nickName
     ) {}
@@ -35,9 +37,9 @@ public class UserProfileDto {
     ) {}
 
     public record ProfileUpdateRequest(
+            @NotNull(message = NickName.EMPTY_MESSAGE)
             @NickName
             String nickName,
-            @NotBlank
             @Size(max = 512)
             String profileImageKey
     ) {}
