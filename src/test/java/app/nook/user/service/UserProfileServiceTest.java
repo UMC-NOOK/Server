@@ -92,6 +92,42 @@ class UserProfileServiceTest {
         }
 
         @Test
+        @DisplayName("이미지 key가 없으면 닉네임만 변경하고 기존 이미지를 유지한다")
+        void 프로필정보_수정_이미지없음() {
+            User user = UserFixture.user();
+            ReflectionTestUtils.setField(user, "profileImageKey", "profile/users/1/old.png");
+            stubTransaction();
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(presignedUrlService.resolveImageUrl(1L, "profile/users/1/old.png"))
+                    .willReturn("https://cdn.example.com/old.png");
+
+            UserProfileDto.ProfileUpdateResponse response =
+                    userProfileService.updateProfile(1L, "새닉네임", null);
+
+            assertThat(user.getNickName()).isEqualTo("새닉네임");
+            assertThat(user.getProfileImageKey()).isEqualTo("profile/users/1/old.png");
+            assertThat(response.profileImageUrl()).isEqualTo("https://cdn.example.com/old.png");
+            verify(presignedUrlService, never()).validateOwnedImageKey(any(), any(), any());
+            verify(eventPublisher, never()).publishEvent(any(ProfileImageCleanupEvent.class));
+        }
+
+        @Test
+        @DisplayName("닉네임이 없으면 이미지만 변경하고 기존 닉네임을 유지한다")
+        void 프로필정보_수정_닉네임없음() {
+            User user = UserFixture.user();
+            String oldNick = user.getNickName();
+            stubTransaction();
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(presignedUrlService.resolveImageUrl(1L, "profile/users/1/new.png"))
+                    .willReturn("https://cdn.example.com/new.png");
+
+            userProfileService.updateProfile(1L, null, "profile/users/1/new.png");
+
+            assertThat(user.getNickName()).isEqualTo(oldNick);
+            assertThat(user.getProfileImageKey()).isEqualTo("profile/users/1/new.png");
+        }
+
+        @Test
         @DisplayName("사용자가 없으면 USER_NOT_FOUND 예외를 던진다")
         void 프로필정보_수정_유저없음() {
             stubTransaction();
