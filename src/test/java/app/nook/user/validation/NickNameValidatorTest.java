@@ -20,7 +20,7 @@ class NickNameValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"a", "한", "1", "홍 길동", "a b c", "Nook123", "가나다라마바사아자차", "가나다라 마바사아자"})
+    @ValueSource(strings = {"a", "한", "1", "홍 길동", "a b c", "Nook123", "가나다라마바사아자차", "가나다라 마바사아자", "ㅇㅇㅇㅇㅇ", "ㅋㅋ", "ㅏ", "ㅇㅇ 하이"})
     @DisplayName("1~10자, 영문·숫자·한글·중간 공백은 통과")
     void valid(String nickName) {
         assertThat(violation(nickName)).isNull();
@@ -42,7 +42,7 @@ class NickNameValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"nook!", "홍_길동", "😀", "a-b", "ㅋㅋ", " 홍길동", "홍길동 ", " a ", "a\tb", "a\nb"})
+    @ValueSource(strings = {"nook!", "홍_길동", "😀", "a-b", " 홍길동", "홍길동 ", " a ", "a\tb", "a\nb"})
     @DisplayName("허용 외 문자 또는 앞뒤 공백은 모달2 메시지")
     void invalidChar(String nickName) {
         assertThat(violation(nickName)).isEqualTo(NickName.INVALID_CHAR_MESSAGE);
